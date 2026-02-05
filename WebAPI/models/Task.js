@@ -6,7 +6,7 @@ const taskSchema = new mongoose.Schema({
   projectDetails: { type: String },
 
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  assignedTo: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  assignedTo: [{ type: mongoose.Schema.Types.ObjectId, ref: "Employee" }],
 
   estimatedTime: { type: Number, required: true },  // HOURS
   allocatedTime: { type: Number, required: true },  // HOURS
