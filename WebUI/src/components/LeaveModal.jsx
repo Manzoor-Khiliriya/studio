@@ -92,10 +92,10 @@ const LeaveModal = ({ isOpen, onClose, onSubmit, initialData }) => {
                   >
                     <option>Annual Leave</option>
                     <option>Sick Leave</option>
-                    <option>Personal</option>
-                    <option>Maternity</option>
-                    <option>Paternity</option>
-                    <option>Unpaid</option>
+                    <option>Personal Leave</option>
+                    <option>Maternity Leave</option>
+                    <option>Paternity Leave</option>
+                    <option>Unpaid Leave</option>
                   </select>
                   <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                     <HiOutlineDocumentText size={20} />

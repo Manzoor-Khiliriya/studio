@@ -21,11 +21,11 @@ const leaveSchema = new mongoose.Schema({
 
 }, { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } });
 
-leaveSchema.pre("validate", function(next) {
+leaveSchema.pre("validate", function () {
   if (this.endDate < this.startDate) {
-    next(new Error("End date cannot be before start date"));
+    throw new Error("End date cannot be before start date");
   }
-  next();
 });
+
 
 module.exports = mongoose.model("Leave", leaveSchema);

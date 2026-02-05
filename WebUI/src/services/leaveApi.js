@@ -8,14 +8,14 @@ export const leaveApiSlice = apiSlice.injectEndpoints({
     // 1. GET MY LEAVES (History + Stats)
     // Matches: GET /api/leaves/my
     getMyLeaves: builder.query({
-      query: () => '/leaves/my',
+      query: () => '/leaves/my-leaves',
       providesTags: ['Leave'],
     }),
 
     // 2. APPLY FOR LEAVE
     applyLeave: builder.mutation({
       query: (newLeave) => ({
-        url: '/leaves',
+        url: '/leaves/apply',
         method: 'POST',
         body: newLeave,
       }),
@@ -25,7 +25,7 @@ export const leaveApiSlice = apiSlice.injectEndpoints({
     // 3. UPDATE LEAVE (Pending only)
     updateLeave: builder.mutation({
       query: ({ id, ...updateData }) => ({
-        url: `/leaves/${id}`,
+        url: `/leaves/update/${id}`,
         method: 'PUT',
         body: updateData,
       }),
@@ -50,7 +50,7 @@ export const leaveApiSlice = apiSlice.injectEndpoints({
     // Matches: GET /api/leaves?status=Pending&search=John
     getAllLeaves: builder.query({
       query: (params) => ({
-        url: '/leaves',
+        url: '/leaves/all',
         params,
       }),
       providesTags: (result) =>

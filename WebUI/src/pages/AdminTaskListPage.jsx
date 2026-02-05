@@ -20,7 +20,7 @@ export default function AdminTasksPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(5);
   const [dateFilters, setDateFilters] = useState({ createdAt: "", startDate: "", endDate: "" });
   
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -113,7 +113,7 @@ export default function AdminTasksPage() {
     setSearchTerm("");
     setStatusFilter("All");
     setDateFilters({ createdAt: "", startDate: "", endDate: "" });
-    setLimit(10);
+    setLimit(5);
     setCurrentPage(1);
   };
 
@@ -168,7 +168,7 @@ export default function AdminTasksPage() {
                 onChange={(e) => { setLimit(Number(e.target.value)); setCurrentPage(1); }}
                 className="appearance-none pl-6 pr-12 py-4 bg-white border-2 border-slate-100 rounded-[1.5rem] focus:border-orange-500 outline-none font-black text-[10px] uppercase cursor-pointer transition-all text-slate-700"
               >
-                {[10, 25, 50].map(v => <option key={v} value={v}>{v} / Page</option>)}
+                {[5, 10, 25, 50].map(v => <option key={v} value={v}>{v} / Page</option>)}
               </select>
               <HiOutlineAdjustmentsHorizontal className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
             </div>

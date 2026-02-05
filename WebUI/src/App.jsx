@@ -52,7 +52,7 @@ function App() {
           <Routes>
             {/* PUBLIC ROUTES */}
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/home" element={<Navigate to="/login" replace />} />
 
             {/* ADMIN SECTION */}
             <Route element={<ProtectedRoute roleRequired="Admin" />}>
