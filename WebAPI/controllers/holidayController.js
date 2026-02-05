@@ -1,42 +1,84 @@
-const Holiday = require('../models/Holiday');
+const Holiday = require("../models/Holiday");
 
-// 🟢 Get all holidays (sorted by date)
+/**
+ * Get holidays (optional year filter)
+ */
 exports.getHolidays = async (req, res) => {
   try {
-    const holidays = await Holiday.find().sort({ date: 1 });
+    const { year } = req.query;
+    const query = {};
+
+    if (year) {
+      query.date = {
+        $gte: new Date(`${year}-01-01`),
+        $lte: new Date(`${year}-12-31T23:59:59.999Z`)
+      };
+    }
+
+    const holidays = await Holiday.find(query).sort({ date: 1 }).lean();
     res.json(holidays);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// 🟢 Add a single holiday
+/**
+ * Add holiday
+ */
 exports.addHoliday = async (req, res) => {
   try {
-    const { name, date, description } = req.body;
-    const holiday = await Holiday.create({ name, date, description });
+    const holiday = await Holiday.create(req.body);
     res.status(201).json(holiday);
   } catch (err) {
-    if (err.code === 11000) return res.status(400).json({ message: "Holiday already exists for this date." });
+    if (err.code === 11000)
+      return res.status(400).json({ message: "Holiday already exists for this date." });
+
     res.status(500).json({ error: err.message });
   }
 };
 
-// 🟢 Bulk Add (Useful for new year setup)
+/**
+ * Update holiday
+ */
+exports.updateHoliday = async (req, res) => {
+  try {
+    const holiday = await Holiday.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    if (!holiday) return res.status(404).json({ message: "Holiday not found." });
+
+    res.json(holiday);
+  } catch (err) {
+    if (err.code === 11000)
+      return res.status(400).json({ message: "Date conflict with another holiday." });
+
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * Bulk add
+ */
 exports.bulkAddHolidays = async (req, res) => {
   try {
-    const { holidays } = req.body; // Expects an array of {name, date}
-    const result = await Holiday.insertMany(holidays, { ordered: false });
-    res.status(201).json({ message: `${result.length} holidays added successfully.` });
+    const result = await Holiday.insertMany(req.body.holidays, { ordered: false });
+    res.status(201).json({ message: `${result.length} holidays added.` });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// 🟢 Delete a holiday
+/**
+ * Delete
+ */
 exports.deleteHoliday = async (req, res) => {
   try {
-    await Holiday.findByIdAndDelete(req.params.id);
+    const holiday = await Holiday.findByIdAndDelete(req.params.id);
+    if (!holiday) return res.status(404).json({ message: "Holiday not found." });
+
     res.json({ message: "Holiday removed." });
   } catch (err) {
     res.status(500).json({ error: err.message });

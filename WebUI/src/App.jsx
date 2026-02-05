@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { Toaster } from "react-hot-toast";
 
 // Components & Layout
 import Layout from "./components/Layout";
@@ -22,12 +21,12 @@ import { Provider } from "react-redux";
 import { store } from "./config/store";
 import AdminHolidayPage from "./pages/AdminHolidayPage";
 import EmployeeHolidayPage from "./pages/EmployeeHolidayPage";
+import { Toaster } from "react-hot-toast";
 
 function App() {
   return (
     <Provider store={store}>
       <BrowserRouter>
-        {/* Themed Toaster to match your premium UI */}
         <Toaster
           position="top-right"
           toastOptions={{
@@ -51,80 +50,35 @@ function App() {
 
         <div className="min-h-screen bg-slate-50">
           <Routes>
-            {/* PUBLIC ROUTE */}
+            {/* PUBLIC ROUTES */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={<Navigate to="/login" replace />} />
 
-            {/* ADMIN ROUTES (Protected) */}
-            <Route path="/admin" element={
-              <ProtectedRoute roleRequired="Admin">
-                <Layout><AdminDashboard /></Layout>
-              </ProtectedRoute>
-            } />
-            <Route path="/employees" element={
-              <ProtectedRoute roleRequired="Admin">
-                <Layout><EmployeeListPage /></Layout>
-              </ProtectedRoute>
-            } />
-            <Route path="/employees/:id" element={
-              <ProtectedRoute roleRequired="Admin">
-                <Layout><EmployeeDetailPage /></Layout>
-              </ProtectedRoute>
-            } />
-            <Route path="/tasks" element={
-              <ProtectedRoute roleRequired="Admin">
-                <Layout><AdminTasksPage /></Layout>
-              </ProtectedRoute>
-            } />
-            <Route path="/tasks/:id" element={
-              <ProtectedRoute roleRequired="Admin">
-                <Layout><AdminTaskDetailPage /></Layout>
-              </ProtectedRoute>
-            } />
-            {/* <Route path="/reports" element={
-              <ProtectedRoute roleRequired="Admin">
-                <Layout><AdminReportsPage /></Layout>
-              </ProtectedRoute>
-            } /> */}
-            <Route path="/leaves" element={
-              <ProtectedRoute roleRequired="Admin">
-                <Layout><AdminLeavePage /></Layout>
-              </ProtectedRoute>
-            } />
-            <Route path="/holidays" element={
-              <ProtectedRoute roleRequired="Admin">
-                <Layout><AdminHolidayPage /></Layout>
-              </ProtectedRoute>
-            } />
+            {/* ADMIN SECTION */}
+            <Route element={<ProtectedRoute roleRequired="Admin" />}>
+              <Route element={<Layout />}>
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/employees" element={<EmployeeListPage />} />
+                <Route path="/employees/:id" element={<EmployeeDetailPage />} />
+                <Route path="/tasks" element={<AdminTasksPage />} />
+                <Route path="/tasks/:id" element={<AdminTaskDetailPage />} />
+                <Route path="/leaves" element={<AdminLeavePage />} />
+                <Route path="/holidays" element={<AdminHolidayPage />} />
+              </Route>
+            </Route>
 
-            {/* EMPLOYEE ROUTES (Protected) */}
-            <Route path="/employee" element={
-              <ProtectedRoute roleRequired="Employee">
-                <Layout><EmployeeDashboard /></Layout>
-              </ProtectedRoute>
-            } />
-            <Route path="/my-tasks" element={
-              <ProtectedRoute roleRequired="Employee">
-                <Layout><MyTasksPage /></Layout>
-              </ProtectedRoute>
-            } />
-            <Route path="/my-reports" element={
-              <ProtectedRoute roleRequired="Employee">
-                <Layout><EmployeeReportsPage /></Layout>
-              </ProtectedRoute>
-            } />
-            <Route path="/my-leaves" element={
-              <ProtectedRoute roleRequired="Employee">
-                <Layout><EmployeeLeavePage /></Layout>
-              </ProtectedRoute>
-            } />
-            <Route path="/public-holidays" element={
-              <ProtectedRoute roleRequired="Employee">
-                <Layout><EmployeeHolidayPage /></Layout>
-              </ProtectedRoute>
-            } />
+            {/* EMPLOYEE SECTION */}
+            <Route element={<ProtectedRoute roleRequired="Employee" />}>
+              <Route element={<Layout />}>
+                <Route path="/employee" element={<EmployeeDashboard />} />
+                <Route path="/my-tasks" element={<MyTasksPage />} />
+                <Route path="/my-reports" element={<EmployeeReportsPage />} />
+                <Route path="/my-leaves" element={<EmployeeLeavePage />} />
+                <Route path="/public-holidays" element={<EmployeeHolidayPage />} />
+              </Route>
+            </Route>
 
-            {/* 404/FALLBACK */}
+            {/* FALLBACK */}
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </div>

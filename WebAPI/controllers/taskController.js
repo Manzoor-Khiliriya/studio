@@ -1,138 +1,156 @@
+const mongoose = require("mongoose");
 const Task = require("../models/Task");
-const { isActiveAdmin } = require("../utils/userHelpers");
-const { groupSessionsByDay, calculateEstimatedMinutes } = require("../utils/taskHelpers");
+const TimeLog = require("../models/TimeLog");
+const { calculateEstimatedHours } = require("../utils/taskHelpers");
+const { calculateEmployeeAvailableHours } = require("../utils/workerHelpers");
+const { isUserOnLeaveDuring } = require("../utils/leaveHelpers");
+const Employee = require("../models/Employee");
 
-/* =============================================================
-    ADMIN CONTROLLERS
-   ============================================================= */
+/* =========================================================
+   ADMIN CONTROLLERS
+   ========================================================= */
 
-/**
- * 🧑‍💼 Create a new task
- * Expects projectNumber, startDate, endDate, and estimatedTime from Frontend
- */
 exports.createTask = async (req, res) => {
   try {
-    if (!isActiveAdmin(req.user)) {
-      return res.status(403).json({ message: "Access denied." });
+    const { title, projectNumber, projectDetails, assignedTo, startDate, endDate, priority } = req.body;
+
+    if (!title || !projectNumber || !assignedTo?.length || !startDate || !endDate) {
+      return res.status(400).json({ message: "Missing required fields" });
     }
 
-    const {
-      title, projectNumber, projectDetails, assignedTo,
-      startDate, endDate, priority, allocatedTime // NEW: Received from Frontend
-    } = req.body;
-
-    // Validation
-    if (!title || !projectNumber || !assignedTo?.length || !startDate || !endDate || !allocatedTime) {
-      return res.status(400).json({ message: "Missing required fields (including Allocated Time)" });
+    if (await Task.exists({ projectNumber })) {
+      return res.status(400).json({ message: "Project number already exists" });
     }
 
-    // BACKEND CALCULATION (Calendar-based estimation)
-    const estimatedTime = calculateEstimatedMinutes(startDate, endDate);
+    const start = new Date(startDate);
+    const end = new Date(endDate);
 
-    // Check for Unique Project Number
-    const existingProject = await Task.findOne({ projectNumber });
-    if (existingProject) {
-      return res.status(400).json({ message: `Project Number "${projectNumber}" already exists.` });
+    if (isNaN(start) || isNaN(end)) {
+      return res.status(400).json({ message: "Invalid start or end date" });
     }
 
-    const workLogs = assignedTo.map(empId => ({
-      employee: empId,
-      totalMinutesConsumed: 0,
-      isTimerRunning: false,
-      sessions: []
-    }));
+    // 🔴 Leave conflict check
+    for (const userId of assignedTo) {
+      const onLeave = await isUserOnLeaveDuring(userId, startDate, endDate);
+      if (onLeave) {
+        return res.status(400).json({
+          message: `Cannot assign task. User ${userId} has approved leave during this period.`
+        });
+      }
+    }
+
+
+    // 🧠 Estimated hours (calendar aware)
+    const estimatedTime = await calculateEstimatedHours(startDate, endDate);
+
+    // 🧠 Employee join-date capacity adjustment
+    let minAvailableHours = Infinity;
+
+    for (const userId of assignedTo) {
+      const emp = await Employee.findOne({ user: userId });
+      const available = await calculateEmployeeAvailableHours(startDate, endDate, emp?.joinedDate);
+      minAvailableHours = Math.min(minAvailableHours, available);
+    }
+
+    const allocatedTime = Math.min(estimatedTime, minAvailableHours);
 
     const task = await Task.create({
       title,
       projectNumber,
       projectDetails,
-      createdBy: req.user.id,
-      assignedTo: workLogs,
-      estimatedTime, // Keep your auto-calc here
-      allocatedTime: estimatedTime, // Start with the system suggestion
+      createdBy: req.user._id,
+      assignedTo,
+      estimatedTime,
+      allocatedTime,
       priority: priority || "Medium",
       startDate,
       endDate,
-      assignmentDate: new Date(),
     });
 
     res.status(201).json(task);
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-/**
- * 🧑‍💼 Update task (supports projectNumber and date changes)
- */
 exports.updateTask = async (req, res) => {
   try {
-    if (!isActiveAdmin(req.user)) {
-      return res.status(403).json({ message: "Access denied." });
+    const update = { ...req.body };
+
+    const start = update.startDate || req.body.startDate;
+    const end = update.endDate || req.body.endDate;
+
+    // 🔴 Leave conflict check if assignments or dates changed
+    if (update.assignedTo && start && end) {
+      for (const userId of update.assignedTo) {
+        const onLeave = await isUserOnLeaveDuring(userId, start, end);
+        if (onLeave) {
+          return res.status(400).json({
+            message: `Cannot assign task. User ${userId} is on approved leave.`
+          });
+        }
+      }
     }
 
-    const { id } = req.params;
-    const {
-      title, projectNumber, projectDetails, assignedTo,
-      startDate, endDate, priority, allocatedTime, status
-    } = req.body;
+    // 🧠 Recalculate estimates if dates changed
+    if (update.startDate && update.endDate) {
+      update.estimatedTime = await calculateEstimatedHours(update.startDate, update.endDate);
 
-    // 1. Prepare the update object
-    const updateData = {
-      title,
-      projectNumber,
-      projectDetails,
-      priority,
-      status,
-      startDate,
-      endDate
-    };
+      let minAvailableHours = Infinity;
 
-    // 2. Handle Allocated Time (Convert Hours back to Minutes)
-    if (allocatedTime !== undefined) {
-      updateData.allocatedTime = Number(allocatedTime) * 60;
+      const employees = update.assignedTo || (await Task.findById(req.params.id).select("assignedTo")).assignedTo;
+
+      for (const userId of employees) {
+        const emp = await Employee.findOne({ user: userId });
+        const available = await calculateEmployeeAvailableHours(update.startDate, update.endDate, emp?.joinedDate);
+        minAvailableHours = Math.min(minAvailableHours, available);
+      }
+
+      update.allocatedTime = Math.min(update.estimatedTime, minAvailableHours);
     }
 
-    // 3. Handle Assigned Personnel
-    // If assignedTo is an array of IDs, we need to map them back to the workLog format
-    if (assignedTo && Array.isArray(assignedTo)) {
-      // NOTE: Be careful here—if you overwrite assignedTo entirely, 
-      // you might lose existing work logs/timer data. 
-      // Most systems only update the list of employees while keeping logs.
-      updateData.assignedTo = assignedTo.map(empId => ({
-        employee: empId,
-        // Keep default values for new assignments
-        totalMinutesConsumed: 0,
-        isTimerRunning: false,
-        sessions: []
-      }));
-    }
+    const task = await Task.findByIdAndUpdate(
+      req.params.id,
+      update,
+      { new: true, runValidators: true }
+    ).populate("assignedTo", "name");
 
-    // 4. Recalculate Estimation if dates changed
-    if (startDate && endDate) {
-      updateData.estimatedTime = calculateEstimatedMinutes(startDate, endDate);
-    }
+    if (!task) return res.status(404).json({ message: "Task not found" });
 
-    const updatedTask = await Task.findByIdAndUpdate(
-      id,
-      { $set: updateData },
-      { new: true, runValidators: true } // runValidators ensures allocatedTime is checked
-    ).populate("assignedTo.employee", "name");
+    res.json(task);
 
-    if (!updatedTask) {
-      return res.status(404).json({ message: "Task not found." });
-    }
-
-    res.json(updatedTask);
   } catch (err) {
-    console.error("Update Error:", err);
     res.status(500).json({ error: err.message });
   }
 };
 
 /**
- * 🧑‍💼 Get all tasks with multi-filter (Admin)
- * Filters: start, end, search (Title or Project Number)
+ * Delete Task + its logs
+ */
+exports.deleteTask = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const task = await Task.findByIdAndDelete(req.params.id).session(session);
+    if (!task) throw new Error("Task not found");
+
+    await TimeLog.deleteMany({ task: task._id }).session(session);
+
+    await session.commitTransaction();
+    res.json({ message: "Task and related logs deleted" });
+
+  } catch (err) {
+    await session.abortTransaction();
+    res.status(500).json({ error: err.message });
+  } finally {
+    session.endSession();
+  }
+};
+
+/**
+ * Get All Tasks (Admin View with filters)
  */
 exports.getAllTasks = async (req, res) => {
   try {
@@ -176,139 +194,78 @@ exports.getAllTasks = async (req, res) => {
 
     // Pagination Logic
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    const totalTasks = await Task.countDocuments(query);
 
     const tasks = await Task.find(query)
-      .populate("assignedTo.employee", "name")
+      .populate("assignedTo", "name")
+      .populate("timeLogs")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
 
+    const total = await Task.countDocuments(query);
+
     res.json({
       tasks,
-      totalTasks,
-      totalPages: Math.ceil(totalTasks / limit),
+      totalTasks: total,
+      totalPages: Math.ceil(total / parseInt(limit)),
       currentPage: parseInt(page)
     });
-  } catch (error) {
-    res.status(500).json({ message: "Server Error", error: error.message });
-  }
-};
 
-/**
- * 🧑‍💼 Get tasks for a specific employee with filters
- */
-exports.getTasksByEmployee = async (req, res) => {
-  try {
-    // Use || to try both common parameter names
-    const userId = req.params.userId || req.params.id;
-
-    // VALIDATION: Stop the execution if the ID is missing or is the string "undefined"
-    if (!userId || userId === "undefined") {
-      console.error("Backend received an invalid ID:", userId);
-      return res.status(400).json({ 
-        message: "A valid Employee ID is required to fetch tasks." 
-      });
-    }
-
-    const { start, end, search } = req.query;
-
-    // Use the validated userId
-    let filter = { "assignedTo.employee": userId };
-
-    if (start && end) {
-      filter.startDate = { $gte: new Date(start) };
-      filter.endDate = { $lte: new Date(end) };
-    }
-
-    if (search) {
-      filter.$and = [
-        { "assignedTo.employee": userId },
-        {
-          $or: [
-            { title: { $regex: search, $options: "i" } },
-            { projectNumber: { $regex: search, $options: "i" } }
-          ]
-        }
-      ];
-    }
-
-    const tasks = await Task.find(filter).sort({ createdAt: -1 });
-    
-     const formattedTasks = tasks.map(t => ({
-      taskId: t._id,
-      projectNumber: t.projectNumber,
-      title: t.title,
-      estimatedTime: t.estimatedTime,
-      status: t.status,
-      startDate: t.startDate,
-      endDate: t.endDate,
-      createdAt: t.createdAt
-    }));
-
-    res.json(formattedTasks);
-  } catch (err) {
-    console.error("Task Fetch Error:", err);
-    res.status(500).json({ message: "Error fetching employee tasks", error: err.message });
-  }
-};
-/**
- * 🧑‍💼 Delete Task
- */
-exports.deleteTask = async (req, res) => {
-  try {
-    if (!isActiveAdmin(req.user)) return res.status(403).json({ message: "Forbidden" });
-    await Task.findByIdAndDelete(req.params.id);
-    res.json({ message: "Task deleted successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
 /**
- * 🧑‍💼 Get Full Task Detail
+ * Get Single Task Detail
  */
 exports.getTaskDetail = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id)
-      .populate("createdBy", "name email")
-      .populate("assignedTo.employee", "name email role status")
-      .lean();
+      .populate("createdBy", "name")
+      .populate("assignedTo", "name email")
+      .populate("timeLogs");
 
     if (!task) return res.status(404).json({ message: "Task not found" });
 
-    // Enforce daily logs breakdown for details view
-    const assigneeBreakdown = task.assignedTo.map(w => ({
-      employeeId: w.employee?._id,
-      name: w.employee?.name,
-      totalMinutesConsumed: w.totalMinutesConsumed || 0,
-      dailyLogs: groupSessionsByDay(w.sessions),
-      isTimerRunning: w.isTimerRunning
-    }));
-
-    res.json({ ...task, assignees: assigneeBreakdown });
+    res.json(task);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-/* =============================================================
-    EMPLOYEE CONTROLLERS
-   ============================================================= */
+/**
+ * Admin view: Tasks by employee
+ */
+exports.getTasksByEmployee = async (req, res) => {
+  try {
+    const tasks = await Task.find({ assignedTo: req.params.userId })
+      .populate("timeLogs")
+      .sort({ createdAt: -1 });
 
+    res.json(tasks);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/* =========================================================
+   EMPLOYEE CONTROLLERS
+   ========================================================= */
+
+/**
+ * Get My Tasks (Employee Dashboard)
+ */
 exports.getMyTasks = async (req, res) => {
   try {
     const { search, status, page = 1, limit = 6 } = req.query;
-    
-    // 1. Base filter: Only tasks assigned to this user
-    let query = { "assignedTo.employee": req.user.id };
 
-    // 2. Add Status Filter
-    if (status && status !== "All") {
-      query.status = status;
-    }
+    const pageNum = Math.max(1, Number(page));
+    const limitNum = Math.min(50, Number(limit));
+    const skip = (pageNum - 1) * limitNum;
 
-    // 3. Add Search Filter (Title or Project Number)
+    const query = { assignedTo: req.user._id };
+
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: "i" } },
@@ -316,26 +273,27 @@ exports.getMyTasks = async (req, res) => {
       ];
     }
 
-    // 4. Pagination Calculation
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const totalTasks = await Task.countDocuments(query);
+    if (status && status !== "All") query.status = status;
 
-    // 5. Execute Query
     const tasks = await Task.find(query)
       .populate("createdBy", "name")
-      .sort({ createdAt: -1 }) // Newest assignments first
+      .populate("timeLogs")
+      .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(limitNum);
+
+    const total = await Task.countDocuments(query);
 
     res.json({
       tasks,
       pagination: {
-        current: parseInt(page),
-        total: Math.ceil(totalTasks / limit),
-        count: totalTasks
+        current: pageNum,
+        totalPages: Math.ceil(total / limitNum),
+        totalTasks: total,
       }
     });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-};;
+};

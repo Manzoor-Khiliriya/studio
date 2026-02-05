@@ -3,29 +3,36 @@ const router = express.Router();
 const timeLogController = require("../controllers/timeLogController");
 const { authenticate, authorize } = require("../middlewares/authMiddleware");
 
-// --- EMPLOYEE ROUTES (Self-management) ---
+/* =========================================================
+   EMPLOYEE ROUTES (Self Time Tracking)
+   ========================================================= */
+router.use(authenticate);
 
-// Start or Resume a task
-router.post("/start", authenticate, timeLogController.startTimer);
+// Start working on a task
+router.post("/start", timeLogController.startTimer);
 
-// Stop the current timer (Clock out or end task)
-router.post("/stop", authenticate, timeLogController.stopTimer);
-router.post("/pause", authenticate, timeLogController.togglePause);
+// Pause / Resume (work <-> break)
+router.post("/pause", timeLogController.togglePause);
 
-// View personal logs (For the employee dashboard)
-router.get("/my", authenticate, timeLogController.getMyLogs);
+// Stop current timer
+router.post("/stop", timeLogController.stopTimer);
+
+// Get today’s logs + active status
+router.get("/my", timeLogController.getMyLogs);
 
 
-// --- ADMIN & MANAGEMENT ROUTES ---
+/* =========================================================
+   ADMIN REPORT ROUTES
+   ========================================================= */
 
-/** * Daily Report for all employees
- * Accessible only by Admin 
- */
-router.get("/report", authenticate, authorize("admin"), timeLogController.getTaskPerformanceReport);
+// Overall task performance (hours spent vs allocated)
+router.get("/report/tasks", authorize("Admin"), timeLogController.getTaskPerformanceReport);
 
-/** * Weekly report for a specific employee
- * Added the missing "/" and protected it for Admin use
- */
-router.get("/report/employee/:id", authenticate, authorize("admin"), timeLogController.employeeWeeklyReport);
+// Weekly report for specific employee
+router.get(
+  "/report/employee/:userId",
+  authorize("Admin"),
+  timeLogController.employeeWeeklyReport
+);
 
 module.exports = router;

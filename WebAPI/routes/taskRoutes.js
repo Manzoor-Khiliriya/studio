@@ -3,40 +3,36 @@ const router = express.Router();
 const taskController = require("../controllers/taskController");
 const { authenticate, authorize } = require("../middlewares/authMiddleware");
 
-/** * @access All Task routes require a valid token
- */
+/* All routes require login */
 router.use(authenticate);
 
-/* =============================================================
-   ADMIN ROUTES
-   ============================================================= */
+/* ================= ADMIN ROUTES ================= */
 
-// Create a new task (POST /api/tasks/)
-router.post("/", taskController.createTask);
+// Create task
+router.post("/", authorize("Admin"), taskController.createTask);
 
-// Get all tasks for Admin list view (GET /api/tasks/all)
+// Get all tasks (admin dashboard)
 router.get("/all", authorize("Admin"), taskController.getAllTasks);
-// Update a task (PUT /api/tasks/:id)
-router.put("/:id", taskController.updateTask);
 
-// Delete a task (DELETE /api/tasks/:id)
-router.delete("/:id", taskController.deleteTask);
+// Update task
+router.put("/:id", authorize("Admin"), taskController.updateTask);
+
+// Delete task
+router.delete("/:id", authorize("Admin"), taskController.deleteTask);
+
+// View tasks assigned to specific employee
+router.get("/employee-tasks/:userId", authorize("Admin"), taskController.getTasksByEmployee);
 
 
-/* =============================================================
-   SHARED / DETAIL ROUTES
-   ============================================================= */
+/* ================= SHARED ROUTES ================= */
 
-// Get full details of a specific task (GET /api/tasks/detail/:id)
-// Used by both Admin and Assigned Employees
+// Task detail (Admin + assigned employees)
 router.get("/detail/:id", taskController.getTaskDetail);
-router.get('/admin/employee-tasks/:userId', authenticate, authorize("Admin"), taskController.getTasksByEmployee);
 
-/* =============================================================
-   EMPLOYEE ROUTES
-   ============================================================= */
 
-// Get tasks assigned only to the logged-in user (GET /api/tasks/me)
-router.get("/me", taskController.getMyTasks);
+/* ================= EMPLOYEE ROUTES ================= */
+
+// Logged-in employee tasks
+router.get("/my-tasks", taskController.getMyTasks);
 
 module.exports = router;

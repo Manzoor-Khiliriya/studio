@@ -1,88 +1,97 @@
 import { apiSlice } from './apiSlice';
 
-export const taskApi = apiSlice.injectEndpoints({
+export const taskApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
+    
+    // --- ADMIN ENDPOINTS ---
 
-    // 1. GET ALL TASKS (Admin only)
-    // Matches: GET /api/tasks/all
+    // 1. GET ALL TASKS (Admin Dashboard)
+    // Matches: GET /api/tasks/all?search=...&status=...&page=...
     getAllTasks: builder.query({
       query: (params) => ({
         url: '/tasks/all',
-        params, // Pass search, page, limit, dates here
+        params, // Handles pagination, search, and status filters
       }),
-      providesTags: ['Task'],
+      providesTags: (result) =>
+        result?.tasks
+          ? [
+              ...result.tasks.map(({ _id }) => ({ type: 'Task', id: _id })),
+              { type: 'Task', id: 'LIST' },
+            ]
+          : [{ type: 'Task', id: 'LIST' }],
     }),
 
-    // 2. GET TASK DETAIL
-    // Matches: GET /api/tasks/detail/:id
-    getTaskDetail: builder.query({
-      query: (id) => `/tasks/detail/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Task', id }],
-    }),
-
-    // 3. GET TASKS BY EMPLOYEE (Admin only)
-    // Matches: GET /api/tasks/admin/employee-tasks/:userId
-    getTasksByEmployee: builder.query({
-      query: (userId) => `/tasks/admin/employee-tasks/${userId}`,
-      providesTags: ['Task'],
-    }),
-
-    // 4. GET MY TASKS (Logged in employee)
-    // Matches: GET /api/tasks/me
-    getMyTasks: builder.query({
-      query: (params) => ({
-        url: '/tasks/me',
-        method: 'GET',
-        params: {
-          ...params,
-          // If status is "All", we send an empty string so the backend ignores the filter
-          status: params?.status === "All" ? "" : params?.status
-        },
-      }),
-      providesTags: ['Task'],
-    }),
-
-    // 5. CREATE TASK
-    // Matches: POST /api/tasks/
+    // 2. CREATE TASK
     createTask: builder.mutation({
       query: (newTask) => ({
         url: '/tasks',
         method: 'POST',
         body: newTask,
       }),
-      invalidatesTags: ['Task'], // Refreshes all lists automatically
+      invalidatesTags: [{ type: 'Task', id: 'LIST' }],
     }),
 
-    // 6. UPDATE TASK
-    // Matches: PUT /api/tasks/:id
+    // 3. UPDATE TASK
     updateTask: builder.mutation({
-      query: ({ id, ...updatedData }) => ({
+      query: ({ id, ...updateData }) => ({
         url: `/tasks/${id}`,
         method: 'PUT',
-        body: updatedData,
+        body: updateData,
       }),
-      invalidatesTags: (result, error, { id }) => ['Task', { type: 'Task', id }],
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Task', id: 'LIST' },
+        { type: 'Task', id },
+      ],
     }),
 
-    // 7. DELETE TASK
-    // Matches: DELETE /api/tasks/:id
+    // 4. DELETE TASK
     deleteTask: builder.mutation({
       query: (id) => ({
         url: `/tasks/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: ['Task'],
+      invalidatesTags: [{ type: 'Task', id: 'LIST' }],
+    }),
+
+    // 5. GET TASKS BY SPECIFIC EMPLOYEE (Admin View)
+    getTasksByEmployee: builder.query({
+      query: (userId) => `/tasks/employee-tasks/${userId}`,
+      providesTags: ['Task'],
+    }),
+
+    // --- SHARED ENDPOINTS ---
+
+    // 6. GET TASK DETAIL
+    getTaskDetail: builder.query({
+      query: (id) => `/tasks/detail/${id}`,
+      providesTags: (result, error, id) => [{ type: 'Task', id }],
+    }),
+
+    // --- EMPLOYEE ENDPOINTS ---
+
+    // 7. GET MY TASKS (Employee Dashboard)
+    getMyTasks: builder.query({
+      query: (params) => ({
+        url: '/tasks/my-tasks',
+        params,
+      }),
+      providesTags: (result) =>
+        result?.tasks
+          ? [
+              ...result.tasks.map(({ _id }) => ({ type: 'Task', id: _id })),
+              { type: 'Task', id: 'MY_LIST' },
+            ]
+          : [{ type: 'Task', id: 'MY_LIST' }],
     }),
   }),
 });
 
-// Export hooks for use in components
 export const {
   useGetAllTasksQuery,
-  useGetTaskDetailQuery,
-  useGetTasksByEmployeeQuery,
-  useGetMyTasksQuery,
   useCreateTaskMutation,
   useUpdateTaskMutation,
   useDeleteTaskMutation,
-} = taskApi;
+  useGetTasksByEmployeeQuery,
+  useGetTaskDetailQuery,
+  useGetMyTasksQuery,
+} = taskApiSlice;

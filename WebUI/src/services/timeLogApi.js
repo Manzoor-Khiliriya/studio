@@ -1,68 +1,69 @@
 import { apiSlice } from './apiSlice';
 
-export const timeLogApi = apiSlice.injectEndpoints({
+export const timeLogApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     
-    // --- EMPLOYEE ENDPOINTS ---
-
-    // Start/Resume Timer: POST /api/timelogs/start
-    startTimer: builder.mutation({
-      query: (body) => ({
-        url: '/timelogs/start',
-        method: 'POST',
-        body, // Expects { taskId, userId }
-      }),
-      invalidatesTags: ['Task', 'TimeLog'], 
-    }),
-
-    // Stop Timer: POST /api/timelogs/stop
-    stopTimer: builder.mutation({
-      query: (body) => ({
-        url: '/timelogs/stop',
-        method: 'POST',
-        body,
-      }),
-      invalidatesTags: ['Task', 'TimeLog'],
-    }),
-
-    // Toggle Pause: POST /api/timelogs/pause
-    togglePause: builder.mutation({
-      query: (body) => ({
-        url: '/timelogs/pause',
-        method: 'POST',
-        body,
-      }),
-      invalidatesTags: ['TimeLog'],
-    }),
-
-    // Get My Logs: GET /api/timelogs/my
-    getMyLogs: builder.query({
+    // 1. GET TODAY'S LOGS & ACTIVE STATUS
+    // Matches: GET /api/timelogs/my
+    getMyTodayLogs: builder.query({
       query: () => '/timelogs/my',
       providesTags: ['TimeLog'],
     }),
 
-
-    // --- ADMIN ENDPOINTS ---
-
-    // Daily Performance Report: GET /api/timelogs/report
-    getDailyReport: builder.query({
-      query: () => '/timelogs/report',
-      providesTags: ['TimeLog'],
+    // 2. START TIMER
+    // Matches: POST /api/timelogs/start
+    startTimer: builder.mutation({
+      query: (taskId) => ({
+        url: '/timelogs/start',
+        method: 'POST',
+        body: { taskId },
+      }),
+      // Invalidates TimeLog to refresh the log list, 
+      // and Task because status might change to "In Progress"
+      invalidatesTags: ['TimeLog', 'Task'],
     }),
 
-    // Employee Weekly Report: GET /api/timelogs/report/employee/:id
-    getEmployeeWeeklyReport: builder.query({
-      query: (id) => `/timelogs/report/employee/${id}`,
-      providesTags: (result, error, id) => [{ type: 'TimeLog', id }],
+    // 3. TOGGLE PAUSE (Work <-> Break)
+    // Matches: POST /api/timelogs/pause
+    togglePause: builder.mutation({
+      query: () => ({
+        url: '/timelogs/pause',
+        method: 'POST',
+      }),
+      invalidatesTags: ['TimeLog'],
+    }),
+
+    // 4. STOP TIMER
+    // Matches: POST /api/timelogs/stop
+    stopTimer: builder.mutation({
+      query: () => ({
+        url: '/timelogs/stop',
+        method: 'POST',
+      }),
+      invalidatesTags: ['TimeLog'],
+    }),
+
+    // 5. GET TASK PERFORMANCE REPORT (Admin)
+    // Matches: GET /api/timelogs/report/tasks
+    getTaskPerformanceReport: builder.query({
+      query: () => '/timelogs/report/tasks',
+      providesTags: ['TimeLog', 'Task'],
+    }),
+
+    // 6. EMPLOYEE WEEKLY REPORT (Admin or Self)
+    // Matches: GET /api/timelogs/report/employee/:userId
+    getWeeklyReport: builder.query({
+      query: (userId) => `/timelogs/report/employee/${userId}`,
+      providesTags: (result, error, userId) => [{ type: 'TimeLog', id: userId }],
     }),
   }),
 });
 
 export const {
+  useGetMyTodayLogsQuery,
   useStartTimerMutation,
-  useStopTimerMutation,
   useTogglePauseMutation,
-  useGetMyLogsQuery,
-  useGetDailyReportQuery,
-  useGetEmployeeWeeklyReportQuery,
-} = timeLogApi;
+  useStopTimerMutation,
+  useGetTaskPerformanceReportQuery,
+  useGetWeeklyReportQuery,
+} = timeLogApiSlice;

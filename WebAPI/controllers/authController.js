@@ -1,55 +1,81 @@
 const User = require("../models/User");
-const { 
-  hashPassword, 
-  generateToken, 
-  comparePassword 
-} = require("../utils/authHelpers"); // Updated import
+const {
+  hashPassword,
+  generateToken,
+  comparePassword,
+} = require("../utils/authHelpers");
 const { sanitizeUser } = require("../utils/userHelpers");
 
-// --- LOGIN ---
+/**
+ * LOGIN
+ */
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = req.body.email?.toLowerCase().trim();
+    const { password } = req.body;
 
-    // 1. Find user & include password
-    const user = await User.findOne({ email: email.toLowerCase() }).select("+password");
-    if (!user) return res.status(400).json({ message: "Invalid credentials" });
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password required" });
+    }
 
-    // 2. Check status via Model Method
+    const user = await User.findOne({ email })
+      .select("+password")
+      .populate("employee");
+
+    // Avoid telling attacker what failed
+    if (!user || !(await comparePassword(password, user.password))) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
     if (!user.isActive()) {
       return res.status(403).json({ message: "Account disabled. Contact admin." });
     }
 
-    // 3. Verify Password via Helper
-    const isMatch = await comparePassword(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
-
-    // 4. Generate Token via Helper
     const token = generateToken(user);
 
-    res.json({ 
-      token, 
-      user: sanitizeUser(user) 
+    res.json({
+      token,
+      user: sanitizeUser(user),
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// --- RESET PASSWORD ---
+/**
+ * GET CURRENT USER (Used after page reload)
+ */
+exports.getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id)
+      .select("-password")
+      .populate("employee");
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json(sanitizeUser(user));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * CHANGE / RESET PASSWORD (Logged-in user)
+ */
 exports.resetPassword = async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
-    
-    // Find user (req.user.id populated by protect middleware)
-    const user = await User.findById(req.user.id).select("+password");
+
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ message: "Both passwords required" });
+    }
+
+    const user = await User.findById(req.user._id).select("+password");
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Verify current password using Helper
     const isMatch = await comparePassword(oldPassword, user.password);
     if (!isMatch) return res.status(400).json({ message: "Current password incorrect" });
 
-    // Hash and update
     user.password = await hashPassword(newPassword);
     await user.save();
 

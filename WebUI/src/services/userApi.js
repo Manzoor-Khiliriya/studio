@@ -2,70 +2,82 @@ import { apiSlice } from './apiSlice';
 
 export const userApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    
-    // 1. GET ALL USERS (Admin only)
-    // Matches: GET /api/users/
+
+    // GET ALL USERS (Admin)
     getAllUsers: builder.query({
-      query: (params) => ({
-        url: '/users',
-        params, // Pass search, page, limit, dates here
-      }),
-      providesTags: ['User'],
+      query: () => '/users',
+      // Provides 'User' for the list and specific IDs for granular updates
+      providesTags: (result) =>
+        result
+          ? [
+            ...result.map(({ _id }) => ({ type: 'User', id: _id })),
+            { type: 'User', id: 'LIST' },
+          ]
+          : [{ type: 'User', id: 'LIST' }],
     }),
 
-    // 2. GET USER BY ID
-    // Matches: GET /api/users/:id
+    // GET SINGLE USER
     getUserById: builder.query({
       query: (id) => `/users/${id}`,
       providesTags: (result, error, id) => [{ type: 'User', id }],
     }),
 
-    // 3. CREATE USER
-    // Matches: POST /api/users/
+    // CREATE USER (Admin only)
     createUser: builder.mutation({
       query: (newUser) => ({
         url: '/users',
         method: 'POST',
         body: newUser,
       }),
-      invalidatesTags: ['User'],
+      invalidatesTags: [
+        { type: 'User', id: 'LIST' },
+        { type: 'Employee', id: 'LIST' }   // 👈 ADD THIS
+      ],
     }),
 
-    // 4. UPDATE USER
-    // Matches: PUT /api/users/:id
+    // UPDATE USER (Admin)
     updateUser: builder.mutation({
-      query: ({ id, ...updatedData }) => ({
+      query: ({ id, payload }) => ({
         url: `/users/${id}`,
         method: 'PUT',
-        body: updatedData,
+        body: payload,
       }),
-      invalidatesTags: (result, error, { id }) => ['User', { type: 'User', id }],
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'User', id },
+        { type: 'User', id: 'LIST' },
+        { type: 'Employee', id: 'LIST' }   // 👈 ADD THIS
+      ],
     }),
 
-    // 5. CHANGE USER STATUS (Enable/Disable)
-    // Matches: PATCH /api/users/status/:id
+    // CHANGE USER STATUS (PATCH)
     changeUserStatus: builder.mutation({
       query: ({ id, status }) => ({
         url: `/users/status/${id}`,
         method: 'PATCH',
         body: { status },
       }),
-      invalidatesTags: (result, error, { id }) => ['User', { type: 'User', id }],
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'User', id },
+        { type: 'User', id: 'LIST' },
+        { type: 'Employee', id: 'LIST' }   // 👈 ADD THIS
+      ],
     }),
 
-    // 6. DELETE USER
-    // Matches: DELETE /api/users/:id
+    // DELETE USER
     deleteUser: builder.mutation({
       query: (id) => ({
         url: `/users/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: ['User'],
+      invalidatesTags: [
+        { type: 'User', id: 'LIST' },
+        { type: 'Employee', id: 'LIST' }   // 👈 ADD THIS
+      ]
+
     }),
   }),
 });
 
-// Export hooks for your components
 export const {
   useGetAllUsersQuery,
   useGetUserByIdQuery,

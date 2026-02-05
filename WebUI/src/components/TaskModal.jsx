@@ -1,74 +1,64 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import API from "../services/apiSlice";
-// import { apiSlice } from "../services/apiSlices";
 import { toast } from "react-hot-toast";
-import { FiX, FiCheckCircle, FiCalendar, FiHash, FiFileText, FiClock } from "react-icons/fi";
+import {
+  FiX, FiCheckCircle, FiHash, FiFileText,
+  FiClock, FiCalendar, FiUsers, FiZap, FiTarget
+} from "react-icons/fi";
 
-export default function TaskModal({ isOpen, onClose, onTaskCreated, editTask }) {
+// RTK Query Hooks
+import { useGetAllEmployeesQuery } from "../services/employeeApi";
+import { useCreateTaskMutation, useUpdateTaskMutation } from "../services/taskApi";
+
+export default function TaskModal({ isOpen, onClose, editTask }) {
   const isEditMode = !!editTask;
 
+  // --- API INTERFACE ---
+  const { data: userData, isLoading: isLoadingEmployees } = useGetAllEmployeesQuery(undefined, { skip: !isOpen });
+  const [createTask, { isLoading: isCreating }] = useCreateTaskMutation();
+  const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation();
+
+  const employees = userData?.employees || [];
+
+  // --- FORM STATE ---
   const [form, setForm] = useState({
     title: "",
     projectNumber: "",
     projectDetails: "",
-    allocatedTime: "", // New State
     assignedTo: [],
     startDate: new Date().toISOString().split("T")[0],
     endDate: "",
-    priority: "Medium"
+    priority: "Medium",
+    status: "Pending"
   });
 
-  const [employees, setEmployees] = useState([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
+  // --- SYNC PROTOCOL ---
   useEffect(() => {
-    if (editTask) {
+    if (editTask && isOpen) {
       setForm({
-        title: editTask.title,
+        title: editTask.title || "",
         projectNumber: editTask.projectNumber || "",
         projectDetails: editTask.projectDetails || "",
-        allocatedTime: editTask.allocatedTime ? editTask.allocatedTime / 60 : "",
+        // Convert minutes from DB to Hours for UI
+        allocatedTime: editTask.allocatedTime ? (editTask.allocatedTime / 60).toFixed(1) : "",
         assignedTo: editTask?.assignedTo?.map(w => w.employee?._id || w.employee) || [],
         startDate: editTask?.startDate?.split("T")[0] || "",
         endDate: editTask?.endDate?.split("T")[0] || "",
-        priority: editTask?.priority || "Medium"
+        priority: editTask?.priority || "Medium",
+        status: editTask?.status || "Pending"
       });
-    } else {
+    } else if (isOpen) {
       setForm({
         title: "",
         projectNumber: "",
         projectDetails: "",
-        allocatedTime: "",
         assignedTo: [],
         startDate: new Date().toISOString().split("T")[0],
         endDate: "",
-        priority: "Medium"
+        priority: "Medium",
       });
     }
   }, [editTask, isOpen]);
-
-  useEffect(() => {
-    if (isOpen) fetchEmployees();
-  }, [isOpen]);
-
-  const fetchEmployees = async () => {
-    try {
-      const res = await API.get("/users");
-
-      // Access the employees property from the response object
-      const employeeList = res.data.employees || [];
-
-      // Set the state
-      setEmployees(employeeList);
-
-      // Note: You don't need .filter(u => u.role === "Employee") anymore
-      // because your backend controller already does: let query = { role: "Employee" };
-    } catch (err) {
-      console.error("Employee Fetch Error:", err);
-      toast.error("Employee list sync failed");
-    }
-  };
 
   const toggleEmployee = (id) => {
     setForm(prev => ({
@@ -81,131 +71,247 @@ export default function TaskModal({ isOpen, onClose, onTaskCreated, editTask }) 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (form.assignedTo.length === 0) return toast.error("Assign at least one employee");
+    if (!form.startDate || !form.endDate) {
+      return toast.error("Start and End dates are required");
+    }
 
-    // Date Logic Validation
-    const start = new Date(form.startDate).getTime();
-    const end = new Date(form.endDate).getTime();
-    if (end < start) return toast.error("End date cannot be before start date");
+    if (new Date(form.startDate) > new Date(form.endDate)) {
+      return toast.error("End date must be after start date");
+    }
 
-    setIsSubmitting(true);
+    if (form.assignedTo.length === 0) return toast.error("Deployment requires at least one operator");
+
+    const loadingToast = toast.loading(isEditMode ? "Modifying Parameters..." : "Initializing Deployment...");
+
+    // Final conversion: Hours to Minutes for DB storage
+    const submissionData = {
+      title: form.title,
+      projectNumber: form.projectNumber,
+      projectDetails: form.projectDetails,
+      assignedTo: form.assignedTo,
+      startDate: form.startDate,
+      endDate: form.endDate,
+      priority: form.priority,
+      ...(isEditMode && form.allocatedTime && {
+        allocatedTime: parseFloat(form.allocatedTime) * 60
+      })
+    };
+
     try {
       if (isEditMode) {
-        await API.put(`/tasks/${editTask._id}`, form);
-        toast.success("Task updated successfully");
+        await updateTask({ id: editTask._id, ...submissionData }).unwrap();
+        toast.success("Mission Intel Updated", { id: loadingToast });
       } else {
-        await API.post("/tasks", form);
-        toast.success("Project deployed successfully");
+        await createTask(submissionData).unwrap();
+        toast.success("Mission Successfully Deployed", { id: loadingToast });
       }
-      onTaskCreated();
       onClose();
     } catch (err) {
-      toast.error(err.response?.data?.message || "Operation failed");
-    } finally {
-      setIsSubmitting(false);
+      toast.error(err.data?.message || "Protocol Failure", { id: loadingToast });
     }
   };
+
+  const isSubmitting = isCreating || isUpdating;
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[100]" onClick={onClose} />
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-6">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-slate-950/90 backdrop-blur-md"
+            onClick={onClose}
+          />
+
+          {/* Modal Terminal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed inset-0 m-auto w-full max-w-2xl h-fit max-h-[95vh] bg-white rounded-[3rem] shadow-2xl z-[101] overflow-hidden flex flex-col border border-orange-100"
+            className="relative w-full max-w-3xl bg-white rounded-[3rem] shadow-2xl overflow-hidden flex flex-col border border-slate-200"
           >
-            {/* HEADER */}
-            <div className="px-10 py-6 bg-orange-50/50 border-b border-orange-100 flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-black text-slate-900">{isEditMode ? "Modify Task" : "Deploy Task"}</h2>
-                <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mt-1">Resource Allocation Mode</p>
+            {/* TERMINAL HEADER */}
+            <div className="px-10 py-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <div className="flex items-center gap-5">
+                <div className="bg-slate-900 p-3 rounded-2xl text-orange-500 shadow-xl shadow-slate-900/20">
+                  <FiTarget size={24} />
+                </div>
+                <div>
+                  <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none mb-1">
+                    {isEditMode ? "Update Mission" : "Assign Mission"}
+                  </h2>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Operational Authorization Terminal</p>
+                </div>
               </div>
-              <button onClick={onClose} className="p-2 hover:bg-orange-100 rounded-full text-slate-400"><FiX size={20} /></button>
+              <button onClick={onClose} className="p-3 hover:bg-white rounded-xl transition-all text-slate-300 hover:text-rose-500">
+                <FiX size={24} />
+              </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-10 overflow-y-auto space-y-6 custom-scrollbar">
+            <form onSubmit={handleSubmit} className="p-10 overflow-y-auto max-h-[75vh] space-y-10 scrollbar-hide">
 
-              {/* PROJECT INFO */}
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">Project #</label>
-                  <div className="relative">
-                    <FiHash className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-500" />
-                    <input required value={form.projectNumber} onChange={(e) => setForm({ ...form, projectNumber: e.target.value })} placeholder="PJ-101" className="w-full bg-slate-50 border-2 border-slate-50 focus:border-orange-500 focus:bg-white rounded-xl pl-10 pr-4 py-3.5 font-bold transition-all outline-none" />
+              {/* PRIMARY IDENTIFIERS */}
+              <div className="grid md:grid-cols-12 gap-6">
+                <div className="md:col-span-4 space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Project Ref #</label>
+                  <div className="relative group">
+                    <FiHash className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-orange-500 transition-colors" />
+                    <input
+                      required value={form.projectNumber}
+                      onChange={(e) => setForm({ ...form, projectNumber: e.target.value })}
+                      placeholder="e.g. PJ-102"
+                      className="w-full bg-slate-50 border-2 border-transparent focus:border-orange-500/20 focus:bg-white rounded-2xl pl-12 pr-4 py-4 font-black transition-all outline-none text-sm uppercase"
+                    />
                   </div>
                 </div>
-                <div className="space-y-1.5 md:col-span-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">Mission Title</label>
-                  <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Database Migration" className="w-full bg-slate-50 border-2 border-slate-50 focus:border-orange-500 focus:bg-white rounded-xl px-5 py-3.5 font-bold transition-all outline-none" />
+                <div className="md:col-span-8 space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Mission Nomenclature</label>
+                  <input
+                    required value={form.title}
+                    onChange={(e) => setForm({ ...form, title: e.target.value })}
+                    placeholder="Enter objective title..."
+                    className="w-full bg-slate-50 border-2 border-transparent focus:border-orange-500/20 focus:bg-white rounded-2xl px-6 py-4 font-bold transition-all outline-none text-sm"
+                  />
                 </div>
               </div>
 
-              {/* SCOPE */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">Project Scope</label>
-                <div className="relative">
-                  <FiFileText className="absolute left-4 top-4 text-slate-400" />
-                  <textarea rows={2} value={form.projectDetails} onChange={(e) => setForm({ ...form, projectDetails: e.target.value })} placeholder="Mission objectives..." className="w-full bg-slate-50 border-2 border-slate-50 focus:border-orange-500 focus:bg-white rounded-2xl pl-10 pr-5 py-3.5 font-bold transition-all outline-none resize-none" />
-                </div>
-              </div>
-
-              {/* DATES & ALLOCATED TIME */}
-              <div className={`grid ${isEditMode ? "md:grid-cols-3" : "md:grid-cols-2"} gap-4`}>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">Start Date</label>
-                  <input type="date" required value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} className="w-full bg-slate-50 border-2 border-slate-50 focus:border-orange-500 focus:bg-white rounded-xl px-4 py-3.5 font-bold outline-none" />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">End Date</label>
-                  <input type="date" required value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} className="w-full bg-slate-50 border-2 border-slate-50 focus:border-orange-500 focus:bg-white rounded-xl px-4 py-3.5 font-bold outline-none" />
-                </div>
-                {/* In TaskModal.jsx */}
+              {/* RESOURCE BUDGETING */}
+              <div className="grid md:grid-cols-3 gap-6 p-8 bg-orange-50/30 rounded-[2.5rem] border border-orange-100/50">
                 {isEditMode && (
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-orange-600 uppercase ml-1 tracking-widest">
-                      Final Allocated Hours
-                    </label>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-orange-600 uppercase tracking-widest ml-1">Allocated Budget (Hrs)</label>
                     <div className="relative">
-                      <FiClock className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-500" />
+                      <FiClock className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-400" />
                       <input
-                        type="number"
+                        type="number" step="0.5" required
                         value={form.allocatedTime}
                         onChange={(e) => setForm({ ...form, allocatedTime: e.target.value })}
-                        className="w-full bg-orange-50 border-2 border-orange-100 rounded-xl pl-10 pr-4 py-3.5 font-bold"
+                        className="w-full bg-white border-2 border-transparent focus:border-orange-500/20 rounded-2xl pl-12 pr-4 py-4 font-black outline-none text-sm text-orange-900"
+                        placeholder="0.0"
                       />
                     </div>
-                    <p className="text-[9px] text-slate-400 mt-1 italic">
-                      System Suggestion: {editTask.estimatedTime / 60}h (Business days only)
-                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Priority Level</label>
+                  <select
+                    value={form.priority}
+                    onChange={(e) => setForm({ ...form, priority: e.target.value })}
+                    className="w-full bg-white border-2 border-transparent focus:border-orange-500/20 rounded-2xl px-6 py-4 font-black outline-none text-sm appearance-none cursor-pointer"
+                  >
+                    {["Low", "Medium", "High", "Critical"].map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                {isEditMode && (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Initial Status</label>
+                    <select
+                      value={form.status}
+                      onChange={(e) => setForm({ ...form, status: e.target.value })}
+                      className="w-full bg-white border-2 border-transparent focus:border-orange-500/20 rounded-2xl px-6 py-4 font-black outline-none text-sm appearance-none cursor-pointer"
+                    >
+                      {["Pending", "In Progress", "Completed"].map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
                   </div>
                 )}
               </div>
 
-              {/* PERSONNEL */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">Personnel Allocation</label>
-                <div className="bg-slate-50 p-4 rounded-[2rem] border border-slate-100 flex flex-wrap gap-2">
-                  {employees.map(emp => (
-                    <button
-                      type="button" key={emp._id} onClick={() => toggleEmployee(emp._id)}
-                      className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 border-2 ${form.assignedTo.includes(emp._id) ? "bg-orange-600 border-orange-600 text-white shadow-md" : "bg-white border-transparent text-slate-500 hover:border-orange-200"
-                        }`}
-                    >
-                      {form.assignedTo.includes(emp._id) && <FiCheckCircle />} {emp.name}
-                    </button>
-                  ))}
+              {/* TIMELINE */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Kickoff Date</label>
+                  <div className="relative">
+                    <FiCalendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="date" required value={form.startDate}
+                      onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                      className="w-full bg-slate-50 border-2 border-transparent focus:border-orange-500/20 focus:bg-white rounded-2xl pl-12 pr-4 py-4 font-bold outline-none text-sm"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Hard Deadline</label>
+                  <div className="relative">
+                    <FiCalendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="date" required value={form.endDate}
+                      onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+                      className="w-full bg-slate-50 border-2 border-transparent focus:border-orange-500/20 focus:bg-white rounded-2xl pl-12 pr-4 py-4 font-bold outline-none text-sm"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <button disabled={isSubmitting} className="w-full py-5 rounded-[2rem] font-black bg-slate-900 text-white hover:bg-orange-600 transition-all shadow-xl disabled:opacity-50 uppercase tracking-[0.2em] text-xs">
-                {isSubmitting ? "Syncing..." : isEditMode ? "Update Operation" : "Authorize Deployment"}
-              </button>
+              {/* MISSION BRIEF */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Operational Briefing</label>
+                <div className="relative group">
+                  <FiFileText className="absolute left-5 top-5 text-slate-300 group-focus-within:text-orange-500 transition-colors" />
+                  <textarea
+                    rows={3} value={form.projectDetails}
+                    onChange={(e) => setForm({ ...form, projectDetails: e.target.value })}
+                    placeholder="Input detailed constraints and mission parameters..."
+                    className="w-full bg-slate-50 border-2 border-transparent focus:border-orange-500/20 focus:bg-white rounded-[2rem] pl-14 pr-8 py-5 font-medium transition-all outline-none resize-none text-sm leading-relaxed"
+                  />
+                </div>
+              </div>
+
+              {/* OPERATOR ASSIGNMENT */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-end px-1">
+                  <label className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em] flex items-center gap-2">
+                    <FiUsers className="text-orange-500" /> Authorized Operators
+                  </label>
+                  <span className="text-[9px] font-black text-orange-600 bg-orange-100 px-3 py-1 rounded-full uppercase">
+                    {form.assignedTo.length} Personnel Selected
+                  </span>
+                </div>
+                <div className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100 flex flex-wrap gap-2">
+                  {isLoadingEmployees ? (
+                    <div className="w-full text-center py-4 text-slate-400 font-black text-[10px] uppercase animate-pulse">Synchronizing Personnel Hub...</div>
+                  ) : (
+                    employees.map(emp => (
+                      <button
+                        type="button" key={emp._id}
+                        onClick={() => toggleEmployee(emp._id)}
+                        className={`px-6 py-3 rounded-2xl text-[11px] font-black transition-all flex items-center gap-3 border-2 ${form.assignedTo.includes(emp._id)
+                          ? "bg-slate-900 border-slate-900 text-white shadow-xl shadow-slate-900/20"
+                          : "bg-white border-slate-100 text-slate-500 hover:border-orange-200 hover:text-slate-800"
+                          }`}
+                      >
+                        {form.assignedTo.includes(emp._id) && <FiCheckCircle size={14} className="text-orange-400" />}
+                        {emp.user.name}
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* AUTHORIZATION FOOTER */}
+              <div className="pt-6 border-t border-slate-50">
+                <button
+                  disabled={isSubmitting}
+                  className="group w-full py-6 rounded-[2.5rem] font-black bg-slate-900 text-white hover:bg-orange-600 transition-all shadow-2xl shadow-slate-900/10 disabled:opacity-50 uppercase tracking-[0.4em] text-xs flex items-center justify-center gap-4"
+                >
+                  {isSubmitting ? (
+                    <div className="flex gap-1.5">
+                      <div className="w-2 h-2 bg-white rounded-full animate-bounce" />
+                      <div className="w-2 h-2 bg-white rounded-full animate-bounce [animation-delay:0.2s]" />
+                      <div className="w-2 h-2 bg-white rounded-full animate-bounce [animation-delay:0.4s]" />
+                    </div>
+                  ) : (
+                    <>
+                      <FiZap className="group-hover:scale-125 transition-transform" size={18} />
+                      {isEditMode ? "Commit Intelligence Changes" : "Authorize Project Deployment"}
+                    </>
+                  )}
+                </button>
+              </div>
             </form>
           </motion.div>
-        </>
+        </div>
       )}
     </AnimatePresence>
   );

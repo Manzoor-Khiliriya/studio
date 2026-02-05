@@ -1,12 +1,30 @@
 /**
- * Checks if all required fields exist in the request body
- * @param {Object} body - req.body
- * @param {Array} fields - Array of strings (field names)
- * @returns {String | null} - Error message or null if valid
+ * Remove sensitive fields before sending user object
  */
-exports.validateRequiredFields = (body, fields) => {
+exports.sanitizeUser = (user) => {
+  if (!user) return null;
+
+  const userObj = user.toObject ? user.toObject({ virtuals: true }) : { ...user };
+
+  delete userObj.password;
+  delete userObj.__v;
+
+  // Clean nested employee profile if populated
+  if (userObj.employee) {
+    delete userObj.employee.user;   // remove back-reference
+    delete userObj.employee.__v;
+  }
+
+  return userObj;
+};
+
+/**
+ * Validate required fields in request body
+ */
+exports.validateRequiredFields = (body, fields = []) => {
   for (const field of fields) {
-    if (!body[field] || body[field].toString().trim() === "") {
+    const value = body[field];
+    if (value === undefined || value === null || String(value).trim() === "") {
       return `Field '${field}' is required.`;
     }
   }
@@ -14,24 +32,10 @@ exports.validateRequiredFields = (body, fields) => {
 };
 
 /**
- * Removes sensitive data like password before sending to frontend
+ * Role helpers
  */
-exports.sanitizeUser = (user) => {
-  const userObj = user.toObject();
-  delete userObj.password;
-  return userObj;
-};
+exports.isActiveAdmin = (user) =>
+  user?.role === "Admin" && user?.status === "Enable";
 
-/**
- * Checks if a user is both an Admin and Enabled
- */
-exports.isActiveAdmin = (user) => {
-  return user && user.role === "Admin";
-};
-
-/**
- * Checks if a user is both an Employee and Enabled
- */
-exports.isActiveEmployee = (user) => {
-  return user && user.role === "Employee" && user.status === "Enable";
-};
+exports.isActiveEmployee = (user) =>
+  user?.role === "Employee" && user?.status === "Enable";

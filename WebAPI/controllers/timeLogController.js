@@ -1,218 +1,202 @@
 const TimeLog = require("../models/TimeLog");
 const Task = require("../models/Task");
-const { isActiveAdmin } = require("../utils/userHelpers");
+const Employee = require("../models/Employee");
+const mongoose = require("mongoose");
 
-/**
- * 👨‍💻 START TIMER
- */
+/* =========================================================
+   START TIMER
+   ========================================================= */
 exports.startTimer = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { taskId } = req.body;
-    
-    // 1. Stop any current running logs for this user
-    const activeLogs = await TimeLog.find({ user: req.user.id, isRunning: true });
-    for (const oldLog of activeLogs) {
-      oldLog.endTime = new Date();
-      oldLog.isRunning = false;
-      await oldLog.save(); // Triggers the duration calculation in model
+    const userId = req.user._id;
+
+    const task = await Task.findOne({ _id: taskId, assignedTo: userId });
+    if (!task) throw new Error("Task not found or not assigned.");
+
+    const today = new Date().toISOString().split("T")[0];
+    const employee = await Employee.findOne({ user: userId });
+
+    // 🔹 Check daily hour limit
+    if (employee) {
+      const logs = await TimeLog.find({ user: userId, dateString: today, logType: "work" });
+      const hoursToday = logs.reduce((a, l) => a + (l.durationSeconds / 3600 || 0), 0);
+
+      if (hoursToday >= employee.dailyWorkLimit) {
+        throw new Error(`Daily limit reached (${employee.dailyWorkLimit} hrs).`);
+      }
     }
 
-    // 2. Create the new work log
-    const log = await TimeLog.create({
-      user: req.user.id,
+    // 🔹 Stop any running logs
+    await TimeLog.updateMany(
+      { user: userId, isRunning: true },
+      { $set: { endTime: new Date(), isRunning: false } },
+      { session }
+    );
+
+    // 🔹 Start new log
+    const log = await TimeLog.create([{
+      user: userId,
       task: taskId,
       startTime: new Date(),
       isRunning: true,
       logType: "work"
-    });
+    }], { session });
 
-    // 3. Mark the task as In Progress
-    await Task.findByIdAndUpdate(taskId, { status: "In Progress" });
+    // Auto move task status
+    if (task.status === "Pending") {
+      task.status = "In Progress";
+      await task.save({ session });
+    }
 
-    res.status(201).json(log);
+    await session.commitTransaction();
+    res.status(201).json(log[0]);
+
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    await session.abortTransaction();
+    res.status(400).json({ error: err.message });
+  } finally {
+    session.endSession();
   }
 };
 
-/**
- * 🔄 TOGGLE PAUSE
- */
+
 exports.togglePause = async (req, res) => {
-  try {
-    const log = await TimeLog.findOne({ user: req.user.id, isRunning: true });
-    if (!log) return res.status(404).json({ message: "No active timer" });
+  const userId = req.user._id;
 
-    const now = new Date();
+  const active = await TimeLog.findOne({ user: userId, isRunning: true });
+  if (!active) return res.status(404).json({ message: "No active timer." });
 
-    if (log.logType === "work") {
-      // --- STARTING A BREAK ---
-      // 1. Calculate how many seconds were worked in this specific session
-      const sessionSeconds = Math.floor((now - new Date(log.startTime)) / 1000);
-      
-      // 2. Add those seconds to the permanent duration storage
-      log.durationSeconds = (log.durationSeconds || 0) + sessionSeconds;
-      
-      // 3. Switch to break mode
-      log.logType = "break";
-    } else {
-      // --- RETURNING TO WORK ---
-      // 1. Reset startTime to NOW. This "deletes" the break time from the math.
-      log.startTime = now;
-      log.logType = "work";
-    }
+  active.endTime = new Date();
+  active.isRunning = false;
+  await active.save();
 
-    await log.save();
-    res.json(log);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  const newType = active.logType === "work" ? "break" : "work";
+
+  const newLog = await TimeLog.create({
+    user: userId,
+    task: active.task,
+    startTime: new Date(),
+    logType: newType,
+    isRunning: true
+  });
+
+  res.json({ status: newType, log: newLog });
 };
 
-/**
- * ⏹️ STOP TIMER
- */
 exports.stopTimer = async (req, res) => {
-  try {
-    const log = await TimeLog.findOne({ user: req.user.id, isRunning: true });
-    if (!log) return res.status(400).json({ message: "No active timer found" });
+  const log = await TimeLog.findOne({ user: req.user._id, isRunning: true });
+  if (!log) return res.status(400).json({ message: "No active timer." });
 
-    log.endTime = new Date();
-    log.isRunning = false;
-    await log.save(); 
+  log.endTime = new Date();
+  log.isRunning = false;
+  await log.save();
 
-    // Update the task's total consumed minutes (only for work logs)
-    if (log.logType === "work") {
-      const minutesEarned = Math.round(log.durationSeconds / 60);
-      await Task.updateOne(
-        { _id: log.task, "assignedTo.employee": req.user.id },
-        { $inc: { "assignedTo.$.totalMinutesConsumed": minutesEarned } }
-      );
-    }
-
-    res.json(log);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  res.json({ message: "Stopped", log });
 };
 
-/**
- * 🧑‍💼 ADMIN — PERFORMANCE REPORT
- */
-exports.getTaskPerformanceReport = async (req, res) => {
-  try {
-    // Calling your updated boolean helper
-    if (!isActiveAdmin(req.user)) {
-      return res.status(403).json({ message: "Admin access required" });
-    }
 
-    const report = await Task.aggregate([
-      {
-        $lookup: {
-          from: "timelogs",
-          localField: "_id",
-          foreignField: "task",
-          as: "workLogs"
-        }
-      },
-      {
-        $project: {
-          title: 1,
-          projectNumber: 1,
-          estimatedTime: 1,
-          status: 1,
-          actualMinutesConsumed: { 
-            $divide: [{ 
-              $sum: {
-                $map: {
-                  input: { $filter: { input: "$workLogs", as: "l", cond: { $eq: ["$$l.logType", "work"] } } },
-                  as: "log",
-                  in: { $ifNull: ["$$log.durationSeconds", 0] }
-                }
-              }
-            }, 60] 
-          }
-        }
-      }
-    ]);
-
-    res.json(report);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-/**
- * 👨‍💻 GET MY LOGS (For Employee Dashboard Today's Shift)
- */
 exports.getMyLogs = async (req, res) => {
   try {
-    // 1. Fetch logs from last 24 hours to handle timezone shifts
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const today = new Date().toISOString().split("T")[0];
 
-    const logs = await TimeLog.find({ 
-      user: req.user.id,
-      startTime: { $gte: twentyFourHoursAgo }
+    const logs = await TimeLog.find({
+      user: req.user._id,
+      dateString: today
     })
       .populate("task", "title projectNumber")
       .sort({ startTime: -1 });
 
-    const activeLog = logs.find(log => log.isRunning === true);
+    const activeLog = logs.find(l => l.isRunning);
+
+    // 🔹 Calculate today's worked hours (only work logs)
+    const totalSeconds = logs
+      .filter(l => l.logType === "work")
+      .reduce((sum, l) => sum + (l.durationSeconds || 0), 0);
+
+    const hoursWorkedToday = +(totalSeconds / 3600).toFixed(2);
 
     res.json({
-      isCurrentlyWorking: activeLog?.logType === "work",
-      isCurrentlyOnBreak: activeLog?.logType === "break",
       activeTaskId: activeLog?.task?._id || null,
-      logs: logs
+      status: activeLog ? activeLog.logType : "idle", // work | break | idle
+      hoursWorkedToday,
+      logs
     });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-/**
- * 👨‍💻 EMPLOYEE — WEEKLY STATS
- * Aggregates work time for the last 7 days
- */
+
+exports.getTaskPerformanceReport = async (req, res) => {
+  const report = await Task.aggregate([
+    { $lookup: { from: "timelogs", localField: "_id", foreignField: "task", as: "logs" }},
+    {
+      $project: {
+        title: 1,
+        projectNumber: 1,
+        allocatedTime: 1,
+        status: 1,
+        totalWorkHours: {
+          $round: [{
+            $divide: [
+              { $sum: { $map: {
+                input: { $filter: { input: "$logs", as: "l", cond: { $eq: ["$$l.logType", "work"] }}},
+                as: "item",
+                in: "$$item.durationSeconds"
+              }}},
+              3600
+            ]
+          }, 2]
+        }
+      }
+    }
+  ]);
+
+  res.json(report);
+};
+
+
 exports.employeeWeeklyReport = async (req, res) => {
   try {
-    const targetUserId = req.params.id || req.user.id;
-    
-    // Authorization: Only allow the Admin or the User themselves to see this
-    if (!isActiveAdmin(req.user) && req.user.id !== targetUserId) {
-      return res.status(403).json({ message: "Unauthorized access to report" });
-    }
+    const targetUserId = req.params.userId || req.user._id;
 
-    // 1. Get logs for the last 7 days (Only "work" type)
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const logs = await TimeLog.find({ 
-      user: targetUserId, 
-      logType: "work",
-      startTime: { $gte: sevenDaysAgo }
+    const stats = await TimeLog.aggregate([
+      {
+        $match: {
+          user: new mongoose.Types.ObjectId(targetUserId),
+          logType: "work",
+          startTime: { $gte: sevenDaysAgo }
+        }
+      },
+      {
+        $group: {
+          _id: "$dateString",
+          totalSeconds: { $sum: "$durationSeconds" }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const result = stats.map(day => ({
+      date: day._id,
+      hoursWorked: +(day.totalSeconds / 3600).toFixed(2),
+      minutesWorked: Math.round(day.totalSeconds / 60)
+    }));
+
+    res.json({
+      userId: targetUserId,
+      totalDays: result.length,
+      report: result
     });
 
-    // 2. Group by dateString
-    const grouped = {};
-    logs.forEach(l => {
-      const date = l.dateString; // YYYY-MM-DD
-      if (!grouped[date]) grouped[date] = 0;
-      grouped[date] += (l.durationSeconds || 0);
-    });
-
-    // 3. Format for the frontend chart/list
-    const result = Object.entries(grouped).map(([date, totalSec]) => {
-      const mins = Math.round(totalSec / 60);
-      return {
-        date,
-        minutes: mins,
-        hours: (mins / 60).toFixed(2),
-        label: new Date(date).toLocaleDateString('en-US', { weekday: 'short' })
-      };
-    }).sort((a, b) => a.date.localeCompare(b.date)); // Sort by date ascending
-
-    res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

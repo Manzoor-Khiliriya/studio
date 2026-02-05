@@ -1,15 +1,15 @@
-import React, { useEffect, useState, useRef, useMemo } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Toaster } from "react-hot-toast";
 import {
   FiBriefcase, FiCalendar, FiClock, FiZap,
-  FiPlayCircle, FiTarget, FiActivity, FiSearch
+  FiPlayCircle, FiTarget, FiActivity, FiSearch, FiFilter
 } from "react-icons/fi";
 
 // RTK Query Hooks
 import { useGetDashboardSummaryQuery } from "../services/dashboardApi";
 import { useGetMyTasksQuery } from "../services/taskApi";
-import { useGetMyLogsQuery } from "../services/timeLogApi"; // Ensure name matches your slice
+import { useGetMyTodayLogsQuery } from "../services/timeLogApi";
 
 import ClockInOut from "../components/ClockInOut";
 import TaskCard from "../components/TaskCard";
@@ -34,16 +34,15 @@ export default function EmployeeDashboard() {
     page: currentPage,
     limit: itemsPerPage,
     search: searchTerm,
-    status: statusFilter
+    status: statusFilter === "All" ? "" : statusFilter
   });
-  const { data: logsData, isSuccess: logsLoaded } = useGetMyLogsQuery();
+  const { data: logsData, isSuccess: logsLoaded } = useGetMyTodayLogsQuery();
 
-  // Safely extract tasks and pagination
   const tasks = tasksData?.tasks || [];
   const paginationInfo = tasksData?.pagination || { current: 1, total: 1, count: 0 };
 
   /**
-   * Effect: Process TimeLogs & Sync Live Stats
+   * Sync Live Stats with Backend Logs
    */
   useEffect(() => {
     if (logsLoaded && logsData) {
@@ -73,7 +72,7 @@ export default function EmployeeDashboard() {
   }, [logsData, logsLoaded]);
 
   /**
-   * Effect: Live Ticker
+   * Live Ticker Logic
    */
   useEffect(() => {
     if (runningTask && !isOnBreak) {
@@ -99,93 +98,121 @@ export default function EmployeeDashboard() {
   if (tasksLoading && !tasksData) return <Loader message="Syncing Terminal..." />;
 
   return (
-    <div className="min-h-screen p-4 lg:p-10 bg-white relative overflow-hidden">
+    <div className="min-h-screen bg-[#fdfdfd] relative">
       <Toaster position="bottom-right" />
 
-      <div className="max-w-[1500px] mx-auto">
+      <div className="max-w-[1600px] mx-auto p-4 lg:p-10">
+        
         {/* --- HEADER --- */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-8">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-8">
           <div>
-            <div className="flex items-center gap-3 mb-2">
-              <span className="bg-orange-600 text-white p-2 rounded-xl"><FiZap size={24} /></span>
-              <p className="text-orange-600 font-black uppercase text-[10px] tracking-[0.3em]">Operator Terminal</p>
+            <div className="flex items-center gap-3 mb-4">
+              <motion.div 
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ repeat: Infinity, duration: 4 }}
+                className="bg-orange-600 text-white p-2.5 rounded-2xl shadow-lg shadow-orange-600/20"
+              >
+                <FiZap size={24} />
+              </motion.div>
+              <p className="text-orange-600 font-black uppercase text-[10px] tracking-[0.4em]">Operator Terminal</p>
             </div>
-            <h1 className="text-7xl font-black text-slate-900 tracking-tighter uppercase leading-none">Mission Control</h1>
+            <h1 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tighter uppercase leading-tight">
+              Mission <span className="text-slate-300 italic">Control</span>
+            </h1>
           </div>
-          <div className="flex items-center gap-4 bg-slate-50 border-2 border-slate-100 px-8 py-5 rounded-[2.5rem]">
-            <FiCalendar className="text-slate-400" size={20} />
+          <div className="flex items-center gap-4 bg-white border border-orange-100 px-8 py-5 rounded-[2.5rem] shadow-sm">
+            <FiCalendar className="text-orange-500" size={20} />
             <span className="text-sm font-black text-slate-900 uppercase tracking-tight">
               {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
             </span>
           </div>
-        </div>
+        </header>
 
-        <div className="grid lg:grid-cols-12 gap-12">
+        <div className="grid lg:grid-cols-12 gap-10">
+          
           {/* --- LEFT: COMMAND CENTER --- */}
-          <div className="lg:col-span-4 space-y-8">
-            <div className="bg-[#13151b] p-10 rounded-[4rem] shadow-2xl relative overflow-hidden group">
+          <aside className="lg:col-span-4 space-y-6">
+            <div className="bg-[#0f1115] p-10 rounded-[3.5rem] shadow-2xl relative overflow-hidden group border border-slate-800">
               <div className="relative z-10">
                 <ClockInOut />
               </div>
-              <FiActivity className="absolute -right-10 -bottom-10 text-white/5 group-hover:text-orange-600/10 transition-colors" size={240} />
+              <FiActivity className="absolute -right-16 -bottom-16 text-white/[0.03] group-hover:text-orange-600/10 transition-colors duration-700" size={300} />
             </div>
 
-            <div className="grid grid-cols-1 gap-4">
+            <div className="space-y-4">
               <StatSmall label="Today's Shift" value={formatTime(todaySeconds)} icon={<FiClock />} color="orange" />
               <StatSmall label="Weekly Load" value={`${dashboardStats?.stats?.weeklyHours || 0}h`} icon={<FiTarget />} color="dark" />
               <StatSmall 
-                label="Pending Tasks" 
+                label="Mission Queue" 
                 value={paginationInfo.count || 0} 
                 icon={<FiBriefcase />} 
                 color="dark" 
               />
             </div>
-          </div>
+          </aside>
 
           {/* --- RIGHT: TASK GRID --- */}
-          <div className="lg:col-span-8">
-            <ActiveTaskBanner task={runningTask} time={formatTime(todaySeconds)} />
+          <main className="lg:col-span-8">
+            <AnimatePresence mode="wait">
+              {runningTask && (
+                <ActiveTaskBanner task={runningTask} time={formatTime(todaySeconds)} />
+              )}
+            </AnimatePresence>
 
             {/* Inventory Controls */}
-            <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4 px-4">
-              <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Inventory</h2>
+            <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4 bg-white p-6 rounded-[2.5rem] border border-orange-50 shadow-sm">
+              <h2 className="text-2xl font-black text-slate-900 tracking-tighter uppercase ml-2">Inventory</h2>
               
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="relative">
-                  <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                <div className="relative flex-1 sm:flex-none">
+                  <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input 
                     type="text"
-                    placeholder="Search mission..."
-                    className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold outline-none focus:border-orange-500 transition-all"
+                    placeholder="Identify mission..."
+                    className="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500/20 transition-all"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                <select 
-                  className="bg-slate-50 border border-slate-100 px-4 py-2 rounded-xl text-xs font-bold outline-none cursor-pointer"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                >
-                  <option value="All">All Status</option>
-                  <option value="Pending">Pending</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Completed">Completed</option>
-                </select>
+                <div className="relative flex-1 sm:flex-none">
+                  <FiFilter className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <select 
+                    className="w-full pl-11 pr-8 py-3 bg-slate-50 border-none rounded-2xl text-xs font-bold outline-none appearance-none cursor-pointer hover:bg-slate-100 transition-colors"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
+                    <option value="All">All Levels</option>
+                    <option value="Pending">Pending</option>
+                    <option value="In Progress">Active</option>
+                    <option value="Completed">Resolved</option>
+                  </select>
+                </div>
               </div>
             </div>
 
-            {tasks.length > 0 ? (
-              <div className="grid grid-cols-1 gap-5 mb-10">
-                {tasks.map((task) => (
-                  <motion.div layout key={task._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                    <TaskCard task={task} isTracking={runningTask === task.title} />
-                  </motion.div>
-                ))}
-              </div>
-            ) : <EmptyState />}
+            {/* Task Cards */}
+            <div className="min-h-[400px]">
+              {tasks.length > 0 ? (
+                <motion.div layout className="grid grid-cols-1 gap-5 mb-10">
+                  {tasks.map((task) => (
+                    <motion.div 
+                      layout 
+                      key={task._id} 
+                      initial={{ opacity: 0, y: 20 }} 
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                    >
+                      <TaskCard task={task} isTracking={runningTask === task.title} />
+                    </motion.div>
+                  ))}
+                </motion.div>
+              ) : (
+                <EmptyState />
+              )}
+            </div>
 
-            {/* Dashboard Pagination */}
-            <div className="bg-slate-50/50 p-6 rounded-[2.5rem] border border-slate-50">
+            {/* Pagination Container */}
+            <div className="bg-white p-6 rounded-[2.5rem] border border-orange-50 shadow-sm">
               <Pagination 
                 pagination={paginationInfo}
                 onPageChange={(page) => setCurrentPage(page)}
@@ -193,7 +220,7 @@ export default function EmployeeDashboard() {
                 label="Missions"
               />
             </div>
-          </div>
+          </main>
         </div>
       </div>
     </div>
@@ -203,23 +230,28 @@ export default function EmployeeDashboard() {
 // --- SUB-COMPONENTS ---
 
 function ActiveTaskBanner({ task, time }) {
-  if (!task) return null;
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-      className="mb-10 p-10 bg-orange-600 text-white rounded-[4rem] flex flex-col md:flex-row items-center justify-between shadow-2xl shadow-orange-600/30 relative overflow-hidden"
+      initial={{ opacity: 0, y: -20, scale: 0.95 }} 
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className="mb-8 p-10 bg-orange-600 text-white rounded-[3.5rem] flex flex-col md:flex-row items-center justify-between shadow-2xl shadow-orange-600/20 relative overflow-hidden"
     >
-      <div className="relative z-10 text-center md:text-left mb-4 md:mb-0">
-        <div className="flex items-center gap-2 mb-2 justify-center md:justify-start">
-          <span className="w-2 h-2 bg-white rounded-full animate-ping" />
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-80">Telemetry Active</p>
+      <div className="relative z-10 text-center md:text-left mb-6 md:mb-0">
+        <div className="flex items-center gap-3 mb-3 justify-center md:justify-start">
+          <div className="flex h-3 w-3 relative">
+            <span className="animate-ping absolute h-full w-full rounded-full bg-white opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/80">Telemetry Active</p>
         </div>
-        <h3 className="text-4xl font-black tracking-tighter uppercase leading-none italic">{task}</h3>
+        <h3 className="text-3xl md:text-5xl font-black tracking-tighter uppercase leading-none italic">{task}</h3>
       </div>
-      <div className="text-center md:text-right relative z-10">
-        <p className="text-6xl font-black italic tracking-tighter drop-shadow-lg">{time}</p>
+      <div className="text-center md:text-right relative z-10 border-t md:border-t-0 md:border-l border-white/20 pt-6 md:pt-0 md:pl-10">
+        <p className="text-5xl md:text-7xl font-black italic tracking-tighter">{time}</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-white/60 mt-2">Current Session Duration</p>
       </div>
-      <FiPlayCircle className="absolute -left-10 -bottom-10 text-white/5" size={200} />
+      <FiPlayCircle className="absolute -left-10 -bottom-10 text-white/5" size={250} />
     </motion.div>
   );
 }
@@ -227,23 +259,28 @@ function ActiveTaskBanner({ task, time }) {
 function StatSmall({ label, value, icon, color }) {
   const isOrange = color === "orange";
   return (
-    <div className="bg-white p-8 rounded-[3rem] flex justify-between items-center border-2 border-slate-50 hover:border-orange-100 transition-all group">
-      <div className="flex items-center gap-6">
-        <div className={`p-5 rounded-[1.5rem] transition-all ${isOrange ? 'bg-orange-600 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-slate-900 group-hover:text-white'}`}>
-          {icon}
+    <div className="bg-white p-6 md:p-8 rounded-[2.5rem] flex justify-between items-center border border-orange-50 hover:border-orange-200 hover:shadow-xl hover:shadow-orange-500/5 transition-all group">
+      <div className="flex items-center gap-5">
+        <div className={`p-4 rounded-2xl transition-all duration-500 ${isOrange ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/30' : 'bg-slate-50 text-slate-400 group-hover:bg-slate-900 group-hover:text-white'}`}>
+          {React.cloneElement(icon, { size: 20 })}
         </div>
-        <span className="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em]">{label}</span>
+        <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">{label}</span>
       </div>
-      <span className="text-3xl font-black text-slate-900 tracking-tighter">{value}</span>
+      <span className="text-2xl md:text-3xl font-black text-slate-900 tracking-tighter">{value}</span>
     </div>
   );
 }
 
 function EmptyState() {
   return (
-    <div className="bg-slate-50 border-4 border-dashed border-slate-100 rounded-[4rem] py-32 text-center">
-      <FiBriefcase className="mx-auto text-slate-200 mb-6" size={64} />
-      <p className="text-slate-400 font-black uppercase tracking-[0.3em] text-xs">Radar Clear • No Pending Missions</p>
-    </div>
+    <motion.div 
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+      className="bg-white border-2 border-dashed border-orange-100 rounded-[3.5rem] py-24 text-center mb-10"
+    >
+      <div className="bg-orange-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+        <FiBriefcase className="text-orange-200" size={32} />
+      </div>
+      <p className="text-slate-400 font-black uppercase tracking-[0.4em] text-[10px]">Radar Clear • No Missions Found</p>
+    </motion.div>
   );
 }

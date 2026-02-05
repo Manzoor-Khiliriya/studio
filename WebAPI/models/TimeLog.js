@@ -1,50 +1,55 @@
 const mongoose = require("mongoose");
 
 const timeLogSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true,
-    index: true
-  },
-  task: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Task",
-    required: true,
-    index: true
-  },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
+  task: { type: mongoose.Schema.Types.ObjectId, ref: "Task", required: true, index: true },
+
   startTime: { type: Date, required: true },
   endTime: { type: Date },
+
   durationSeconds: { type: Number, default: 0 },
+
   logType: { type: String, enum: ["work", "break"], default: "work" },
   isRunning: { type: Boolean, default: true },
-  // Normalized date (YYYY-MM-DD) for grouping in reports
+
   dateString: {
     type: String,
     required: true,
-    default: () => new Date().toISOString().split('T')[0],
     index: true
   }
-}, {
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true }
-});
 
-// Compound index for fast daily lookups per user
+}, { timestamps: true });
+
+/**
+ * Compound index for fast dashboard queries
+ */
 timeLogSchema.index({ user: 1, dateString: 1 });
+timeLogSchema.index({ task: 1, user: 1 });
 
-// Virtual to match your Task Model's minute-based logic
-timeLogSchema.virtual("durationMinutes").get(function () {
-  return Math.round(this.durationSeconds / 60);
-});
+/**
+ * Auto-set dateString + duration
+ */
+timeLogSchema.pre("save", function (next) {
+  // Ensure dateString always matches startTime
+  if (this.startTime) {
+    this.dateString = this.startTime.toISOString().split("T")[0];
+  }
 
-// Pre-save calculation
-timeLogSchema.pre("save", async function () {
+  // Calculate duration if session ended
   if (this.endTime && this.startTime) {
-    this.durationSeconds = Math.round((this.endTime - this.startTime) / 1000);
+    const diff = (this.endTime - this.startTime) / 1000;
+    this.durationSeconds = Math.max(0, Math.round(diff));
     this.isRunning = false;
   }
+
+  next();
+});
+
+/**
+ * Virtual: duration in HOURS (for task progress system)
+ */
+timeLogSchema.virtual("durationHours").get(function () {
+  return +(this.durationSeconds / 3600).toFixed(2);
 });
 
 module.exports = mongoose.model("TimeLog", timeLogSchema);

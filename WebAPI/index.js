@@ -4,9 +4,9 @@ const cors = require("cors");
 require("dotenv").config();
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
+const employeeRoutes = require("./routes/employeeRoutes");
 const taskRoutes = require("./routes/taskRoutes");
 const timeLogRoutes = require("./routes/timeLogRoutes");
-const reportRoutes = require("./routes/reportRoutes");
 const leaveRoutes = require("./routes/leaveRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const searchRoutes = require("./routes/searchRoutes");
@@ -26,9 +26,9 @@ app.get("/", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/employee", employeeRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/timelogs", timeLogRoutes  );
-app.use("/api/reports", reportRoutes);
 app.use('/api/leaves', leaveRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/search', searchRoutes);

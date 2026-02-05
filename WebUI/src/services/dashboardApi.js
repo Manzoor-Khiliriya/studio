@@ -1,18 +1,20 @@
 import { apiSlice } from './apiSlice';
 
-export const dashboardApi = apiSlice.injectEndpoints({
+export const dashboardApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     
     // GET DASHBOARD SUMMARY
     // Matches: GET /api/dashboard/summary
+    // This provides a combined view for both Admin and Employee
     getDashboardSummary: builder.query({
       query: () => '/dashboard/summary',
-      // We provide 'Task', 'User', and 'Leave' tags because if any of those 
-      // change, the summary numbers (counts/stats) need to be refreshed.
-      providesTags: ['Task', 'User', 'Leave', 'TimeLog'],
+      // This endpoint depends on almost all major data types
+      providesTags: ['Dashboard', 'Task', 'TimeLog', 'Leave'],
     }),
 
   }),
 });
 
-export const { useGetDashboardSummaryQuery } = dashboardApi;
+export const {
+  useGetDashboardSummaryQuery,
+} = dashboardApiSlice;
