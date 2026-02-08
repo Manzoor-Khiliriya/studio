@@ -76,49 +76,86 @@ exports.createTask = async (req, res) => {
 
 exports.updateTask = async (req, res) => {
   try {
-    const update = { ...req.body };
+    // 1. Destructure all fields from body including allocatedTime
+    const { 
+      title, 
+      projectNumber, 
+      description,      
+      projectDetails,   
+      assignedTo,       
+      startDate, 
+      endDate, 
+      priority,
+      status,
+      allocatedTime // <--- Manually sent from frontend
+    } = req.body;
 
-    const start = update.startDate || req.body.startDate;
-    const end = update.endDate || req.body.endDate;
-
-    // 🔴 Leave conflict check if assignments or dates changed
-    if (update.assignedTo && start && end) {
-      for (const userId of update.assignedTo) {
-        const onLeave = await isUserOnLeaveDuring(userId, start, end);
-        if (onLeave) {
-          return res.status(400).json({
-            message: `Cannot assign task. User ${userId} is on approved leave.`
-          });
-        }
-      }
-    }
-
-    // 🧠 Recalculate estimates if dates changed
-    if (update.startDate && update.endDate) {
-      update.estimatedTime = await calculateEstimatedHours(update.startDate, update.endDate);
-
-      let minAvailableHours = Infinity;
-
-      const employees = update.assignedTo || (await Task.findById(req.params.id).select("assignedTo")).assignedTo;
-
-      for (const userId of employees) {
-        const emp = await Employee.findOne({ user: userId });
-        const available = await calculateEmployeeAvailableHours(update.startDate, update.endDate, emp?.joinedDate);
-        minAvailableHours = Math.min(minAvailableHours, available);
-      }
-
-      update.allocatedTime = Math.min(update.estimatedTime, minAvailableHours);
-    }
-
-    const task = await Task.findByIdAndUpdate(
-      req.params.id,
-      update,
-      { new: true, runValidators: true }
-    ).populate("assignedTo", "name");
-
+    const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: "Task not found" });
 
-    res.json(task);
+    // 2. Direct assignment
+    if (title) task.title = title;
+    if (projectNumber) task.projectNumber = projectNumber;
+    if (priority) task.priority = priority;
+    if (status) task.status = status;
+    
+    // Manual override for allocated time if provided
+    if (allocatedTime !== undefined) {
+      task.allocatedTime = Number(allocatedTime);
+    }
+
+    if (description || projectDetails) {
+      task.projectDetails = projectDetails || description;
+    }
+
+    // 3. Conditional Recalculation
+    if (startDate || endDate || assignedTo) {
+      const finalStart = startDate ? new Date(startDate) : task.startDate;
+      const finalEnd = endDate ? new Date(endDate) : task.endDate;
+      const finalAssignees = assignedTo || task.assignedTo;
+
+      if (startDate) task.startDate = finalStart;
+      if (endDate) task.endDate = finalEnd;
+      if (assignedTo) task.assignedTo = finalAssignees;
+
+      // Conflict Check
+      for (const empId of finalAssignees) {
+        const emp = await Employee.findById(empId);
+        if (emp) {
+          const onLeave = await isUserOnLeaveDuring(emp.user, finalStart, finalEnd);
+          if (onLeave) {
+            return res.status(400).json({ message: "Conflict: Operator on leave." });
+          }
+        }
+      }
+
+      // Auto-calculate logic (Only runs if user DID NOT manually send allocatedTime)
+      const estimated = await calculateEstimatedHours(finalStart, finalEnd);
+      task.estimatedTime = estimated;
+
+      if (allocatedTime === undefined) {
+        let minAvailable = Infinity;
+        for (const empId of finalAssignees) {
+          const emp = await Employee.findById(empId);
+          const available = await calculateEmployeeAvailableHours(finalStart, finalEnd, emp?.joinedDate);
+          minAvailable = Math.min(minAvailable, available);
+        }
+        task.allocatedTime = Math.min(estimated, minAvailable);
+      }
+    }
+
+    // 4. Save
+    await task.save();
+
+    // 5. Final Populate for Virtuals & UI
+    const updated = await Task.findById(task._id)
+      .populate("timeLogs") 
+      .populate({
+        path: "assignedTo",
+        populate: { path: "user", select: "name" }
+      });
+
+    res.json(updated);
 
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -196,11 +233,19 @@ exports.getAllTasks = async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const tasks = await Task.find(query)
-      .populate("assignedTo", "name")
+      // Reach into Employee, then reach into User to get the Name
+      .populate({
+        path: "assignedTo",
+        populate: {
+          path: "user",
+          select: "name"
+        }
+      })
       .populate("timeLogs")
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit))
+      .lean();
 
     const total = await Task.countDocuments(query);
 
@@ -223,7 +268,13 @@ exports.getTaskDetail = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id)
       .populate("createdBy", "name")
-      .populate("assignedTo", "name email")
+      .populate({
+        path: "assignedTo",
+        populate: {
+          path: "user",
+          select: "name"
+        }
+      })
       .populate("timeLogs");
 
     if (!task) return res.status(404).json({ message: "Task not found" });
@@ -260,11 +311,22 @@ exports.getMyTasks = async (req, res) => {
   try {
     const { search, status, page = 1, limit = 6 } = req.query;
 
+    // 1. Find the Employee record linked to this User
+    const employee = await Employee.findOne({ user: req.user._id });
+    
+    if (!employee) {
+      return res.json({
+        tasks: [],
+        pagination: { current: 1, totalPages: 0, totalTasks: 0 }
+      });
+    }
+
     const pageNum = Math.max(1, Number(page));
     const limitNum = Math.min(50, Number(limit));
     const skip = (pageNum - 1) * limitNum;
 
-    const query = { assignedTo: req.user._id };
+    // 2. Query using the Employee's _id
+    const query = { assignedTo: employee._id }; 
 
     if (search) {
       query.$or = [

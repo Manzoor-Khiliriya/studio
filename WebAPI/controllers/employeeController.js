@@ -115,3 +115,28 @@ exports.getMyEmployeeProfile = async (req, res) => {
   }
 };
 
+/**
+ * GET ACTIVE EMPLOYEES LIST (For Dropdowns)
+ * Returns only _id and name for enabled users to minimize payload
+ */
+exports.getActiveEmployeesList = async (req, res) => {
+  try {
+    // 1. Find all users who are 'Enable'
+    const activeUsers = await User.find({ status: "Enable" })
+      .select("name")
+      .lean();
+
+    const userIds = activeUsers.map(u => u._id);
+
+    // 2. Get their employee profiles (to ensure they have one)
+    const employees = await Employee.find({ user: { $in: userIds } })
+      .populate("user", "name")
+      .select("designation user")
+      .sort({ "user.name": 1 }) // Alphabetical order
+      .lean();
+
+    res.json(employees);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

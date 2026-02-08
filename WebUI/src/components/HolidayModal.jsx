@@ -1,4 +1,11 @@
 import React from "react";
+import { 
+  HiOutlineSparkles, 
+  HiOutlineCalendar, 
+  HiOutlineInformationCircle 
+} from "react-icons/hi2";
+import { CgSpinner } from "react-icons/cg";
+import CommonModal, { InputGroup } from "./CommonModal";
 
 export default function HolidayModal({
   isOpen,
@@ -8,56 +15,56 @@ export default function HolidayModal({
   onSubmit,
   isSaving,
 }) {
-  if (!isOpen) return null;
-
   const isEditing = !!holidayModel.id;
 
+  const handleLocalSubmit = (e) => {
+    e.preventDefault();
+    onSubmit();
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white w-full max-w-lg rounded-3xl p-8 shadow-2xl relative">
-
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-black">
-            {isEditing ? "Edit Holiday" : "Add Holiday"}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-black text-xl font-bold"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Form */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            onSubmit();
-          }}
-          className="space-y-5"
-        >
+    <CommonModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEditing ? "Modify Holiday" : "Register Holiday"}
+      subtitle="Calendar Exclusion Protocol"
+      maxWidth="max-w-md"
+    >
+      <form onSubmit={handleLocalSubmit} className="space-y-6">
+        {/* HOLIDAY NAME */}
+        <InputGroup label="Event Designation">
+          <HiOutlineSparkles className="input-icon" />
           <input
+            required
             type="text"
-            placeholder="Holiday Name"
+            placeholder="e.g. Independence Day"
             value={holidayModel.name}
             onChange={(e) =>
               setHolidayModel({ ...holidayModel, name: e.target.value })
             }
-            className="w-full border p-4 rounded-xl"
+            className="form-input"
           />
+        </InputGroup>
 
+        {/* DATE SELECT */}
+        <InputGroup label="Effective Date">
+          <HiOutlineCalendar className="input-icon" />
           <input
+            required
             type="date"
             value={holidayModel.date}
             onChange={(e) =>
               setHolidayModel({ ...holidayModel, date: e.target.value })
             }
-            className="w-full border p-4 rounded-xl"
+            className="form-input tabular-nums"
           />
+        </InputGroup>
 
+        {/* DESCRIPTION */}
+        <InputGroup label="Event Context">
+          <HiOutlineInformationCircle className="input-icon !top-5 translate-y-0" />
           <textarea
-            placeholder="Description"
+            placeholder="Optional context for this calendar event..."
             value={holidayModel.description}
             onChange={(e) =>
               setHolidayModel({
@@ -65,18 +72,59 @@ export default function HolidayModal({
                 description: e.target.value,
               })
             }
-            className="w-full border p-4 rounded-xl"
+            rows={3}
+            className="form-input !py-3 min-h-[100px] resize-none leading-relaxed"
           />
+        </InputGroup>
 
+        {/* ACTION BUTTON */}
+        <div className="pt-4">
           <button
             type="submit"
             disabled={isSaving}
-            className="w-full bg-orange-500 text-white py-4 rounded-xl font-bold"
+            className="w-full bg-slate-900 hover:bg-orange-600 text-white py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-70"
           >
-            {isEditing ? "UPDATE HOLIDAY" : "ADD HOLIDAY"}
+            {isSaving ? (
+              <CgSpinner className="animate-spin" size={20} />
+            ) : (
+              isEditing ? "Update Entry" : "Commit to Calendar"
+            )}
           </button>
-        </form>
-      </div>
-    </div>
+        </div>
+      </form>
+
+      {/* Global Form Styles (if not already in your index.css) */}
+      <style jsx global>{`
+        .form-input { 
+          width: 100%; 
+          padding: 0.85rem 1rem 0.85rem 2.75rem; 
+          background-color: #f8fafc; 
+          border: 2px solid transparent; 
+          border-radius: 1.25rem; 
+          font-size: 0.875rem; 
+          font-weight: 700; 
+          color: #1e293b; 
+          transition: all 0.2s; 
+          outline: none; 
+        }
+        .form-input:focus { 
+          background-color: #fff; 
+          border-color: #f97316; 
+          box-shadow: 0 10px 15px -3px rgba(249, 115, 22, 0.1); 
+        }
+        .input-icon { 
+          position: absolute; 
+          left: 1rem; 
+          top: 50%; 
+          transform: translateY(-50%); 
+          color: #cbd5e1; 
+          z-index: 10; 
+          transition: color 0.2s; 
+        }
+        .group:focus-within .input-icon { 
+          color: #f97316; 
+        }
+      `}</style>
+    </CommonModal>
   );
 }

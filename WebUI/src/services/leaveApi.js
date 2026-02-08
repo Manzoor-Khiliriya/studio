@@ -5,11 +5,20 @@ export const leaveApiSlice = apiSlice.injectEndpoints({
     
     // --- EMPLOYEE ENDPOINTS ---
 
-    // 1. GET MY LEAVES (History + Stats)
-    // Matches: GET /api/leaves/my
+    // 1. GET MY LEAVES (History + Stats + Pagination)
+    // Updated to accept { page, limit }
     getMyLeaves: builder.query({
-      query: () => '/leaves/my-leaves',
-      providesTags: ['Leave'],
+      query: (params) => ({
+        url: '/leaves/my-leaves',
+        params, // Sends ?page=x&limit=y
+      }),
+      providesTags: (result) =>
+        result?.history
+          ? [
+              ...result.history.map(({ _id }) => ({ type: 'Leave', id: _id })),
+              { type: 'Leave', id: 'PARTIAL-LIST' },
+            ]
+          : [{ type: 'Leave', id: 'PARTIAL-LIST' }],
     }),
 
     // 2. APPLY FOR LEAVE
@@ -19,7 +28,8 @@ export const leaveApiSlice = apiSlice.injectEndpoints({
         method: 'POST',
         body: newLeave,
       }),
-      invalidatesTags: ['Leave'],
+      // Invalidates the list so the new leave appears on page 1
+      invalidatesTags: [{ type: 'Leave', id: 'PARTIAL-LIST' }],
     }),
 
     // 3. UPDATE LEAVE (Pending only)
@@ -31,7 +41,7 @@ export const leaveApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: (result, error, { id }) => [
         { type: 'Leave', id },
-        'Leave'
+        { type: 'Leave', id: 'PARTIAL-LIST' }
       ],
     }),
 
@@ -41,40 +51,37 @@ export const leaveApiSlice = apiSlice.injectEndpoints({
         url: `/leaves/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: ['Leave'],
+      invalidatesTags: [{ type: 'Leave', id: 'PARTIAL-LIST' }],
     }),
 
     // --- ADMIN ENDPOINTS ---
 
-    // 5. GET ALL LEAVES (Admin View)
-    // Matches: GET /api/leaves?status=Pending&search=John
+    // 5. GET ALL LEAVES (Admin View + Pagination)
     getAllLeaves: builder.query({
       query: (params) => ({
         url: '/leaves/all',
-        params,
+        params, // Sends ?status=x&search=y&page=z
       }),
       providesTags: (result) =>
-        result
+        result?.leaves
           ? [
-              ...result.map(({ _id }) => ({ type: 'Leave', id: _id })),
-              { type: 'Leave', id: 'LIST' },
+              ...result.leaves.map(({ _id }) => ({ type: 'Leave', id: _id })),
+              { type: 'Leave', id: 'ADMIN-LIST' },
             ]
-          : [{ type: 'Leave', id: 'LIST' }],
+          : [{ type: 'Leave', id: 'ADMIN-LIST' }],
     }),
 
     // 6. PROCESS LEAVE (Approve/Reject)
-    // Matches: PATCH /api/leaves/process/:id
     processLeave: builder.mutation({
       query: ({ id, status, adminComment }) => ({
         url: `/leaves/process/${id}`,
         method: 'PATCH',
         body: { status, adminComment },
       }),
-      // Invalidates Leave so balance recalculates for the employee
       invalidatesTags: (result, error, { id }) => [
         { type: 'Leave', id },
-        'Leave',
-        { type: 'Leave', id: 'LIST' }
+        { type: 'Leave', id: 'PARTIAL-LIST' }, // Recalculates employee stats
+        { type: 'Leave', id: 'ADMIN-LIST' }
       ],
     }),
   }),

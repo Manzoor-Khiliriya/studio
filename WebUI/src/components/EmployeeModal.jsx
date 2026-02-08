@@ -1,267 +1,141 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  HiOutlineXMark, HiOutlineUser,
-  HiOutlineBriefcase, HiOutlineLockClosed, HiOutlineChartBar,
-  HiOutlineEye, HiOutlineEyeSlash, HiOutlineShieldCheck,
-  HiOutlineClock,
-  HiOutlineCalendarDays
+import { 
+  HiOutlineUser, HiOutlineBriefcase, HiOutlineLockClosed, 
+  HiOutlineChartBar, HiOutlineEye, HiOutlineEyeSlash, 
+  HiOutlineClock, HiOutlineCalendarDays 
 } from "react-icons/hi2";
 import { CgSpinner } from "react-icons/cg";
 import { toast } from "react-hot-toast";
+import CommonModal, { InputGroup } from "./CommonModal"; // Adjust path
+import { useCreateUserMutation, useUpdateUserMutation } from "../services/userApi";
 import { HiOutlineMail } from "react-icons/hi";
 
-// RTK Query Hooks
-import { useCreateUserMutation, useUpdateUserMutation } from "../services/userApi";
-
-export default function EmployeeModal({ isOpen, onClose, editData = null, onSubmit }) {
+export default function EmployeeModal({ isOpen, onClose, editData = null }) {
   const isEditing = !!editData;
   const [showPassword, setShowPassword] = useState(false);
-
-  // 1. API PROTOCOLS
   const [createUser, { isLoading: isCreating }] = useCreateUserMutation();
   const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
 
   const getToday = () => new Date().toISOString().split("T")[0];
 
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    designation: "",
-    efficiency: 100,
-    joinedDate: getToday(),
-    dailyWorkLimit: 9, // Default hours from backend
+    name: "", email: "", password: "", designation: "",
+    efficiency: "100", joinedDate: getToday(), dailyWorkLimit: "9",
   });
 
-  // 2. DATA SYNCHRONIZATION
   useEffect(() => {
     setShowPassword(false);
     if (editData && isOpen) {
-      // Syncing with the nested structure returned by populate('user')
       setFormData({
         name: editData.user?.name || "",
         email: editData.user?.email || "",
         designation: editData.designation || "",
-        efficiency: editData.efficiency || 100,
-        dailyWorkLimit: editData.dailyWorkLimit || 9,
-        joinedDate: editData.joinedDate
-          ? editData.joinedDate.split('T')[0]
-          : "",
+        efficiency: String(editData.efficiency ?? 100),
+        dailyWorkLimit: String(editData.dailyWorkLimit ?? 9),
+        joinedDate: editData.joinedDate ? editData.joinedDate.split('T')[0] : "",
       });
     } else if (isOpen) {
       setFormData({
-        name: "",
-        email: "",
-        password: "",
-        designation: "",
-        efficiency: 100,
-        joinedDate: getToday(),
-        dailyWorkLimit: 9,
+        name: "", email: "", password: "", designation: "",
+        efficiency: "100", joinedDate: getToday(), dailyWorkLimit: "9",
       });
     }
   }, [editData, isOpen]);
 
-  // 3. SUBMISSION HANDLER
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    let finalValue = (name === "efficiency" || name === "dailyWorkLimit") 
+      ? value.replace(/\D/g, "") 
+      : value;
+    setFormData(prev => ({ ...prev, [name]: finalValue }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const loadingToast = toast.loading(isEditing ? "Syncing profile updates..." : "Initializing operator access...");
-
+    const loadingToast = toast.loading(isEditing ? "Updating profile..." : "Onboarding talent...");
     try {
       const payload = {
-        name: formData.name,
-        email: formData.email.toLowerCase(),
-        designation: formData.designation,
+        ...formData,
         efficiency: Number(formData.efficiency),
         dailyWorkLimit: Number(formData.dailyWorkLimit),
-        joinedDate: formData.joinedDate,
+        email: formData.email.toLowerCase(),
       };
 
       if (isEditing) {
-        // Your backend updateUser expects the USER ID (from editData.user._id)
-        await updateUser({
-          id: editData.user._id,
-          payload: payload
-        }).unwrap();
-        toast.success("Personnel dossier updated", { id: loadingToast });
+        await updateUser({ id: editData.user._id, payload }).unwrap();
       } else {
-        // Create user requires a password
-        await createUser({
-          ...payload,
-          password: formData.password,
-        }).unwrap();
-        toast.success("New talent onboarded to sector", { id: loadingToast });
+        await createUser(payload).unwrap();
       }
+      toast.success(isEditing ? "Profile updated" : "Member onboarded", { id: loadingToast });
       onClose();
     } catch (err) {
-      toast.error(err?.data?.message || "Protocol override failed", { id: loadingToast });
+      toast.error(err?.data?.message || "Operation failed", { id: loadingToast });
     }
   };
 
-  const loading = isCreating || isUpdating;
-
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="absolute inset-0 bg-slate-900/80 backdrop-blur-md"
-          />
-
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0, y: 40 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 40 }}
-            className="relative bg-white w-full max-w-xl rounded-[4rem] shadow-[0_30px_100px_rgba(0,0,0,0.4)] overflow-hidden flex flex-col max-h-[90vh]"
-          >
-            {/* HEADER */}
-            <div className="p-10 pb-6 flex justify-between items-start bg-white border-b border-slate-50">
-              <div>
-                <p className="text-orange-500 font-black text-[10px] uppercase tracking-[0.4em] mb-2">Sector Registry</p>
-                <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">
-                  {isEditing ? "Edit Operator" : "Add Talent"}
-                </h2>
-              </div>
-              <button onClick={onClose} className="p-4 bg-slate-50 hover:bg-rose-50 hover:text-rose-500 rounded-3xl transition-all">
-                <HiOutlineXMark size={24} strokeWidth={2} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="p-10 pt-8 overflow-y-auto custom-scrollbar space-y-8">
-
-              {/* BASIC IDENTITY */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Full Legal Name</label>
-                  <div className="relative group">
-                    <HiOutlineUser className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-orange-500 transition-colors" size={20} />
-                    <input
-                      required
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full pl-14 pr-6 py-5 bg-slate-50 border-2 border-transparent rounded-[1.8rem] focus:bg-white focus:border-orange-500 outline-none transition-all font-bold text-slate-800"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Operational Role</label>
-                  <div className="relative group">
-                    <HiOutlineBriefcase className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-orange-500 transition-colors" size={20} />
-                    <input
-                      required
-                      type="text"
-                      value={formData.designation}
-                      onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
-                      className="w-full pl-14 pr-6 py-5 bg-slate-50 border-2 border-transparent rounded-[1.8rem] focus:bg-white focus:border-orange-500 outline-none transition-all font-bold text-slate-800"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* CONTACT & CREDENTIALS */}
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Work Email</label>
-                  <div className="relative group">
-                    <HiOutlineMail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-orange-500 transition-colors" size={20} />
-                    <input
-                      required
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full pl-14 pr-6 py-5 bg-slate-50 border-2 border-transparent rounded-[1.8rem] focus:bg-white focus:border-orange-500 outline-none transition-all font-bold text-slate-800"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
-                    Joining Date
-                  </label>
-                  <div className="relative group">
-                    <HiOutlineCalendarDays
-                      className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-orange-500 transition-colors"
-                      size={20}
-                    />
-                    <input
-                      required
-                      type="date"
-                      value={formData.joinedDate}
-                      onChange={(e) => setFormData({ ...formData, joinedDate: e.target.value })}
-                      className="w-full pl-14 pr-6 py-5 bg-slate-50 border-2 border-transparent rounded-[1.8rem] focus:bg-white focus:border-orange-500 outline-none transition-all font-bold text-slate-800"
-                    />
-                  </div>
-                </div>
-
-                {!isEditing && (
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Access Password</label>
-                    <div className="relative group">
-                      <HiOutlineLockClosed className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-orange-500 transition-colors" size={20} />
-                      <input
-                        required
-                        type={showPassword ? "text" : "password"}
-                        value={formData.password}
-                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        className="w-full pl-14 pr-16 py-5 bg-slate-50 border-2 border-transparent rounded-[1.8rem] focus:bg-white focus:border-orange-500 outline-none transition-all font-bold text-slate-800"
-                      />
-                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400">
-                        {showPassword ? <HiOutlineEyeSlash size={22} /> : <HiOutlineEye size={22} />}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* OPERATIONAL LIMITS */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-50">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Daily Hour Limit</label>
-                  <div className="relative group">
-                    <HiOutlineClock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-orange-500 transition-colors" size={20} />
-                    <input
-                      required
-                      type="number"
-                      value={formData.dailyWorkLimit}
-                      onChange={(e) => setFormData({ ...formData, dailyWorkLimit: e.target.value })}
-                      className="w-full pl-14 pr-6 py-5 bg-slate-50 border-2 border-transparent rounded-[1.8rem] focus:bg-white focus:border-orange-500 outline-none transition-all font-bold text-slate-800"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Efficiency (%)</label>
-                  <div className="relative group">
-                    <HiOutlineChartBar className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-orange-500 transition-colors" size={20} />
-                    <input
-                      required
-                      type="number"
-                      value={formData.efficiency}
-                      onChange={(e) => setFormData({ ...formData, efficiency: e.target.value })}
-                      className="w-full pl-14 pr-6 py-5 bg-slate-50 border-2 border-transparent rounded-[1.8rem] focus:bg-white focus:border-orange-500 outline-none transition-all font-bold text-slate-800"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* ACTION BUTTON */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-slate-900 hover:bg-orange-600 text-white py-6 rounded-[2.2rem] font-black text-xl transition-all flex items-center justify-center gap-4 mt-6 active:scale-95 shadow-2xl shadow-orange-600/10 disabled:opacity-70"
-              >
-                {loading ? <CgSpinner className="animate-spin" size={28} /> : (isEditing ? "Update Personnel" : "Onboard Operator")}
-              </button>
-            </form>
-          </motion.div>
+    <CommonModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEditing ? "Update Profile" : "Add New Member"}
+      subtitle="Sector Resource Management"
+      maxWidth="max-w-xl"
+    >
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <InputGroup label="Full Name">
+            <HiOutlineUser className="input-icon" />
+            <input required name="name" value={formData.name} onChange={handleChange} className="form-input" />
+          </InputGroup>
+          <InputGroup label="Job Title">
+            <HiOutlineBriefcase className="input-icon" />
+            <input required name="designation" value={formData.designation} onChange={handleChange} className="form-input" />
+          </InputGroup>
         </div>
-      )}
-    </AnimatePresence>
+
+        <InputGroup label="Work Email">
+          <HiOutlineMail className="input-icon" />
+          <input required type="email" name="email" value={formData.email} onChange={handleChange} className="form-input" />
+        </InputGroup>
+
+        {!isEditing && (
+          <InputGroup label="Initial Password">
+            <HiOutlineLockClosed className="input-icon" />
+            <input required name="password" type={showPassword ? "text" : "password"} value={formData.password} onChange={handleChange} className="form-input pr-12" />
+            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-[38px] text-slate-400">
+              {showPassword ? <HiOutlineEyeSlash size={18} /> : <HiOutlineEye size={18} />}
+            </button>
+          </InputGroup>
+        )}
+
+        <div className="pt-6 border-t border-slate-50 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <InputGroup label="Joining Date">
+            <HiOutlineCalendarDays className="input-icon" />
+            <input required type="date" name="joinedDate" value={formData.joinedDate} onChange={handleChange} className="form-input" />
+          </InputGroup>
+          <InputGroup label="Daily Hour Limit">
+            <HiOutlineClock className="input-icon" />
+            <input required name="dailyWorkLimit" value={formData.dailyWorkLimit} onChange={handleChange} className="form-input" />
+          </InputGroup>
+        </div>
+
+        <InputGroup label="Efficiency Rating (%)">
+          <HiOutlineChartBar className="input-icon" />
+          <input required name="efficiency" value={formData.efficiency} onChange={handleChange} className="form-input" />
+        </InputGroup>
+
+        <button disabled={isCreating || isUpdating} type="submit" className="w-full bg-slate-900 hover:bg-orange-600 text-white py-4 rounded-2xl font-bold text-lg transition-all flex items-center justify-center gap-3">
+          {(isCreating || isUpdating) ? <CgSpinner className="animate-spin" size={24} /> : (isEditing ? "Save Changes" : "Onboard Member")}
+        </button>
+      </form>
+
+      {/* Re-injecting your global styles once in the shell is enough, but keeping them here for reference */}
+      <style jsx global>{`
+        .form-input { width: 100%; padding: 0.85rem 1rem 0.85rem 2.75rem; background-color: #f8fafc; border: 2px solid transparent; border-radius: 1rem; font-size: 0.875rem; font-weight: 600; color: #1e293b; transition: all 0.2s; outline: none; }
+        .form-input:focus { background-color: #fff; border-color: #f97316; }
+        .input-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #cbd5e1; transition: color 0.2s; z-index: 10; }
+        .group:focus-within .input-icon { color: #f97316; }
+      `}</style>
+    </CommonModal>
   );
 }

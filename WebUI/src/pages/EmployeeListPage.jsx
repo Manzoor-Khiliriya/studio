@@ -5,7 +5,7 @@ import { useGetAllEmployeesQuery } from "../services/employeeApi";
 import {
   HiOutlinePencilSquare, HiOutlineTrash, HiOutlineMagnifyingGlass,
   HiOutlinePlus, HiOutlineXMark,
-  HiOutlineCalendarDateRange,
+  HiOutlineCalendarDays,
   HiOutlineShieldCheck
 } from "react-icons/hi2";
 import { HiOutlineIdentification } from "react-icons/hi";
@@ -16,6 +16,7 @@ import Pagination from "../components/Pagination";
 import Loader from "../components/Loader";
 import EmployeeModal from "../components/EmployeeModal";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
+import { FiEdit, FiTrash2 } from "react-icons/fi";
 
 export default function EmployeeListPage() {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ export default function EmployeeListPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(5);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEmp, setSelectedEmp] = useState(null);
@@ -45,45 +46,44 @@ export default function EmployeeListPage() {
     const isActive = emp.user?.status === "Enable";
     const newStatus = isActive ? "Disable" : "Enable";
 
-    const t = toast.loading("Updating access level...");
+    const t = toast.loading("Updating status...");
     try {
       await changeUserStatus({ id: emp.user._id, status: newStatus }).unwrap();
-      toast.success(`User ${newStatus === "Enable" ? "activated" : "disabled"}`, { id: t });
+      toast.success(`Account ${newStatus === "Enable" ? "activated" : "disabled"}`, { id: t });
     } catch (err) {
-      toast.error("Status update failed", { id: t });
+      toast.error("Failed to update status", { id: t });
     }
   };
 
-  // --- HANDLERS ---
   const handleConfirmDelete = async () => {
     if (!selectedEmp?.user?._id) return;
-
-    const loadingToast = toast.loading("Executing terminal revocation...");
+    const loadingToast = toast.loading("Deleting account...");
     try {
-      // Backend deleteUser removes both User and Employee via the User ID
       await deleteUser(selectedEmp.user._id).unwrap();
-      toast.success(`Access revoked for ${selectedEmp.user.name}`, { id: loadingToast });
+      toast.success("Employee removed successfully", { id: loadingToast });
       setIsDeleteOpen(false);
       setSelectedEmp(null);
     } catch (err) {
-      toast.error(err.data?.message || "Protocol override failed", { id: loadingToast });
+      toast.error(err.data?.message || "Deletion failed", { id: loadingToast });
     }
   };
 
-  // --- TABLE COLUMNS CONFIGURATION ---
   const columns = [
     {
-      header: "Operator Profile",
+      header: "Employee",
       render: (emp) => (
-        <div className="flex items-center gap-5 py-2">
+        <div className="flex items-center gap-4 py-1">
+          <div className="h-10 w-10 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600 font-bold border border-orange-100">
+            {emp.user?.name?.charAt(0)?.toUpperCase() || "U"}
+          </div>
           <div>
-            <p className="font-black text-slate-900 text-base tracking-tighter uppercase leading-tight group-hover:text-orange-600 transition-colors">
+            <p className="font-bold text-slate-900 text-sm">
               {emp.user?.name || "Unknown"}
             </p>
-            <div className="flex items-center gap-2 mt-0.5">
-              <HiOutlineIdentification className="text-orange-500" size={12} />
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                {emp.designation || "Junior Developer"}
+            <div className="flex items-center gap-1.5 opacity-60">
+              <HiOutlineIdentification size={12} />
+              <p className="text-[10px] font-bold uppercase tracking-wider">
+                {emp.designation || "Staff"}
               </p>
             </div>
           </div>
@@ -91,124 +91,109 @@ export default function EmployeeListPage() {
       )
     },
     {
-      header: "Email",
-      className: "",
-      cellClassName: "",
+      header: "Contact",
       render: (emp) => (
-        <div className="">
-          <span className="text-xs font-bold text-slate-900 leading-none">{emp.user.email || ""}</span>
+        <span className="text-xs font-medium text-slate-500">{emp.user.email}</span>
+      )
+    },
+    {
+      header: "Joined Date",
+      render: (emp) => (
+        <div className="flex items-center gap-2 text-slate-500">
+          <HiOutlineCalendarDays size={16} className="opacity-40" />
+          <span className="text-xs font-semibold">
+            {emp.joinedDate ? new Date(emp.joinedDate).toLocaleDateString() : "N/A"}
+          </span>
         </div>
       )
     },
     {
-      header: "Date of Joining",
-      render: (emp) => (
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-slate-600">
-            <HiOutlineCalendarDateRange size={16} className="text-slate-300" />
-            <span className="text-xs font-bold">
-              {emp.joinedDate ? emp.joinedDate.split("T")[0] : ""}
-            </span>
-
-          </div>
-        </div>
-      )
-    },
-    {
-      header: "Efficiency",
+      header: "Performance",
       className: "text-center",
       cellClassName: "text-center",
       render: (emp) => (
-        <div className="inline-flex flex-col items-center">
-          <span className="text-lg font-black text-slate-900 leading-none">{emp.efficiency || 100}%</span>
-        </div>
+        <span className="text-sm font-bold text-slate-800">{emp.efficiency || 100}%</span>
       )
     },
     {
-      header: "Employee Status",
+      header: "Status",
       className: "text-center",
       cellClassName: "text-center",
       render: (emp) => {
         const isActive = emp.user?.status === "Enable";
         return (
-          <span className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-[0.15em] border-2 ${isActive ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100"
+          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider ${isActive ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
             }`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} />
-            {isActive ? "Active" : "Access Restricted"}
+            <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-emerald-500" : "bg-red-500"}`} />
+            {isActive ? "Active" : "Disabled"}
           </span>
         );
       }
     },
     {
-      header: "Admin Override",
-      className: "text-right pr-12",
-      cellClassName: "text-right pr-12",
+      header: "Actions",
+      className: "text-left",
+      cellClassName: "text-left",
       render: (emp) => (
-        <div className="flex justify-end gap-3">
+        <div className="flex justify-between gap-1">
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleToggleStatus(emp);
-            }}
-            className="p-3.5 rounded-2xl bg-slate-50 text-slate-400 hover:bg-rose-600 hover:text-white transition-all shadow-sm active:scale-95"
-            title="Toggle Access"
+            onClick={(e) => { e.stopPropagation(); handleToggleStatus(emp); }}
+            className={`rounded-lg transition-colors cursor-pointer ${emp.user?.status === "Enable" ? "text-emerald-500 hover:text-red-600" : "text-red-500 hover:text-emerald-600"}`}
+            title={`${emp.user?.status === "Enable" ? "Disable Access" : "Enable Access"}`}
           >
-            <HiOutlineShieldCheck size={20} />
+            <HiOutlineShieldCheck size={18} />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); setSelectedEmp(emp); setIsModalOpen(true); }}
-            className="p-3.5 rounded-2xl bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white transition-all shadow-sm active:scale-95"
-            title="Modify Profile"
+            className="rounded-lg text-yellow-500 hover:text-yellow-600 transition-colors cursor-pointer"
+            title="Update Profile"
           >
-            <HiOutlinePencilSquare size={20} />
+            <FiEdit size={18} />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); setSelectedEmp(emp); setIsDeleteOpen(true); }}
-            className="p-3.5 rounded-2xl bg-slate-50 text-slate-400 hover:bg-rose-600 hover:text-white transition-all shadow-sm active:scale-95"
-            title="Revoke Access"
+            className="rounded-lg text-red-500 hover:text-red-600 transition-colors cursor-pointer"
+            title="Delete User"
           >
-            <HiOutlineTrash size={20} />
+            <FiTrash2 size={18} />
           </button>
         </div>
       )
     }
   ];
 
-  if (isLoading) return <Loader message="Accessing Personnel Database..." />;
+  if (isLoading) return <Loader message="Syncing employee records..." />;
 
   return (
-    <div className="max-w-[1700px] mx-auto pb-24 px-8">
-      {/* HEADER SECTION */}
-      <div className="flex flex-col 2xl:flex-row justify-between items-start 2xl:items-end gap-10 mb-12 mt-12">
-        <div className="w-full 2xl:w-auto">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-1 bg-orange-600" />
-            <p className="text-orange-500 font-black text-xs uppercase tracking-[0.5em]">Sector Personnel Directory</p>
+    <div className="max-w-[1600px] mx-auto pb-20 px-4 md:px-8">
+      {/* HEADER */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 mb-10 mt-12">
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-1 bg-orange-500 rounded-full" />
+            <p className="text-orange-600 font-bold text-[11px] uppercase tracking-[0.2em]">Workforce Directory</p>
           </div>
-          <h1 className="text-7xl font-black text-slate-900 tracking-tighter uppercase leading-none">Team Hub</h1>
+          <h1 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight">Team Hub</h1>
 
-          <div className="flex flex-wrap items-center gap-5 mt-10">
-            {/* SEARCH BOX */}
-            <div className="relative min-w-[380px] group">
-              <HiOutlineMagnifyingGlass className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors" size={22} />
+          {/* FILTERS BAR */}
+          <div className="flex flex-wrap items-center gap-4 mt-8">
+            <div className="relative min-w-[320px]">
+              <HiOutlineMagnifyingGlass className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
               <input
                 type="text"
-                placeholder="Search operator name..."
-                className="w-full pl-14 pr-6 py-5 bg-white border-2 border-slate-100 rounded-[2rem] focus:border-orange-500 focus:shadow-xl focus:shadow-orange-500/5 transition-all outline-none font-bold text-sm"
+                placeholder="Search by name..."
+                className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/5 transition-all outline-none text-sm"
                 value={searchTerm}
                 onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
               />
             </div>
 
-            {/* STATUS FILTERS */}
-            <div className="flex bg-slate-100/50 p-2 rounded-[1.8rem] border border-slate-100">
+            <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
               {["All", "Active", "Disabled"].map((s) => (
                 <button
                   key={s}
                   onClick={() => { setStatusFilter(s); setCurrentPage(1); }}
-                  className={`px-8 py-3.5 rounded-[1.3rem] text-[11px] font-black uppercase tracking-widest transition-all ${statusFilter === s
-                    ? "bg-slate-900 text-white shadow-xl"
-                    : "text-slate-400 hover:text-slate-900"
+                  className={`px-6 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all ${statusFilter === s ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
                     }`}
                 >
                   {s}
@@ -216,52 +201,38 @@ export default function EmployeeListPage() {
               ))}
             </div>
 
-            {/* LIMIT SELECTOR */}
-            <div className="relative">
-              <select
-                value={limit}
-                onChange={(e) => { setLimit(Number(e.target.value)); setCurrentPage(1); }}
-                className="appearance-none pl-6 pr-12 py-5 bg-white border-2 border-slate-100 rounded-[1.8rem] focus:border-orange-500 outline-none font-black text-[11px] uppercase cursor-pointer"
-              >
-                {[5, 10, 20, 50].map(v => <option key={v} value={v}>{v} Per Batch</option>)}
-              </select>
-              <span className="absolute -top-2 left-6 bg-white px-2 text-[8px] font-black text-slate-300 uppercase tracking-widest">Page Load</span>
-            </div>
-
             {(searchTerm || statusFilter !== "All") && (
               <button
                 onClick={() => { setSearchTerm(""); setStatusFilter("All"); }}
-                className="px-6 py-5 text-rose-500 font-black text-[11px] uppercase flex items-center gap-2 hover:bg-rose-50 rounded-2xl transition-all"
+                className="text-slate-400 hover:text-rose-500 transition-colors"
               >
-                <HiOutlineXMark size={18} /> Reset Sector
+                <HiOutlineXMark size={24} />
               </button>
             )}
           </div>
         </div>
 
-        {/* ONBOARD BUTTON */}
         <button
           onClick={() => { setSelectedEmp(null); setIsModalOpen(true); }}
-          className="flex items-center gap-4 bg-orange-600 hover:bg-slate-900 text-white px-12 py-6 rounded-[2.5rem] font-black text-lg transition-all shadow-2xl shadow-orange-600/20 active:scale-95"
+          className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-orange-500/20 active:scale-95 cursor-pointer"
         >
-          <HiOutlinePlus strokeWidth={3} size={24} />
-          <span className="uppercase tracking-tighter">Onboard Talent</span>
+          <HiOutlinePlus strokeWidth={2.5} size={20} />
+          <span>Add Employee</span>
         </button>
       </div>
 
-      {/* TABLE */}
-      <div className="bg-white rounded-[4rem] border-2 border-slate-50 shadow-[0_20px_50px_rgba(0,0,0,0.02)] overflow-hidden min-h-[600px] flex flex-col justify-between">
+      {/* TABLE SECTION */}
+      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
         <div className="overflow-x-auto">
           <Table
             columns={columns}
             data={data?.employees || []}
             onRowClick={(emp) => navigate(`/employees/${emp.user?._id}`)}
-            emptyMessage="Zero personnel detected in this search radius."
+            emptyMessage="No employees found matching your criteria."
           />
         </div>
 
-        {/* PAGINATION */}
-        <div className="p-8 border-t border-slate-50 bg-slate-50/30">
+        <div className="mt-auto p-6 border-t border-slate-50 bg-slate-50/50">
           <Pagination
             pagination={{
               current: data?.currentPage,
@@ -270,18 +241,12 @@ export default function EmployeeListPage() {
             }}
             onPageChange={setCurrentPage}
             loading={isFetching}
-            label="Operators"
+            label="Employees"
           />
         </div>
       </div>
 
-      {/* MODALS */}
-      <EmployeeModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        editData={selectedEmp}
-      />
-
+      <EmployeeModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} editData={selectedEmp} />
       <DeleteConfirmModal
         isOpen={isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}

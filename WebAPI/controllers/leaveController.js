@@ -8,7 +8,16 @@ const { calculateLeaveDays, hasLeaveOverlap } = require("../utils/leaveHelpers")
 exports.getMyLeaves = async (req, res) => {
   try {
     const userId = req.user._id;
-    const leaves = await Leave.find({ user: userId }).sort({ createdAt: -1 });
+    // Get pagination params from query, default to page 1, limit 5
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+    const skip = (page - 1) * limit;
+
+    const totalLeaves = await Leave.countDocuments({ user: userId });
+    const leaves = await Leave.find({ user: userId })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     const employee = await Employee.findOne({ user: userId });
     const user = await User.findById(userId);
@@ -19,16 +28,25 @@ exports.getMyLeaves = async (req, res) => {
 
     const earned = months * (14 / 12);
 
+    // Calculate taken days (this usually requires checking ALL approved leaves, not just the paginated ones)
+    const allApproved = await Leave.find({ user: userId, status: "Approved", type: "Annual Leave" });
     let taken = 0;
-    const approved = leaves.filter(l => l.status === "Approved" && l.type === "Annual Leave");
-    for (const l of approved) taken += await calculateLeaveDays(l.startDate, l.endDate);
+    for (const l of allApproved) taken += await calculateLeaveDays(l.startDate, l.endDate);
 
     const history = await Promise.all(leaves.map(async l => ({
       ...l.toObject(),
       businessDays: await calculateLeaveDays(l.startDate, l.endDate)
     })));
 
-    res.json({ history, stats: { earned, taken, remaining: +(earned - taken).toFixed(1) } });
+    res.json({ 
+      history, 
+      stats: { earned, taken, remaining: +(earned - taken).toFixed(1) },
+      pagination: {
+        totalLeaves,
+        totalPages: Math.ceil(totalLeaves / limit),
+        currentPage: page
+      }
+    });
 
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -116,16 +134,47 @@ exports.deleteLeave = async (req, res) => {
 /* ================= ADMIN ================= */
 
 exports.getAllLeaves = async (req, res) => {
-  const { status, search } = req.query;
+  try {
+    const { status, search } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
 
-  let leaves = await Leave.find(status && status !== "All" ? { status } : {})
-    .populate({ path: "user", select: "name email", populate: { path: "employee", select: "designation" } })
-    .sort({ createdAt: -1 })
-    .lean();
+    // Build the query object
+    let query = {};
+    if (status && status !== "All") query.status = status;
 
-  if (search) leaves = leaves.filter(l => l.user?.name.toLowerCase().includes(search.toLowerCase()));
+    // Note: If searching by user name, we need to find user IDs first 
+    // because Leave model stores user ID, not name.
+    if (search) {
+      const users = await User.find({ name: { $regex: search, $options: "i" } }).select("_id");
+      const userIds = users.map(u => u._id);
+      query.user = { $in: userIds };
+    }
 
-  res.json(leaves);
+    const totalLeaves = await Leave.countDocuments(query);
+    const leaves = await Leave.find(query)
+      .populate({ 
+        path: "user", 
+        select: "name email", 
+        populate: { path: "employee", select: "designation" } 
+      })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    res.json({
+      leaves,
+      pagination: {
+        totalLeaves,
+        totalPages: Math.ceil(totalLeaves / limit),
+        currentPage: page
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
 exports.processLeave = async (req, res) => {

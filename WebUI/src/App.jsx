@@ -22,6 +22,7 @@ import { store } from "./config/store";
 import AdminHolidayPage from "./pages/AdminHolidayPage";
 import EmployeeHolidayPage from "./pages/EmployeeHolidayPage";
 import { Toaster } from "react-hot-toast";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 function App() {
   return (
@@ -52,6 +53,7 @@ function App() {
           <Routes>
             {/* PUBLIC ROUTES */}
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/home" element={<Navigate to="/login" replace />} />
 
             {/* ADMIN SECTION */}
