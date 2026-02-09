@@ -10,8 +10,8 @@ import {
   Legend,
 } from "chart.js";
 import { FiBarChart2, FiTrendingUp, FiClock, FiActivity } from "react-icons/fi";
-import { useGetMyTodayLogsQuery } from "../services/timeLogApi";
-import Loader from "../components/Loader";
+import { useGetMyTodayLogsQuery } from "../../services/timeLogApi";
+import Loader from "../../components/Loader";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 

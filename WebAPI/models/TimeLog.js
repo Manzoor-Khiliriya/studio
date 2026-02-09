@@ -17,36 +17,39 @@ const timeLogSchema = new mongoose.Schema({
     required: true,
     index: true
   }
-
-}, { timestamps: true });
+}, { 
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
 
 /**
- * Compound index for fast dashboard queries
+ * Compound indexes
  */
 timeLogSchema.index({ user: 1, dateString: 1 });
 timeLogSchema.index({ task: 1, user: 1 });
 
 /**
- * Auto-set dateString + duration
+ * FIX: Use "validate" instead of "save"
+ * This ensures dateString is set BEFORE Mongoose checks if it's required.
+ * Also, we removed the "next" callback to avoid the "next is not a function" error.
  */
-timeLogSchema.pre("save", function (next) {
-  // Ensure dateString always matches startTime
-  if (this.startTime) {
-    this.dateString = this.startTime.toISOString().split("T")[0];
+timeLogSchema.pre("validate", function () {
+  // 1. Set dateString automatically from startTime
+  if (this.startTime && !this.dateString) {
+    this.dateString = new Date(this.startTime).toISOString().split("T")[0];
   }
 
-  // Calculate duration if session ended
+  // 2. Calculate duration if session ended
   if (this.endTime && this.startTime) {
-    const diff = (this.endTime - this.startTime) / 1000;
+    const diff = (new Date(this.endTime) - new Date(this.startTime)) / 1000;
     this.durationSeconds = Math.max(0, Math.round(diff));
     this.isRunning = false;
   }
-
-  next();
 });
 
 /**
- * Virtual: duration in HOURS (for task progress system)
+ * Virtual: duration in HOURS
  */
 timeLogSchema.virtual("durationHours").get(function () {
   return +(this.durationSeconds / 3600).toFixed(2);

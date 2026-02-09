@@ -24,10 +24,15 @@ taskSchema.virtual("timeLogs", {
   foreignField: "task"
 });
 
-// Convert seconds → HOURS
+// Inside Task.js Schema
 taskSchema.virtual("totalConsumedHours").get(function () {
-  if (!this.timeLogs) return 0;
-  const totalSeconds = this.timeLogs.reduce((a, l) => a + (l.durationSeconds || 0), 0);
+  if (!this.timeLogs || this.timeLogs.length === 0) return 0;
+  
+  // Only sum 'work' type logs, exclude 'break'
+  const totalSeconds = this.timeLogs
+    .filter(log => log.logType === "work")
+    .reduce((a, l) => a + (l.durationSeconds || 0), 0);
+    
   return +(totalSeconds / 3600).toFixed(2);
 });
 

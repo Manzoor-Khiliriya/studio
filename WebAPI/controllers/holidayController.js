@@ -5,14 +5,23 @@ const Holiday = require("../models/Holiday");
  */
 exports.getHolidays = async (req, res) => {
   try {
-    const { year } = req.query;
+    const { year, search } = req.query;
     const query = {};
 
+    // --- Year Filter ---
     if (year) {
       query.date = {
         $gte: new Date(`${year}-01-01`),
         $lte: new Date(`${year}-12-31T23:59:59.999Z`)
       };
+    }
+
+    // --- Search Filter ---
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },        // "i" makes it case-insensitive
+        { description: { $regex: search, $options: "i" } }
+      ];
     }
 
     const holidays = await Holiday.find(query).sort({ date: 1 }).lean();

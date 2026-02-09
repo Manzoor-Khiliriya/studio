@@ -3,50 +3,58 @@ const Task = require("../models/Task");
 const Employee = require("../models/Employee");
 const mongoose = require("mongoose");
 
-/* =========================================================
-   START TIMER
-   ========================================================= */
 exports.startTimer = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
+    // FIX 1: Robust taskId extraction
     const { taskId } = req.body;
     const userId = req.user._id;
 
-    const task = await Task.findOne({ _id: taskId, assignedTo: userId });
-    if (!task) throw new Error("Task not found or not assigned.");
+    if (!taskId) throw new Error("Task ID is required.");
+
+    // FIX 2: Find Employee profile (Tasks are assigned to Employee IDs, not User IDs)
+    const employee = await Employee.findOne({ user: userId });
+    if (!employee) throw new Error("Employee profile not found for this user.");
+
+    // FIX 3: Check task assignment using employee._id
+    const task = await Task.findOne({
+      _id: taskId,
+      assignedTo: employee._id
+    });
+
+    if (!task) throw new Error("Task not found or not assigned to your employee profile.");
 
     const today = new Date().toISOString().split("T")[0];
-    const employee = await Employee.findOne({ user: userId });
 
-    // 🔹 Check daily hour limit
-    if (employee) {
-      const logs = await TimeLog.find({ user: userId, dateString: today, logType: "work" });
-      const hoursToday = logs.reduce((a, l) => a + (l.durationSeconds / 3600 || 0), 0);
+    // Check daily hour limit
+    const logs = await TimeLog.find({ user: userId, dateString: today, logType: "work" });
+    const hoursToday = logs.reduce((sum, l) => sum + (l.durationSeconds / 3600 || 0), 0);
 
-      if (hoursToday >= employee.dailyWorkLimit) {
-        throw new Error(`Daily limit reached (${employee.dailyWorkLimit} hrs).`);
-      }
+    if (hoursToday >= employee.dailyWorkLimit) {
+      throw new Error(`Daily limit reached (${employee.dailyWorkLimit} hrs).`);
     }
 
-    // 🔹 Stop any running logs
+    // Stop any running logs for this user
     await TimeLog.updateMany(
       { user: userId, isRunning: true },
       { $set: { endTime: new Date(), isRunning: false } },
       { session }
     );
 
-    // 🔹 Start new log
+
+    // FIX: Explicitly pass dateString here
     const log = await TimeLog.create([{
       user: userId,
       task: taskId,
       startTime: new Date(),
       isRunning: true,
-      logType: "work"
+      logType: "work",
+      dateString: today // <--- ADD THIS LINE
     }], { session });
 
-    // Auto move task status
+    // Auto update task status
     if (task.status === "Pending") {
       task.status = "In Progress";
       await task.save({ session });
@@ -57,15 +65,17 @@ exports.startTimer = async (req, res) => {
 
   } catch (err) {
     await session.abortTransaction();
-    res.status(400).json({ error: err.message });
+    // Catch the "Cast to ObjectId" error specifically if it slips through
+    const message = err.name === "CastError" ? "Invalid Task ID format" : err.message;
+    res.status(400).json({ error: message });
   } finally {
     session.endSession();
   }
 };
 
-
 exports.togglePause = async (req, res) => {
   const userId = req.user._id;
+  const today = new Date().toISOString().split("T")[0]; // ADD THIS
 
   const active = await TimeLog.findOne({ user: userId, isRunning: true });
   if (!active) return res.status(404).json({ message: "No active timer." });
@@ -81,7 +91,8 @@ exports.togglePause = async (req, res) => {
     task: active.task,
     startTime: new Date(),
     logType: newType,
-    isRunning: true
+    isRunning: true,
+    dateString: today // <--- ADD THIS LINE
   });
 
   res.json({ status: newType, log: newLog });
@@ -134,7 +145,7 @@ exports.getMyLogs = async (req, res) => {
 
 exports.getTaskPerformanceReport = async (req, res) => {
   const report = await Task.aggregate([
-    { $lookup: { from: "timelogs", localField: "_id", foreignField: "task", as: "logs" }},
+    { $lookup: { from: "timelogs", localField: "_id", foreignField: "task", as: "logs" } },
     {
       $project: {
         title: 1,
@@ -144,11 +155,15 @@ exports.getTaskPerformanceReport = async (req, res) => {
         totalWorkHours: {
           $round: [{
             $divide: [
-              { $sum: { $map: {
-                input: { $filter: { input: "$logs", as: "l", cond: { $eq: ["$$l.logType", "work"] }}},
-                as: "item",
-                in: "$$item.durationSeconds"
-              }}},
+              {
+                $sum: {
+                  $map: {
+                    input: { $filter: { input: "$logs", as: "l", cond: { $eq: ["$$l.logType", "work"] } } },
+                    as: "item",
+                    in: "$$item.durationSeconds"
+                  }
+                }
+              },
               3600
             ]
           }, 2]

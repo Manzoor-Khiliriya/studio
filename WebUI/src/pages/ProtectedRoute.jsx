@@ -5,20 +5,22 @@ const ProtectedRoute = ({ allowedRoles }) => {
   const { user, token } = useSelector((state) => state.auth);
   const location = useLocation();
 
-  // 1. Not logged in? Send to login
+  // 1. Check Authentication
   if (!token || !user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // 2. Wrong Role? Redirect based on who they are
+  // 2. Check Authorization (Role-based)
+  // We check if allowedRoles exists and if the user's role is NOT in that list
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    // If an Admin accidentally hits an Employee-only page, send them to Admin Dashboard
-    // If an Employee tries to hack into Admin pages, send them to Employee Dashboard
-    const redirectPath = user.role === "Admin" ? "/admin-dashboard" : "/dashboard";
+    
+    // Updated these paths to match your Sidebar/Navbar navigation
+    const redirectPath = user.role === "Admin" ? "/admin" : "/employee";
+    
     return <Navigate to={redirectPath} replace />;
   }
 
-  // 3. Authorized? Render the child routes
+  // 3. Render nested routes
   return <Outlet />;
 };
 

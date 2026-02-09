@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { useState } from "react";
-import { logOut } from "../features/auth/authSlice"; // Ensure this path is correct
+import { logOut } from "../features/auth/authSlice";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   HiOutlineSquares2X2,
@@ -22,11 +22,8 @@ export default function Sidebar() {
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Handle Logout via Redux and redirect
   const handleLogout = () => {
     dispatch(logOut());
-    // Note: If your authSlice handles window.location.href, navigate is redundant
-    // but good for safety.
     navigate("/login");
   };
 
@@ -53,15 +50,16 @@ export default function Sidebar() {
   return (
     <>
       {/* --- DESKTOP SIDEBAR --- */}
-      <aside className="hidden md:flex w-72 bg-[#0f1115] text-slate-400 min-h-screen flex-col p-6 sticky top-0 border-r border-orange-900/10 z-50">
+      {/* REMOVED: min-h-screen and sticky top-0. ADDED: h-full */}
+      <aside className="hidden md:flex w-72 bg-[#0f1115] text-slate-400 h-full flex-col p-6 border-r border-orange-900/10">
         
-        {/* Brand/App Name (Optional if not in Navbar) */}
+        {/* Brand/App Name */}
         <div className="mb-8 px-4">
            <span className="text-orange-500 font-black tracking-tighter text-2xl">PORTAL.</span>
         </div>
 
         {/* Navigation Section */}
-        <nav className="flex-1 space-y-1 relative">
+        <nav className="flex-1 space-y-1 relative overflow-y-auto custom-scrollbar pr-2">
           {links.map((link) => (
             <NavLink
               key={link.to}
@@ -74,7 +72,6 @@ export default function Sidebar() {
             >
               {({ isActive }) => (
                 <>
-                  {/* Active Background Glow */}
                   {isActive && (
                     <motion.div
                       layoutId="activeNav"
@@ -96,8 +93,8 @@ export default function Sidebar() {
           ))}
         </nav>
 
-        {/* Desktop User Footer */}
-        <div className="pt-6 border-t border-slate-800/50">
+        {/* User Footer - Pushed to bottom by flex-1 above */}
+        <div className="pt-6 mt-auto border-t border-slate-800/50">
           <div className="flex items-center gap-3 px-3 py-4 mb-4 bg-orange-500/5 rounded-2xl border border-orange-500/10">
             <div className="w-10 h-10 rounded-xl bg-orange-600 flex items-center justify-center text-white font-black ring-2 ring-[#1a1d23]">
               {user.name?.charAt(0)}
@@ -122,38 +119,45 @@ export default function Sidebar() {
       </aside>
 
       {/* --- MOBILE BOTTOM NAVIGATION --- */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-orange-100 px-4 py-2 flex justify-around items-center z-[100] h-20 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-        {links.slice(0, 4).map((link) => (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            className={({ isActive }) =>
-              `flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${
-                isActive ? "text-orange-600" : "text-slate-400"
-              }`
-            }
-          >
-            <span className="text-2xl">{link.icon}</span>
-            <span className="text-[9px] font-black uppercase tracking-widest">{link.label}</span>
-            {/* Minimal Mobile Indicator */}
-            <NavLink to={link.to}>
-              {({ isActive }) => isActive && (
-                <motion.div layoutId="mobileActive" className="w-1 h-1 rounded-full bg-orange-600 mt-0.5" />
-              )}
-            </NavLink>
-          </NavLink>
-        ))}
+<nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-orange-100 px-4 py-2 flex justify-around items-center z-[100] h-20 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+  {links.slice(0, 4).map((link) => (
+    <NavLink
+      key={link.to}
+      to={link.to}
+      className={({ isActive }) =>
+        `flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${
+          isActive ? "text-orange-600" : "text-slate-400"
+        }`
+      }
+    >
+      {/* We destructure isActive here so it's defined for the content below */}
+      {({ isActive }) => (
+        <>
+          <span className="text-2xl">{link.icon}</span>
+          <span className="text-[9px] font-black uppercase tracking-widest">{link.label}</span>
+          
+          {/* Minimal Mobile Indicator */}
+          {isActive && (
+            <motion.div 
+              layoutId="mobileActive" 
+              className="w-1 h-1 rounded-full bg-orange-600 mt-0.5" 
+            />
+          )}
+        </>
+      )}
+    </NavLink>
+  ))}
 
-        <button
-          onClick={() => setIsMobileMenuOpen(true)}
-          className="flex flex-col items-center gap-1 p-2 text-slate-400 active:text-orange-500"
-        >
-          <FiMenu size={24} />
-          <span className="text-[9px] font-black uppercase tracking-widest">More</span>
-        </button>
-      </nav>
+  <button
+    onClick={() => setIsMobileMenuOpen(true)}
+    className="flex flex-col items-center gap-1 p-2 text-slate-400 active:text-orange-500"
+  >
+    <FiMenu size={24} />
+    <span className="text-[9px] font-black uppercase tracking-widest">More</span>
+  </button>
+</nav>
 
-      {/* --- MOBILE OVERLAY DRAWER --- */}
+      {/* --- MOBILE OVERLAY DRAWER (Unchanged) --- */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
@@ -172,7 +176,6 @@ export default function Sidebar() {
               className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[3rem] p-8 z-[102] md:hidden shadow-2xl"
             >
               <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-8" />
-
               <div className="flex items-center gap-5 p-6 bg-orange-50 rounded-[2.5rem] mb-8 border border-orange-100/50">
                 <div className="w-16 h-16 rounded-3xl bg-orange-600 flex items-center justify-center text-white text-2xl font-black shadow-xl shadow-orange-200">
                   {user.name?.charAt(0)}
@@ -185,7 +188,6 @@ export default function Sidebar() {
 
               <div className="space-y-4">
                  <div className="grid grid-cols-1 gap-3">
-                    {/* Secondary links that didn't fit in the 4-item bottom nav could go here */}
                     {links.slice(4).map((link) => (
                       <NavLink 
                         key={link.to} 
@@ -201,17 +203,10 @@ export default function Sidebar() {
 
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center justify-center gap-4 py-5 bg-slate-900 text-white font-black rounded-[2rem] transition-all active:scale-95 shadow-2xl shadow-slate-200 mt-4"
+                  className="w-full flex items-center justify-center gap-4 py-5 bg-slate-900 text-white font-black rounded-[2rem] shadow-2xl shadow-slate-200 mt-4"
                 >
-                  <HiLogout size={22} className="text-orange-500" /> 
+                  <HiLogout size={22} className="text-orange-50" /> 
                   <span className="tracking-widest uppercase text-xs">Terminate Session</span>
-                </button>
-                
-                <button
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="w-full py-4 text-slate-400 font-bold uppercase text-[10px] tracking-widest"
-                >
-                  Close Menu
                 </button>
               </div>
             </motion.div>

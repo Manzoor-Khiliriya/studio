@@ -7,8 +7,8 @@ import { toast } from "react-hot-toast";
 import { format } from "date-fns";
 
 // RTK Query Hooks
-import { useGetAllTasksQuery } from "../services/taskApi";
-import { useGetDailyReportQuery } from "../services/timeLogApi";
+import { useGetAllTasksQuery } from "../../services/taskApi";
+import { useGetDailyReportQuery } from "../../services/timeLogApi";
 
 export default function AdminReportsPage() {
   const [searchTerm, setSearchTerm] = useState("");

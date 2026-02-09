@@ -5,28 +5,30 @@ import Layout from "./components/Layout";
 
 // Pages
 import LoginPage from "./pages/LoginPage";
-import AdminDashboard from "./pages/AdminDashboard";
-import EmployeeDashboard from "./pages/EmployeeDashboard";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
 // import AdminReportsPage from "./pages/AdminReportsPage";
-import EmployeeListPage from "./pages/EmployeeListPage";
-import EmployeeDetailPage from "./pages/EmployeeDetailPage";
-import MyTasksPage from "./pages/MyTasksPage";
-import EmployeeReportsPage from "./pages/EmployeeReportPage";
+import EmployeeListPage from "./pages/admin/AdminEmployeeListPage";
+import EmployeeDetailPage from "./pages/admin/AdminEmployeeDetailPage";
+import MyTasksPage from "./pages/employee/EmployeeTasksPage";
+import EmployeeReportsPage from "./pages/employee/EmployeeReportPage";
 import ProtectedRoute from "./pages/ProtectedRoute";
-import AdminTasksPage from "./pages/AdminTaskListPage";
-import AdminTaskDetailPage from "./pages/AdminTaskDetailPage";
-import AdminLeavePage from "./pages/AdminLeavePage";
-import EmployeeLeavePage from "./pages/EmployeeLeavePage";
+import AdminTasksPage from "./pages/admin/AdminTaskListPage";
+import AdminTaskDetailPage from "./pages/admin/AdminTaskDetailPage";
+import AdminLeavePage from "./pages/admin/AdminLeavePage";
+import EmployeeLeavePage from "./pages/employee/EmployeeLeavePage";
 import { Provider } from "react-redux";
 import { store } from "./config/store";
-import AdminHolidayPage from "./pages/AdminHolidayPage";
-import EmployeeHolidayPage from "./pages/EmployeeHolidayPage";
+import AdminHolidayPage from "./pages/admin/AdminHolidayPage";
+import EmployeeHolidayPage from "./pages/employee/EmployeeHolidayPage";
 import { Toaster } from "react-hot-toast";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import NotificationHandler from "./components/notificationHandler";
 
 function App() {
   return (
     <Provider store={store}>
+      <NotificationHandler />
       <BrowserRouter>
         <Toaster
           position="top-right"
@@ -57,7 +59,7 @@ function App() {
             <Route path="/home" element={<Navigate to="/login" replace />} />
 
             {/* ADMIN SECTION */}
-            <Route element={<ProtectedRoute roleRequired="Admin" />}>
+            <Route element={<ProtectedRoute allowedRoles={["Admin"]} />}>
               <Route element={<Layout />}>
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/employees" element={<EmployeeListPage />} />
@@ -70,7 +72,7 @@ function App() {
             </Route>
 
             {/* EMPLOYEE SECTION */}
-            <Route element={<ProtectedRoute roleRequired="Employee" />}>
+            <Route element={<ProtectedRoute allowedRoles={["Employee"]} />}>
               <Route element={<Layout />}>
                 <Route path="/employee" element={<EmployeeDashboard />} />
                 <Route path="/my-tasks" element={<MyTasksPage />} />
