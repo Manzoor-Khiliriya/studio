@@ -52,8 +52,8 @@ exports.getAllEmployees = async (req, res) => {
  */
 exports.updateEmployeeStats = async (req, res) => {
   try {
-    // Included joinedDate and photo in the destructuring
-    const { designation, dailyWorkLimit, efficiency, skills, joinedDate, photo } = req.body;
+    // 1. Add 'leaves' to this list
+    const { designation, dailyWorkLimit, efficiency, skills, joinedDate, photo, leaves } = req.body;
 
     const updateData = {};
     if (designation !== undefined) updateData.designation = designation;
@@ -62,6 +62,9 @@ exports.updateEmployeeStats = async (req, res) => {
     if (skills !== undefined) updateData.skills = skills;
     if (joinedDate !== undefined) updateData.joinedDate = joinedDate;
     if (photo !== undefined) updateData.photo = photo;
+    
+    // 2. Add this line so the array actually saves
+    if (leaves !== undefined) updateData.leaves = leaves; 
 
     const employee = await Employee.findOneAndUpdate(
       { user: req.params.userId },
@@ -69,10 +72,7 @@ exports.updateEmployeeStats = async (req, res) => {
       { new: true, runValidators: true }
     ).populate("user", "name email status role");
 
-    if (!employee) {
-      return res.status(404).json({ message: "Employee profile not found" });
-    }
-
+    if (!employee) return res.status(404).json({ message: "Employee profile not found" });
     res.json(employee);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -136,6 +136,40 @@ exports.getActiveEmployeesList = async (req, res) => {
       .lean();
 
     res.json(employees);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.addManualLeave = async (req, res) => {
+  try {
+    const { date, reason } = req.body;
+    // Normalize date to YYYY-MM-DD to avoid timezone shifts
+    const leaveDate = new Date(date);
+    leaveDate.setHours(0, 0, 0, 0);
+
+    const employee = await Employee.findOneAndUpdate(
+      { user: req.params.userId },
+      { $addToSet: { leaves: { date: leaveDate, reason } } },
+      { new: true, runValidators: true }
+    );
+
+    if (!employee) return res.status(404).json({ message: "Employee not found" });
+    res.json(employee);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.removeManualLeave = async (req, res) => {
+  try {
+    const { leaveId } = req.body; // Pass the _id of the leave sub-document
+    const employee = await Employee.findOneAndUpdate(
+      { user: req.params.userId },
+      { $pull: { leaves: { _id: leaveId } } },
+      { new: true }
+    );
+    res.json(employee);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

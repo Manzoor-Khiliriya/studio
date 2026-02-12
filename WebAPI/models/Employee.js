@@ -29,6 +29,10 @@ const employeeSchema = new mongoose.Schema({
   skills: [{ type: String, trim: true }],
 
   joinedDate: { type: Date, default: Date.now },
+  leaves: [{
+    date: { type: Date, required: true },
+    reason: { type: String, trim: true }
+  }],
 }, {
   timestamps: true,
   toJSON: { virtuals: true },

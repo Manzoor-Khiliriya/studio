@@ -205,7 +205,7 @@ export default function AdminTaskDetailPage() {
 
 function MetricBox({ label, value, icon, color = "text-slate-900" }) {
   return (
-    <div className="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm">
+    <div className="bg-white p-5 rounded-4xl border border-slate-200 shadow-sm">
       <div className="flex items-center gap-2 mb-2 text-slate-400">
         {icon && React.cloneElement(icon, { size: 14 })}
         <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>

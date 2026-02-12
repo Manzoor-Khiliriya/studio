@@ -1,5 +1,5 @@
 const Holiday = require("../models/Holiday");
-const Leave = require("../models/Leave");
+const Employee = require("../models/Employee"); // 🔹 Added missing import
 
 const calculateLeaveDays = async (startDate, endDate) => {
   const start = new Date(startDate);
@@ -30,13 +30,25 @@ const hasLeaveOverlap = (existingLeaves, newStart, newEnd) => {
 };
 
 const isUserOnLeaveDuring = async (userId, startDate, endDate) => {
-  const overlappingLeave = await Leave.findOne({
-    user: userId,
-    status: "Approved",
-    startDate: { $lte: endDate },
-    endDate: { $gte: startDate }
-  });
+  const employee = await Employee.findOne({ user: userId });
+  if (!employee || !employee.leaves || !employee.leaves.length) return false;
 
-  return !!overlappingLeave;
+  const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0); // Normalize to start of day
+  
+  const end = new Date(endDate);
+  end.setHours(23, 59, 59, 999); // Normalize to end of day
+
+  // Check if any manual leave date falls between the task start and end
+  return employee.leaves.some(leave => {
+    const d = new Date(leave.date);
+    return d >= start && d <= end;
+  });
 };
-module.exports = { calculateLeaveDays, hasLeaveOverlap, isUserOnLeaveDuring };
+
+// 🔹 Exporting everything correctly
+module.exports = { 
+  calculateLeaveDays, 
+  hasLeaveOverlap, 
+  isUserOnLeaveDuring 
+};

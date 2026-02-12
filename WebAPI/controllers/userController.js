@@ -91,7 +91,8 @@ exports.getUserById = async (req, res) => {
  */
 exports.updateUser = async (req, res) => {
   try {
-    const { name, email, designation, dailyWorkLimit, joinedDate, efficiency } = req.body;
+    // 🔹 Added 'leaves' to destructuring
+    const { name, email, designation, dailyWorkLimit, joinedDate, efficiency, leaves } = req.body;
 
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -109,7 +110,8 @@ exports.updateUser = async (req, res) => {
           designation,
           dailyWorkLimit,
           efficiency,
-          joinedDate
+          joinedDate,
+          leaves // 🔹 This ensures the leaves are updated/added/removed
         },
         { new: true, upsert: true }
       );

@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Toaster } from "react-hot-toast";
-import { FiZap, FiClock, FiTarget, FiBriefcase, FiSearch, FiFilter } from "react-icons/fi";
+import { FiZap, FiClock, FiTarget, FiBriefcase, FiSearch } from "react-icons/fi";
 import { HiOutlineBolt } from 'react-icons/hi2';
 
 // RTK Query Hooks
@@ -42,20 +41,28 @@ export default function EmployeeDashboard() {
   const tasks = tasksData?.tasks || [];
   const paginationInfo = tasksData?.pagination || { current: 1, total: 1, count: 0 };
 
+  // 1. CALCULATE CUMULATIVE DAILY TOTAL
   useEffect(() => {
     if (logsLoaded && logsData) {
-      const { logs, isCurrentlyOnBreak } = logsData;
+      const { logs } = logsData;
       const localToday = new Date().toLocaleDateString('en-CA');
+      
       let totalSeconds = 0;
       let activeTaskName = null;
+      let isBreak = false;
+
+      const activeLog = logs.find(log => log.isRunning);
+      if (activeLog) {
+        activeTaskName = activeLog.task?.title || "Active Mission";
+        isBreak = activeLog.logType === "break";
+      }
 
       logs.forEach(log => {
         const logStart = new Date(log.startTime);
-        if (logStart.toLocaleDateString('en-CA') === localToday) {
+        if (logStart.toLocaleDateString('en-CA') === localToday && log.logType === "work") {
           if (log.isRunning) {
-            activeTaskName = log.task?.title || "Active Mission";
             const diffSec = Math.floor((Date.now() - logStart.getTime()) / 1000);
-            totalSeconds += diffSec;
+            totalSeconds += Math.max(0, diffSec);
           } else {
             totalSeconds += (log.durationSeconds || 0);
           }
@@ -63,21 +70,27 @@ export default function EmployeeDashboard() {
       });
 
       setRunningTask(activeTaskName);
-      setIsOnBreak(isCurrentlyOnBreak);
+      setIsOnBreak(isBreak); 
       setTodaySeconds(totalSeconds);
     }
   }, [logsData, logsLoaded]);
 
+  // 2. GLOBAL TICKER
   useEffect(() => {
     if (runningTask && !isOnBreak) {
-      timerRef.current = setInterval(() => setTodaySeconds(prev => prev + 1), 1000);
+      timerRef.current = setInterval(() => {
+        setTodaySeconds(prev => prev + 1);
+      }, 1000);
     } else {
       clearInterval(timerRef.current);
     }
     return () => clearInterval(timerRef.current);
   }, [runningTask, isOnBreak]);
 
-  useEffect(() => setCurrentPage(1), [searchTerm, statusFilter]);
+  // 3. Reset to page 1 on filter change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
 
   const formatTime = (sec) => {
     const h = Math.floor(sec / 3600);
@@ -90,127 +103,136 @@ export default function EmployeeDashboard() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc]">
-
       <div className="max-w-[1700px] mx-auto px-8 pt-10 pb-20">
-
-        {/* --- TACTICAL HEADER --- */}
+        
         <PageHeader
           title="Operator Terminal"
           iconText="O"
           subtitle="Real-time telemetry and mission objective management."
-          actionLabel={runningTask ? "Active Session" : "Standby"}
-          onAction={() => { }} // Could trigger the pop-out timer here!
         />
 
-        {/* --- STATS MATRIX --- */}
+        {/* --- STAT MATRIX --- */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12 mt-10">
           <StatCard
-            label="Today's Active Shift"
+            label="Active Shift Total"
             value={formatTime(todaySeconds)}
-            icon={<FiClock size={24} className={runningTask ? "text-orange-500" : "text-slate-900"} />}
-            variant={runningTask ? "active" : "default"}
+            icon={<FiClock size={22} className={runningTask && !isOnBreak ? "text-orange-500 animate-pulse" : "text-slate-400"} />}
+            variant={runningTask && !isOnBreak ? "active" : "default"}
             delay={0.1}
           />
-          <StatCard
-            label="Weekly Cumulative"
-            value={`${dashboardStats?.stats?.weeklyHours || 0}h`}
-            icon={<FiTarget size={24} className="text-slate-900" />}
-            delay={0.2}
+          <StatCard 
+            label="Weekly Cumulative" 
+            value={`${dashboardStats?.stats?.weeklyHours || 0}h`} 
+            icon={<FiTarget size={22} className="text-slate-400" />} 
+            delay={0.2} 
           />
-          <StatCard
-            label="Mission Inventory"
-            value={paginationInfo.count || 0}
-            icon={<FiBriefcase size={24} className="text-slate-900" />}
-            delay={0.3}
+          <StatCard 
+            label="Mission Inventory" 
+            value={paginationInfo.count || 0} 
+            icon={<FiBriefcase size={22} className="text-slate-400" />} 
+            delay={0.3} 
           />
         </div>
 
-        {/* --- LIVE OPS & MISSION GRID --- */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-          {/* LEFT: COMMAND CENTER (The Clock) */}
-          <div className="lg:col-span-4 flex flex-col gap-6">
-            <div className="bg-[#0f1115] p-8 rounded-[3rem] shadow-2xl border border-slate-800 relative overflow-hidden">
-              <ClockInOut />
-              <FiZap className="absolute -right-10 -bottom-10 text-white/[0.02]" size={200} />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* --- LEFT: COMMAND CENTER --- */}
+          <div className="lg:col-span-4 flex flex-col gap-6 lg:sticky lg:top-10">
+            <div className="bg-[#0f1115] p-8 rounded-[3rem] shadow-2xl border border-slate-800 relative overflow-hidden group">
+              <ClockInOut todaySeconds={todaySeconds} />
+              <FiZap className="absolute -right-10 -bottom-10 text-white/[0.02] group-hover:text-orange-500/[0.05] transition-colors duration-700" size={200} />
             </div>
 
-            {/* Dynamic Banner for Current Task */}
             <AnimatePresence>
               {runningTask && (
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="p-6 bg-orange-600 rounded-[2rem] text-white shadow-xl shadow-orange-600/20"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className={`p-6 rounded-[2rem] text-white shadow-xl ${isOnBreak ? 'bg-slate-800' : 'bg-orange-600 shadow-orange-600/20'}`}
                 >
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-80 mb-2">Target Locked</p>
-                  <h4 className="text-xl font-black uppercase italic truncate">{runningTask}</h4>
+                  <p className="text-[9px] font-black uppercase tracking-[0.3em] opacity-60 mb-1.5">
+                    {isOnBreak ? "Telemetry Suspended" : "Target Engaged"}
+                  </p>
+                  <h4 className="text-lg font-black uppercase tracking-tight truncate">
+                    {isOnBreak ? "Break in Progress" : runningTask}
+                  </h4>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
 
-          {/* RIGHT: INVENTORY (Tasks) */}
-          <div className="lg:col-span-8 flex flex-col gap-8">
-
-            {/* Inventory Controls */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-200 p-6 shadow-xl shadow-slate-200/40 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <h3 className="font-black text-slate-900 text-sm uppercase tracking-widest flex items-center gap-3 ml-4">
-                <HiOutlineBolt className="text-orange-500" />
-                Mission Queue
+          {/* --- RIGHT: MISSION QUEUE --- */}
+          <div className="lg:col-span-8 flex flex-col gap-4">
+            
+            {/* Filter Bar */}
+            <div className="bg-white rounded-[2rem] border border-slate-200 p-3 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+              <h3 className="font-black text-slate-900 text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 ml-4">
+                <HiOutlineBolt className="text-orange-500" size={16} /> Mission Queue
               </h3>
-
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                <div className="relative flex-1 sm:flex-none">
-                  <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <div className="relative flex-1 md:flex-none">
+                  <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                   <input
                     type="text"
-                    placeholder="Identify Objective..."
-                    className="pl-11 pr-4 py-3 bg-slate-50 border-none rounded-2xl text-xs font-bold outline-none w-full sm:w-64 focus:ring-2 focus:ring-orange-500/10 transition-all"
+                    placeholder="Search IDs or Titles..."
+                    className="w-full md:w-64 pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[11px] font-black uppercase outline-none focus:ring-2 focus:ring-orange-500/10 transition-all"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                <div className="relative">
-                  <select
-                    className="pl-6 pr-10 py-3 bg-slate-50 border-none rounded-2xl text-xs font-bold outline-none appearance-none cursor-pointer"
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                  >
-                    <option value="All">All Status</option>
-                    <option value="Pending">Pending</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Overdue">Overdue</option>
-                  </select>
-                </div>
+                <select 
+                   className="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-black uppercase outline-none cursor-pointer hover:bg-slate-100 transition-colors"
+                   value={statusFilter}
+                   onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <option value="All">All Sectors</option>
+                  <option value="Pending">Pending</option>
+                  <option value="In Progress">Active</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Overdue">Overdue</option>
+                </select>
               </div>
             </div>
 
-            {/* Task Cards Container */}
-            <div className="space-y-4">
-              {tasks.length > 0 ? (
-                tasks.map((task) => (
-                  <TaskCard key={task._id} task={task} isTracking={runningTask === task.title} />
-                ))
-              ) : (
-                <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-slate-200">
-                  <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Radar Clear • No objectives found</p>
-                </div>
-              )}
+            {/* Scrollable Tasks Area */}
+            <div className="h-[650px] overflow-y-auto pr-2 custom-scrollbar space-y-4">
+              <AnimatePresence mode="popLayout">
+                {tasks.length > 0 ? (
+                  tasks.map((task) => (
+                    <TaskCard 
+                      key={task._id} 
+                      task={task} 
+                      isTracking={runningTask === task.title && !isOnBreak} 
+                    />
+                  ))
+                ) : (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex flex-col items-center justify-center py-32 bg-white rounded-[3rem] border-2 border-dashed border-slate-100"
+                  >
+                    <div className="bg-slate-50 p-6 rounded-full mb-4">
+                      <FiSearch size={32} className="text-slate-200" />
+                    </div>
+                    <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.3em]">No matching objectives found</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
-            {/* Pagination Component */}
-            <div className="mt-4">
-              <Pagination
-                pagination={paginationInfo}
-                onPageChange={setCurrentPage}
-                loading={tasksLoading}
-                label="Objectives"
+            {/* Pagination Footer */}
+            <div className="bg-white p-4 rounded-[2rem] border border-slate-200 shadow-sm mt-2">
+              <Pagination 
+                pagination={paginationInfo} 
+                onPageChange={setCurrentPage} 
+                loading={tasksLoading} 
+                label="Objectives" 
               />
             </div>
           </div>
+
         </div>
       </div>
     </div>

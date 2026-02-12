@@ -75,15 +75,21 @@ exports.startTimer = async (req, res) => {
 
 exports.togglePause = async (req, res) => {
   const userId = req.user._id;
-  const today = new Date().toISOString().split("T")[0]; // ADD THIS
+  const today = new Date().toISOString().split("T")[0];
 
   const active = await TimeLog.findOne({ user: userId, isRunning: true });
   if (!active) return res.status(404).json({ message: "No active timer." });
 
-  active.endTime = new Date();
+  // 🔹 FIX: Calculate duration before closing the log
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - new Date(active.startTime).getTime()) / 1000);
+  
+  active.endTime = now;
   active.isRunning = false;
+  active.durationSeconds = Math.max(0, diffInSeconds); // Store the time spent
   await active.save();
 
+  // Create the new log (switching work -> break or break -> work)
   const newType = active.logType === "work" ? "break" : "work";
 
   const newLog = await TimeLog.create({
@@ -92,7 +98,7 @@ exports.togglePause = async (req, res) => {
     startTime: new Date(),
     logType: newType,
     isRunning: true,
-    dateString: today // <--- ADD THIS LINE
+    dateString: today 
   });
 
   res.json({ status: newType, log: newLog });
