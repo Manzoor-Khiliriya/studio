@@ -16,6 +16,10 @@ const timeLogSchema = new mongoose.Schema({
     type: String,
     required: true,
     index: true
+  },
+  clearedByAdmin: {
+    type: Boolean,
+    default: false
   }
 }, { 
   timestamps: true,

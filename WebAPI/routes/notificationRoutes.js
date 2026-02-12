@@ -7,7 +7,6 @@ const {
   deleteNotification 
 } = require("../controllers/notificationController");
 
-// All notification routes should be protected
 router.get("/", authenticate, getMyNotifications);
 router.patch("/mark-read", authenticate, markAllAsRead);
 router.delete("/:id", authenticate, deleteNotification);

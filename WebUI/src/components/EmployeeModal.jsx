@@ -79,7 +79,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
       onClose={onClose}
       title={isEditing ? "Update Profile" : "Add New Member"}
       subtitle="Sector Resource Management"
-      maxWidth="max-w-xl"
+      maxWidth="max-w-md" // Increased width for better layout
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -129,13 +129,6 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
         </button>
       </form>
 
-      {/* Re-injecting your global styles once in the shell is enough, but keeping them here for reference */}
-      <style jsx global>{`
-        .form-input { width: 100%; padding: 0.85rem 1rem 0.85rem 2.75rem; background-color: #f8fafc; border: 2px solid transparent; border-radius: 1rem; font-size: 0.875rem; font-weight: 600; color: #1e293b; transition: all 0.2s; outline: none; }
-        .form-input:focus { background-color: #fff; border-color: #f97316; }
-        .input-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #cbd5e1; transition: color 0.2s; z-index: 10; }
-        .group:focus-within .input-icon { color: #f97316; }
-      `}</style>
     </CommonModal>
   );
 }

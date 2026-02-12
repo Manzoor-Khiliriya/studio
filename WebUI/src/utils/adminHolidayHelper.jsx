@@ -15,13 +15,13 @@ export const getAdminHolidayColumns = (onEdit, onDelete) => [
         <div className="flex items-center gap-4 py-1">
           <div className="flex flex-col items-center justify-center bg-slate-900 text-white w-10 h-10 rounded-lg shadow-lg">
             <span className="text-[9px] font-black leading-none uppercase opacity-60">
-              {d.toLocaleDateString("en-US", { month: "short" })}
+              {d.toLocaleDateString("en-IN", { month: "short" })}
             </span>
             <span className="text-base font-black leading-none">{d.getDate()}</span>
           </div>
           <div>
             <p className="font-black text-slate-900 text-[11px] uppercase tracking-tight">
-              {d.toLocaleDateString("en-US", { weekday: "long" })}
+              {d.toLocaleDateString("en-IN", { weekday: "long" })}
             </p>
             <p className="text-[9px] font-bold text-slate-400 uppercase italic">
               {d.getFullYear()}

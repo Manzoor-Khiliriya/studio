@@ -2,22 +2,78 @@
 
 body {
   @apply bg-gray-100 text-gray-800;
+  margin: 0;
 }
 
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-  margin: 0 auto;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
+/* Unified Form Input Styles */
+.form-input {
+  width: 100%;
+  padding: 0.85rem 1rem 0.85rem 2.75rem;
+  background-color: #f8fafc;
+  border: 2px solid transparent;
+  border-radius: 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1e293b;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+}
 
+.form-input:focus {
+  background-color: #fff;
+  border-color: #f97316;
+  box-shadow: 0 10px 15px -3px rgba(249, 115, 22, 0.1);
+}
+
+/* Icon Styles with Focus Effect */
+.input-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #cbd5e1;
+  z-index: 10;
+  transition: color 0.2s;
+}
+
+.group:focus-within .input-icon {
+  color: #f97316;
+}
+
+/* Better Scrollbar for the Modal & Operator List */
+/* .custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+} */
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(249, 115, 22, 0.4); /* Orange on hover */
+}

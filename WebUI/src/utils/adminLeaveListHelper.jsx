@@ -1,9 +1,9 @@
 import React from "react";
-import { 
-  HiOutlineClock, 
-  HiOutlineCalendar, 
-  HiOutlineCheckCircle, 
-  HiOutlineXCircle 
+import {
+  HiOutlineClock,
+  HiOutlineCalendar,
+  HiOutlineCheckCircle,
+  HiOutlineXCircle
 } from "react-icons/hi2";
 
 /**
@@ -18,7 +18,7 @@ export const StatusBadge = ({ status }) => {
 
   const label = {
     Pending: "Under Review",
-    Approved: "Authorized",
+    Approved: "Approved",
     Rejected: "Declined",
   };
 
@@ -67,24 +67,18 @@ export const getAdminLeaveColumns = (onAction) => [
   {
     header: "Operational Absence",
     render: (req) => (
-      <div className="flex flex-col">
-        <div className="flex items-center gap-2 text-xs font-black text-slate-700 uppercase tracking-tight">
-          <HiOutlineClock className="text-orange-500" size={16} />
-          <span>{req.businessDays || "—"} Working Days</span>
-        </div>
-        <div className="flex items-center gap-2 mt-1 italic">
-          <HiOutlineCalendar className="text-slate-300" size={12} />
-          <p className="text-[10px] text-slate-400 font-bold tracking-tighter tabular-nums">
-            {new Date(req.startDate).toLocaleDateString()} —{" "}
-            {new Date(req.endDate).toLocaleDateString()}
-          </p>
-        </div>
+      <div className="flex items-center gap-2 mt-1 italic">
+        <HiOutlineCalendar className="text-slate-300" size={12} />
+        <p className="text-[10px] text-slate-400 font-bold tracking-tighter tabular-nums">
+          {new Date(req.startDate).toLocaleDateString()} —{" "}
+          {new Date(req.endDate).toLocaleDateString()}
+        </p>
       </div>
     ),
   },
   {
     header: "Registry Status",
-    className: "text-center",
+    className: "text-left",
     render: (req) => <StatusBadge status={req.status} />,
   },
   {
@@ -102,7 +96,7 @@ export const getAdminLeaveColumns = (onAction) => [
               className="group flex items-center gap-2 px-5 py-2.5 bg-emerald-50 text-emerald-600 rounded-[1rem] hover:bg-emerald-600 hover:text-white transition-all border border-emerald-100 active:scale-95 cursor-pointer"
             >
               <HiOutlineCheckCircle size={18} />
-              <span className="text-[10px] font-black uppercase">Authorize</span>
+              <span className="text-[10px] font-black uppercase">Approve</span>
             </button>
             <button
               onClick={(e) => {

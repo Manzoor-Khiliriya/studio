@@ -24,9 +24,11 @@ exports.getSummary = async (req, res) => {
 
         Leave.countDocuments({ status: "Pending" }),
 
-        TimeLog.find({ logType: "work" })
+        // FIX: Added filter { clearedByAdmin: false } 
+        // This ensures "cleared" logs don't show up here, but stay in DB for Employee totals.
+        TimeLog.find({ logType: "work", clearedByAdmin: false }) 
           .sort({ createdAt: -1 })
-          .limit(8)
+          .limit(50) 
           .populate("user", "name")
           .populate("task", "title")
           .lean(),
@@ -45,7 +47,6 @@ exports.getSummary = async (req, res) => {
         liveTracking: activeTimers.map(t => ({
           id: t._id,
           employee: t.user?.name,
-          photo: t.user?.employee?.photo || "",
           task: t.task?.title,
           projectCode: t.task?.projectNumber,
           since: t.startTime,
@@ -64,6 +65,8 @@ exports.getSummary = async (req, res) => {
     /* =============================================================
         EMPLOYEE DASHBOARD
        ============================================================= */
+    // Note: We DO NOT filter by clearedByAdmin here.
+    // This allows the employee to still see their hours/progress accurately.
 
     const today = new Date();
     const startOfWeek = new Date(today);
@@ -77,6 +80,7 @@ exports.getSummary = async (req, res) => {
         .sort({ priority: -1, endDate: 1 })
         .lean(),
 
+      // Employee still gets their full weekly logs even if Admin "cleared" the dashboard view
       TimeLog.find({ user: userId, startTime: { $gte: startOfWeek }, logType: "work" }),
 
       Leave.find({ user: userId }).sort({ startDate: -1 }).limit(5).lean(),

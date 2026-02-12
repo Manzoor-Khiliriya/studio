@@ -5,7 +5,7 @@ export default function CommonModal({ isOpen, onClose, title, subtitle, children
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 md:p-6">
+        <div className="fixed inset-0 py-5 flex items-center justify-center z-50 p-4">
           {/* BACKDROP */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -20,7 +20,7 @@ export default function CommonModal({ isOpen, onClose, title, subtitle, children
             initial={{ scale: 0.95, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-            className={`relative bg-white w-full ${maxWidth} rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[95vh]`}
+            className={`relative bg-white w-full ${maxWidth} rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[70vh]`}
           >
             {/* HEADER */}
             <div className="px-8 py-6 flex justify-between items-center border-b border-slate-50">

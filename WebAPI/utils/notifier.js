@@ -1,68 +1,77 @@
 const nodemailer = require("nodemailer");
 const Notification = require("../models/Notification");
 
-/**
- * Sends a dual-channel notification (Email + Socket) and saves to DB
- * @param {Object} user - The recipient User object (must have .email and ._id)
- * @param {Object} task - The Task object
- * @param {Object} io - The Socket.io instance from req.app.get('socketio')
- */
-const sendTaskNotification = async (user, task, io) => {
-  try {
-    const messageText = `New Mission Assigned: ${task.title} (#${task.projectNumber})`;
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
 
-    // 1. SAVE TO DATABASE (For History)
+const sendNotification = async (recipient, data, io) => {
+  try {
+    const { message, type, taskId, subject, htmlContent, password, otp } = data; // Added otp
+
+    // 1. Create DB Notification for the Bell Icon
+    // Note: We usually DON'T save OTPs to the notification table for security, 
+    // but we can save a log that a reset was requested.
     const newNotif = await Notification.create({
-      recipient: user._id,
-      type: "task",
-      message: messageText,
-      taskId: task._id,
+      recipient: recipient._id,
+      type: type || "task",
+      message: message,
+      taskId: taskId || null,
     });
 
-    // 2. REAL-TIME SOCKET EMIT (For Instant Pop-up)
+    // 2. Push Real-time Toast via Socket.io
     if (io) {
-      // Emit to the user's private room
-      io.to(user._id.toString()).emit("notification", {
+      io.to(recipient._id.toString()).emit("notification", {
         _id: newNotif._id,
-        message: messageText,
-        type: "task",
+        message: message,
+        type: type || "task",
         createdAt: newNotif.createdAt,
-        read: false,
       });
     }
 
-    // 3. EMAIL DISPATCH (For Offline Alerts)
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS, // Use Gmail App Password
-      },
-    });
+    // 3. Select Email Template
+    let finalHtml = htmlContent;
+    let finalSubject = subject || "System Notification";
 
-    await transporter.sendMail({
-      from: '"Command Center" <noreply@yourproject.com>',
-      to: user.email,
-      subject: `⚠️ New Assignment: ${task.projectNumber}`,
-      html: `
-        <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #f97316; padding: 20px; border-radius: 15px;">
-          <h2 style="color: #f97316;">New Mission Authorized</h2>
-          <p>Hello <b>${user.name}</b>,</p>
-          <p>You have been assigned a new mission critical task.</p>
-          <div style="background: #fff7ed; padding: 15px; border-radius: 10px; border: 1px solid #ffedd5;">
-            <p style="margin: 0;"><b>Mission:</b> ${task.title}</p>
-            <p style="margin: 5px 0;"><b>ID:</b> ${task.projectNumber}</p>
-            <p style="margin: 0;"><b>Priority:</b> ${task.priority}</p>
+    // --- Added Template for Password Reset ---
+    if (type === "reset" && otp) {
+      finalSubject = "🔐 Password Reset Verification Code";
+      finalHtml = `
+        <div style="font-family: sans-serif; border: 1px solid #e2e8f0; padding: 30px; border-radius: 20px; max-width: 500px;">
+          <h2 style="color: #f97316; margin-bottom: 20px;">Password Reset</h2>
+          <p style="color: #475569;">You requested to reset your password. Use the code below to proceed:</p>
+          <div style="background: #fff7ed; padding: 20px; text-align: center; border-radius: 12px; margin: 25px 0;">
+            <h1 style="color: #f97316; letter-spacing: 8px; margin: 0; font-size: 32px;">${otp}</h1>
           </div>
-          <p>Please log in to your dashboard to begin execution.</p>
-        </div>
-      `,
+          <p style="font-size: 12px; color: #94a3b8;">This code will expire in 15 minutes. If you did not request this, please ignore this email.</p>
+        </div>`;
+    } 
+    // --- Existing Template for Credentials ---
+    else if (type === "system" && password) {
+      finalSubject = "🚀 Your Account Credentials";
+      finalHtml = `<div style="font-family: sans-serif; border: 1px solid #f97316; padding: 20px; border-radius: 15px;">
+          <h2>Welcome, ${recipient.name}!</h2>
+          <p>Login with: <br> <b>Email:</b> ${recipient.email} <br> <b>Password:</b> ${password}</p>
+        </div>`;
+    } else if (!htmlContent) {
+      finalHtml = `<p>${message}</p>`;
+    }
+
+    // 4. Send Email
+    await transporter.sendMail({
+      from: `"sanddstudioadmin" <${process.env.EMAIL_USER}>`,
+      to: recipient.email,
+      subject: finalSubject,
+      html: finalHtml,
     });
 
-    console.log(`Notification sent to ${user.email}`);
   } catch (error) {
-    console.error("Notification Engine Error:", error);
+    console.error("Email/Notification Error:", error);
   }
 };
 
-module.exports = sendTaskNotification;
+module.exports = sendNotification;

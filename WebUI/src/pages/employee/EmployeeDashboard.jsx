@@ -90,17 +90,16 @@ export default function EmployeeDashboard() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc]">
-      <Toaster position="bottom-right" />
 
       <div className="max-w-[1700px] mx-auto px-8 pt-10 pb-20">
-        
+
         {/* --- TACTICAL HEADER --- */}
         <PageHeader
           title="Operator Terminal"
           iconText="O"
           subtitle="Real-time telemetry and mission objective management."
           actionLabel={runningTask ? "Active Session" : "Standby"}
-          onAction={() => {}} // Could trigger the pop-out timer here!
+          onAction={() => { }} // Could trigger the pop-out timer here!
         />
 
         {/* --- STATS MATRIX --- */}
@@ -131,30 +130,30 @@ export default function EmployeeDashboard() {
 
           {/* LEFT: COMMAND CENTER (The Clock) */}
           <div className="lg:col-span-4 flex flex-col gap-6">
-             <div className="bg-[#0f1115] p-8 rounded-[3rem] shadow-2xl border border-slate-800 relative overflow-hidden">
-                <ClockInOut />
-                <FiZap className="absolute -right-10 -bottom-10 text-white/[0.02]" size={200} />
-             </div>
-             
-             {/* Dynamic Banner for Current Task */}
-             <AnimatePresence>
-                {runningTask && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="p-6 bg-orange-600 rounded-[2rem] text-white shadow-xl shadow-orange-600/20"
-                  >
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-80 mb-2">Target Locked</p>
-                    <h4 className="text-xl font-black uppercase italic truncate">{runningTask}</h4>
-                  </motion.div>
-                )}
-             </AnimatePresence>
+            <div className="bg-[#0f1115] p-8 rounded-[3rem] shadow-2xl border border-slate-800 relative overflow-hidden">
+              <ClockInOut />
+              <FiZap className="absolute -right-10 -bottom-10 text-white/[0.02]" size={200} />
+            </div>
+
+            {/* Dynamic Banner for Current Task */}
+            <AnimatePresence>
+              {runningTask && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="p-6 bg-orange-600 rounded-[2rem] text-white shadow-xl shadow-orange-600/20"
+                >
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-80 mb-2">Target Locked</p>
+                  <h4 className="text-xl font-black uppercase italic truncate">{runningTask}</h4>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* RIGHT: INVENTORY (Tasks) */}
           <div className="lg:col-span-8 flex flex-col gap-8">
-            
+
             {/* Inventory Controls */}
             <div className="bg-white rounded-[2.5rem] border border-slate-200 p-6 shadow-xl shadow-slate-200/40 flex flex-col sm:flex-row items-center justify-between gap-4">
               <h3 className="font-black text-slate-900 text-sm uppercase tracking-widest flex items-center gap-3 ml-4">
@@ -165,7 +164,7 @@ export default function EmployeeDashboard() {
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 <div className="relative flex-1 sm:flex-none">
                   <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input 
+                  <input
                     type="text"
                     placeholder="Identify Objective..."
                     className="pl-11 pr-4 py-3 bg-slate-50 border-none rounded-2xl text-xs font-bold outline-none w-full sm:w-64 focus:ring-2 focus:ring-orange-500/10 transition-all"
@@ -174,15 +173,16 @@ export default function EmployeeDashboard() {
                   />
                 </div>
                 <div className="relative">
-                  <select 
+                  <select
                     className="pl-6 pr-10 py-3 bg-slate-50 border-none rounded-2xl text-xs font-bold outline-none appearance-none cursor-pointer"
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
                   >
                     <option value="All">All Status</option>
                     <option value="Pending">Pending</option>
-                    <option value="In Progress">Active</option>
-                    <option value="Completed">Resolved</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Overdue">Overdue</option>
                   </select>
                 </div>
               </div>
@@ -203,7 +203,7 @@ export default function EmployeeDashboard() {
 
             {/* Pagination Component */}
             <div className="mt-4">
-               <Pagination 
+              <Pagination
                 pagination={paginationInfo}
                 onPageChange={setCurrentPage}
                 loading={tasksLoading}

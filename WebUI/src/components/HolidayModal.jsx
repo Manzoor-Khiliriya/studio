@@ -92,39 +92,6 @@ export default function HolidayModal({
           </button>
         </div>
       </form>
-
-      {/* Global Form Styles (if not already in your index.css) */}
-      <style jsx global>{`
-        .form-input { 
-          width: 100%; 
-          padding: 0.85rem 1rem 0.85rem 2.75rem; 
-          background-color: #f8fafc; 
-          border: 2px solid transparent; 
-          border-radius: 1.25rem; 
-          font-size: 0.875rem; 
-          font-weight: 700; 
-          color: #1e293b; 
-          transition: all 0.2s; 
-          outline: none; 
-        }
-        .form-input:focus { 
-          background-color: #fff; 
-          border-color: #f97316; 
-          box-shadow: 0 10px 15px -3px rgba(249, 115, 22, 0.1); 
-        }
-        .input-icon { 
-          position: absolute; 
-          left: 1rem; 
-          top: 50%; 
-          transform: translateY(-50%); 
-          color: #cbd5e1; 
-          z-index: 10; 
-          transition: color 0.2s; 
-        }
-        .group:focus-within .input-icon { 
-          color: #f97316; 
-        }
-      `}</style>
     </CommonModal>
   );
 }

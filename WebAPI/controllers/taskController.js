@@ -1,15 +1,15 @@
 const mongoose = require("mongoose");
 const Task = require("../models/Task");
 const TimeLog = require("../models/TimeLog");
-const User = require("../models/User"); // 1. Import User directly
+const User = require("../models/User");
 const Employee = require("../models/Employee");
-const sendTaskNotification = require("../utils/notifier"); // 2. Import Notifier
+const sendTaskNotification = require("../utils/notifier");
 const { calculateEstimatedHours } = require("../utils/taskHelpers");
 const { calculateEmployeeAvailableHours } = require("../utils/workerHelpers");
 const { isUserOnLeaveDuring } = require("../utils/leaveHelpers");
 
 /* =========================================================
-   ADMIN CONTROLLERS
+    ADMIN CONTROLLERS
    ========================================================= */
 
 exports.createTask = async (req, res) => {
@@ -26,7 +26,6 @@ exports.createTask = async (req, res) => {
 
     const start = new Date(startDate);
     const end = new Date(endDate);
-
     if (isNaN(start) || isNaN(end)) {
       return res.status(400).json({ message: "Invalid start or end date" });
     }
@@ -44,10 +43,15 @@ exports.createTask = async (req, res) => {
     const estimatedTime = await calculateEstimatedHours(startDate, endDate);
     let minAvailableHours = Infinity;
 
+    // We need the Employee IDs to save in the Task
+    const employeeRecords = [];
     for (const userId of assignedTo) {
-      const emp = await Employee.findOne({ user: userId });
-      const available = await calculateEmployeeAvailableHours(startDate, endDate, emp?.joinedDate);
-      minAvailableHours = Math.min(minAvailableHours, available);
+      const emp = await Employee.findOne({ user: userId }).populate("user");
+      if (emp) {
+        employeeRecords.push(emp);
+        const available = await calculateEmployeeAvailableHours(startDate, endDate, emp.joinedDate);
+        minAvailableHours = Math.min(minAvailableHours, available);
+      }
     }
 
     const allocatedTime = Math.min(estimatedTime, minAvailableHours);
@@ -57,7 +61,7 @@ exports.createTask = async (req, res) => {
       projectNumber,
       projectDetails,
       createdBy: req.user._id,
-      assignedTo,
+      assignedTo: employeeRecords.map(e => e._id),
       estimatedTime,
       allocatedTime,
       priority: priority || "Medium",
@@ -70,11 +74,24 @@ exports.createTask = async (req, res) => {
        ========================================================= */
     try {
       const io = req.app.get('socketio');
-      // assignedTo contains User IDs
-      const employees = await User.find({ _id: { $in: assignedTo } });
-
-      for (const emp of employees) {
-        await sendTaskNotification(emp, task, io, "task"); 
+      for (const emp of employeeRecords) {
+        await sendTaskNotification(emp.user, {
+          type: "task",
+          message: `New Mission Assigned: ${task.title} (#${task.projectNumber})`,
+          subject: `🚀 New Assignment: ${task.projectNumber}`,
+          taskId: task._id,
+          htmlContent: `
+            <div style="font-family: sans-serif; border: 1px solid #f97316; padding: 20px; border-radius: 15px;">
+              <h2 style="color: #f97316;">New Mission Authorized</h2>
+              <p>Hello <b>${emp.user.name}</b>,</p>
+              <p>You have been assigned to a new mission critical task.</p>
+              <div style="background: #fff7ed; padding: 15px; border-radius: 10px; border: 1px solid #ffedd5;">
+                <p><b>Mission:</b> ${task.title}</p>
+                <p><b>ID:</b> ${task.projectNumber}</p>
+              </div>
+              <p>Please log in to your dashboard to begin.</p>
+            </div>`
+        }, io);
       }
     } catch (notifErr) {
       console.error("Notification failed:", notifErr.message);
@@ -88,17 +105,17 @@ exports.createTask = async (req, res) => {
 
 exports.updateTask = async (req, res) => {
   try {
-    const { 
-      title, projectNumber, projectDetails, assignedTo, 
-      startDate, endDate, priority, status, allocatedTime 
-    } = req.body;
+    const { title, projectNumber, projectDetails, assignedTo, startDate, endDate, priority, status, allocatedTime } = req.body;
+    const io = req.app.get('socketio');
 
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: "Task not found" });
 
-    // Track if critical mission details changed to notify users
-    const isCriticalUpdate = startDate || endDate || assignedTo || status;
+    // 1. TRACK CHANGES (Old Employee IDs)
+    const oldAssigneeIds = task.assignedTo.map(id => id.toString());
+    const isStatusChanged = status && status !== task.status;
 
+    // 2. UPDATE FIELDS
     if (title) task.title = title;
     if (projectNumber) task.projectNumber = projectNumber;
     if (priority) task.priority = priority;
@@ -111,9 +128,9 @@ exports.updateTask = async (req, res) => {
       const finalEnd = endDate ? new Date(endDate) : task.endDate;
       const finalAssignees = assignedTo || task.assignedTo;
 
-      if (startDate) task.startDate = finalStart;
-      if (endDate) task.endDate = finalEnd;
-      if (assignedTo) task.assignedTo = finalAssignees;
+      task.startDate = finalStart;
+      task.endDate = finalEnd;
+      task.assignedTo = finalAssignees;
 
       const estimated = await calculateEstimatedHours(finalStart, finalEnd);
       task.estimatedTime = estimated;
@@ -132,57 +149,78 @@ exports.updateTask = async (req, res) => {
     await task.save();
 
     /* =========================================================
-        NOTIFICATION LOGIC (UPDATE)
+        NOTIFICATION LOGIC (DIFF CHECK)
        ========================================================= */
-    if (isCriticalUpdate) {
-      try {
-        const io = req.app.get('socketio');
-        // task.assignedTo might be Employee IDs or User IDs depending on your schema
-        // If assignedTo stores Employee IDs, we need to find the Users linked to them
-        const employees = await Employee.find({ _id: { $in: task.assignedTo } }).populate("user");
-        
-        for (const empRecord of employees) {
-          if (empRecord.user) {
-            const updateMsg = `Update: Mission ${task.projectNumber} status is now ${task.status}`;
-            await sendTaskNotification(empRecord.user, task, io, "status", updateMsg);
-          }
+    if (assignedTo) {
+      const newAssigneeIds = assignedTo.map(id => id.toString());
+      const added = newAssigneeIds.filter(id => !oldAssigneeIds.includes(id));
+      const removed = oldAssigneeIds.filter(id => !newAssigneeIds.includes(id));
+      const remained = newAssigneeIds.filter(id => oldAssigneeIds.includes(id));
+
+      // A. Notify Added
+      const addedEmps = await Employee.find({ _id: { $in: added } }).populate("user");
+      for (const emp of addedEmps) {
+        await sendTaskNotification(emp.user, {
+          type: "task",
+          message: `Added to mission: ${task.projectNumber}`,
+          subject: `🚀 New Assignment: ${task.projectNumber}`,
+          taskId: task._id
+        }, io);
+      }
+
+      // B. Notify Removed
+      const removedEmps = await Employee.find({ _id: { $in: removed } }).populate("user");
+      for (const emp of removedEmps) {
+        await sendTaskNotification(emp.user, {
+          type: "system",
+          message: `Removed from mission: ${task.projectNumber}`,
+          subject: `⚠️ Task Removal: ${task.projectNumber}`,
+          taskId: task._id,
+          htmlContent: `
+            <div style="font-family: sans-serif; border: 1px solid #ef4444; padding: 20px; border-radius: 15px;">
+              <h2 style="color: #ef4444;">Assignment Revoked</h2>
+              <p>You have been <b>removed</b> from task: <b>${task.title}</b></p>
+            </div>`
+        }, io);
+      }
+
+      // C. Notify Remained of General Updates
+      if (isStatusChanged || startDate || endDate) {
+        const remainedEmps = await Employee.find({ _id: { $in: remained } }).populate("user");
+        for (const emp of remainedEmps) {
+          await sendTaskNotification(emp.user, {
+            type: "status",
+            message: `Mission Update: ${task.projectNumber} is now ${task.status}`,
+            subject: `Task Update: ${task.projectNumber}`,
+            taskId: task._id
+          }, io);
         }
-      } catch (err) {
-        console.error("Update notification failed");
       }
     }
 
-    const updated = await Task.findById(task._id)
-      .populate("timeLogs") 
-      .populate({
-        path: "assignedTo",
-        populate: { path: "user", select: "name" }
-      });
-
+    const updated = await Task.findById(task._id).populate({
+      path: "assignedTo",
+      populate: { path: "user", select: "name" }
+    });
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// ... keep deleteTask, getAllTasks, etc. exactly as they were
+/* =========================================================
+    REMAINING HELPER CONTROLLERS (Unchanged)
+   ========================================================= */
 
-/**
- * Delete Task + its logs
- */
 exports.deleteTask = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
-
   try {
     const task = await Task.findByIdAndDelete(req.params.id).session(session);
     if (!task) throw new Error("Task not found");
-
     await TimeLog.deleteMany({ task: task._id }).session(session);
-
     await session.commitTransaction();
     res.json({ message: "Task and related logs deleted" });
-
   } catch (err) {
     await session.abortTransaction();
     res.status(500).json({ error: err.message });
@@ -191,15 +229,10 @@ exports.deleteTask = async (req, res) => {
   }
 };
 
-/**
- * Get All Tasks (Admin View with filters)
- */
 exports.getAllTasks = async (req, res) => {
   try {
     const { search, status, page = 1, limit = 10, createdAt, startDate, endDate } = req.query;
     let query = {};
-
-    // Filters
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: "i" } },
@@ -207,45 +240,41 @@ exports.getAllTasks = async (req, res) => {
       ];
     }
     if (status && status !== "All") query.status = status;
-
     if (createdAt) {
       const day = new Date(createdAt);
-      query.createdAt = {
-        $gte: new Date(day.setHours(0, 0, 0, 0)),
-        $lte: new Date(day.setHours(23, 59, 59, 999))
-      };
+      query.createdAt = { $gte: new Date(day.setHours(0, 0, 0, 0)), $lte: new Date(day.setHours(23, 59, 59, 999)) };
     }
+    // START / END RANGE FILTER
+    // START / END FILTER
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
 
-    // 3. Filter by Mission Start Date (Exact Day)
-    if (startDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+
+      // started after start AND finished before end
+      query.startDate = { $gte: start };
+      query.endDate = { $lte: end };
+    }
+    else if (startDate) {
       const day = new Date(startDate);
-      query.startDate = {
-        $gte: new Date(day.setHours(0, 0, 0, 0)),
-        $lte: new Date(day.setHours(23, 59, 59, 999))
-      };
-    }
+      const start = new Date(day.setHours(0, 0, 0, 0));
+      const end = new Date(day.setHours(23, 59, 59, 999));
 
-    // 4. Filter by Mission End Date (Exact Day)
-    if (endDate) {
+      query.startDate = { $gte: start, $lte: end };
+    }
+    else if (endDate) {
       const day = new Date(endDate);
-      query.endDate = {
-        $gte: new Date(day.setHours(0, 0, 0, 0)),
-        $lte: new Date(day.setHours(23, 59, 59, 999))
-      };
+      const start = new Date(day.setHours(0, 0, 0, 0));
+      const end = new Date(day.setHours(23, 59, 59, 999));
+
+      query.endDate = { $gte: start, $lte: end };
     }
 
-    // Pagination Logic
     const skip = (parseInt(page) - 1) * parseInt(limit);
-
     const tasks = await Task.find(query)
-      // Reach into Employee, then reach into User to get the Name
-      .populate({
-        path: "assignedTo",
-        populate: {
-          path: "user",
-          select: "name"
-        }
-      })
+      .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
       .populate("timeLogs")
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -253,85 +282,44 @@ exports.getAllTasks = async (req, res) => {
       .lean();
 
     const total = await Task.countDocuments(query);
-
-    res.json({
-      tasks,
-      totalTasks: total,
-      totalPages: Math.ceil(total / parseInt(limit)),
-      currentPage: parseInt(page)
-    });
-
+    res.json({ tasks, totalTasks: total, totalPages: Math.ceil(total / parseInt(limit)), currentPage: parseInt(page) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-/**
- * Get Single Task Detail
- */
 exports.getTaskDetail = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id)
       .populate("createdBy", "name")
-      .populate({
-        path: "assignedTo",
-        populate: {
-          path: "user",
-          select: "name"
-        }
-      })
+      .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
       .populate("timeLogs");
-
     if (!task) return res.status(404).json({ message: "Task not found" });
-
     res.json(task);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-/**
- * Admin view: Tasks by employee
- */
 exports.getTasksByEmployee = async (req, res) => {
   try {
-    const tasks = await Task.find({ assignedTo: req.params.userId })
-      .populate("timeLogs")
-      .sort({ createdAt: -1 });
-
+    const tasks = await Task.find({ assignedTo: req.params.userId }).populate("timeLogs").sort({ createdAt: -1 });
     res.json(tasks);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-/* =========================================================
-   EMPLOYEE CONTROLLERS
-   ========================================================= */
-
-/**
- * Get My Tasks (Employee Dashboard)
- */
 exports.getMyTasks = async (req, res) => {
   try {
     const { search, status, page = 1, limit = 6 } = req.query;
-
-    // 1. Find the Employee record linked to this User
     const employee = await Employee.findOne({ user: req.user._id });
-    
-    if (!employee) {
-      return res.json({
-        tasks: [],
-        pagination: { current: 1, totalPages: 0, totalTasks: 0 }
-      });
-    }
+    if (!employee) return res.json({ tasks: [], pagination: { current: 1, totalPages: 0, totalTasks: 0 } });
 
     const pageNum = Math.max(1, Number(page));
     const limitNum = Math.min(50, Number(limit));
     const skip = (pageNum - 1) * limitNum;
-
-    // 2. Query using the Employee's _id
-    const query = { assignedTo: employee._id }; 
+    const query = { assignedTo: employee._id };
 
     if (search) {
       query.$or = [
@@ -339,27 +327,11 @@ exports.getMyTasks = async (req, res) => {
         { projectNumber: { $regex: search, $options: "i" } },
       ];
     }
-
     if (status && status !== "All") query.status = status;
 
-    const tasks = await Task.find(query)
-      .populate("createdBy", "name")
-      .populate("timeLogs")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limitNum);
-
+    const tasks = await Task.find(query).populate("createdBy", "name").populate("timeLogs").sort({ createdAt: -1 }).skip(skip).limit(limitNum);
     const total = await Task.countDocuments(query);
-
-    res.json({
-      tasks,
-      pagination: {
-        current: pageNum,
-        totalPages: Math.ceil(total / limitNum),
-        totalTasks: total,
-      }
-    });
-
+    res.json({ tasks, pagination: { current: pageNum, totalPages: Math.ceil(total / limitNum), totalTasks: total } });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

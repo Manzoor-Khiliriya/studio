@@ -40,7 +40,7 @@ export default function Sidebar() {
   const employeeLinks = [
     { to: "/employee", label: "Overview", icon: <HiOutlineViewColumns /> },
     { to: "/my-tasks", label: "My Tasks", icon: <HiOutlineQueueList /> },
-    { to: "/my-reports", label: "Performance", icon: <HiOutlineDocumentChartBar /> },
+    // { to: "/my-reports", label: "Performance", icon: <HiOutlineDocumentChartBar /> },
     { to: '/my-leaves', label: 'Leaves', icon: <HiOutlineCalendar /> },
     { to: '/public-holidays', label: 'Calendar', icon: <HiOutlineFlag /> },
   ];
@@ -52,11 +52,6 @@ export default function Sidebar() {
       {/* --- DESKTOP SIDEBAR --- */}
       {/* REMOVED: min-h-screen and sticky top-0. ADDED: h-full */}
       <aside className="hidden md:flex w-72 bg-[#0f1115] text-slate-400 h-full flex-col p-6 border-r border-orange-900/10">
-        
-        {/* Brand/App Name */}
-        <div className="mb-8 px-4">
-           <span className="text-orange-500 font-black tracking-tighter text-2xl">PORTAL.</span>
-        </div>
 
         {/* Navigation Section */}
         <nav className="flex-1 space-y-1 relative overflow-y-auto custom-scrollbar pr-2">
@@ -107,7 +102,7 @@ export default function Sidebar() {
 
           <button
             onClick={handleLogout}
-            className="flex items-center justify-between w-full px-4 py-3 rounded-xl font-bold text-slate-500 hover:text-orange-400 hover:bg-orange-500/5 transition-all group"
+            className="flex items-center justify-between w-full px-4 py-3 rounded-xl font-bold text-slate-500 hover:text-orange-400 hover:bg-orange-500/5 transition-all group cursor-pointer"
           >
             <div className="flex items-center gap-4">
               <HiLogout className="text-xl transition-transform group-hover:-translate-x-1" />

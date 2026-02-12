@@ -1,16 +1,14 @@
 import React, { useState } from 'react';
 import {
-  HiOutlinePlus, HiOutlineShieldCheck, HiOutlineClock,
+  HiOutlineShieldCheck, HiOutlineClock,
   HiOutlineCalendar, HiOutlineTrash, HiOutlinePencilAlt,
   HiOutlineLockClosed, HiOutlineSparkles, HiOutlineFilter
 } from 'react-icons/hi';
-import { toast, Toaster } from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
 
 // API Services
 import {
   useGetMyLeavesQuery,
-  useApplyLeaveMutation,
-  useUpdateLeaveMutation,
   useDeleteLeaveMutation
 } from '../../services/leaveApi';
 
@@ -32,7 +30,6 @@ export default function EmployeeLeavePage() {
   const limit = 8;
 
   // --- DATA FETCHING ---
-  // Passing filters directly to the query for backend-side filtering
   const { data, isLoading, isFetching } = useGetMyLeavesQuery({ 
     page, 
     limit,
@@ -40,32 +37,9 @@ export default function EmployeeLeavePage() {
     status: statusFilter === "All" ? "" : statusFilter
   });
 
-  const [applyLeave] = useApplyLeaveMutation();
-  const [updateLeave] = useUpdateLeaveMutation();
   const [deleteLeave] = useDeleteLeaveMutation();
 
   // --- HANDLERS ---
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const payload = Object.fromEntries(formData.entries());
-
-    const loadingToast = toast.loading(selectedLeave ? "Updating registry..." : "Filing application...");
-    try {
-      if (selectedLeave) {
-        await updateLeave({ id: selectedLeave._id, ...payload }).unwrap();
-        toast.success("Registry entry updated", { id: loadingToast });
-      } else {
-        await applyLeave(payload).unwrap();
-        toast.success("Application successfully filed", { id: loadingToast });
-        setPage(1);
-      }
-      closeModal();
-    } catch (err) {
-      toast.error(err?.data?.message || "Transmission error", { id: loadingToast });
-    }
-  };
-
   const handleDelete = async (id) => {
     if (!window.confirm("CRITICAL: Cancel this pending request?")) return;
     const loadingToast = toast.loading("Purging request...");
@@ -75,6 +49,11 @@ export default function EmployeeLeavePage() {
     } catch (err) {
       toast.error(err?.data?.message || "Protocol failure", { id: loadingToast });
     }
+  };
+
+  const openEditModal = (leave) => {
+    setSelectedLeave(leave);
+    setIsModalOpen(true);
   };
 
   const closeModal = () => {
@@ -125,10 +104,16 @@ export default function EmployeeLeavePage() {
         <div className="flex justify-end gap-2">
           {req.status === 'Pending' ? (
             <>
-              <button onClick={() => { setSelectedLeave(req); setIsModalOpen(true); }} className="p-2.5 bg-slate-50 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition-all border border-slate-100 cursor-pointer hover:border-orange-200">
+              <button 
+                onClick={() => openEditModal(req)} 
+                className="p-2.5 bg-slate-50 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition-all border border-slate-100 cursor-pointer hover:border-orange-200"
+              >
                 <HiOutlinePencilAlt size={16} />
               </button>
-              <button onClick={() => handleDelete(req._id)} className="p-2.5 bg-slate-50 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all border border-slate-100 cursor-pointer hover:border-rose-200">
+              <button 
+                onClick={() => handleDelete(req._id)} 
+                className="p-2.5 bg-slate-50 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all border border-slate-100 cursor-pointer hover:border-rose-200"
+              >
                 <HiOutlineTrash size={16} />
               </button>
             </>
@@ -245,7 +230,6 @@ export default function EmployeeLeavePage() {
       <LeaveModal 
         isOpen={isModalOpen} 
         onClose={closeModal} 
-        onSubmit={handleFormSubmit} 
         initialData={selectedLeave} 
       />
     </div>

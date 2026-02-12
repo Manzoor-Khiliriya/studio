@@ -192,7 +192,7 @@ export default function AdminTasksPage() {
                 count: data?.totalTasks,
                 limit: limit,
               }}
-              onPageChange={setCurrentPage}
+              onPageChange={setCurrentPage} 
               loading={isFetching}
               label="Missions"
             />

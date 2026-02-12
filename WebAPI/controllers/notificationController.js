@@ -4,8 +4,8 @@ const Notification = require("../models/Notification");
 exports.getMyNotifications = async (req, res) => {
   try {
     const notifications = await Notification.find({ recipient: req.user._id })
-      .sort({ createdAt: -1 }) // Newest first
-      .limit(20); // Keep the navbar clean with the last 20
+      .sort({ createdAt: -1 })
+      .limit(20);
     
     res.json(notifications);
   } catch (err) {

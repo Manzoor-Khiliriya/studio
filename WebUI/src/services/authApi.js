@@ -2,9 +2,6 @@ import { apiSlice } from './apiSlice';
 
 export const authApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    
-    // LOGIN
-    // Matches: POST /api/auth/login
     login: builder.mutation({
       query: (credentials) => ({
         url: '/auth/login',
@@ -13,21 +10,21 @@ export const authApiSlice = apiSlice.injectEndpoints({
       }),
     }),
 
-    // GET CURRENT USER (Profile)
-    // Matches: GET /api/auth/my-profile
-    getMe: builder.query({
-      query: () => '/auth/my-profile',
-      // We tag this so we can force a refresh if the user updates their own profile elsewhere
-      providesTags: ['User'], 
+    // ADD THIS: Forgot Password Step
+    forgotPassword: builder.mutation({
+      query: (data) => ({
+        url: '/auth/forgot-password',
+        method: 'POST',
+        body: data, // { email }
+      }),
     }),
 
-    // RESET PASSWORD
-    // Matches: POST /api/auth/reset-password
+    // UPDATE THIS: Reset Password Step
     resetPassword: builder.mutation({
-      query: (passwords) => ({
+      query: (data) => ({
         url: '/auth/reset-password',
         method: 'POST',
-        body: { ...passwords },
+        body: data, // { email, otp, newPassword }
       }),
     }),
   }),
@@ -35,6 +32,6 @@ export const authApiSlice = apiSlice.injectEndpoints({
 
 export const {
   useLoginMutation,
-  useGetMeQuery,
+  useForgotPasswordMutation, // Export this
   useResetPasswordMutation,
 } = authApiSlice;

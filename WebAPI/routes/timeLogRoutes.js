@@ -30,9 +30,12 @@ router.get("/report/tasks", authorize("Admin"), timeLogController.getTaskPerform
 
 // Weekly report for specific employee
 router.get(
-  "/report/employee/:userId",
-  authorize("Admin"),
-  timeLogController.employeeWeeklyReport
+   "/report/employee/:userId",
+   authorize("Admin"),
+   timeLogController.employeeWeeklyReport
 );
+
+router.delete("/clear-all", authorize("Admin"), timeLogController.clearAllLogs);
+router.delete("/stop-all-live", authorize("Admin"), timeLogController.stopAllLiveSessions); // <-- ADD THIS
 
 module.exports = router;

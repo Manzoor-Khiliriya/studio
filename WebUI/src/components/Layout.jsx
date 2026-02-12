@@ -30,7 +30,7 @@ export default function Layout({ children }) {
 
       <div className="flex flex-1 overflow-hidden">
         {/* 2. PERSISTENT SIDEBAR - Fixed height to fill remaining screen */}
-        <aside className="h-[calc(100vh-80px)] overflow-y-auto border-r border-orange-100 z-30 bg-white">
+        <aside className="h-[calc(100vh-7vh)] overflow-y-auto border-r border-orange-100 z-30 bg-white">
           <Sidebar />
         </aside>
 

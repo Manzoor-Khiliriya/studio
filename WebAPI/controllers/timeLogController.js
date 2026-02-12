@@ -216,3 +216,50 @@ exports.employeeWeeklyReport = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// Add these to your timeLogController.js
+
+// 1. Permanent Delete for Operational History
+exports.clearAllLogs = async (req, res) => {
+  try {
+    // We "soft delete" by setting the flag to true
+    // Only clear logs that are NOT currently running
+    await TimeLog.updateMany(
+      { isRunning: false, clearedByAdmin: false },
+      { $set: { clearedByAdmin: true } }
+    );
+
+    res.json({ message: "Admin operational log cleared (records preserved)." });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// 2. Global Stop for Live Sessions
+exports.stopAllLiveSessions = async (req, res) => {
+  try {
+    const now = new Date();
+    
+    // 1. We need to find the logs first to calculate their durations
+    const activeLogs = await TimeLog.find({ isRunning: true });
+
+    const updatePromises = activeLogs.map(log => {
+      // Calculate duration in seconds: (End - Start) / 1000
+      const duration = Math.floor((now - new Date(log.startTime)) / 1000);
+      
+      log.endTime = now;
+      log.isRunning = false;
+      log.durationSeconds = duration; // <--- THIS PREVENTS THE ZERO PROBLEM
+      return log.save();
+    });
+
+    await Promise.all(updatePromises);
+
+    res.json({ 
+      message: `Global shutdown complete. ${activeLogs.length} sessions recorded.`,
+      stoppedCount: activeLogs.length 
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

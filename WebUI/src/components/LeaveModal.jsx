@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { 
-  HiOutlineShieldCheck, 
-  HiOutlineDocumentText, 
-  HiOutlineCalendarDays,
-  HiOutlineChatBubbleLeftRight
-} from "react-icons/hi2";
+import { HiOutlineShieldCheck, HiOutlineDocumentText, HiOutlineCalendarDays, HiOutlineChatBubbleLeftRight } from "react-icons/hi2";
+import { toast } from 'react-hot-toast';
 import CommonModal, { InputGroup } from "./CommonModal";
 
-const LeaveModal = ({ isOpen, onClose, onSubmit, initialData }) => {
+// Import mutations directly into the modal
+import { useApplyLeaveMutation, useUpdateLeaveMutation } from '../services/leaveApi';
+
+const LeaveModal = ({ isOpen, onClose, initialData }) => {
   const [formData, setFormData] = useState({
     type: "Sick Leave",
     startDate: "",
@@ -15,9 +14,11 @@ const LeaveModal = ({ isOpen, onClose, onSubmit, initialData }) => {
     reason: "",
   });
 
+  const [applyLeave, { isLoading: isApplying }] = useApplyLeaveMutation();
+  const [updateLeave, { isLoading: isUpdating }] = useUpdateLeaveMutation();
+
   const today = new Date().toISOString().split("T")[0];
 
-  // Sync state for editing
   useEffect(() => {
     if (initialData && isOpen) {
       setFormData({
@@ -35,9 +36,22 @@ const LeaveModal = ({ isOpen, onClose, onSubmit, initialData }) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleLocalSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    const loadingToast = toast.loading(initialData ? "Updating registry..." : "Filing application...");
+    
+    try {
+      if (initialData) {
+        await updateLeave({ id: initialData._id, ...formData }).unwrap();
+        toast.success("Registry entry updated", { id: loadingToast });
+      } else {
+        await applyLeave(formData).unwrap();
+        toast.success("Application successfully filed", { id: loadingToast });
+      }
+      onClose(); // Close modal on success
+    } catch (err) {
+      toast.error(err?.data?.message || "Transmission error", { id: loadingToast });
+    }
   };
 
   return (
@@ -46,9 +60,9 @@ const LeaveModal = ({ isOpen, onClose, onSubmit, initialData }) => {
       onClose={onClose}
       title={initialData ? "Edit Request" : "New Application"}
       subtitle={initialData ? `Modifying Entry ID: ${initialData._id.slice(-6)}` : "Personnel Absence Protocol"}
+      maxWidth="max-w-md"
     >
-      <form onSubmit={handleLocalSubmit} className="space-y-8">
-        {/* REQUEST CATEGORY */}
+      <form onSubmit={handleSubmit} className="space-y-6">
         <InputGroup label="Request Category">
           <HiOutlineDocumentText className="input-icon" />
           <select
@@ -67,7 +81,6 @@ const LeaveModal = ({ isOpen, onClose, onSubmit, initialData }) => {
           </select>
         </InputGroup>
 
-        {/* DATE RANGE */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <InputGroup label="Commencement">
             <HiOutlineCalendarDays className="input-icon" />
@@ -96,7 +109,6 @@ const LeaveModal = ({ isOpen, onClose, onSubmit, initialData }) => {
           </InputGroup>
         </div>
 
-        {/* REASONING */}
         <InputGroup label="Operational Justification">
           <HiOutlineChatBubbleLeftRight className="input-icon !top-5 translate-y-0" />
           <textarea
@@ -105,45 +117,22 @@ const LeaveModal = ({ isOpen, onClose, onSubmit, initialData }) => {
             onChange={handleChange}
             rows="4"
             required
-            className="form-input !py-4 min-h-[120px] resize-none leading-relaxed"
+            className="form-input !py-4 min-h-[120px] resize-none"
             placeholder="State the reason for this absence..."
           />
         </InputGroup>
 
-        {/* ACTION BUTTON */}
         <div className="pt-4">
           <button
             type="submit"
-            className="w-full bg-slate-900 text-white py-5 rounded-[1.5rem] font-black uppercase text-xs tracking-[0.2em] shadow-xl hover:bg-orange-600 transition-all active:scale-[0.98] flex items-center justify-center gap-3"
+            disabled={isApplying || isUpdating}
+            className="w-full bg-slate-900 text-white py-5 rounded-[1.5rem] font-black uppercase text-xs tracking-[0.2em] shadow-xl hover:bg-orange-600 transition-all disabled:opacity-50 flex items-center justify-center gap-3 cursor-pointer"
           >
             <HiOutlineShieldCheck size={20} />
             {initialData ? "Update Registry" : "Authorize Request"}
           </button>
-          
-          <p className="text-center text-[8px] text-slate-400 font-black uppercase tracking-widest mt-6 italic">
-            * All requests are subject to Command review
-          </p>
         </div>
       </form>
-
-      {/* Re-using your global styles */}
-      <style jsx global>{`
-        .form-input { 
-          width: 100%; 
-          padding: 0.85rem 1rem 0.85rem 2.75rem; 
-          background-color: #f8fafc; 
-          border: 2px solid transparent; 
-          border-radius: 1.25rem; 
-          font-size: 0.875rem; 
-          font-weight: 700; 
-          color: #1e293b; 
-          transition: all 0.2s; 
-          outline: none; 
-        }
-        .form-input:focus { background-color: #fff; border-color: #f97316; box-shadow: 0 10px 15px -3px rgba(249, 115, 22, 0.1); }
-        .input-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #cbd5e1; z-index: 10; transition: color 0.2s; }
-        .group:focus-within .input-icon { color: #f97316; }
-      `}</style>
     </CommonModal>
   );
 };

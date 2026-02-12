@@ -1,29 +1,33 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Provider } from "react-redux";
+import { store } from "./config/store";
+import { Toaster } from "react-hot-toast";
 
 // Components & Layout
 import Layout from "./components/Layout";
+import ProtectedRoute from "./pages/ProtectedRoute";
+import NotificationHandler from "./components/notificationHandler";
 
-// Pages
+// Public Pages
 import LoginPage from "./pages/LoginPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage"; // <-- IMPORT THIS
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+
+// Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
-// import AdminReportsPage from "./pages/AdminReportsPage";
 import EmployeeListPage from "./pages/admin/AdminEmployeeListPage";
 import EmployeeDetailPage from "./pages/admin/AdminEmployeeDetailPage";
-import MyTasksPage from "./pages/employee/EmployeeTasksPage";
-import EmployeeReportsPage from "./pages/employee/EmployeeReportPage";
-import ProtectedRoute from "./pages/ProtectedRoute";
 import AdminTasksPage from "./pages/admin/AdminTaskListPage";
 import AdminTaskDetailPage from "./pages/admin/AdminTaskDetailPage";
 import AdminLeavePage from "./pages/admin/AdminLeavePage";
-import EmployeeLeavePage from "./pages/employee/EmployeeLeavePage";
-import { Provider } from "react-redux";
-import { store } from "./config/store";
 import AdminHolidayPage from "./pages/admin/AdminHolidayPage";
+
+// Employee Pages
+import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
+import MyTasksPage from "./pages/employee/EmployeeTasksPage";
+import EmployeeReportsPage from "./pages/employee/EmployeeReportPage";
+import EmployeeLeavePage from "./pages/employee/EmployeeLeavePage";
 import EmployeeHolidayPage from "./pages/employee/EmployeeHolidayPage";
-import { Toaster } from "react-hot-toast";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
-import NotificationHandler from "./components/notificationHandler";
 
 function App() {
   return (
@@ -35,7 +39,7 @@ function App() {
           toastOptions={{
             duration: 4000,
             style: {
-              background: '#0f172a', // slate-900
+              background: '#0f172a',
               color: '#fff',
               borderRadius: '1.5rem',
               padding: '16px 24px',
@@ -46,7 +50,7 @@ function App() {
               border: '1px solid rgba(255,255,255,0.1)'
             },
             success: {
-              iconTheme: { primary: '#f97316', secondary: '#fff' }, // orange-500
+              iconTheme: { primary: '#f97316', secondary: '#fff' },
             }
           }}
         />
@@ -55,7 +59,11 @@ function App() {
           <Routes>
             {/* PUBLIC ROUTES */}
             <Route path="/login" element={<LoginPage />} />
+            {/* STEP 1: Request Code */}
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} /> 
+            {/* STEP 2: Verify & Reset */}
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            
             <Route path="/home" element={<Navigate to="/login" replace />} />
 
             {/* ADMIN SECTION */}

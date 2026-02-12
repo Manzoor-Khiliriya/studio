@@ -134,7 +134,7 @@ export default function LoginPage() {
                 <label className="text-sm font-semibold text-slate-700">Password</label>
                 <button 
                   type="button" 
-                  onClick={() => navigate("/reset-password")}
+                  onClick={() => navigate("/forgot-password")}
                   className="text-xs font-medium text-orange-400 hover:text-orange-600 transition-colors cursor-pointer"
                 >
                   Forgot password?

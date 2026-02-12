@@ -8,11 +8,12 @@ const NotificationSchema = new mongoose.Schema({
   },
   sender: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User", // The Admin who created the task
+    ref: "User",
   },
   type: {
     type: String,
-    enum: ["task", "leave", "status", "system"],
+    // ADDED 'reset' HERE to match your sendNotification utility
+    enum: ["task", "leave", "status", "system", "reset"], 
     default: "task",
   },
   message: {

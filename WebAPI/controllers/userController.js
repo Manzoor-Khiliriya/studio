@@ -2,6 +2,7 @@ const User = require("../models/User");
 const Employee = require("../models/Employee");
 const { sanitizeUser } = require("../utils/userHelpers");
 const { hashPassword } = require("../utils/authHelpers");
+const sendNotification = require("../utils/notifier"); // Ensure this matches your filename
 
 /**
  * CREATE USER (Admin only)
@@ -21,7 +22,6 @@ exports.createUser = async (req, res) => {
       status: "Enable",
     });
 
-    // Create employee profile if role = Employee
     if (user.role === "Employee") {
       await Employee.create({
         user: user._id,
@@ -32,12 +32,26 @@ exports.createUser = async (req, res) => {
       });
     }
 
+    // Send Welcome Notification
+    try {
+      const io = req.app.get('socketio');
+      await sendNotification(user, {
+        type: "system",
+        password: password, // Sending the plain password from req.body
+        message: "Your account has been created successfully."
+      }, io);
+    } catch (notifErr) {
+      console.error("Welcome email failed:", notifErr.message);
+    }
+
     const result = await User.findById(user._id).populate("employee");
     res.status(201).json(sanitizeUser(result));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
+// ... keep all other functions (updateUser, deleteUser, etc.) exactly as you had them ...
 
 /**
  * GET ALL USERS (Admin)
