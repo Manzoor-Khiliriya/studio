@@ -6,7 +6,7 @@ import { Toaster } from "react-hot-toast";
 // Components & Layout
 import Layout from "./components/Layout";
 import ProtectedRoute from "./pages/ProtectedRoute";
-import NotificationHandler from "./components/notificationHandler";
+import NotificationHandler from "./components/NotificationHandler";
 
 // Public Pages
 import LoginPage from "./pages/LoginPage";
