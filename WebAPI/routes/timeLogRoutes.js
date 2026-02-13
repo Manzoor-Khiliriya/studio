@@ -28,14 +28,17 @@ router.get("/my", timeLogController.getMyLogs);
 // Overall task performance (hours spent vs allocated)
 router.get("/report/tasks", authorize("Admin"), timeLogController.getTaskPerformanceReport);
 
-// Weekly report for specific employee
-router.get(
-   "/report/employee/:userId",
-   authorize("Admin"),
-   timeLogController.employeeWeeklyReport
-);
 
-router.delete("/clear-all", authorize("Admin"), timeLogController.clearAllLogs);
-router.delete("/stop-all-live", authorize("Admin"), timeLogController.stopAllLiveSessions); // <-- ADD THIS
+// ... existing imports
+
+/* =========================================================
+   ADMIN CONTROL ROUTES
+   ========================================================= */
+
+// Matches: POST /api/timelogs/clear-all
+router.post("/clear-all", authorize("Admin"), timeLogController.clearAllLogs);
+
+// Matches: POST /api/timelogs/stop-all
+router.post("/stop-all", authorize("Admin"), timeLogController.stopAllLiveSessions);
 
 module.exports = router;

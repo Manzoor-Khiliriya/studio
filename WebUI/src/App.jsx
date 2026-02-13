@@ -21,6 +21,8 @@ import AdminTasksPage from "./pages/admin/AdminTaskListPage";
 import AdminTaskDetailPage from "./pages/admin/AdminTaskDetailPage";
 import AdminLeavePage from "./pages/admin/AdminLeavePage";
 import AdminHolidayPage from "./pages/admin/AdminHolidayPage";
+import AdminTaskReportPage from "./pages/admin/AdminReportsPage";
+
 
 // Employee Pages
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
@@ -76,6 +78,7 @@ function App() {
                 <Route path="/tasks/:id" element={<AdminTaskDetailPage />} />
                 <Route path="/leaves" element={<AdminLeavePage />} />
                 <Route path="/holidays" element={<AdminHolidayPage />} />
+                <Route path="/reports" element={<AdminTaskReportPage />} />
               </Route>
             </Route>
 

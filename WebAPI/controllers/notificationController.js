@@ -1,6 +1,5 @@
 const Notification = require("../models/Notification");
 
-// Get notifications for the logged-in user
 exports.getMyNotifications = async (req, res) => {
   try {
     const notifications = await Notification.find({ recipient: req.user._id })
@@ -13,7 +12,6 @@ exports.getMyNotifications = async (req, res) => {
   }
 };
 
-// Mark all notifications as read
 exports.markAllAsRead = async (req, res) => {
   try {
     await Notification.updateMany(
@@ -26,7 +24,6 @@ exports.markAllAsRead = async (req, res) => {
   }
 };
 
-// Delete a single notification (optional)
 exports.deleteNotification = async (req, res) => {
   try {
     await Notification.findOneAndDelete({ 

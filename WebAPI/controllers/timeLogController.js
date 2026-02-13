@@ -8,17 +8,14 @@ exports.startTimer = async (req, res) => {
   session.startTransaction();
 
   try {
-    // FIX 1: Robust taskId extraction
     const { taskId } = req.body;
     const userId = req.user._id;
 
     if (!taskId) throw new Error("Task ID is required.");
 
-    // FIX 2: Find Employee profile (Tasks are assigned to Employee IDs, not User IDs)
     const employee = await Employee.findOne({ user: userId });
     if (!employee) throw new Error("Employee profile not found for this user.");
 
-    // FIX 3: Check task assignment using employee._id
     const task = await Task.findOne({
       _id: taskId,
       assignedTo: employee._id
@@ -28,7 +25,6 @@ exports.startTimer = async (req, res) => {
 
     const today = new Date().toISOString().split("T")[0];
 
-    // Check daily hour limit
     const logs = await TimeLog.find({ user: userId, dateString: today, logType: "work" });
     const hoursToday = logs.reduce((sum, l) => sum + (l.durationSeconds / 3600 || 0), 0);
 
@@ -36,7 +32,6 @@ exports.startTimer = async (req, res) => {
       throw new Error(`Daily limit reached (${employee.dailyWorkLimit} hrs).`);
     }
 
-    // Stop any running logs for this user
     await TimeLog.updateMany(
       { user: userId, isRunning: true },
       { $set: { endTime: new Date(), isRunning: false } },
@@ -44,17 +39,15 @@ exports.startTimer = async (req, res) => {
     );
 
 
-    // FIX: Explicitly pass dateString here
     const log = await TimeLog.create([{
       user: userId,
       task: taskId,
       startTime: new Date(),
       isRunning: true,
       logType: "work",
-      dateString: today // <--- ADD THIS LINE
+      dateString: today
     }], { session });
 
-    // Auto update task status
     if (task.status === "Pending") {
       task.status = "In Progress";
       await task.save({ session });
@@ -65,7 +58,6 @@ exports.startTimer = async (req, res) => {
 
   } catch (err) {
     await session.abortTransaction();
-    // Catch the "Cast to ObjectId" error specifically if it slips through
     const message = err.name === "CastError" ? "Invalid Task ID format" : err.message;
     res.status(400).json({ error: message });
   } finally {
@@ -80,16 +72,14 @@ exports.togglePause = async (req, res) => {
   const active = await TimeLog.findOne({ user: userId, isRunning: true });
   if (!active) return res.status(404).json({ message: "No active timer." });
 
-  // 🔹 FIX: Calculate duration before closing the log
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - new Date(active.startTime).getTime()) / 1000);
-  
+
   active.endTime = now;
   active.isRunning = false;
-  active.durationSeconds = Math.max(0, diffInSeconds); // Store the time spent
+  active.durationSeconds = Math.max(0, diffInSeconds);
   await active.save();
 
-  // Create the new log (switching work -> break or break -> work)
   const newType = active.logType === "work" ? "break" : "work";
 
   const newLog = await TimeLog.create({
@@ -98,7 +88,7 @@ exports.togglePause = async (req, res) => {
     startTime: new Date(),
     logType: newType,
     isRunning: true,
-    dateString: today 
+    dateString: today
   });
 
   res.json({ status: newType, log: newLog });
@@ -129,7 +119,6 @@ exports.getMyLogs = async (req, res) => {
 
     const activeLog = logs.find(l => l.isRunning);
 
-    // 🔹 Calculate today's worked hours (only work logs)
     const totalSeconds = logs
       .filter(l => l.logType === "work")
       .reduce((sum, l) => sum + (l.durationSeconds || 0), 0);
@@ -138,7 +127,7 @@ exports.getMyLogs = async (req, res) => {
 
     res.json({
       activeTaskId: activeLog?.task?._id || null,
-      status: activeLog ? activeLog.logType : "idle", // work | break | idle
+      status: activeLog ? activeLog.logType : "idle",
       hoursWorkedToday,
       logs
     });
@@ -150,86 +139,73 @@ exports.getMyLogs = async (req, res) => {
 
 
 exports.getTaskPerformanceReport = async (req, res) => {
-  const report = await Task.aggregate([
-    { $lookup: { from: "timelogs", localField: "_id", foreignField: "task", as: "logs" } },
-    {
-      $project: {
-        title: 1,
-        projectNumber: 1,
-        allocatedTime: 1,
-        status: 1,
-        totalWorkHours: {
-          $round: [{
-            $divide: [
-              {
-                $sum: {
-                  $map: {
-                    input: { $filter: { input: "$logs", as: "l", cond: { $eq: ["$$l.logType", "work"] } } },
-                    as: "item",
-                    in: "$$item.durationSeconds"
-                  }
-                }
-              },
-              3600
-            ]
-          }, 2]
-        }
-      }
-    }
-  ]);
-
-  res.json(report);
-};
-
-
-exports.employeeWeeklyReport = async (req, res) => {
   try {
-    const targetUserId = req.params.userId || req.user._id;
-
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-    const stats = await TimeLog.aggregate([
+    const report = await Task.aggregate([
       {
         $match: {
-          user: new mongoose.Types.ObjectId(targetUserId),
-          logType: "work",
-          startTime: { $gte: sevenDaysAgo }
+          status: { $ne: "Completed" }
         }
       },
       {
-        $group: {
-          _id: "$dateString",
-          totalSeconds: { $sum: "$durationSeconds" }
+        $lookup: {
+          from: "timelogs",
+          localField: "_id",
+          foreignField: "task",
+          as: "logs"
         }
       },
-      { $sort: { _id: 1 } }
+      {
+        $project: {
+          title: 1,
+          projectNumber: 1,
+          allocatedTime: 1,
+          status: 1,
+          totalWorkHours: {
+            $round: [{
+              $divide: [
+                {
+                  $sum: {
+                    $map: {
+                      input: {
+                        $filter: {
+                          input: "$logs",
+                          as: "l",
+                          cond: { $eq: ["$$l.logType", "work"] }
+                        }
+                      },
+                      as: "item",
+                      in: { $ifNull: ["$$item.durationSeconds", 0] }
+                    }
+                  }
+                },
+                3600
+              ]
+            }, 2]
+          }
+        }
+      },
+      {
+        $addFields: {
+          completionPercentage: {
+            $cond: [
+              { $gt: ["$allocatedTime", 0] },
+              { $round: [{ $multiply: [{ $divide: ["$totalWorkHours", "$allocatedTime"] }, 100] }, 1] },
+              0
+            ]
+          }
+        }
+      },
+      { $sort: { completionPercentage: -1 } }
     ]);
 
-    const result = stats.map(day => ({
-      date: day._id,
-      hoursWorked: +(day.totalSeconds / 3600).toFixed(2),
-      minutesWorked: Math.round(day.totalSeconds / 60)
-    }));
-
-    res.json({
-      userId: targetUserId,
-      totalDays: result.length,
-      report: result
-    });
-
+    res.json(report);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// Add these to your timeLogController.js
-
-// 1. Permanent Delete for Operational History
 exports.clearAllLogs = async (req, res) => {
   try {
-    // We "soft delete" by setting the flag to true
-    // Only clear logs that are NOT currently running
     await TimeLog.updateMany(
       { isRunning: false, clearedByAdmin: false },
       { $set: { clearedByAdmin: true } }
@@ -241,29 +217,26 @@ exports.clearAllLogs = async (req, res) => {
   }
 };
 
-// 2. Global Stop for Live Sessions
 exports.stopAllLiveSessions = async (req, res) => {
   try {
     const now = new Date();
-    
-    // 1. We need to find the logs first to calculate their durations
+
     const activeLogs = await TimeLog.find({ isRunning: true });
 
     const updatePromises = activeLogs.map(log => {
-      // Calculate duration in seconds: (End - Start) / 1000
       const duration = Math.floor((now - new Date(log.startTime)) / 1000);
-      
+
       log.endTime = now;
       log.isRunning = false;
-      log.durationSeconds = duration; // <--- THIS PREVENTS THE ZERO PROBLEM
+      log.durationSeconds = duration;
       return log.save();
     });
 
     await Promise.all(updatePromises);
 
-    res.json({ 
+    res.json({
       message: `Global shutdown complete. ${activeLogs.length} sessions recorded.`,
-      stoppedCount: activeLogs.length 
+      stoppedCount: activeLogs.length
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

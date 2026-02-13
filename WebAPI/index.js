@@ -13,7 +13,6 @@ const taskRoutes = require("./routes/taskRoutes");
 const timeLogRoutes = require("./routes/timeLogRoutes");
 const leaveRoutes = require("./routes/leaveRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
-const searchRoutes = require("./routes/searchRoutes");
 const holidayRoutes = require("./routes/holidayRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 
@@ -67,7 +66,6 @@ app.use("/api/tasks", taskRoutes);
 app.use("/api/timelogs", timeLogRoutes);
 app.use('/api/leaves', leaveRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/search', searchRoutes);
 app.use('/api/holidays', holidayRoutes);
 app.use("/api/notifications", notificationRoutes);
 

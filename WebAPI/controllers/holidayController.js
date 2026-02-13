@@ -1,14 +1,10 @@
 const Holiday = require("../models/Holiday");
 
-/**
- * Get holidays (optional year filter)
- */
 exports.getHolidays = async (req, res) => {
   try {
     const { year, search } = req.query;
     const query = {};
 
-    // --- Year Filter ---
     if (year) {
       query.date = {
         $gte: new Date(`${year}-01-01`),
@@ -16,10 +12,9 @@ exports.getHolidays = async (req, res) => {
       };
     }
 
-    // --- Search Filter ---
     if (search) {
       query.$or = [
-        { name: { $regex: search, $options: "i" } },        // "i" makes it case-insensitive
+        { name: { $regex: search, $options: "i" } }, 
         { description: { $regex: search, $options: "i" } }
       ];
     }
@@ -31,9 +26,6 @@ exports.getHolidays = async (req, res) => {
   }
 };
 
-/**
- * Add holiday
- */
 exports.addHoliday = async (req, res) => {
   try {
     const holiday = await Holiday.create(req.body);
@@ -46,9 +38,6 @@ exports.addHoliday = async (req, res) => {
   }
 };
 
-/**
- * Update holiday
- */
 exports.updateHoliday = async (req, res) => {
   try {
     const holiday = await Holiday.findByIdAndUpdate(
@@ -68,9 +57,6 @@ exports.updateHoliday = async (req, res) => {
   }
 };
 
-/**
- * Bulk add
- */
 exports.bulkAddHolidays = async (req, res) => {
   try {
     const result = await Holiday.insertMany(req.body.holidays, { ordered: false });
@@ -80,9 +66,6 @@ exports.bulkAddHolidays = async (req, res) => {
   }
 };
 
-/**
- * Delete
- */
 exports.deleteHoliday = async (req, res) => {
   try {
     const holiday = await Holiday.findByIdAndDelete(req.params.id);

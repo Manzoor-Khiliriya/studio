@@ -6,12 +6,8 @@ const Employee = require("../models/Employee");
 const sendTaskNotification = require("../utils/notifier");
 const { calculateEstimatedHours } = require("../utils/taskHelpers");
 const { calculateEmployeeAvailableHours } = require("../utils/workerHelpers");
-// 🔹 Destructured from leaveHelpers
 const { isUserOnLeaveDuring } = require("../utils/leaveHelpers");
 
-/* =========================================================
-    ADMIN CONTROLLERS
-   ========================================================= */
 
 exports.createTask = async (req, res) => {
   try {
@@ -31,7 +27,6 @@ exports.createTask = async (req, res) => {
       return res.status(400).json({ message: "Invalid start or end date" });
     }
 
-    /* 🔹 LEAVE CONFLICT CHECK (CREATE) */
     for (const userId of assignedTo) {
       const onLeave = await isUserOnLeaveDuring(userId, startDate, endDate);
       if (onLeave) {
@@ -70,7 +65,6 @@ exports.createTask = async (req, res) => {
       endDate,
     });
 
-    // --- NOTIFICATION LOGIC ---
     try {
       const io = req.app.get('socketio');
       for (const emp of employeeRecords) {
@@ -102,13 +96,10 @@ exports.updateTask = async (req, res) => {
     const oldAssigneeIds = task.assignedTo.map(id => id.toString());
     const isStatusChanged = status && status !== task.status;
 
-    // Determine finalized dates and assignees for validation
     const finalStart = startDate ? new Date(startDate) : task.startDate;
     const finalEnd = endDate ? new Date(endDate) : task.endDate;
     const finalAssigneeIds = assignedTo || task.assignedTo;
 
-    /* 🔹 LEAVE CONFLICT CHECK (UPDATE) */
-    // Ensure that moving dates or changing people doesn't hit a blackout date
     if (startDate || endDate || assignedTo) {
       for (const id of finalAssigneeIds) {
         const emp = await Employee.findById(id);
@@ -124,7 +115,6 @@ exports.updateTask = async (req, res) => {
       }
     }
 
-    // UPDATE FIELDS
     if (title) task.title = title;
     if (projectNumber) task.projectNumber = projectNumber;
     if (priority) task.priority = priority;
@@ -132,7 +122,6 @@ exports.updateTask = async (req, res) => {
     if (allocatedTime !== undefined) task.allocatedTime = Number(allocatedTime);
     if (projectDetails) task.projectDetails = projectDetails;
 
-    // Re-calculate timing if dates or people changed
     if (startDate || endDate || assignedTo) {
       task.startDate = finalStart;
       task.endDate = finalEnd;
@@ -154,7 +143,6 @@ exports.updateTask = async (req, res) => {
 
     await task.save();
 
-    // --- NOTIFICATION LOGIC (DIFF CHECK) ---
     if (assignedTo) {
       const newAssigneeIds = assignedTo.map(id => id.toString());
       const added = newAssigneeIds.filter(id => !oldAssigneeIds.includes(id));
@@ -194,10 +182,6 @@ exports.updateTask = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
-/* =========================================================
-    REMAINING CONTROLLERS
-   ========================================================= */
 
 exports.deleteTask = async (req, res) => {
   const session = await mongoose.startSession();
@@ -264,8 +248,19 @@ exports.getTaskDetail = async (req, res) => {
 
 exports.getTasksByEmployee = async (req, res) => {
   try {
-    // Note: req.params.userId here usually refers to the Employee ID in your setup
-    const tasks = await Task.find({ assignedTo: req.params.userId }).populate("timeLogs").sort({ createdAt: -1 });
+    // 1. First, find the Employee record associated with the User ID from the URL
+    const employee = await Employee.findOne({ user: req.params.userId });
+    
+    if (!employee) {
+      return res.status(404).json({ message: "Employee profile not found" });
+    }
+
+    // 2. Find tasks assigned to this Employee ID
+    const tasks = await Task.find({ assignedTo: employee._id })
+      .populate("timeLogs")
+      .sort({ createdAt: -1 })
+      .lean(); // Use lean for faster read-only performance
+
     res.json(tasks);
   } catch (err) {
     res.status(500).json({ error: err.message });

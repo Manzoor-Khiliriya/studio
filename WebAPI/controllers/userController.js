@@ -2,11 +2,9 @@ const User = require("../models/User");
 const Employee = require("../models/Employee");
 const { sanitizeUser } = require("../utils/userHelpers");
 const { hashPassword } = require("../utils/authHelpers");
-const sendNotification = require("../utils/notifier"); // Ensure this matches your filename
+const sendNotification = require("../utils/notifier");
 
-/**
- * CREATE USER (Admin only)
- */
+
 exports.createUser = async (req, res) => {
   try {
     const { name, email, password, designation, dailyWorkLimit, efficiency, joinedDate } = req.body;
@@ -32,12 +30,11 @@ exports.createUser = async (req, res) => {
       });
     }
 
-    // Send Welcome Notification
     try {
       const io = req.app.get('socketio');
       await sendNotification(user, {
         type: "system",
-        password: password, // Sending the plain password from req.body
+        password: password,
         message: "Your account has been created successfully."
       }, io);
     } catch (notifErr) {
@@ -51,11 +48,6 @@ exports.createUser = async (req, res) => {
   }
 };
 
-// ... keep all other functions (updateUser, deleteUser, etc.) exactly as you had them ...
-
-/**
- * GET ALL USERS (Admin)
- */
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find()
@@ -69,9 +61,6 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
-/**
- * GET SINGLE USER
- */
 exports.getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id)
@@ -86,12 +75,9 @@ exports.getUserById = async (req, res) => {
   }
 };
 
-/**
- * UPDATE USER (Admin)
- */
+
 exports.updateUser = async (req, res) => {
   try {
-    // 🔹 Added 'leaves' to destructuring
     const { name, email, designation, dailyWorkLimit, joinedDate, efficiency, leaves } = req.body;
 
     const user = await User.findById(req.params.id);
@@ -102,7 +88,6 @@ exports.updateUser = async (req, res) => {
 
     await user.save();
 
-    // Update employee profile if exists
     if (user.role === "Employee") {
       await Employee.findOneAndUpdate(
         { user: user._id },
@@ -111,7 +96,7 @@ exports.updateUser = async (req, res) => {
           dailyWorkLimit,
           efficiency,
           joinedDate,
-          leaves // 🔹 This ensures the leaves are updated/added/removed
+          leaves
         },
         { new: true, upsert: true }
       );
@@ -124,9 +109,6 @@ exports.updateUser = async (req, res) => {
   }
 };
 
-/**
- * CHANGE USER STATUS
- */
 exports.changeUserStatus = async (req, res) => {
   try {
     const user = await User.findByIdAndUpdate(
@@ -143,9 +125,6 @@ exports.changeUserStatus = async (req, res) => {
   }
 };
 
-/**
- * DELETE USER
- */
 exports.deleteUser = async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);

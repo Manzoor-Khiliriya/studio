@@ -12,21 +12,17 @@ exports.getMyLeaves = async (req, res) => {
     
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // --- 1. BUILD QUERY OBJECT ---
     let query = { user: userId };
     
-    // Add dynamic filters from frontend
     if (type && type !== "All") query.type = type;
     if (status && status !== "All") query.status = status;
 
-    // --- 2. FETCH FILTERED DATA ---
     const totalLeaves = await Leave.countDocuments(query);
     const leaves = await Leave.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
 
-    // --- 3. CALCULATE STATS (Global, not paginated) ---
     const employee = await Employee.findOne({ user: userId });
     const user = await User.findById(userId);
 
@@ -35,10 +31,8 @@ exports.getMyLeaves = async (req, res) => {
     const months = (now.getFullYear() - joinDate.getFullYear()) * 12 +
                    (now.getMonth() - joinDate.getMonth());
 
-    // Matches your applyLeave logic (14 days per year)
-    const earned = months * (14 / 12);
+    const earned = months * (18 / 12);
 
-    // Calculate taken days across ALL approved Annual Leaves
     const allApproved = await Leave.find({ 
       user: userId, 
       status: "Approved", 
@@ -50,7 +44,6 @@ exports.getMyLeaves = async (req, res) => {
       taken += await calculateLeaveDays(l.startDate, l.endDate);
     }
 
-    // --- 4. FORMAT HISTORY ---
     const history = await Promise.all(leaves.map(async l => ({
       ...l.toObject(),
       businessDays: await calculateLeaveDays(l.startDate, l.endDate)
@@ -94,7 +87,7 @@ exports.applyLeave = async (req, res) => {
       const months = (new Date().getFullYear() - joinDate.getFullYear()) * 12 +
                      (new Date().getMonth() - joinDate.getMonth());
 
-      const earned = months * (14 / 12);
+      const earned = months * (18 / 12);
 
       let taken = 0;
       const approved = await Leave.find({ user: userId, status: "Approved", type: "Annual Leave" });
@@ -112,7 +105,6 @@ exports.applyLeave = async (req, res) => {
   }
 };
 
-/* ================= ADMIN ================= */
 
 exports.getAllLeaves = async (req, res) => {
   try {
@@ -170,7 +162,6 @@ exports.processLeave = async (req, res) => {
   }
 };
 
-// Exports for other methods remain the same...
 exports.updateLeave = async (req, res) => {
   try {
     const leave = await Leave.findById(req.params.id);

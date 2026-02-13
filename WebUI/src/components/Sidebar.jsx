@@ -35,12 +35,12 @@ export default function Sidebar() {
     { to: "/tasks", label: "Tasks", icon: <HiOutlineQueueList /> },
     { to: '/leaves', label: 'Leaves', icon: <HiOutlineCalendar /> },
     { to: '/holidays', label: 'Holidays', icon: <HiOutlineFlag /> },
+    { to: "/reports", label: "Performance", icon: <HiOutlineDocumentChartBar /> },
   ];
 
   const employeeLinks = [
     { to: "/employee", label: "Overview", icon: <HiOutlineViewColumns /> },
     { to: "/my-tasks", label: "My Tasks", icon: <HiOutlineQueueList /> },
-    // { to: "/my-reports", label: "Performance", icon: <HiOutlineDocumentChartBar /> },
     { to: '/my-leaves', label: 'Leaves', icon: <HiOutlineCalendar /> },
     { to: '/public-holidays', label: 'Calendar', icon: <HiOutlineFlag /> },
   ];
@@ -60,8 +60,7 @@ export default function Sidebar() {
               key={link.to}
               to={link.to}
               className={({ isActive }) =>
-                `group relative flex items-center gap-4 px-4 py-3 rounded-xl font-bold transition-all duration-300 ${
-                  isActive ? "text-white" : "hover:text-orange-100 hover:bg-orange-500/5"
+                `group relative flex items-center gap-4 px-4 py-3 rounded-xl font-bold transition-all duration-300 ${isActive ? "text-white" : "hover:text-orange-100 hover:bg-orange-500/5"
                 }`
               }
             >
@@ -74,13 +73,12 @@ export default function Sidebar() {
                       transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     />
                   )}
-                  
-                  <span className={`relative z-10 text-xl transition-colors duration-300 ${
-                    isActive ? "text-white" : "text-slate-500 group-hover:text-orange-400"
-                  }`}>
+
+                  <span className={`relative z-10 text-xl transition-colors duration-300 ${isActive ? "text-white" : "text-slate-500 group-hover:text-orange-400"
+                    }`}>
                     {link.icon}
                   </span>
-                  
+
                   <span className="relative z-10">{link.label}</span>
                 </>
               )}
@@ -114,58 +112,57 @@ export default function Sidebar() {
       </aside>
 
       {/* --- MOBILE BOTTOM NAVIGATION --- */}
-<nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-orange-100 px-4 py-2 flex justify-around items-center z-[100] h-20 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-  {links.slice(0, 4).map((link) => (
-    <NavLink
-      key={link.to}
-      to={link.to}
-      className={({ isActive }) =>
-        `flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${
-          isActive ? "text-orange-600" : "text-slate-400"
-        }`
-      }
-    >
-      {/* We destructure isActive here so it's defined for the content below */}
-      {({ isActive }) => (
-        <>
-          <span className="text-2xl">{link.icon}</span>
-          <span className="text-[9px] font-black uppercase tracking-widest">{link.label}</span>
-          
-          {/* Minimal Mobile Indicator */}
-          {isActive && (
-            <motion.div 
-              layoutId="mobileActive" 
-              className="w-1 h-1 rounded-full bg-orange-600 mt-0.5" 
-            />
-          )}
-        </>
-      )}
-    </NavLink>
-  ))}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-orange-100 px-4 py-2 flex justify-around items-center z-[100] h-20 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+        {links.slice(0, 4).map((link) => (
+          <NavLink
+            key={link.to}
+            to={link.to}
+            className={({ isActive }) =>
+              `flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${isActive ? "text-orange-600" : "text-slate-400"
+              }`
+            }
+          >
+            {/* We destructure isActive here so it's defined for the content below */}
+            {({ isActive }) => (
+              <>
+                <span className="text-2xl">{link.icon}</span>
+                <span className="text-[9px] font-black uppercase tracking-widest">{link.label}</span>
 
-  <button
-    onClick={() => setIsMobileMenuOpen(true)}
-    className="flex flex-col items-center gap-1 p-2 text-slate-400 active:text-orange-500"
-  >
-    <FiMenu size={24} />
-    <span className="text-[9px] font-black uppercase tracking-widest">More</span>
-  </button>
-</nav>
+                {/* Minimal Mobile Indicator */}
+                {isActive && (
+                  <motion.div
+                    layoutId="mobileActive"
+                    className="w-1 h-1 rounded-full bg-orange-600 mt-0.5"
+                  />
+                )}
+              </>
+            )}
+          </NavLink>
+        ))}
+
+        <button
+          onClick={() => setIsMobileMenuOpen(true)}
+          className="flex flex-col items-center gap-1 p-2 text-slate-400 active:text-orange-500"
+        >
+          <FiMenu size={24} />
+          <span className="text-[9px] font-black uppercase tracking-widest">More</span>
+        </button>
+      </nav>
 
       {/* --- MOBILE OVERLAY DRAWER (Unchanged) --- */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
             <motion.div
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMobileMenuOpen(false)}
               className="fixed inset-0 bg-slate-950/60 backdrop-blur-md z-[101] md:hidden"
             />
             <motion.div
-              initial={{ y: "100%" }} 
-              animate={{ y: 0 }} 
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
               className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[3rem] p-8 z-[102] md:hidden shadow-2xl"
@@ -182,25 +179,25 @@ export default function Sidebar() {
               </div>
 
               <div className="space-y-4">
-                 <div className="grid grid-cols-1 gap-3">
-                    {links.slice(4).map((link) => (
-                      <NavLink 
-                        key={link.to} 
-                        to={link.to} 
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 text-slate-600 font-bold"
-                      >
-                         <span className="text-xl">{link.icon}</span>
-                         <span>{link.label}</span>
-                      </NavLink>
-                    ))}
-                 </div>
+                <div className="grid grid-cols-1 gap-3">
+                  {links.slice(4).map((link) => (
+                    <NavLink
+                      key={link.to}
+                      to={link.to}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 text-slate-600 font-bold"
+                    >
+                      <span className="text-xl">{link.icon}</span>
+                      <span>{link.label}</span>
+                    </NavLink>
+                  ))}
+                </div>
 
                 <button
                   onClick={handleLogout}
                   className="w-full flex items-center justify-center gap-4 py-5 bg-slate-900 text-white font-black rounded-[2rem] shadow-2xl shadow-slate-200 mt-4"
                 >
-                  <HiLogout size={22} className="text-orange-50" /> 
+                  <HiLogout size={22} className="text-orange-50" />
                   <span className="tracking-widest uppercase text-xs">Terminate Session</span>
                 </button>
               </div>
