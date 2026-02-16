@@ -17,6 +17,9 @@ router.get("/all", authorize("Admin"), taskController.getAllTasks);
 // Update task
 router.put("/:id", authorize("Admin"), taskController.updateTask);
 
+// Patch is appropriate here as we are doing a partial update
+router.patch("/:id/status", authorize("Admin"), taskController.updateTaskStatus);
+
 // Delete task
 router.delete("/:id", authorize("Admin"), taskController.deleteTask);
 

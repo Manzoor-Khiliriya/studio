@@ -140,37 +140,3 @@ exports.getActiveEmployeesList = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
-exports.addManualLeave = async (req, res) => {
-  try {
-    const { date, reason } = req.body;
-    // Normalize date to YYYY-MM-DD to avoid timezone shifts
-    const leaveDate = new Date(date);
-    leaveDate.setHours(0, 0, 0, 0);
-
-    const employee = await Employee.findOneAndUpdate(
-      { user: req.params.userId },
-      { $addToSet: { leaves: { date: leaveDate, reason } } },
-      { new: true, runValidators: true }
-    );
-
-    if (!employee) return res.status(404).json({ message: "Employee not found" });
-    res.json(employee);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-exports.removeManualLeave = async (req, res) => {
-  try {
-    const { leaveId } = req.body; // Pass the _id of the leave sub-document
-    const employee = await Employee.findOneAndUpdate(
-      { user: req.params.userId },
-      { $pull: { leaves: { _id: leaveId } } },
-      { new: true }
-    );
-    res.json(employee);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};

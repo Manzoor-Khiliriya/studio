@@ -48,7 +48,7 @@ exports.startTimer = async (req, res) => {
       dateString: today
     }], { session });
 
-    if (task.status === "Pending") {
+    if (task.status === "To be started") {
       task.status = "In Progress";
       await task.save({ session });
     }

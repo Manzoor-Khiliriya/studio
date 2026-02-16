@@ -30,7 +30,7 @@ exports.getSummary = async (req, res) => {
           .sort({ createdAt: -1 })
           .limit(50) 
           .populate("user", "name")
-          .populate("task", "title")
+          .populate("task", "title projectNumber")
           .lean(),
 
         Task.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }])
@@ -56,7 +56,7 @@ exports.getSummary = async (req, res) => {
           id: log._id,
           userName: log.user?.name,
           taskTitle: log.task?.title,
-          hours: +(log.durationSeconds / 3600).toFixed(2),
+          projectCode: log.task?.projectNumber,
           createdAt: log.createdAt
         }))
       });
@@ -76,7 +76,7 @@ exports.getSummary = async (req, res) => {
     const employeeProfile = await Employee.findOne({ user: userId }).lean();
 
     const [assignedTasks, weeklyLogs, myLeaves, runningTimer] = await Promise.all([
-      Task.find({ assignedTo: userId, status: { $in: ["Pending", "In Progress"] } })
+      Task.find({ assignedTo: userId, status: { $in: ["To be started", "In Progress"] } })
         .sort({ priority: -1, endDate: 1 })
         .lean(),
 

@@ -68,11 +68,11 @@ export default function AdminLeavePage() {
       />
 
       <main className="max-w-[1700px] mx-auto px-8 -mt-10">
-        
+
         {/* TACTICAL FILTER BAR */}
         <div className="bg-white/90 backdrop-blur-xl border border-slate-200 p-5 rounded-[2.5rem] shadow-xl shadow-slate-200/50 mb-8 flex flex-col gap-6">
           <div className="flex flex-wrap items-center gap-4">
-            
+
             {/* Search Input */}
             <div className="relative flex-1 min-w-[300px] group">
               <HiOutlineSearch
@@ -100,11 +100,10 @@ export default function AdminLeavePage() {
                     setStatusFilter(status);
                     setPage(1);
                   }}
-                  className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                    statusFilter === status
+                  className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === status
                       ? "bg-white text-orange-600 shadow-md ring-1 ring-slate-200"
                       : "text-slate-500 hover:text-slate-800"
-                  }`}
+                    }`}
                 >
                   {status === "Pending" ? "Review" : status === "Approved" ? "Authorized" : status === "Rejected" ? "Declined" : status}
                 </button>
@@ -150,13 +149,19 @@ export default function AdminLeavePage() {
                   }}
                   className="bg-transparent text-[9px] font-black outline-none cursor-pointer text-slate-700"
                 >
-                  {[8, 15, 30, 50].map((v) => (
+                  {[5, 15, 30, 50].map((v) => (
                     <option key={v} value={v}>
                       {v}
                     </option>
                   ))}
                 </select>
               </div>
+
+              {paginationData?.totalLeaves && (
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight ml-2">
+                  Total {paginationData?.totalLeaves} results
+                </span>
+              )}
             </div>
 
             {/* Pagination Component */}

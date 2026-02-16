@@ -27,10 +27,6 @@ export default function Pagination({ pagination, onPageChange, loading, label = 
     <div className="flex flex-col sm:flex-row items-center justify-between w-full gap-4">
       {/* INFO TEXT */}
       <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-        Showing <span className="text-slate-900">{current}</span> of{" "}
-        <span className="text-slate-900">{total}</span> Pages
-        <span className="mx-2 text-slate-200">|</span> 
-        Total <span className="text-slate-900">{count}</span> {label}
       </p>
       
       <div className="flex items-center gap-2">

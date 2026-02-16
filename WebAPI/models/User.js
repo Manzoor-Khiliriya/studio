@@ -29,7 +29,6 @@ const userSchema = new mongoose.Schema({
     enum: ["Enable", "Disable"],
     default: "Enable",
   },
-  // --- ADD THESE TWO FIELDS FOR PASSWORD RESET ---
   resetPasswordToken: {
     type: String,
     default: null,

@@ -69,10 +69,23 @@ export default function AdminTaskDetailPage() {
                 <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none mb-1">
                   {task.title}
                 </h1>
-                <div className="flex items-center gap-3">
-                  <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tighter border ${task.status === "Completed" ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-orange-50 text-orange-600 border-orange-100"
+                <div className="flex items-center gap-2">
+                  {/* Initiative Status Badge */}
+                  <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tighter border shadow-sm ${task.status === "Completed"
+                      ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                      : "bg-blue-50 text-blue-600 border-blue-100"
                     }`}>
                     {task.status}
+                  </span>
+
+                  {/* Priority Badge - Fixed Logic */}
+                  <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tighter border shadow-sm ${task.priority === "Urgent" || task.priority === "High"
+                      ? "bg-rose-50 text-rose-600 border-rose-100 animate-pulse"
+                      : task.priority === "Medium"
+                        ? "bg-amber-50 text-amber-600 border-amber-100"
+                        : "bg-slate-50 text-slate-500 border-slate-200"
+                    }`}>
+                    {task.priority || "Normal"}
                   </span>
                 </div>
               </div>

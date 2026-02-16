@@ -5,12 +5,11 @@ export const taskApiSlice = apiSlice.injectEndpoints({
     
     // --- ADMIN ENDPOINTS ---
 
-    // 1. GET ALL TASKS (Admin Dashboard)
-    // Matches: GET /api/tasks/all?search=...&status=...&page=...
+    // 1. GET ALL TASKS
     getAllTasks: builder.query({
       query: (params) => ({
         url: '/tasks/all',
-        params, // Handles pagination, search, and status filters
+        params,
       }),
       providesTags: (result) =>
         result?.tasks
@@ -31,7 +30,7 @@ export const taskApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: [{ type: 'Task', id: 'LIST' }],
     }),
 
-    // 3. UPDATE TASK
+    // 3. UPDATE TASK (Full Update)
     updateTask: builder.mutation({
       query: ({ id, ...updateData }) => ({
         url: `/tasks/${id}`,
@@ -40,6 +39,7 @@ export const taskApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: (result, error, { id }) => [
         { type: 'Task', id: 'LIST' },
+        { type: 'Task', id: 'MY_LIST' },
         { type: 'Task', id },
       ],
     }),
@@ -53,7 +53,7 @@ export const taskApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: [{ type: 'Task', id: 'LIST' }],
     }),
 
-    // 5. GET TASKS BY SPECIFIC EMPLOYEE (Admin View)
+    // 5. GET TASKS BY SPECIFIC EMPLOYEE
     getTasksByEmployee: builder.query({
       query: (userId) => `/tasks/employee-tasks/${userId}`,
       providesTags: ['Task'],
@@ -69,7 +69,7 @@ export const taskApiSlice = apiSlice.injectEndpoints({
 
     // --- EMPLOYEE ENDPOINTS ---
 
-    // 7. GET MY TASKS (Employee Dashboard)
+    // 7. GET MY TASKS
     getMyTasks: builder.query({
       query: (params) => ({
         url: '/tasks/my-tasks',
@@ -83,6 +83,20 @@ export const taskApiSlice = apiSlice.injectEndpoints({
             ]
           : [{ type: 'Task', id: 'MY_LIST' }],
     }),
+
+    // 8. UPDATE TASK STATUS ONLY (Specialized API)
+    updateTaskStatus: builder.mutation({
+      query: ({ id, ...statusData }) => ({
+        url: `/tasks/${id}/status`,
+        method: 'PATCH',
+        body: statusData,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Task', id: 'LIST' },
+        { type: 'Task', id: 'MY_LIST' },
+        { type: 'Task', id },
+      ],
+    }),
   }),
 });
 
@@ -94,4 +108,5 @@ export const {
   useGetTasksByEmployeeQuery,
   useGetTaskDetailQuery,
   useGetMyTasksQuery,
+  useUpdateTaskStatusMutation, // Export the new hook
 } = taskApiSlice;

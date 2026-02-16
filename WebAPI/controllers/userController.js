@@ -7,7 +7,11 @@ const sendNotification = require("../utils/notifier");
 
 exports.createUser = async (req, res) => {
   try {
-    const { name, email, password, designation, dailyWorkLimit, efficiency, joinedDate } = req.body;
+    const { 
+      name, email, password, designation, 
+      dailyWorkLimit, efficiency, joinedDate,
+      mobileNumber, dateOfBirth
+    } = req.body;
 
     const existing = await User.findOne({ email: email.toLowerCase() });
     if (existing) return res.status(400).json({ message: "Email already exists" });
@@ -26,7 +30,9 @@ exports.createUser = async (req, res) => {
         designation: designation || "Junior Developer",
         dailyWorkLimit: dailyWorkLimit || 9,
         efficiency: efficiency || 100,
-        joinedDate: joinedDate || ""
+        joinedDate: joinedDate || "",
+        mobileNumber: mobileNumber || "",
+        dateOfBirth: dateOfBirth || null
       });
     }
 
@@ -43,6 +49,45 @@ exports.createUser = async (req, res) => {
 
     const result = await User.findById(user._id).populate("employee");
     res.status(201).json(sanitizeUser(result));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.updateUser = async (req, res) => {
+  try {
+    const { 
+      name, email, designation, dailyWorkLimit, 
+      joinedDate, efficiency, leaves,
+      mobileNumber, dateOfBirth
+    } = req.body;
+
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (name) user.name = name;
+    if (email) user.email = email.toLowerCase();
+
+    await user.save();
+
+    if (user.role === "Employee") {
+      await Employee.findOneAndUpdate(
+        { user: user._id },
+        {
+          designation,
+          dailyWorkLimit,
+          efficiency,
+          joinedDate,
+          leaves,
+          mobileNumber,
+          dateOfBirth
+        },
+        { new: true, upsert: true }
+      );
+    }
+
+    const updated = await User.findById(user._id).populate("employee");
+    res.json(sanitizeUser(updated));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -70,40 +115,6 @@ exports.getUserById = async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
 
     res.json(sanitizeUser(user));
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-
-exports.updateUser = async (req, res) => {
-  try {
-    const { name, email, designation, dailyWorkLimit, joinedDate, efficiency, leaves } = req.body;
-
-    const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    if (name) user.name = name;
-    if (email) user.email = email.toLowerCase();
-
-    await user.save();
-
-    if (user.role === "Employee") {
-      await Employee.findOneAndUpdate(
-        { user: user._id },
-        {
-          designation,
-          dailyWorkLimit,
-          efficiency,
-          joinedDate,
-          leaves
-        },
-        { new: true, upsert: true }
-      );
-    }
-
-    const updated = await User.findById(user._id).populate("employee");
-    res.json(sanitizeUser(updated));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

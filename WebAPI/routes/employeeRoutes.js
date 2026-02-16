@@ -15,11 +15,6 @@ router.put("/:userId", authorize("Admin"), employeeController.updateEmployeeStat
 // Logged-in employee self profile
 router.get("/my/profile", employeeController.getMyEmployeeProfile);
 
-
-// Manual Leave Management
-router.post("/:userId/leave", authorize("Admin"), employeeController.addManualLeave);
-router.delete("/:userId/leave", authorize("Admin"), employeeController.removeManualLeave);
-
 module.exports = router;
 
 

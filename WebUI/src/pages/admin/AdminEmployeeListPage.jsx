@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { 
-  useGetAllEmployeesQuery 
+import {
+  useGetAllEmployeesQuery
 } from "../../services/employeeApi";
-import { 
-  useChangeUserStatusMutation, 
-  useDeleteUserMutation 
+import {
+  useChangeUserStatusMutation,
+  useDeleteUserMutation
 } from "../../services/userApi";
 
 // Icons
@@ -30,7 +30,7 @@ export default function EmployeeListPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(5);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEmp, setSelectedEmp] = useState(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -94,7 +94,7 @@ export default function EmployeeListPage() {
         {/* TACTICAL FILTER BAR */}
         <div className="bg-white/90 backdrop-blur-xl border border-slate-200 p-5 rounded-[2.5rem] shadow-xl shadow-slate-200/50 mb-8 flex flex-col gap-6">
           <div className="flex flex-wrap items-center gap-4">
-            
+
             <div className="relative flex-1 min-w-[300px] group">
               <HiOutlineMagnifyingGlass className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors" size={20} />
               <input
@@ -111,11 +111,10 @@ export default function EmployeeListPage() {
                 <button
                   key={status}
                   onClick={() => { setStatusFilter(status); setCurrentPage(1); }}
-                  className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                    statusFilter === status
-                    ? "bg-white text-orange-600 shadow-md ring-1 ring-slate-200"
-                    : "text-slate-500 hover:text-slate-800"
-                  }`}
+                  className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === status
+                      ? "bg-white text-orange-600 shadow-md ring-1 ring-slate-200"
+                      : "text-slate-500 hover:text-slate-800"
+                    }`}
                 >
                   {status}
                 </button>
@@ -158,6 +157,12 @@ export default function EmployeeListPage() {
                   {[5, 10, 25, 50].map((v) => <option key={v} value={v}>{v}</option>)}
                 </select>
               </div>
+
+              {data?.totalEmployees && (
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight ml-2">
+                  Total {data?.totalEmployees} results
+                </span>
+              )}
             </div>
 
             <Pagination

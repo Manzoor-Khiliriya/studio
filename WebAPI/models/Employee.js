@@ -10,7 +10,15 @@ const employeeSchema = new mongoose.Schema({
   },
 
   designation: { type: String, trim: true },
-  photo: { type: String, default: "" },
+
+  mobileNumber: { 
+    type: String, 
+    trim: true, 
+    default: "" 
+  },
+  dateOfBirth: { 
+    type: Date 
+  },
 
   dailyWorkLimit: {
     type: Number,
@@ -39,7 +47,6 @@ const employeeSchema = new mongoose.Schema({
   toObject: { virtuals: true },
 });
 
-// 🔹 Convert hours → minutes (used in task calculations)
 employeeSchema.virtual("dailyWorkLimitMinutes").get(function () {
   return Math.round(this.dailyWorkLimit * 60);
 });

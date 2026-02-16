@@ -82,7 +82,7 @@ export default function HolidayModal({
           <button
             type="submit"
             disabled={isSaving}
-            className="w-full bg-slate-900 hover:bg-orange-600 text-white py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-70"
+            className="w-full bg-slate-900 hover:bg-orange-600 text-white py-5 rounded-xl font-black uppercase text-xs tracking-[0.2em] shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-70 cursor-pointer"
           >
             {isSaving ? (
               <CgSpinner className="animate-spin" size={20} />

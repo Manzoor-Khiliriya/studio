@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import {
   HiOutlineUser, HiOutlineBriefcase, HiOutlineLockClosed,
   HiOutlineChartBar, HiOutlineEye, HiOutlineEyeSlash,
-  HiOutlineClock, HiOutlineCalendarDays
+  HiOutlineClock, HiOutlineCalendarDays,
+  HiOutlinePhone, // New Icon
+  HiOutlineCake // New Icon for DOB
 } from "react-icons/hi2";
 import { CgSpinner } from "react-icons/cg";
 import { toast } from "react-hot-toast";
@@ -20,7 +22,9 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
 
   const [formData, setFormData] = useState({
     name: "", email: "", password: "", designation: "",
-    efficiency: "100", joinedDate: getToday(), dailyWorkLimit: "9"
+    efficiency: "100", joinedDate: getToday(), dailyWorkLimit: "9",
+    mobileNumber: "", // New Field
+    dateOfBirth: ""   // New Field
   });
 
   useEffect(() => {
@@ -32,18 +36,22 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
         designation: editData.designation || "",
         efficiency: String(editData.efficiency ?? 100),
         dailyWorkLimit: String(editData.dailyWorkLimit ?? 9),
-        joinedDate: editData.joinedDate ? editData.joinedDate.split('T')[0] : ""
+        joinedDate: editData.joinedDate ? editData.joinedDate.split('T')[0] : "",
+        mobileNumber: editData.mobileNumber || "", // Load from API data
+        dateOfBirth: editData.dateOfBirth ? editData.dateOfBirth.split('T')[0] : "" // Format date
       });
     } else if (isOpen) {
       setFormData({
         name: "", email: "", password: "", designation: "",
-        efficiency: "100", joinedDate: getToday(), dailyWorkLimit: "9"
+        efficiency: "100", joinedDate: getToday(), dailyWorkLimit: "9",
+        mobileNumber: "", dateOfBirth: ""
       });
     }
   }, [editData, isOpen]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    // Allow digits only for specific fields, otherwise pass value through
     let finalValue = (name === "efficiency" || name === "dailyWorkLimit")
       ? value.replace(/\D/g, "")
       : value;
@@ -83,22 +91,31 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
       maxWidth="max-w-xl"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* ROW 1: NAME & DESIGNATION */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InputGroup label="Full Name">
             <HiOutlineUser className="input-icon" />
-            <input required name="name" value={formData.name} onChange={handleChange} className="form-input" />
+            <input required name="name" value={formData.name} onChange={handleChange} className="form-input" placeholder="e.g. John Doe" />
           </InputGroup>
           <InputGroup label="Job Title">
             <HiOutlineBriefcase className="input-icon" />
-            <input required name="designation" value={formData.designation} onChange={handleChange} className="form-input" />
+            <input required name="designation" value={formData.designation} onChange={handleChange} className="form-input" placeholder="e.g. Lead Developer" />
           </InputGroup>
         </div>
 
-        <InputGroup label="Work Email">
-          <HiOutlineMail className="input-icon" />
-          <input required type="email" name="email" value={formData.email} onChange={handleChange} className="form-input" />
-        </InputGroup>
+        {/* ROW 2: EMAIL & MOBILE */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <InputGroup label="Work Email">
+            <HiOutlineMail className="input-icon" />
+            <input required type="email" name="email" value={formData.email} onChange={handleChange} className="form-input" placeholder="john@company.com" />
+          </InputGroup>
+          <InputGroup label="Mobile Number">
+            <HiOutlinePhone className="input-icon" />
+            <input name="mobileNumber" value={formData.mobileNumber} onChange={handleChange} className="form-input" placeholder="+1 234 567 890" />
+          </InputGroup>
+        </div>
 
+        {/* PASSWORD FIELD (Only for Create) */}
         {!isEditing && (
           <InputGroup label="Access Credentials">
             <HiOutlineLockClosed className="input-icon" />
@@ -121,26 +138,34 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
           </InputGroup>
         )}
 
+        {/* ROW 3: DATE OF BIRTH & ONBOARDING DATE */}
         <div className="pt-6 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <InputGroup label="Date of Birth">
+            <HiOutlineCake className="input-icon" />
+            <input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleChange} className="form-input" />
+          </InputGroup>
           <InputGroup label="Onboarding Date">
             <HiOutlineCalendarDays className="input-icon" />
             <input required type="date" name="joinedDate" value={formData.joinedDate} onChange={handleChange} className="form-input" />
           </InputGroup>
-          <InputGroup label="Daily Ops Limit (Hrs)">
-            <HiOutlineClock className="input-icon" />
-            <input required name="dailyWorkLimit" value={formData.dailyWorkLimit} onChange={handleChange} className="form-input" />
-          </InputGroup>
         </div>
 
-        <InputGroup label="Personnel Efficiency (%)">
-          <HiOutlineChartBar className="input-icon" />
-          <input required name="efficiency" value={formData.efficiency} onChange={handleChange} className="form-input" />
-        </InputGroup>
+        {/* ROW 4: WORK LIMIT & EFFICIENCY */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <InputGroup label="Daily Ops Limit (Hrs)">
+            <HiOutlineClock className="input-icon" />
+            <input required name="dailyWorkLimit" value={formData.dailyWorkLimit} onChange={handleChange} className="form-input" placeholder="9" />
+          </InputGroup>
+          <InputGroup label="Personnel Efficiency (%)">
+            <HiOutlineChartBar className="input-icon" />
+            <input required name="efficiency" value={formData.efficiency} onChange={handleChange} className="form-input" placeholder="100" />
+          </InputGroup>
+        </div>
 
         <button
           disabled={isCreating || isUpdating}
           type="submit"
-          className="w-full bg-slate-900 hover:bg-orange-600 text-white py-4 rounded-[1.5rem] font-black text-sm uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-xl shadow-slate-200"
+          className="w-full bg-slate-900 hover:bg-orange-600 text-white py-4 rounded-xl font-black text-sm uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-xl shadow-slate-200 cursor-pointer"
         >
           {(isCreating || isUpdating) ? (
             <CgSpinner className="animate-spin" size={20} />

@@ -15,7 +15,15 @@ const taskSchema = new mongoose.Schema({
   endDate: { type: Date, required: true },
 
   priority: { type: String, enum: ["Low", "Medium", "High"], default: "Medium" },
-  status: { type: String, enum: ["Pending", "In Progress", "Completed", "Overdue"], default: "Pending" }
+  status: { type: String, enum: ["In progress", "On hold", "To be started", "Feedback pending", "Final rendering", "Postproduction", "Completed", "Overdue"], default: "To be started" },
+  activeStatus: {
+    type: String,
+    enum: [
+      "Draft-1", "Draft-2", "Draft-3", "Draft-4", "Draft-5",
+      "Pre-Final", "Final"
+    ],
+    default: "Draft-1"
+  }
 }, { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } });
 
 taskSchema.virtual("timeLogs", {
@@ -27,12 +35,12 @@ taskSchema.virtual("timeLogs", {
 // Inside Task.js Schema
 taskSchema.virtual("totalConsumedHours").get(function () {
   if (!this.timeLogs || this.timeLogs.length === 0) return 0;
-  
+
   // Only sum 'work' type logs, exclude 'break'
   const totalSeconds = this.timeLogs
     .filter(log => log.logType === "work")
     .reduce((a, l) => a + (l.durationSeconds || 0), 0);
-    
+
   return +(totalSeconds / 3600).toFixed(2);
 });
 

@@ -4,10 +4,10 @@ import { FiEdit, FiTrash2 } from "react-icons/fi";
 
 export const getEmployeeColumns = ({ onEdit, onDelete, onToggle }) => [
   {
-    header: "Agent",
+    header: "Employee",
     render: (emp) => (
       <div className="flex items-center gap-4 py-1">
-        <div className="h-11 w-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 font-black text-lg italic shadow-sm">
+        <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-black text-sm shadow-lg group-hover:bg-orange-600 transition-colors duration-300 uppercase">
           {emp.user?.name?.charAt(0)?.toUpperCase() || "U"}
         </div>
         <div>
@@ -25,7 +25,7 @@ export const getEmployeeColumns = ({ onEdit, onDelete, onToggle }) => [
     )
   },
   {
-    header: "Contact Protocol",
+    header: "Contact Info",
     render: (emp) => (
       <span className="font-black text-[10px] text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 lowercase tracking-tight">
         {emp.user.email}
@@ -61,9 +61,8 @@ export const getEmployeeColumns = ({ onEdit, onDelete, onToggle }) => [
     render: (emp) => {
       const isActive = emp.user?.status === "Enable";
       return (
-        <span className={`inline-block text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest border shadow-sm transition-colors ${
-          isActive ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100"
-        }`}>
+        <span className={`inline-block text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest border shadow-sm transition-colors ${isActive ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100"
+          }`}>
           {isActive ? "Authorized" : "Revoked"}
         </span>
       );

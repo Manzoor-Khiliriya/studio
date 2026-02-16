@@ -16,8 +16,18 @@ import Loader from "../../components/Loader";
 import Pagination from "../../components/Pagination";
 import TaskModal from "../../components/TaskModal";
 
-// Helpers & Config
 import { getAdminTaskColumns } from "../../utils/adminTaskListHelper";
+import StatusUpdateModal from "../../components/StatusUpdateModal"; // Import the new modal
+
+const STATUS_THEMES = {
+  "In progress": "text-blue-600",
+  "On hold": "text-slate-600",
+  "To be started": "text-indigo-500",
+  "Feedback pending": "text-yellow-600",
+  "Final rendering": "text-orange-600",
+  "Postproduction": "text-purple-600",
+  "Completed": "text-emerald-600",
+};
 
 export default function AdminTasksPage() {
   const navigate = useNavigate();
@@ -26,7 +36,7 @@ export default function AdminTasksPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(5);
   const [dateFilters, setDateFilters] = useState({
     createdAt: "",
     startDate: "",
@@ -35,6 +45,7 @@ export default function AdminTasksPage() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
+  const [statusUpdateTask, setStatusUpdateTask] = useState(null); // New state
 
   // --- DATA FETCHING ---
   const { data, isLoading, isFetching } = useGetAllTasksQuery({
@@ -46,7 +57,10 @@ export default function AdminTasksPage() {
   });
 
   // --- COLUMN DEFINITION ---
-  const columns = useMemo(() => getAdminTaskColumns(setEditingTask), []);
+  const columns = useMemo(() =>
+    getAdminTaskColumns(setEditingTask, setStatusUpdateTask),
+    [setEditingTask, setStatusUpdateTask]);
+  const allPossibleStatuses = ["All", ...Object.keys(STATUS_THEMES)];
 
   // --- HANDLERS ---
   const handleDateChange = (key, value) => {
@@ -91,19 +105,35 @@ export default function AdminTasksPage() {
             </div>
 
             {/* Status Tabs */}
-            <div className="flex bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/50">
-              {["All", "Pending", "In Progress", "Completed"].map((status) => (
-                <button
-                  key={status}
-                  onClick={() => { setStatusFilter(status); setCurrentPage(1); }}
-                  className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === status
-                    ? "bg-white text-orange-600 shadow-md ring-1 ring-slate-200"
-                    : "text-slate-500 hover:text-slate-800"
-                    }`}
+            <div className="relative min-w-[200px]">
+              <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest block mb-1">
+                Mission Status
+              </label>
+              <div className="relative group">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className={`w-full pl-5 pr-10 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-[11px] font-black uppercase tracking-widest outline-none transition-all appearance-none cursor-pointer focus:bg-white focus:ring-4 focus:ring-orange-500/5 
+        ${statusFilter === "All" ? "text-slate-500" : (STATUS_THEMES[statusFilter]?.replace('text-', 'text-') || "text-orange-600")}
+      `}
                 >
-                  {status}
-                </button>
-              ))}
+                  {allPossibleStatuses.map((status) => (
+                    <option key={status} value={status} className="font-bold text-slate-700">
+                      {status}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Custom Chevron Icon for the dropdown */}
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                  <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -179,7 +209,7 @@ export default function AdminTasksPage() {
               {/* Optional: Show small total count if Pagination is hidden */}
               {data?.totalTasks <= limit && (
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight ml-2">
-                  Showing all {data?.totalTasks} results
+                  Total {data?.totalTasks} results
                 </span>
               )}
             </div>
@@ -192,7 +222,7 @@ export default function AdminTasksPage() {
                 count: data?.totalTasks,
                 limit: limit,
               }}
-              onPageChange={setCurrentPage} 
+              onPageChange={setCurrentPage}
               loading={isFetching}
               label="Missions"
             />
@@ -204,6 +234,12 @@ export default function AdminTasksPage() {
         isOpen={showCreateModal || !!editingTask}
         onClose={() => { setShowCreateModal(false); setEditingTask(null); }}
         editTask={editingTask}
+      />
+
+      <StatusUpdateModal
+        isOpen={!!statusUpdateTask}
+        onClose={() => setStatusUpdateTask(null)}
+        task={statusUpdateTask}
       />
     </div>
   );

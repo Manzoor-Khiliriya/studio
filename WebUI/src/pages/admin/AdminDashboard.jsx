@@ -13,7 +13,6 @@ import { toast } from 'react-hot-toast';
 
 import Loader from '../../components/Loader';
 import StatCard from '../../components/StatCard';
-import TaskModal from '../../components/TaskModal';
 import { HiOutlineClipboardList } from 'react-icons/hi';
 import PageHeader from '../../components/PageHeader';
 
@@ -76,16 +75,14 @@ const AdminDashboard = () => {
           title="Admin Dashboard"
           iconText="D"
           subtitle="Manage operational objectives and real-time resource utilization."
-          actionLabel="Assign Task"
-          onAction={() => setIsModalOpen(true)}
         />
 
         {/* --- STATS MATRIX --- */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 mt-10">
           <StatCard label="Total Projects" value={stats.totalProjects || 0} icon={<HiOutlineClipboardList size={24} />} delay={0.1} />
           <StatCard label="Live Sessions" value={stats.currentlyWorking || 0} variant={stats.currentlyWorking > 0 ? "active" : "default"} icon={<HiOutlineBolt size={24} />} delay={0.2} />
-          <StatCard label="Pending Action" value={stats.pendingApprovals || 0} variant={stats.pendingApprovals > 0 ? "warning" : "default"} icon={<BiTask size={24} />} delay={0.3} />
-          <StatCard label="In Progress" value={stats.statusBreakdown?.['In Progress'] || 0} icon={<HiOutlineArrowTrendingUp size={24} />} delay={0.4} />
+          <StatCard label="Pending Leaves" value={stats.pendingApprovals || 0} variant={stats.pendingApprovals > 0 ? "warning" : "default"} icon={<BiTask size={24} />} delay={0.3} />
+          <StatCard label="Project In Progress" value={stats.statusBreakdown?.['In Progress'] || 0} icon={<HiOutlineArrowTrendingUp size={24} />} delay={0.4} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -106,7 +103,7 @@ const AdminDashboard = () => {
                 <button 
                   onClick={handleStopAll}
                   disabled={isStoppingAll}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white rounded-full text-[10px] font-black uppercase tracking-tighter transition-all border border-red-100"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white rounded-full text-[10px] font-black uppercase tracking-tighter transition-all border border-red-100 cursor-pointer"
                 >
                   <FiAlertTriangle size={12} /> {isStoppingAll ? 'Shutting Down...' : 'Stop All'}
                 </button>
@@ -161,7 +158,7 @@ const AdminDashboard = () => {
               <button 
                 onClick={handleClearHistory}
                 disabled={isClearing || recentActivity.length === 0}
-                className="flex items-center gap-2 text-[10px] font-black text-slate-500 hover:text-orange-400 disabled:opacity-30 disabled:hover:text-slate-500 transition-colors uppercase tracking-widest"
+                className="flex items-center gap-2 text-[14px] font-black text-slate-500 hover:text-red-600 disabled:opacity-30 disabled:hover:text-slate-500 transition-colors uppercase tracking-widest cursor-pointer"
               >
                 <BiTrash size={14} /> {isClearing ? 'Clearing...' : 'Clear History'}
               </button>
@@ -180,17 +177,14 @@ const AdminDashboard = () => {
                         <div className="min-w-0">
                           <p className="text-xs text-slate-400">
                             <span className="font-black text-white uppercase">{log.userName}</span>
-                            <span className="mx-2 opacity-30 text-[9px] font-black">LOGGED</span>
+                            <span className="mx-2 opacity-30 text-[9px] font-black">STARTED</span>
                             <span className="text-orange-500 font-black uppercase">{log.taskTitle}</span>
                           </p>
-                          <p className="text-[9px] font-black text-slate-600 uppercase mt-1">Ref: {log.projectTitle || 'N/A'}</p>
+                          <p className="text-[9px] font-black text-slate-600 uppercase mt-1">Task: {log.projectCode || 'N/A'}</p>
                         </div>
                         <div className="text-right">
                           <div className="text-[10px] font-black text-slate-500 tabular-nums">
                             {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </div>
-                          <div className="text-[8px] font-black text-orange-500/50 uppercase mt-1">
-                            {log.hours} HRS
                           </div>
                         </div>
                       </div>
@@ -207,7 +201,6 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      <TaskModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 };
