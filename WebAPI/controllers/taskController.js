@@ -1,29 +1,27 @@
 const mongoose = require("mongoose");
 const Task = require("../models/Task");
+const Project = require("../models/Project"); // <-- ADD THIS IMPORT
 const TimeLog = require("../models/TimeLog");
-const User = require("../models/User");
 const Employee = require("../models/Employee");
 const sendTaskNotification = require("../utils/notifier");
 const { calculateEstimatedHours } = require("../utils/taskHelpers");
-const { calculateEmployeeAvailableHours } = require("../utils/workerHelpers");
-const { isUserOnLeaveDuring } = require("../utils/leaveHelpers");
 
+// POST: Create a task under a project
 exports.createTask = async (req, res) => {
   try {
-    const { title, projectNumber, projectDetails, startDate, endDate, priority, allocatedTime } = req.body;
+    // Note: 'project' comes from the frontend payload fix we did earlier
+    const { project, title, startDate, endDate, priority, allocatedTime, projectDetails } = req.body;
 
-    if (!title || !projectNumber || !startDate || !endDate) {
-      return res.status(400).json({ message: "Missing required fields: title, projectNumber, startDate, or endDate" });
-    }
-
-    if (await Task.exists({ projectNumber })) {
-      return res.status(400).json({ message: "Project number already exists" });
+    if (!title || !project || !startDate || !endDate) {
+      return res.status(400).json({ message: "Missing required fields" });
     }
 
     const start = new Date(startDate);
     const end = new Date(endDate);
-    if (isNaN(start) || isNaN(end)) {
-      return res.status(400).json({ message: "Invalid date format" });
+
+    const projectExists = await Project.findById(project);
+    if (!projectExists) {
+      return res.status(404).json({ message: "Parent Project not found" });
     }
 
     const estimatedTime = await calculateEstimatedHours(startDate, endDate);
@@ -31,7 +29,7 @@ exports.createTask = async (req, res) => {
 
     const task = await Task.create({
       title,
-      projectNumber,
+      project, // ObjectId linking to Project Model
       projectDetails,
       createdBy: req.user._id,
       assignedTo: [],
@@ -40,118 +38,83 @@ exports.createTask = async (req, res) => {
       priority: priority || "Medium",
       startDate: start,
       endDate: end,
-      // Note: liveStatus, status, and activeStatus will use their default values from the Schema
     });
 
-    res.status(201).json(task);
+    // Populate project before sending back so UI has the title immediately
+    const populatedTask = await task.populate("project");
+
+    res.status(201).json(populatedTask);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+// PATCH: Update specific task details
 exports.updateTask = async (req, res) => {
   try {
     const {
-      title, projectNumber, projectDetails, assignedTo,
-      startDate, endDate, priority, status, allocatedTime, activeStatus, liveStatus
+      title, assignedTo, startDate, endDate, project, // Included project link
+      priority, status, allocatedTime, activeStatus, liveStatus, projectDetails
     } = req.body;
-    const io = req.app.get('socketio');
 
+    const io = req.app.get('socketio');
     const task = await Task.findById(req.params.id);
+
     if (!task) return res.status(404).json({ message: "Task not found" });
 
     const oldAssigneeIds = task.assignedTo.map(id => id.toString());
-    const finalStart = startDate ? new Date(startDate) : task.startDate;
-    const finalEnd = endDate ? new Date(endDate) : task.endDate;
 
-    // Check Leave Conflict
-    if (assignedTo) {
-      for (const id of assignedTo) {
-        const emp = await Employee.findById(id);
-        if (!emp) continue;
-        const onLeave = await isUserOnLeaveDuring(emp.user, finalStart, finalEnd);
-        if (onLeave) {
-          const conflictUser = await User.findById(emp.user);
-          return res.status(400).json({
-            message: `Conflict: ${conflictUser?.name || 'Personnel'} is unavailable (on leave) during this schedule.`
-          });
-        }
-      }
-    }
-
-    // Apply basic updates
+    // Basic fields
     if (title) task.title = title;
-    if (projectNumber) task.projectNumber = projectNumber;
+    if (project) task.project = project; // Allow re-assigning to different project
     if (priority) task.priority = priority;
     if (status) task.status = status;
     if (activeStatus) task.activeStatus = activeStatus;
-    if (liveStatus) task.liveStatus = liveStatus; // Added support for new field
+    if (liveStatus) task.liveStatus = liveStatus;
     if (projectDetails !== undefined) task.projectDetails = projectDetails;
 
-    // Handle Time and Assignments
+    // Date/Assignment Logic
     if (startDate || endDate || assignedTo) {
-      task.startDate = finalStart;
-      task.endDate = finalEnd;
+      task.startDate = startDate ? new Date(startDate) : task.startDate;
+      task.endDate = endDate ? new Date(endDate) : task.endDate;
       if (assignedTo) task.assignedTo = assignedTo;
 
-      const estimated = await calculateEstimatedHours(finalStart, finalEnd);
-      task.estimatedTime = estimated;
-
-      if (allocatedTime === undefined) {
-        const currentAssignees = assignedTo || task.assignedTo;
-        if (currentAssignees.length > 0) {
-          let minAvailable = Infinity;
-          for (const empId of currentAssignees) {
-            const emp = await Employee.findById(empId);
-            const available = await calculateEmployeeAvailableHours(finalStart, finalEnd, emp?.joinedDate);
-            minAvailable = Math.min(minAvailable, available);
-          }
-          task.allocatedTime = Math.min(estimated, minAvailable);
-        } else {
-          task.allocatedTime = estimated;
-        }
-      } else {
-        task.allocatedTime = Number(allocatedTime);
-      }
-    } else if (allocatedTime !== undefined) {
-      task.allocatedTime = Number(allocatedTime);
+      task.estimatedTime = await calculateEstimatedHours(task.startDate, task.endDate);
+      if (allocatedTime !== undefined) task.allocatedTime = Number(allocatedTime);
     }
 
     await task.save();
 
-    // Notifications logic (existing)
+    // Re-populate everything for the response
+    const updated = await Task.findById(task._id)
+      .populate("project") // Essential for the table view
+      .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
+      .populate("timeLogs");
+
+    // Notifications
     if (assignedTo) {
       const newAssigneeIds = assignedTo.map(id => id.toString());
       const added = newAssigneeIds.filter(id => !oldAssigneeIds.includes(id));
-      const removed = oldAssigneeIds.filter(id => !newAssigneeIds.includes(id));
 
       if (added.length > 0) {
         const addedEmps = await Employee.find({ _id: { $in: added } }).populate("user");
         for (const emp of addedEmps) {
           await sendTaskNotification(emp.user, {
-            type: "task", message: `New Assignment: ${task.title}`, taskId: task._id
-          }, io);
-        }
-      }
-      if (removed.length > 0) {
-        const removedEmps = await Employee.find({ _id: { $in: removed } }).populate("user");
-        for (const emp of removedEmps) {
-          await sendTaskNotification(emp.user, {
-            type: "system", message: `Removed from Project: ${task.projectNumber}`, taskId: task._id
+            type: "task",
+            message: `New Task "${task.title}" added to Project: ${updated.project?.title}`,
+            taskId: task._id
           }, io);
         }
       }
     }
-
-    const updated = await Task.findById(task._id)
-      .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
-      .populate("timeLogs"); // Ensure virtuals update correctly
 
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
+// GET: All Tasks (Updated to populate project)
 
 exports.updateTaskStatus = async (req, res) => {
   try {
@@ -182,32 +145,23 @@ exports.updateTaskStatus = async (req, res) => {
 
 exports.getAllTasks = async (req, res) => {
   try {
-    const { search, status, liveStatus, page = 1, limit = 10, createdAt, startDate, endDate } = req.query;
+    const { search, status, liveStatus, page = 1, limit = 10 } = req.query;
     let query = {};
 
+    // Search logic: Note that searching by project title requires a different 
+    // approach (aggregation) if searching via $regex. 
+    // For now, we search task title.
     if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: "i" } },
-        { projectNumber: { $regex: search, $options: "i" } },
-      ];
+      query.title = { $regex: search, $options: "i" };
     }
 
     if (status && status !== "All") query.status = status;
-    if (liveStatus && liveStatus !== "All") query.liveStatus = liveStatus; // Added Filter support
-
-    // Date Filtering Logic
-    if (createdAt) {
-      const day = new Date(createdAt);
-      query.createdAt = { $gte: new Date(day.setHours(0, 0, 0, 0)), $lte: new Date(day.setHours(23, 59, 59, 999)) };
-    }
-    if (startDate && endDate) {
-      query.startDate = { $gte: new Date(new Date(startDate).setHours(0, 0, 0, 0)) };
-      query.endDate = { $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)) };
-    }
+    if (liveStatus && liveStatus !== "All") query.liveStatus = liveStatus;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const tasks = await Task.find(query)
+      .populate("project") // <-- CRUCIAL FOR THE TABLE
       .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
       .populate("timeLogs")
       .sort({ createdAt: -1 })
@@ -228,7 +182,6 @@ exports.getAllTasks = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
 exports.getTaskDetail = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id)
@@ -275,7 +228,7 @@ exports.getTasksByEmployee = async (req, res) => {
 exports.getMyTasks = async (req, res) => {
   try {
     const { search, status, liveStatus, activeStatus, page = 1, limit = 6 } = req.query;
-    
+
     // 1. Find the employee profile
     const employee = await Employee.findOne({ user: req.user._id });
     if (!employee) {
@@ -365,3 +318,4 @@ exports.deleteTask = async (req, res) => {
     session.endSession();
   }
 };
+

@@ -14,6 +14,6 @@ export const apiSlice = createApi({
 
   }),
   // IMPORTANT: All tags must be defined here for auto-refreshing to work
-  tagTypes: ['Task', 'User', 'Employee', 'TimeLog', 'Leave', 'Dashboard', 'Holiday', 'Notification'],
+  tagTypes: ['Task', 'Project','Attendance', 'User', 'Employee', 'TimeLog', 'Leave', 'Dashboard', 'Holiday', 'Notification'],
   endpoints: () => ({}), // Endpoints are injected from other files
 });

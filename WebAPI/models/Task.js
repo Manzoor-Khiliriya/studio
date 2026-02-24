@@ -1,9 +1,10 @@
 const mongoose = require("mongoose");
 
 const taskSchema = new mongoose.Schema({
-  title: { type: String, required: true, trim: true },
-  projectNumber: { type: String, required: true, unique: true, trim: true },
-  projectDetails: { type: String },
+  project: { type: mongoose.Schema.Types.ObjectId, ref: "Project", required: true },
+  title: { type: String, required: true },
+  // projectNumber: { type: String, required: true, unique: true, trim: true },
+  // projectDetails: { type: String },
 
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   assignedTo: [{ type: mongoose.Schema.Types.ObjectId, ref: "Employee" }],
@@ -16,22 +17,22 @@ const taskSchema = new mongoose.Schema({
 
   priority: { type: String, enum: ["Low", "Medium", "High"], default: "Medium" },
 
-  liveStatus: { 
-    type: String, 
-    enum: ["To be started", "In progress"], 
-    default: "To be started" 
+  liveStatus: {
+    type: String,
+    enum: ["To be started", "In progress"],
+    default: "To be started"
   },
 
-  status: { 
-    type: String, 
+  status: {
+    type: String,
     enum: [
-      "On hold", 
-      "Feedback pending", 
-      "Final rendering", 
-      "Postproduction", 
-      "Completed", 
-    ], 
-    default: "On hold" 
+      "On hold",
+      "Feedback pending",
+      "Final rendering",
+      "Postproduction",
+      "Completed",
+    ],
+    default: "On hold"
   },
 
   activeStatus: {

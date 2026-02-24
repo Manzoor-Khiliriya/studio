@@ -2,8 +2,7 @@ import React from "react";
 import { FiEdit } from "react-icons/fi";
 import { HiOutlineArrowPath } from "react-icons/hi2";
 
-// --- CLEAN BADGE RENDERS (Visual Only) ---
-
+// 1. Move helper functions to the top
 const renderStatusBadge = (status) => {
   const themes = {
     "completed": "bg-emerald-50 text-emerald-600 border-emerald-100",
@@ -12,10 +11,7 @@ const renderStatusBadge = (status) => {
     "final rendering": "bg-orange-50 text-orange-600 border-orange-200",
     "postproduction": "bg-purple-50 text-purple-600 border-purple-200",
   };
-
-  const normalizedStatus = status?.toLowerCase() || "";
-  const themeClass = themes[normalizedStatus] || "bg-slate-50 text-slate-500 border-slate-200";
-
+  const themeClass = themes[status?.toLowerCase()] || "bg-slate-50 text-slate-500 border-slate-200";
   return (
     <span className={`inline-block text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest border shadow-sm ${themeClass}`}>
       {status}
@@ -26,17 +22,10 @@ const renderStatusBadge = (status) => {
 const renderActiveStatus = (status) => {
   const isFinal = status === "Final";
   const isPreFinal = status === "Pre-Final";
+  let textColor = "text-slate-500", bgColor = "bg-slate-50";
 
-  let textColor = "text-slate-500";
-  let bgColor = "bg-slate-50";
-
-  if (isFinal) {
-    textColor = "text-emerald-600";
-    bgColor = "bg-emerald-50";
-  } else if (isPreFinal) {
-    textColor = "text-orange-600";
-    bgColor = "bg-orange-50";
-  }
+  if (isFinal) { textColor = "text-emerald-600"; bgColor = "bg-emerald-50"; }
+  else if (isPreFinal) { textColor = "text-orange-600"; bgColor = "bg-orange-50"; }
 
   return (
     <div className={`flex items-center justify-center px-3 py-1 rounded-lg border border-slate-100 ${bgColor} shadow-sm inline-flex`}>
@@ -52,18 +41,18 @@ const renderUtilization = (task) => {
   const isWarning = task.isOverBudget || progress > 90;
 
   return (
-    <div className="flex flex-col min-w-[200px] pr-8">
-      <div className="flex justify-between items-end mb-2">
-        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+    <div className="flex flex-col min-w-[180px]">
+      <div className="flex justify-between items-end mb-1">
+        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
           <span className="text-slate-900">{(task.totalConsumedHours || 0).toFixed(1)}h</span> / {(task.allocatedTime || 0).toFixed(1)}h
         </span>
         <span className={`text-[10px] font-black ${isWarning ? 'text-rose-600' : 'text-emerald-600'}`}>
           {progress}%
         </span>
       </div>
-      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-50">
+      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-50">
         <div
-          className={`h-full transition-all duration-700 rounded-full ${isWarning ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)] animate-pulse' : 'bg-emerald-500'}`}
+          className={`h-full transition-all duration-700 rounded-full ${isWarning ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`}
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -71,124 +60,86 @@ const renderUtilization = (task) => {
   );
 };
 
-// --- MAIN COLUMN DEFINITION ---
-
+// 2. Export the column definition at the bottom
 export const getAdminTaskColumns = (onEdit, onStatusUpdate) => [
   {
-    header: "Project Code",
+    header: "Task Objective",
     render: (task) => (
-      <span className="font-black text-[10px] text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 uppercase tracking-tighter">
-        {task.projectNumber || task._id.slice(-5)}
-      </span>
+      <div className="flex flex-col">
+        <p className="font-black text-slate-900 text-[11px] uppercase tracking-tight group-hover:text-orange-600 transition-colors">
+          {task.title}
+        </p>
+        <p className="text-[9px] font-bold text-slate-400 line-clamp-1 italic text-wrap">
+          {task.projectDetails || "No protocol details."}
+        </p>
+      </div>
     )
   },
   {
-    header: "Created Date",
-    render: (task) => (
-      <span className="font-black text-[10px] text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 uppercase tracking-tighter">
-        {new Date(task.createdAt).toLocaleDateString() || "NA"}
-      </span>
-    )
-  },
-  {
-    header: "Project Title",
-    render: (task) => (
-      <p className="font-black text-slate-900 text-[11px] uppercase tracking-tight leading-tight group-hover:text-orange-600">
-        {task.title}
-      </p>
-    )
-  },
-  {
-    header: "Project Details",
-    render: (task) => (
-      <p className="text-[10px] font-bold text-slate-600 line-clamp-2 leading-relaxed">
-        {task.projectDetails || "No protocol details provided."}
-      </p>
-    )
-  },
-  {
-    header: "No Of Employees",
+    header: "Team",
     className: "text-center",
     cellClassName: "text-center",
     render: (task) => (
-      <div className="flex flex-col items-center">
-        <span className="text-lg font-black text-slate-900 leading-none">
+      <div className="flex -space-x-2 justify-center">
+        <span className="w-8 h-8 rounded-full bg-slate-900 text-white border-2 border-white flex items-center justify-center text-[11px] font-black shadow-sm">
           {task.assignedTo?.length || 0}
         </span>
       </div>
     )
   },
   {
-    header: "Resource Utilization",
-    render: (task) => renderUtilization(task)
-  },
-  {
-    header: "Estimate Time",
-    className: "text-center",
-    cellClassName: "text-center",
-    render: (task) => (
-      <span className="text-[11px] font-black text-slate-700">
-        {task.allocatedTime || 0} HRS
-      </span>
-    )
+    header: "Resource Usage",
+    render: (task) => renderUtilization(task) // This will now find the function
   },
   {
     header: "Timeline",
     render: (task) => (
-      <div className="text-[9px] font-black text-slate-500 uppercase flex flex-col gap-0.5">
-        <span className="flex justify-between">Start: <span className="text-slate-900 ml-2">{new Date(task.startDate).toLocaleDateString()}</span></span>
-        <span className="flex justify-between">End: <span className="text-slate-900 ml-2">{new Date(task.endDate).toLocaleDateString()}</span></span>
+      <div className="text-[9px] font-black text-slate-500 uppercase flex flex-col">
+        <span className="flex justify-between gap-2">S: <span className="text-slate-900">{new Date(task.startDate).toLocaleDateString()}</span></span>
+        <span className="flex justify-between gap-2">E: <span className="text-slate-900">{new Date(task.endDate).toLocaleDateString()}</span></span>
       </div>
     )
   },
   {
-    header: "Live Status",
+    header: "Live / Status",
     className: "text-center",
     cellClassName: "text-center",
     render: (task) => (
-      <div className={`inline-flex items-center justify-center px-3 py-1 rounded-lg border shadow-sm ${
-        task.liveStatus?.toLowerCase() === "in progress"
-          ? "bg-blue-50 text-blue-600 border-blue-100"
-          : "bg-indigo-50 text-indigo-500 border-indigo-100"
-      }`}>
-        <span className="text-[10px] font-black uppercase tracking-tighter">
+      <div className="flex flex-col items-center gap-1.5">
+        <span className={`text-[9px] font-black px-2 py-0.5 rounded border ${
+          task.liveStatus?.toLowerCase() === "in progress" 
+          ? "bg-blue-50 text-blue-600 border-blue-100" 
+          : "bg-slate-50 text-slate-400 border-slate-200"
+        }`}>
           {task.liveStatus || "TO BE STARTED"}
         </span>
+        {renderStatusBadge(task.status)}
       </div>
     )
   },
   {
-    header: "Initiative Status",
+    header: "Version",
     className: "text-center",
     cellClassName: "text-center",
-    render: (task) => renderStatusBadge(task.status)
-  },
-  {
-    header: "Active Status",
-    className: "text-center",
-    cellClassName: "text-center",
-    render: (task) => renderActiveStatus(task.activeStatus || "Draft-1")
+    render: (task) => renderActiveStatus(task.activeStatus)
   },
   {
     header: "Actions",
     className: "text-right",
     cellClassName: "text-right",
     render: (task) => (
-      <div className="flex items-center justify-end gap-2">
-        {/* Status Update Trigger */}
+      <div className="flex items-center justify-end gap-3">
         <button
           onClick={(e) => { e.stopPropagation(); onStatusUpdate(task); }}
-          className=" text-green-500 hover:text-green-600 rounded-xl transition-all active:scale-90 cursor-pointer group"
-          title="Update Status & Version"
+          className="text-emerald-500 hover:text-emerald-600 transition-all active:scale-90 cursor-pointer"
+          title="Update Status"
         >
-          <HiOutlineArrowPath size={18} className="group-hover:rotate-180 transition-transform duration-500" />
+          <HiOutlineArrowPath size={20} />
         </button>
-
-        {/* Edit Task Trigger */}
         <button
           onClick={(e) => { e.stopPropagation(); onEdit(task); }}
-          className=" text-yellow-500 hover:text-yellow-600 rounded-xl transition-all active:scale-90 cursor-pointer"
-          title="Edit Details"
+          className="text-amber-500 hover:text-amber-600 transition-all active:scale-90 cursor-pointer"
+          title="Edit Task"
         >
           <FiEdit size={18} />
         </button>

@@ -16,7 +16,7 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const holidayRoutes = require("./routes/holidayRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const attendanceRoutes = require("./routes/attendanceRoutes");
-
+const projectRoutes = require("./routes/projectRoutes");
 
 const app = express();
 
@@ -70,6 +70,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/holidays', holidayRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/attendance", attendanceRoutes);
+app.use("/api/projects", projectRoutes);
 
 const PORT = process.env.PORT || 5000;
 

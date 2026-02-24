@@ -3,8 +3,6 @@ import { apiSlice } from './apiSlice';
 export const taskApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     
-    // --- ADMIN ENDPOINTS ---
-
     // 1. GET ALL TASKS
     getAllTasks: builder.query({
       query: (params) => ({
@@ -27,20 +25,26 @@ export const taskApiSlice = apiSlice.injectEndpoints({
         method: 'POST',
         body: newTask,
       }),
-      invalidatesTags: [{ type: 'Task', id: 'LIST' }],
+      // When a task is created, refresh the Task list AND Project list 
+      // (in case project stats/task counts are displayed elsewhere)
+      invalidatesTags: [
+        { type: 'Task', id: 'LIST' },
+        { type: 'Project', id: 'LIST' } 
+      ],
     }),
 
     // 3. UPDATE TASK (Full Update)
     updateTask: builder.mutation({
       query: ({ id, ...updateData }) => ({
         url: `/tasks/${id}`,
-        method: 'PUT',
+        method: 'PUT', // Matches your controller exports.updateTask
         body: updateData,
       }),
       invalidatesTags: (result, error, { id }) => [
         { type: 'Task', id: 'LIST' },
         { type: 'Task', id: 'MY_LIST' },
         { type: 'Task', id },
+        { type: 'Project', id: 'LIST' } // Keep project summaries fresh
       ],
     }),
 
@@ -50,24 +54,26 @@ export const taskApiSlice = apiSlice.injectEndpoints({
         url: `/tasks/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: [{ type: 'Task', id: 'LIST' }],
+      invalidatesTags: [
+        { type: 'Task', id: 'LIST' },
+        { type: 'Project', id: 'LIST' }
+      ],
     }),
 
     // 5. GET TASKS BY SPECIFIC EMPLOYEE
     getTasksByEmployee: builder.query({
       query: (userId) => `/tasks/employee-tasks/${userId}`,
-      providesTags: ['Task'],
+      providesTags: (result) => 
+        result 
+          ? [...result.map(({ _id }) => ({ type: 'Task', id: _id })), 'Task']
+          : ['Task'],
     }),
-
-    // --- SHARED ENDPOINTS ---
 
     // 6. GET TASK DETAIL
     getTaskDetail: builder.query({
       query: (id) => `/tasks/detail/${id}`,
       providesTags: (result, error, id) => [{ type: 'Task', id }],
     }),
-
-    // --- EMPLOYEE ENDPOINTS ---
 
     // 7. GET MY TASKS
     getMyTasks: builder.query({
@@ -84,7 +90,7 @@ export const taskApiSlice = apiSlice.injectEndpoints({
           : [{ type: 'Task', id: 'MY_LIST' }],
     }),
 
-    // 8. UPDATE TASK STATUS ONLY (Specialized API)
+    // 8. UPDATE TASK STATUS ONLY
     updateTaskStatus: builder.mutation({
       query: ({ id, ...statusData }) => ({
         url: `/tasks/${id}/status`,
@@ -108,5 +114,5 @@ export const {
   useGetTasksByEmployeeQuery,
   useGetTaskDetailQuery,
   useGetMyTasksQuery,
-  useUpdateTaskStatusMutation, // Export the new hook
+  useUpdateTaskStatusMutation,
 } = taskApiSlice;
