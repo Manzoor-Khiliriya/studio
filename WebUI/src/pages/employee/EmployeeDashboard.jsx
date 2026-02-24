@@ -1,12 +1,14 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiZap, FiClock, FiTarget, FiBriefcase, FiSearch } from "react-icons/fi";
+import { FiZap, FiClock, FiTarget, FiBriefcase, FiActivity, FiLock, FiTrendingUp } from "react-icons/fi";
 import { HiOutlineBolt } from 'react-icons/hi2';
+import { toast } from "react-hot-toast";
 
 // RTK Query Hooks
 import { useGetDashboardSummaryQuery } from "../../services/dashboardApi";
 import { useGetMyTasksQuery } from "../../services/taskApi";
 import { useGetMyTodayLogsQuery } from "../../services/timeLogApi";
+import { useGetTodayStatusQuery, useClockInMutation, useClockOutMutation } from "../../services/attendanceApi";
 
 // Components
 import ClockInOut from "../../components/ClockInOut";
@@ -18,35 +20,50 @@ import StatCard from "../../components/StatCard";
 
 export default function EmployeeDashboard() {
   const timerRef = useRef(null);
+  const shiftTimerRef = useRef(null);
+
+  // Local State
   const [todaySeconds, setTodaySeconds] = useState(0);
+  const [shiftSeconds, setShiftSeconds] = useState(0);
   const [runningTask, setRunningTask] = useState(null);
   const [isOnBreak, setIsOnBreak] = useState(false);
-
-  // --- FILTER & PAGINATION STATE ---
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  // RTK Query
-  const { data: dashboardStats } = useGetDashboardSummaryQuery();
+  // 1. API Calls
+  const { data: summaryData, isLoading: summaryLoading } = useGetDashboardSummaryQuery();
+  const { data: attendanceStatus, isLoading: attendanceLoading } = useGetTodayStatusQuery();
+  const [clockIn] = useClockInMutation();
+  const [clockOut] = useClockOutMutation();
+
+  // 2. Fetch Tasks (Not Completed) for both Dropdown and List
   const { data: tasksData, isLoading: tasksLoading } = useGetMyTasksQuery({
-    page: currentPage,
-    limit: itemsPerPage,
-    search: searchTerm,
-    status: statusFilter === "All" ? "" : statusFilter
+    status: "!Completed",
+    limit: 100 
   });
+
   const { data: logsData, isSuccess: logsLoaded } = useGetMyTodayLogsQuery();
 
-  const tasks = tasksData?.tasks || [];
-  const paginationInfo = tasksData?.pagination || { current: 1, total: 1, count: 0 };
+  // 3. Derived Data
+  const allActiveTasks = useMemo(() => tasksData?.tasks || [], [tasksData]);
+  
+  const liveMissions = useMemo(() => 
+    allActiveTasks.filter(task => ["In Progress", "To be started"].includes(task.liveStatus)),
+    [allActiveTasks]
+  );
 
-  // 1. CALCULATE CUMULATIVE DAILY TOTAL
+  const paginatedMissions = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return liveMissions.slice(startIndex, startIndex + itemsPerPage);
+  }, [liveMissions, currentPage]);
+
+  const isOnShift = attendanceStatus?.clockIn && !attendanceStatus?.clockOut;
+  const empStats = summaryData?.stats || {};
+
+  // 4. Project Ticker & Sync Logic
   useEffect(() => {
     if (logsLoaded && logsData) {
       const { logs } = logsData;
-      const localToday = new Date().toLocaleDateString('en-CA');
-      
       let totalSeconds = 0;
       let activeTaskName = null;
       let isBreak = false;
@@ -58,10 +75,9 @@ export default function EmployeeDashboard() {
       }
 
       logs.forEach(log => {
-        const logStart = new Date(log.startTime);
-        if (logStart.toLocaleDateString('en-CA') === localToday && log.logType === "work") {
+        if (log.logType === "work") {
           if (log.isRunning) {
-            const diffSec = Math.floor((Date.now() - logStart.getTime()) / 1000);
+            const diffSec = Math.floor((Date.now() - new Date(log.startTime).getTime()) / 1000);
             totalSeconds += Math.max(0, diffSec);
           } else {
             totalSeconds += (log.durationSeconds || 0);
@@ -70,27 +86,39 @@ export default function EmployeeDashboard() {
       });
 
       setRunningTask(activeTaskName);
-      setIsOnBreak(isBreak); 
+      setIsOnBreak(isBreak);
       setTodaySeconds(totalSeconds);
     }
   }, [logsData, logsLoaded]);
 
-  // 2. GLOBAL TICKER
+  // 5. Tickers
   useEffect(() => {
     if (runningTask && !isOnBreak) {
-      timerRef.current = setInterval(() => {
-        setTodaySeconds(prev => prev + 1);
-      }, 1000);
-    } else {
-      clearInterval(timerRef.current);
-    }
+      timerRef.current = setInterval(() => setTodaySeconds(prev => prev + 1), 1000);
+    } else clearInterval(timerRef.current);
     return () => clearInterval(timerRef.current);
   }, [runningTask, isOnBreak]);
 
-  // 3. Reset to page 1 on filter change
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter]);
+    if (isOnShift && attendanceStatus?.clockIn) {
+      const start = new Date(attendanceStatus.clockIn).getTime();
+      shiftTimerRef.current = setInterval(() => setShiftSeconds(Math.floor((Date.now() - start) / 1000)), 1000);
+    } else {
+      clearInterval(shiftTimerRef.current);
+      setShiftSeconds(0);
+    }
+    return () => clearInterval(shiftTimerRef.current);
+  }, [isOnShift, attendanceStatus]);
+
+  const handleAttendanceToggle = async () => {
+    const t = toast.loading(isOnShift ? "Clocking out..." : "Clocking in...");
+    try {
+      isOnShift ? await clockOut().unwrap() : await clockIn().unwrap();
+      toast.success(isOnShift ? "Shift Completed" : "Shift Started", { id: t });
+    } catch (err) {
+      toast.error(err?.data?.message || "Action failed", { id: t });
+    }
+  };
 
   const formatTime = (sec) => {
     const h = Math.floor(sec / 3600);
@@ -99,140 +127,148 @@ export default function EmployeeDashboard() {
     return `${h}h ${m}m ${s}s`;
   };
 
-  if (tasksLoading && !tasksData) return <Loader message="Decrypting Mission Data..." />;
+  if (tasksLoading || attendanceLoading || summaryLoading) return <Loader message="Syncing Systems..." />;
 
   return (
-    <div className="min-h-screen bg-[#f8fafc]">
-      <div className="max-w-[1700px] mx-auto px-8 pt-10 pb-20">
+    <div className="min-h-screen bg-[#f1f5f9]">
+      <div className="max-w-[1600px] mx-auto px-6 py-10">
         
         <PageHeader
-          title="Operator Terminal"
-          iconText="O"
-          subtitle="Real-time telemetry and mission objective management."
+          title="Operations Center"
+          subtitle={isOnShift ? "System Online • Operator Active" : "System Standby • Please Clock In"}
         />
 
-        {/* --- STAT MATRIX --- */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12 mt-10">
+        {/* --- KPI GRID --- */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 my-8">
           <StatCard
-            label="Active Shift Total"
+            label="Daily Productivity"
             value={formatTime(todaySeconds)}
-            icon={<FiClock size={22} className={runningTask && !isOnBreak ? "text-orange-500 animate-pulse" : "text-slate-400"} />}
-            variant={runningTask && !isOnBreak ? "active" : "default"}
-            delay={0.1}
+            icon={<FiClock className={runningTask ? "text-orange-500 animate-pulse" : ""} />}
+            variant={runningTask ? "active" : "default"}
           />
-          <StatCard 
-            label="Weekly Cumulative" 
-            value={`${dashboardStats?.stats?.weeklyHours || 0}h`} 
-            icon={<FiTarget size={22} className="text-slate-400" />} 
-            delay={0.2} 
+          <StatCard
+            label="Shift Timer"
+            value={isOnShift ? formatTime(shiftSeconds) : "00h 00m 00s"}
+            icon={<FiActivity className={isOnShift ? "text-emerald-500" : ""} />}
           />
-          <StatCard 
-            label="Mission Inventory" 
-            value={paginationInfo.count || 0} 
-            icon={<FiBriefcase size={22} className="text-slate-400" />} 
-            delay={0.3} 
+          <StatCard
+            label="Weekly Hours"
+            value={`${empStats.weeklyHours || 0} hrs`}
+            icon={<FiTrendingUp className="text-blue-500" />}
+          />
+          <StatCard
+            label="Open Objectives"
+            value={liveMissions.length}
+            icon={<FiTarget className="text-rose-500" />}
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
-          {/* --- LEFT: COMMAND CENTER --- */}
-          <div className="lg:col-span-4 flex flex-col gap-6 lg:sticky lg:top-10">
-            <div className="bg-[#0f1115] p-8 rounded-[3rem] shadow-2xl border border-slate-800 relative overflow-hidden group">
-              <ClockInOut todaySeconds={todaySeconds} />
-              <FiZap className="absolute -right-10 -bottom-10 text-white/[0.02] group-hover:text-orange-500/[0.05] transition-colors duration-700" size={200} />
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-            <AnimatePresence>
-              {runningTask && (
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className={`p-6 rounded-[2rem] text-white shadow-xl ${isOnBreak ? 'bg-slate-800' : 'bg-orange-600 shadow-orange-600/20'}`}
-                >
-                  <p className="text-[9px] font-black uppercase tracking-[0.3em] opacity-60 mb-1.5">
-                    {isOnBreak ? "Telemetry Suspended" : "Target Engaged"}
-                  </p>
-                  <h4 className="text-lg font-black uppercase tracking-tight truncate">
-                    {isOnBreak ? "Break in Progress" : runningTask}
-                  </h4>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* --- RIGHT: MISSION QUEUE --- */}
-          <div className="lg:col-span-8 flex flex-col gap-4">
+          {/* --- LEFT: STATION CONTROL --- */}
+          <div className="lg:col-span-4 space-y-6">
             
-            {/* Filter Bar */}
-            <div className="bg-white rounded-[2rem] border border-slate-200 p-3 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
-              <h3 className="font-black text-slate-900 text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 ml-4">
-                <HiOutlineBolt className="text-orange-500" size={16} /> Mission Queue
-              </h3>
-              
-              <div className="flex items-center gap-2 w-full md:w-auto">
-                <div className="relative flex-1 md:flex-none">
-                  <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                  <input
-                    type="text"
-                    placeholder="Search IDs or Titles..."
-                    className="w-full md:w-64 pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[11px] font-black uppercase outline-none focus:ring-2 focus:ring-orange-500/10 transition-all"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
+            {/* Attendance Module */}
+            <div className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-blue-900/5 border border-white">
+              <div className="flex flex-col items-center text-center">
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${isOnShift ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+                  <FiActivity size={30} className={isOnShift ? "animate-bounce" : ""} />
                 </div>
-                <select 
-                   className="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-black uppercase outline-none cursor-pointer hover:bg-slate-100 transition-colors"
-                   value={statusFilter}
-                   onChange={(e) => setStatusFilter(e.target.value)}
+                <h3 className="text-xl font-black text-slate-800 tracking-tight">Daily Attendance</h3>
+                <p className="text-slate-500 text-sm mb-6">Log your daily presence</p>
+
+                <button
+                  onClick={handleAttendanceToggle}
+                  className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${isOnShift
+                      ? "bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white"
+                      : "bg-slate-900 text-white hover:shadow-lg hover:bg-black"
+                    }`}
                 >
-                  <option value="All">All Sectors</option>
-                  <option value="Pending">Pending</option>
-                  <option value="In Progress">Active</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Overdue">Overdue</option>
-                </select>
+                  {isOnShift ? "End Work Day" : "Start Work Day"}
+                </button>
+
+                {isOnShift && (
+                  <div className="mt-6 p-4 bg-slate-50 rounded-2xl w-full flex justify-between items-center">
+                    <span className="text-[10px] font-black text-slate-400 uppercase">Login Time</span>
+                    <span className="text-xs font-black text-slate-700">
+                      {new Date(attendanceStatus.clockIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Scrollable Tasks Area */}
-            <div className="h-[650px] overflow-y-auto pr-2 custom-scrollbar space-y-4">
-              <AnimatePresence mode="popLayout">
-                {tasks.length > 0 ? (
-                  tasks.map((task) => (
-                    <TaskCard 
-                      key={task._id} 
-                      task={task} 
-                      isTracking={runningTask === task.title && !isOnBreak} 
-                    />
-                  ))
-                ) : (
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex flex-col items-center justify-center py-32 bg-white rounded-[3rem] border-2 border-dashed border-slate-100"
-                  >
-                    <div className="bg-slate-50 p-6 rounded-full mb-4">
-                      <FiSearch size={32} className="text-slate-200" />
-                    </div>
-                    <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.3em]">No matching objectives found</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Pagination Footer */}
-            <div className="bg-white p-4 rounded-[2rem] border border-slate-200 shadow-sm mt-2">
-              <Pagination 
-                pagination={paginationInfo} 
-                onPageChange={setCurrentPage} 
-                loading={tasksLoading} 
-                label="Objectives" 
+            {/* Project Timer Module */}
+            <div className="bg-[#0f1115] p-8 rounded-[3rem] shadow-2xl relative overflow-hidden group">
+              <ClockInOut 
+                todaySeconds={todaySeconds} 
+                taskList={allActiveTasks} 
               />
+              <FiZap className="absolute -right-10 -bottom-10 text-white/[0.03]" size={200} />
             </div>
           </div>
 
+          {/* --- RIGHT: MISSION QUEUE --- */}
+          <div className="lg:col-span-8 relative">
+
+            {/* Tactical Lock Overlay */}
+            {!isOnShift && (
+              <div className="absolute inset-0 z-30 backdrop-blur-md bg-white/40 rounded-[3rem] flex items-center justify-center text-center">
+                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-slate-100 max-w-sm">
+                  <div className="w-20 h-20 bg-orange-50 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <FiLock size={40} />
+                  </div>
+                  <h4 className="text-2xl font-black text-slate-800 mb-2">Missions Locked</h4>
+                  <p className="text-slate-500 text-sm mb-8">Please clock in to access project tracking.</p>
+                  <button onClick={handleAttendanceToggle} className="bg-orange-500 text-white px-8 py-3 rounded-xl font-bold hover:bg-orange-600 transition-all">Quick Clock-In</button>
+                </motion.div>
+              </div>
+            )}
+
+            <div className={`space-y-4 ${!isOnShift ? 'pointer-events-none opacity-20' : ''}`}>
+              <div className="flex items-center justify-between px-4">
+                <h3 className="font-black text-slate-800 text-lg flex items-center gap-2">
+                  <HiOutlineBolt className="text-orange-500" /> Active Objectives
+                </h3>
+                <span className="text-[10px] font-black bg-white px-3 py-1 rounded-full text-slate-400 border border-slate-100 uppercase tracking-widest">
+                  {liveMissions.length} Total
+                </span>
+              </div>
+
+              <div className="min-h-[500px] space-y-4">
+                <AnimatePresence mode="popLayout">
+                  {paginatedMissions.length > 0 ? (
+                    paginatedMissions.map((task) => (
+                      <TaskCard 
+                        key={task._id} 
+                        task={task}
+                        isTracking={runningTask === task.title && !isOnBreak}
+                      />
+                    ))
+                  ) : (
+                    <div className="h-[400px] flex flex-col items-center justify-center bg-white rounded-[3rem] border-2 border-dashed border-slate-200">
+                      <FiBriefcase size={40} className="text-slate-200 mb-4" />
+                      <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">No live missions</p>
+                    </div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Pagination */}
+              {liveMissions.length > itemsPerPage && (
+                <div className="bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm mt-6">
+                  <Pagination
+                    pagination={{
+                      current: currentPage,
+                      total: Math.ceil(liveMissions.length / itemsPerPage),
+                      count: liveMissions.length
+                    }}
+                    onPageChange={setCurrentPage}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -25,20 +25,26 @@ exports.startTimer = async (req, res) => {
 
     const today = new Date().toISOString().split("T")[0];
 
+    // 1. Check Daily Limit
     const logs = await TimeLog.find({ user: userId, dateString: today, logType: "work" });
     const hoursToday = logs.reduce((sum, l) => sum + (l.durationSeconds / 3600 || 0), 0);
 
     if (hoursToday >= employee.dailyWorkLimit) {
-      throw new Error(`Daily limit reached (${employee.dailyWorkLimit} hrs).`);
+      throw new Error(`Daily limit reached (${employee.dailyWorkLimit} hrs). Please contact admin.`);
     }
 
-    await TimeLog.updateMany(
-      { user: userId, isRunning: true },
-      { $set: { endTime: new Date(), isRunning: false } },
-      { session }
-    );
+    // 2. Stop any existing running timers (Auto-switch)
+    const activeLog = await TimeLog.findOne({ user: userId, isRunning: true });
+    if (activeLog) {
+        const now = new Date();
+        const duration = Math.floor((now.getTime() - new Date(activeLog.startTime).getTime()) / 1000);
+        activeLog.endTime = now;
+        activeLog.isRunning = false;
+        activeLog.durationSeconds = Math.max(0, duration);
+        await activeLog.save({ session });
+    }
 
-
+    // 3. Create new Work Log
     const log = await TimeLog.create([{
       user: userId,
       task: taskId,
@@ -48,8 +54,8 @@ exports.startTimer = async (req, res) => {
       dateString: today
     }], { session });
 
-    if (task.status === "To be started") {
-      task.status = "In Progress";
+    if (task.liveStatus === "To be started") {
+      task.liveStatus = "In progress";
       await task.save({ session });
     }
 
@@ -66,45 +72,58 @@ exports.startTimer = async (req, res) => {
 };
 
 exports.togglePause = async (req, res) => {
-  const userId = req.user._id;
-  const today = new Date().toISOString().split("T")[0];
+  try {
+    const userId = req.user._id;
+    const today = new Date().toISOString().split("T")[0];
 
-  const active = await TimeLog.findOne({ user: userId, isRunning: true });
-  if (!active) return res.status(404).json({ message: "No active timer." });
+    const active = await TimeLog.findOne({ user: userId, isRunning: true });
+    if (!active) return res.status(404).json({ message: "No active timer found." });
 
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - new Date(active.startTime).getTime()) / 1000);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - new Date(active.startTime).getTime()) / 1000);
 
-  active.endTime = now;
-  active.isRunning = false;
-  active.durationSeconds = Math.max(0, diffInSeconds);
-  await active.save();
+    // Close Current Log
+    active.endTime = now;
+    active.isRunning = false;
+    active.durationSeconds = Math.max(0, diffInSeconds);
+    await active.save();
 
-  const newType = active.logType === "work" ? "break" : "work";
+    // Switch types: if was "work" -> "break", if was "break" -> "work"
+    const newType = active.logType === "work" ? "break" : "work";
 
-  const newLog = await TimeLog.create({
-    user: userId,
-    task: active.task,
-    startTime: new Date(),
-    logType: newType,
-    isRunning: true,
-    dateString: today
-  });
+    const newLog = await TimeLog.create({
+      user: userId,
+      task: active.task,
+      startTime: new Date(),
+      logType: newType,
+      isRunning: true,
+      dateString: today
+    });
 
-  res.json({ status: newType, log: newLog });
+    res.json({ status: newType, log: newLog });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
 exports.stopTimer = async (req, res) => {
-  const log = await TimeLog.findOne({ user: req.user._id, isRunning: true });
-  if (!log) return res.status(400).json({ message: "No active timer." });
+  try {
+    const log = await TimeLog.findOne({ user: req.user._id, isRunning: true });
+    if (!log) return res.status(400).json({ message: "No active timer found." });
 
-  log.endTime = new Date();
-  log.isRunning = false;
-  await log.save();
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - new Date(log.startTime).getTime()) / 1000);
 
-  res.json({ message: "Stopped", log });
+    log.endTime = now;
+    log.isRunning = false;
+    log.durationSeconds = Math.max(0, diffInSeconds);
+    await log.save();
+
+    res.json({ message: "Session Terminated", log });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
-
 
 exports.getMyLogs = async (req, res) => {
   try {
@@ -131,21 +150,15 @@ exports.getMyLogs = async (req, res) => {
       hoursWorkedToday,
       logs
     });
-
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-
 exports.getTaskPerformanceReport = async (req, res) => {
   try {
     const report = await Task.aggregate([
-      {
-        $match: {
-          status: { $ne: "Completed" }
-        }
-      },
+      { $match: { status: { $ne: "Completed" } } },
       {
         $lookup: {
           from: "timelogs",
@@ -204,31 +217,16 @@ exports.getTaskPerformanceReport = async (req, res) => {
   }
 };
 
-exports.clearAllLogs = async (req, res) => {
-  try {
-    await TimeLog.updateMany(
-      { isRunning: false, clearedByAdmin: false },
-      { $set: { clearedByAdmin: true } }
-    );
-
-    res.json({ message: "Admin operational log cleared (records preserved)." });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
 exports.stopAllLiveSessions = async (req, res) => {
   try {
     const now = new Date();
-
     const activeLogs = await TimeLog.find({ isRunning: true });
 
     const updatePromises = activeLogs.map(log => {
       const duration = Math.floor((now - new Date(log.startTime)) / 1000);
-
       log.endTime = now;
       log.isRunning = false;
-      log.durationSeconds = duration;
+      log.durationSeconds = Math.max(0, duration);
       return log.save();
     });
 
@@ -238,6 +236,19 @@ exports.stopAllLiveSessions = async (req, res) => {
       message: `Global shutdown complete. ${activeLogs.length} sessions recorded.`,
       stoppedCount: activeLogs.length
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.clearAllLogs = async (req, res) => {
+  try {
+    // Admin operation to mark logs as "archived" from the dashboard view
+    await TimeLog.updateMany(
+      { isRunning: false, clearedByAdmin: { $ne: true } },
+      { $set: { clearedByAdmin: true } }
+    );
+    res.json({ message: "Admin dashboard logs cleared." });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -7,7 +7,8 @@ import {
   HiOutlineClock,
   HiOutlineUserGroup,
   HiOutlineQueueList,
-  HiOutlineCalendarDays
+  HiOutlineCalendarDays,
+  HiOutlineBolt // New icon for Live Status
 } from "react-icons/hi2";
 import { toast } from "react-hot-toast";
 
@@ -50,7 +51,6 @@ export default function AdminTaskDetailPage() {
 
   return (
     <div className="min-h-screen">
-      {/* COMPACT HEADER - Matching your PageHeader style but internal */}
       <header className="bg-white border-b border-slate-200 pt-8 pb-10">
         <div className="max-w-[1600px] mx-auto px-8">
           <button
@@ -66,25 +66,39 @@ export default function AdminTaskDetailPage() {
                 {task.title?.charAt(0)}
               </span>
               <div>
-                <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none mb-1">
+                <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none mb-2">
                   {task.title}
                 </h1>
                 <div className="flex items-center gap-2">
-                  {/* Initiative Status Badge */}
-                  <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tighter border shadow-sm ${task.status === "Completed"
+                  {/* NEW: Live Status Badge (Indigo/Blue) */}
+                  <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tighter border shadow-sm flex items-center gap-1 ${
+                    task.liveStatus?.toLowerCase() === "in progress"
+                      ? "bg-blue-50 text-blue-600 border-blue-100"
+                      : "bg-indigo-50 text-indigo-500 border-indigo-100"
+                  }`}>
+                    <HiOutlineBolt size={10} />
+                    {task.liveStatus || "To be started"}
+                  </span>
+
+                  {/* Initiative Status Badge (Themed) */}
+                  <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tighter border shadow-sm ${
+                    task.status === "Completed"
                       ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                      : "bg-blue-50 text-blue-600 border-blue-100"
-                    }`}>
+                      : task.status === "On hold"
+                      ? "bg-slate-100 text-slate-600 border-slate-300"
+                      : "bg-purple-50 text-purple-600 border-purple-100"
+                  }`}>
                     {task.status}
                   </span>
 
-                  {/* Priority Badge - Fixed Logic */}
-                  <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tighter border shadow-sm ${task.priority === "Urgent" || task.priority === "High"
+                  {/* Priority Badge */}
+                  <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tighter border shadow-sm ${
+                    task.priority === "Urgent" || task.priority === "High"
                       ? "bg-rose-50 text-rose-600 border-rose-100 animate-pulse"
                       : task.priority === "Medium"
                         ? "bg-amber-50 text-amber-600 border-amber-100"
                         : "bg-slate-50 text-slate-500 border-slate-200"
-                    }`}>
+                  }`}>
                     {task.priority || "Normal"}
                   </span>
                 </div>
@@ -111,12 +125,8 @@ export default function AdminTaskDetailPage() {
 
       <main className="max-w-[1600px] mx-auto px-8 -mt-6">
         <div className="grid lg:grid-cols-12 gap-6">
-
-          {/* LEFT: MISSION LOGS */}
           <div className="lg:col-span-8 space-y-6">
-
-            {/* TACTICAL SUMMARY BOXES */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4"> {/* Changed to 5 columns */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <MetricBox label="Progress" value={`${task.progressPercent}%`} icon={<HiOutlineQueueList />} />
               <MetricBox label="Spent" value={`${consumed.toFixed(1)}h`} icon={<HiOutlineClock />} />
               <MetricBox label="Estimate" value={`${Number(task.estimatedTime || 0).toFixed(1)}h`} icon={<HiOutlinePencilSquare />} />
@@ -128,15 +138,13 @@ export default function AdminTaskDetailPage() {
               />
             </div>
 
-            {/* DESCRIPTION */}
             <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Project Deatils</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Project Details</p>
               <p className="text-slate-600 text-sm font-medium leading-relaxed">
                 {task.projectDetails || "No additional briefing data available."}
               </p>
             </div>
 
-            {/* TEAM TABLE - Exact style as your main list */}
             <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
@@ -171,13 +179,10 @@ export default function AdminTaskDetailPage() {
             </div>
           </div>
 
-          {/* RIGHT: ANALYTICS SIDEBAR */}
           <div className="lg:col-span-4 space-y-6">
-
-            {/* PROGRESS MONITOR */}
             <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden">
               <div className="relative z-10">
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Progress</p>
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Progress Monitor</p>
                 <div className="flex items-baseline gap-2 mb-6">
                   <span className="text-6xl font-black tracking-tighter italic">{task.progressPercent}</span>
                   <span className="text-xl font-bold text-orange-500">%</span>
@@ -191,7 +196,6 @@ export default function AdminTaskDetailPage() {
               </div>
             </div>
 
-            {/* DATES CARD */}
             <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 border-b border-slate-50 pb-4">Schedule Timeline</p>
               <div className="space-y-4">
@@ -200,7 +204,6 @@ export default function AdminTaskDetailPage() {
                 <DateItem label="End Date" date={task.endDate} />
               </div>
             </div>
-
           </div>
         </div>
       </main>

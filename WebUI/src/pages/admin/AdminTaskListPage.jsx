@@ -15,19 +15,9 @@ import Table from "../../components/Table";
 import Loader from "../../components/Loader";
 import Pagination from "../../components/Pagination";
 import TaskModal from "../../components/TaskModal";
+import StatusUpdateModal from "../../components/StatusUpdateModal";
 
 import { getAdminTaskColumns } from "../../utils/adminTaskListHelper";
-import StatusUpdateModal from "../../components/StatusUpdateModal"; // Import the new modal
-
-const STATUS_THEMES = {
-  "In progress": "text-blue-600",
-  "On hold": "text-slate-600",
-  "To be started": "text-indigo-500",
-  "Feedback pending": "text-yellow-600",
-  "Final rendering": "text-orange-600",
-  "Postproduction": "text-purple-600",
-  "Completed": "text-emerald-600",
-};
 
 export default function AdminTasksPage() {
   const navigate = useNavigate();
@@ -45,7 +35,7 @@ export default function AdminTasksPage() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  const [statusUpdateTask, setStatusUpdateTask] = useState(null); // New state
+  const [statusUpdateTask, setStatusUpdateTask] = useState(null);
 
   // --- DATA FETCHING ---
   const { data, isLoading, isFetching } = useGetAllTasksQuery({
@@ -56,16 +46,18 @@ export default function AdminTasksPage() {
     ...dateFilters
   });
 
+  // Dynamically get status options from backend response
+  const statusOptions = data?.availableStatuses || ["All"];
+
   // --- COLUMN DEFINITION ---
   const columns = useMemo(() =>
     getAdminTaskColumns(setEditingTask, setStatusUpdateTask),
     [setEditingTask, setStatusUpdateTask]);
-  const allPossibleStatuses = ["All", ...Object.keys(STATUS_THEMES)];
 
   // --- HANDLERS ---
   const handleDateChange = (key, value) => {
     setDateFilters(prev => ({ ...prev, [key]: value }));
-    setCurrentPage(1); // Reset to page 1 on filter change
+    setCurrentPage(1);
   };
 
   const clearFilters = () => {
@@ -87,10 +79,7 @@ export default function AdminTasksPage() {
       />
 
       <main className="max-w-[1700px] mx-auto px-8 -mt-10">
-
-        {/* TACTICAL FILTER BAR */}
         <div className="bg-white/90 backdrop-blur-xl border border-slate-200 p-5 rounded-[2.5rem] shadow-xl shadow-slate-200/50 mb-8 flex flex-col gap-6">
-
           <div className="flex flex-wrap items-center gap-4">
             {/* Search Input */}
             <div className="relative flex-1 min-w-[300px] group">
@@ -104,10 +93,10 @@ export default function AdminTasksPage() {
               />
             </div>
 
-            {/* Status Tabs */}
+            {/* DYNAMIC STATUS DROPDOWN */}
             <div className="relative min-w-[200px]">
               <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest block mb-1">
-                Mission Status
+                Active Status Filters
               </label>
               <div className="relative group">
                 <select
@@ -116,18 +105,14 @@ export default function AdminTasksPage() {
                     setStatusFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className={`w-full pl-5 pr-10 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-[11px] font-black uppercase tracking-widest outline-none transition-all appearance-none cursor-pointer focus:bg-white focus:ring-4 focus:ring-orange-500/5 
-        ${statusFilter === "All" ? "text-slate-500" : (STATUS_THEMES[statusFilter]?.replace('text-', 'text-') || "text-orange-600")}
-      `}
+                  className="w-full pl-5 pr-10 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-[11px] font-black uppercase tracking-widest outline-none transition-all appearance-none cursor-pointer focus:bg-white focus:ring-4 focus:ring-orange-500/5 text-orange-600"
                 >
-                  {allPossibleStatuses.map((status) => (
-                    <option key={status} value={status} className="font-bold text-slate-700">
+                  {statusOptions.map((status) => (
+                    <option key={status} value={status}>
                       {status}
                     </option>
                   ))}
                 </select>
-
-                {/* Custom Chevron Icon for the dropdown */}
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                   <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                     <path d="M19 9l-7 7-7-7" />
@@ -184,7 +169,6 @@ export default function AdminTasksPage() {
 
           {/* PAGINATION FOOTER */}
           <div className="bg-slate-50/50 p-6 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">
-            {/* LEFT SIDE: ALWAYS VISIBLE SELECTOR */}
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-sm">
                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-100 pr-3">
@@ -199,14 +183,10 @@ export default function AdminTasksPage() {
                   className="bg-transparent text-[9px] font-black outline-none focus:ring-0 cursor-pointer text-slate-700"
                 >
                   {[5, 10, 25, 50].map((v) => (
-                    <option key={v} value={v}>
-                      {v}
-                    </option>
+                    <option key={v} value={v}>{v}</option>
                   ))}
                 </select>
               </div>
-
-              {/* Optional: Show small total count if Pagination is hidden */}
               {data?.totalTasks <= limit && (
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight ml-2">
                   Total {data?.totalTasks} results
@@ -214,7 +194,6 @@ export default function AdminTasksPage() {
               )}
             </div>
 
-            {/* RIGHT SIDE: CONDITIONAL PAGINATION */}
             <Pagination
               pagination={{
                 current: data?.currentPage,

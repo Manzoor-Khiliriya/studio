@@ -10,7 +10,8 @@ import {
   HiOutlineDocumentChartBar,
   HiOutlineViewColumns,
   HiOutlineChevronRight,
-  HiOutlineFlag
+  HiOutlineFlag,
+  HiCalendar
 } from "react-icons/hi2";
 import { FiMenu } from "react-icons/fi";
 import { HiLogout, HiOutlineCalendar } from "react-icons/hi";
@@ -36,6 +37,8 @@ export default function Sidebar() {
     { to: '/leaves', label: 'Leaves', icon: <HiOutlineCalendar /> },
     { to: '/holidays', label: 'Holidays', icon: <HiOutlineFlag /> },
     { to: "/reports", label: "Performance", icon: <HiOutlineDocumentChartBar /> },
+    { to: "/tasks-calender", label: "Task Calender", icon: <HiCalendar /> },
+
   ];
 
   const employeeLinks = [

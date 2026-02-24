@@ -7,8 +7,8 @@ const sendNotification = require("../utils/notifier");
 
 exports.createUser = async (req, res) => {
   try {
-    const { 
-      name, email, password, designation, 
+    const {
+      name, employee_code, email, password, designation,
       dailyWorkLimit, efficiency, joinedDate,
       mobileNumber, dateOfBirth
     } = req.body;
@@ -27,6 +27,7 @@ exports.createUser = async (req, res) => {
     if (user.role === "Employee") {
       await Employee.create({
         user: user._id,
+        employee_code: employee_code.toLowerCase(),
         designation: designation || "Junior Developer",
         dailyWorkLimit: dailyWorkLimit || 9,
         efficiency: efficiency || 100,
@@ -56,8 +57,8 @@ exports.createUser = async (req, res) => {
 
 exports.updateUser = async (req, res) => {
   try {
-    const { 
-      name, email, designation, dailyWorkLimit, 
+    const {
+      name, email, employee_code, designation, dailyWorkLimit,
       joinedDate, efficiency, leaves,
       mobileNumber, dateOfBirth
     } = req.body;
@@ -65,28 +66,35 @@ exports.updateUser = async (req, res) => {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
+    // 1. Update User fields
     if (name) user.name = name;
     if (email) user.email = email.toLowerCase();
-
     await user.save();
 
+    // 2. Update Employee fields AND WAIT for it
     if (user.role === "Employee") {
       await Employee.findOneAndUpdate(
         { user: user._id },
         {
+          employee_code: employee_code.toLowerCase(),
           designation,
           dailyWorkLimit,
           efficiency,
           joinedDate,
           leaves,
-          mobileNumber,
+          mobileNumber, // Ensure this matches your Schema exactly
           dateOfBirth
         },
         { new: true, upsert: true }
       );
     }
 
-    const updated = await User.findById(user._id).populate("employee");
+    // 3. FETCH FRESH DATA FROM DB
+    // Using .lean() ensures we get a plain JS object with the latest DB values
+    const updated = await User.findById(user._id)
+      .populate("employee")
+      .lean();
+
     res.json(sanitizeUser(updated));
   } catch (err) {
     res.status(500).json({ error: err.message });

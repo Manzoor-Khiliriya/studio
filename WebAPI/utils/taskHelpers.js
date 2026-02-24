@@ -9,12 +9,10 @@ const calculateEstimatedHours = async (start, end) => {
   const startDate = new Date(start);
   const endDate = new Date(end);
 
-  // ✅ HARD GUARD
   if (isNaN(startDate) || isNaN(endDate)) {
     throw new Error("Invalid start or end date");
   }
 
-  // Ensure correct order
   if (startDate > endDate) {
     throw new Error("Start date cannot be after end date");
   }

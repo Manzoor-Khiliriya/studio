@@ -12,9 +12,7 @@ exports.getSummary = async (req, res) => {
         ADMIN DASHBOARD
        ============================================================= */
     if (isActiveAdmin(req.user)) {
-
-      const [totalTasks, activeTimers, pendingLeaves, recentActivity, taskStats] = await Promise.all([
-
+      const [totalTasks, activeTimers, pendingLeaves, recentActivity, taskStats, liveStats] = await Promise.all([
         Task.countDocuments(),
 
         TimeLog.find({ isRunning: true, logType: "work" })
@@ -24,8 +22,6 @@ exports.getSummary = async (req, res) => {
 
         Leave.countDocuments({ status: "Pending" }),
 
-        // FIX: Added filter { clearedByAdmin: false } 
-        // This ensures "cleared" logs don't show up here, but stay in DB for Employee totals.
         TimeLog.find({ logType: "work", clearedByAdmin: false }) 
           .sort({ createdAt: -1 })
           .limit(50) 
@@ -33,7 +29,8 @@ exports.getSummary = async (req, res) => {
           .populate("task", "title projectNumber")
           .lean(),
 
-        Task.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }])
+        Task.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]),
+        Task.aggregate([{ $group: { _id: "$liveStatus", count: { $sum: 1 } } }])
       ]);
 
       return res.json({
@@ -42,7 +39,10 @@ exports.getSummary = async (req, res) => {
           totalProjects: totalTasks,
           currentlyWorking: activeTimers.length,
           pendingApprovals: pendingLeaves,
-          statusBreakdown: taskStats.reduce((a, c) => ({ ...a, [c._id]: c.count }), {})
+          statusBreakdown: {
+            ...taskStats.reduce((a, c) => ({ ...a, [c._id]: c.count }), {}),
+            ...liveStats.reduce((a, c) => ({ ...a, [c._id]: c.count }), {})
+          }
         },
         liveTracking: activeTimers.map(t => ({
           id: t._id,
@@ -65,9 +65,6 @@ exports.getSummary = async (req, res) => {
     /* =============================================================
         EMPLOYEE DASHBOARD
        ============================================================= */
-    // Note: We DO NOT filter by clearedByAdmin here.
-    // This allows the employee to still see their hours/progress accurately.
-
     const today = new Date();
     const startOfWeek = new Date(today);
     startOfWeek.setDate(today.getDate() - ((today.getDay() || 7) - 1));
@@ -76,11 +73,10 @@ exports.getSummary = async (req, res) => {
     const employeeProfile = await Employee.findOne({ user: userId }).lean();
 
     const [assignedTasks, weeklyLogs, myLeaves, runningTimer] = await Promise.all([
-      Task.find({ assignedTo: userId, status: { $in: ["To be started", "In Progress"] } })
+      Task.find({ assignedTo: userId, liveStatus: { $in: ["In progress"] } })
         .sort({ priority: -1, endDate: 1 })
         .lean(),
 
-      // Employee still gets their full weekly logs even if Admin "cleared" the dashboard view
       TimeLog.find({ user: userId, startTime: { $gte: startOfWeek }, logType: "work" }),
 
       Leave.find({ user: userId }).sort({ startDate: -1 }).limit(5).lean(),
@@ -113,7 +109,7 @@ exports.getSummary = async (req, res) => {
         projectNumber: t.projectNumber,
         deadline: t.endDate,
         priority: t.priority,
-        status: t.status
+        status: t.liveStatus
       })),
       upcomingLeaves: myLeaves.map(l => ({
         id: l._id,
@@ -125,7 +121,6 @@ exports.getSummary = async (req, res) => {
     });
 
   } catch (err) {
-    console.error("Dashboard Error:", err);
     res.status(500).json({ error: "Mission Control sync failed." });
   }
 };

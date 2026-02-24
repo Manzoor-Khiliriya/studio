@@ -8,7 +8,11 @@ const employeeSchema = new mongoose.Schema({
     unique: true,
     index: true,
   },
-
+  employee_code: { 
+    type: String, 
+    trim: true,
+    unique: true,
+  },
   designation: { type: String, trim: true },
 
   mobileNumber: { 

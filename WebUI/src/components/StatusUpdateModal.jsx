@@ -63,8 +63,6 @@ export default function StatusUpdateModal({ isOpen, onClose, task }) {
             onChange={(e) => setStatus(e.target.value)}
           >
             {[
-              "To be started", 
-              "In progress", 
               "On hold", 
               "Feedback pending", 
               "Final rendering", 

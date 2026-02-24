@@ -4,7 +4,8 @@ import {
   HiOutlineChartBar, HiOutlineEye, HiOutlineEyeSlash,
   HiOutlineClock, HiOutlineCalendarDays,
   HiOutlinePhone, // New Icon
-  HiOutlineCake // New Icon for DOB
+  HiOutlineCake, // New Icon for DOB
+  HiOutlineIdentification
 } from "react-icons/hi2";
 import { CgSpinner } from "react-icons/cg";
 import { toast } from "react-hot-toast";
@@ -21,24 +22,28 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
   const getToday = () => new Date().toISOString().split("T")[0];
 
   const [formData, setFormData] = useState({
-    name: "", email: "", password: "", designation: "",
+    name: "", employee_code: "", email: "", password: "", designation: "",
     efficiency: "100", joinedDate: getToday(), dailyWorkLimit: "9",
-    mobileNumber: "", // New Field
-    dateOfBirth: ""   // New Field
+    mobileNumber: "",
+    dateOfBirth: ""  
   });
 
   useEffect(() => {
     setShowPassword(false);
     if (editData && isOpen) {
+      const rawDob = editData.dateOfBirth || editData.employee?.dateOfBirth;
+      const rawJoined = editData.joinedDate || editData.employee?.joinedDate;
+
       setFormData({
-        name: editData.user?.name || "",
-        email: editData.user?.email || "",
-        designation: editData.designation || "",
-        efficiency: String(editData.efficiency ?? 100),
-        dailyWorkLimit: String(editData.dailyWorkLimit ?? 9),
-        joinedDate: editData.joinedDate ? editData.joinedDate.split('T')[0] : "",
-        mobileNumber: editData.mobileNumber || "", // Load from API data
-        dateOfBirth: editData.dateOfBirth ? editData.dateOfBirth.split('T')[0] : "" // Format date
+        name: editData.user?.name || editData.name || "",
+        employee_code: editData?.employee_code || "",
+        email: editData.user?.email || editData.email || "",
+        designation: editData.designation || editData.employee?.designation || "",
+        efficiency: String(editData.efficiency ?? editData.employee?.efficiency ?? 100),
+        dailyWorkLimit: String(editData.dailyWorkLimit ?? editData.employee?.dailyWorkLimit ?? 9),
+        joinedDate: rawJoined ? new Date(rawJoined).toISOString().split('T')[0] : "",
+        mobileNumber: editData.mobileNumber || editData.employee?.mobileNumber || "",
+        dateOfBirth: rawDob ? new Date(rawDob).toISOString().split('T')[0] : ""
       });
     } else if (isOpen) {
       setFormData({
@@ -51,7 +56,6 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    // Allow digits only for specific fields, otherwise pass value through
     let finalValue = (name === "efficiency" || name === "dailyWorkLimit")
       ? value.replace(/\D/g, "")
       : value;
@@ -91,11 +95,14 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
       maxWidth="max-w-xl"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* ROW 1: NAME & DESIGNATION */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <InputGroup label="Full Name">
             <HiOutlineUser className="input-icon" />
             <input required name="name" value={formData.name} onChange={handleChange} className="form-input" placeholder="e.g. John Doe" />
+          </InputGroup>
+          <InputGroup label="Employee Code">
+            <HiOutlineIdentification className="input-icon" />
+            <input required name="employee_code" value={formData.employee_code} onChange={handleChange} className="form-input" placeholder="e.g. EMP001" />
           </InputGroup>
           <InputGroup label="Job Title">
             <HiOutlineBriefcase className="input-icon" />
@@ -119,13 +126,13 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
         {!isEditing && (
           <InputGroup label="Access Credentials">
             <HiOutlineLockClosed className="input-icon" />
-            <input 
-              required 
-              name="password" 
-              type={showPassword ? "text" : "password"} 
-              value={formData.password} 
-              onChange={handleChange} 
-              className="form-input pr-12" 
+            <input
+              required
+              name="password"
+              type={showPassword ? "text" : "password"}
+              value={formData.password}
+              onChange={handleChange}
+              className="form-input pr-12"
               placeholder="Set initial password"
             />
             <button

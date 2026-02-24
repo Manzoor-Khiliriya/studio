@@ -25,6 +25,14 @@ export const getEmployeeColumns = ({ onEdit, onDelete, onToggle }) => [
     )
   },
   {
+    header: "Employee Code",
+    render: (emp) => (
+      <span className="font-black text-[10px] px-3 py-1.5 rounded-lg tracking-tight text-slate-600">
+        {emp?.employee_code?.toUpperCase()}
+      </span>
+    )
+  },
+  {
     header: "Contact Info",
     render: (emp) => (
       <span className="font-black text-[10px] text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 lowercase tracking-tight">

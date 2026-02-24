@@ -8,13 +8,10 @@ const { calculateEstimatedHours } = require("../utils/taskHelpers");
 const { calculateEmployeeAvailableHours } = require("../utils/workerHelpers");
 const { isUserOnLeaveDuring } = require("../utils/leaveHelpers");
 
-
-
 exports.createTask = async (req, res) => {
   try {
     const { title, projectNumber, projectDetails, startDate, endDate, priority, allocatedTime } = req.body;
 
-    // 1. Validation: assignedTo is no longer required here
     if (!title || !projectNumber || !startDate || !endDate) {
       return res.status(400).json({ message: "Missing required fields: title, projectNumber, startDate, or endDate" });
     }
@@ -29,10 +26,7 @@ exports.createTask = async (req, res) => {
       return res.status(400).json({ message: "Invalid date format" });
     }
 
-    // 2. Simple Time Calculation (No employee check needed for creation)
     const estimatedTime = await calculateEstimatedHours(startDate, endDate);
-    
-    // If admin didn't manually provide an allocatedTime, use the calculated estimate
     const finalAllocatedTime = allocatedTime !== undefined ? Number(allocatedTime) : estimatedTime;
 
     const task = await Task.create({
@@ -40,14 +34,13 @@ exports.createTask = async (req, res) => {
       projectNumber,
       projectDetails,
       createdBy: req.user._id,
-      assignedTo: [], // Starts empty per your request
+      assignedTo: [],
       estimatedTime,
       allocatedTime: finalAllocatedTime,
       priority: priority || "Medium",
       startDate: start,
       endDate: end,
-      status: "To be started",
-      activeStatus: "Draft-1"
+      // Note: liveStatus, status, and activeStatus will use their default values from the Schema
     });
 
     res.status(201).json(task);
@@ -58,9 +51,9 @@ exports.createTask = async (req, res) => {
 
 exports.updateTask = async (req, res) => {
   try {
-    const { 
-      title, projectNumber, projectDetails, assignedTo, 
-      startDate, endDate, priority, status, allocatedTime, activeStatus 
+    const {
+      title, projectNumber, projectDetails, assignedTo,
+      startDate, endDate, priority, status, allocatedTime, activeStatus, liveStatus
     } = req.body;
     const io = req.app.get('socketio');
 
@@ -71,12 +64,11 @@ exports.updateTask = async (req, res) => {
     const finalStart = startDate ? new Date(startDate) : task.startDate;
     const finalEnd = endDate ? new Date(endDate) : task.endDate;
 
-    // 1. Assignment & Leave Logic (Crucial for UPDATE)
+    // Check Leave Conflict
     if (assignedTo) {
       for (const id of assignedTo) {
         const emp = await Employee.findById(id);
         if (!emp) continue;
-
         const onLeave = await isUserOnLeaveDuring(emp.user, finalStart, finalEnd);
         if (onLeave) {
           const conflictUser = await User.findById(emp.user);
@@ -87,15 +79,16 @@ exports.updateTask = async (req, res) => {
       }
     }
 
-    // 2. Update Basic Fields
+    // Apply basic updates
     if (title) task.title = title;
     if (projectNumber) task.projectNumber = projectNumber;
     if (priority) task.priority = priority;
     if (status) task.status = status;
     if (activeStatus) task.activeStatus = activeStatus;
+    if (liveStatus) task.liveStatus = liveStatus; // Added support for new field
     if (projectDetails !== undefined) task.projectDetails = projectDetails;
 
-    // 3. Handle Schedule/Team Changes
+    // Handle Time and Assignments
     if (startDate || endDate || assignedTo) {
       task.startDate = finalStart;
       task.endDate = finalEnd;
@@ -104,7 +97,6 @@ exports.updateTask = async (req, res) => {
       const estimated = await calculateEstimatedHours(finalStart, finalEnd);
       task.estimatedTime = estimated;
 
-      // Recalculate allocatedTime based on assigned team's capacity
       if (allocatedTime === undefined) {
         const currentAssignees = assignedTo || task.assignedTo;
         if (currentAssignees.length > 0) {
@@ -127,7 +119,7 @@ exports.updateTask = async (req, res) => {
 
     await task.save();
 
-    // 4. Notifications (Only trigger if assignedTo changed)
+    // Notifications logic (existing)
     if (assignedTo) {
       const newAssigneeIds = assignedTo.map(id => id.toString());
       const added = newAssigneeIds.filter(id => !oldAssigneeIds.includes(id));
@@ -141,7 +133,6 @@ exports.updateTask = async (req, res) => {
           }, io);
         }
       }
-
       if (removed.length > 0) {
         const removedEmps = await Employee.find({ _id: { $in: removed } }).populate("user");
         for (const emp of removedEmps) {
@@ -152,11 +143,10 @@ exports.updateTask = async (req, res) => {
       }
     }
 
-    const updated = await Task.findById(task._id).populate({
-      path: "assignedTo",
-      populate: { path: "user", select: "name" }
-    });
-    
+    const updated = await Task.findById(task._id)
+      .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
+      .populate("timeLogs"); // Ensure virtuals update correctly
+
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -166,7 +156,7 @@ exports.updateTask = async (req, res) => {
 exports.updateTaskStatus = async (req, res) => {
   try {
     const { status, activeStatus } = req.body;
-    
+
     if (!status && !activeStatus) {
       return res.status(400).json({ message: "No status updates provided" });
     }
@@ -190,71 +180,50 @@ exports.updateTaskStatus = async (req, res) => {
   }
 };
 
-exports.deleteTask = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-  try {
-    const task = await Task.findByIdAndDelete(req.params.id).session(session);
-    if (!task) throw new Error("Task not found");
-    await TimeLog.deleteMany({ task: task._id }).session(session);
-    await session.commitTransaction();
-    res.json({ message: "Task and related logs deleted" });
-  } catch (err) {
-    await session.abortTransaction();
-    res.status(500).json({ error: err.message });
-  } finally {
-    session.endSession();
-  }
-};
-
 exports.getAllTasks = async (req, res) => {
   try {
-    const { search, status, page = 1, limit = 10, createdAt, startDate, endDate } = req.query;
+    const { search, status, liveStatus, page = 1, limit = 10, createdAt, startDate, endDate } = req.query;
     let query = {};
+
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: "i" } },
         { projectNumber: { $regex: search, $options: "i" } },
       ];
     }
-    if (status && status !== "All") query.status = status;
 
+    if (status && status !== "All") query.status = status;
+    if (liveStatus && liveStatus !== "All") query.liveStatus = liveStatus; // Added Filter support
+
+    // Date Filtering Logic
     if (createdAt) {
       const day = new Date(createdAt);
       query.createdAt = { $gte: new Date(day.setHours(0, 0, 0, 0)), $lte: new Date(day.setHours(23, 59, 59, 999)) };
     }
-
     if (startDate && endDate) {
       query.startDate = { $gte: new Date(new Date(startDate).setHours(0, 0, 0, 0)) };
       query.endDate = { $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)) };
-    } else {
-      if (startDate) {
-        const sDay = new Date(startDate);
-        query.startDate = {
-          $gte: new Date(sDay.setHours(0, 0, 0, 0)),
-          $lte: new Date(sDay.setHours(23, 59, 59, 999))
-        };
-      }
-      if (endDate) {
-        const eDay = new Date(endDate);
-        query.endDate = {
-          $gte: new Date(eDay.setHours(0, 0, 0, 0)),
-          $lte: new Date(eDay.setHours(23, 59, 59, 999))
-        };
-      }
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
+
     const tasks = await Task.find(query)
       .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
       .populate("timeLogs")
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit))
-      .lean();
+      .limit(parseInt(limit));
 
     const total = await Task.countDocuments(query);
-    res.json({ tasks, totalTasks: total, totalPages: Math.ceil(total / parseInt(limit)), currentPage: parseInt(page) });
+    const availableStatuses = await Task.distinct("status");
+
+    res.json({
+      tasks,
+      totalTasks: total,
+      totalPages: Math.ceil(total / parseInt(limit)),
+      currentPage: parseInt(page),
+      availableStatuses: ["All", ...availableStatuses.filter(Boolean)]
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -275,50 +244,124 @@ exports.getTaskDetail = async (req, res) => {
 
 exports.getTasksByEmployee = async (req, res) => {
   try {
-    // 1. First, find the Employee record associated with the User ID from the URL
+    // Find the employee profile using the User ID from the URL params
     const employee = await Employee.findOne({ user: req.params.userId });
 
     if (!employee) {
       return res.status(404).json({ message: "Employee profile not found" });
     }
 
-    // 2. Find tasks assigned to this Employee ID
-    const tasks = await Task.find({ assignedTo: employee._id })
-      .populate("timeLogs")
+    // New: Handle optional liveStatus filtering from query (e.g., ?liveStatus=In progress)
+    const { liveStatus } = req.query;
+    const query = { assignedTo: employee._id };
+
+    if (liveStatus && liveStatus !== "All") {
+      query.liveStatus = { $in: liveStatus.split(",") };
+    }
+
+    const tasks = await Task.find(query)
+      .populate({ path: "createdBy", select: "name" })
+      .populate("timeLogs") // Crucial for totalConsumedHours virtual
       .sort({ createdAt: -1 })
-      .lean(); // Use lean for faster read-only performance
+      .lean({ virtuals: true }); // Ensures virtuals like progressPercent are included
 
     res.json(tasks);
   } catch (err) {
+    console.error("Get Tasks By Employee Error:", err);
     res.status(500).json({ error: err.message });
   }
 };
 
 exports.getMyTasks = async (req, res) => {
   try {
-    const { search, status, page = 1, limit = 6 } = req.query;
+    const { search, status, liveStatus, activeStatus, page = 1, limit = 6 } = req.query;
+    
+    // 1. Find the employee profile
     const employee = await Employee.findOne({ user: req.user._id });
-    if (!employee) return res.json({ tasks: [], pagination: { current: 1, totalPages: 0, totalTasks: 0 } });
+    if (!employee) {
+      return res.json({ tasks: [], pagination: { current: 1, totalPages: 0, totalTasks: 0 } });
+    }
 
+    // 2. Base Query: Only tasks assigned to this employee
     const query = { assignedTo: employee._id };
+
+    // 3. Search Filter
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: "i" } },
         { projectNumber: { $regex: search, $options: "i" } },
       ];
     }
-    if (status && status !== "All") query.status = status;
 
+    /** * 4. NOT EQUAL LOGIC: 
+     * If status starts with "!", we use MongoDB's $ne operator.
+     * Example: status="!Completed" => query.status = { $ne: "Completed" }
+     */
+    if (status && status !== "All") {
+      if (status.startsWith("!")) {
+        const excludeValue = status.substring(1); // "Completed"
+        query.status = { $ne: excludeValue };
+      } else {
+        query.status = status;
+      }
+    }
+
+    /**
+     * 5. ACTIVE STATUS FILTER:
+     * Added specifically for your request to filter by activeStatus
+     */
+    if (activeStatus && activeStatus !== "All") {
+      if (activeStatus.startsWith("!")) {
+        query.activeStatus = { $ne: activeStatus.substring(1) };
+      } else {
+        query.activeStatus = activeStatus;
+      }
+    }
+
+    // 6. Live Status Filter (comma-separated support)
+    if (liveStatus && liveStatus !== "All") {
+      const liveStatuses = liveStatus.split(",");
+      query.liveStatus = { $in: liveStatuses };
+    }
+
+    // 7. Execution
+    const skip = (Number(page) - 1) * Number(limit);
     const tasks = await Task.find(query)
       .populate("createdBy", "name")
       .populate("timeLogs")
       .sort({ createdAt: -1 })
-      .skip((Number(page) - 1) * Number(limit))
+      .skip(skip)
       .limit(Number(limit));
 
     const total = await Task.countDocuments(query);
-    res.json({ tasks, pagination: { current: Number(page), totalPages: Math.ceil(total / Number(limit)), totalTasks: total } });
+
+    res.json({
+      tasks,
+      pagination: {
+        current: Number(page),
+        totalPages: Math.ceil(total / Number(limit)),
+        totalTasks: total,
+        count: total // Added count for your StatCards
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+exports.deleteTask = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const task = await Task.findByIdAndDelete(req.params.id).session(session);
+    if (!task) throw new Error("Task not found");
+    await TimeLog.deleteMany({ task: task._id }).session(session);
+    await session.commitTransaction();
+    res.json({ message: "Task and related logs deleted" });
+  } catch (err) {
+    await session.abortTransaction();
+    res.status(500).json({ error: err.message });
+  } finally {
+    session.endSession();
   }
 };

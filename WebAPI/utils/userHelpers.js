@@ -9,9 +9,8 @@ exports.sanitizeUser = (user) => {
   delete userObj.password;
   delete userObj.__v;
 
-  // Clean nested employee profile if populated
   if (userObj.employee) {
-    delete userObj.employee.user;   // remove back-reference
+    delete userObj.employee.user;   
     delete userObj.employee.__v;
   }
 

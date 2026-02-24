@@ -10,14 +10,21 @@ import {
   HiOutlineChevronRight,
   HiOutlineCake,
   HiOutlinePhone,
+  HiOutlinePencilSquare,
+  HiOutlineTrash,
 } from "react-icons/hi2";
 import { useGetEmployeeProfileQuery } from "../../services/employeeApi";
 import { useGetTasksByEmployeeQuery } from "../../services/taskApi";
 import Loader from "../../components/Loader";
 import { HiOutlineLightningBolt } from "react-icons/hi";
+import EmployeeModal from "../../components/EmployeeModal";
+import DeleteConfirmModal from "../../components/DeleteConfirmModal";
+import { useDeleteUserMutation } from "../../services/userApi";
+
 
 // --- UTILITY: DYNAMIC TIME FORMATTING ---
 const formatDuration = (totalSeconds) => {
+
   if (totalSeconds < 60) return `${Math.round(totalSeconds)} SEC`;
   const mins = totalSeconds / 60;
   if (mins < 60) return `${mins.toFixed(1)} MIN`;
@@ -32,9 +39,12 @@ export default function EmployeeDetailPage() {
   const [logPage, setLogPage] = useState(0);
   const [taskPage, setTaskPage] = useState(0);
   const itemsPerPage = 5;
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const { data: employee, isLoading: userLoading } = useGetEmployeeProfileQuery(id);
   const { data: taskData, isLoading: tasksLoading } = useGetTasksByEmployeeQuery(id);
+  const [deleteUser] = useDeleteUserMutation();
 
   const tasks = Array.isArray(taskData) ? taskData : taskData?.tasks || [];
 
@@ -74,6 +84,18 @@ export default function EmployeeDetailPage() {
   const paginatedAllTasks = tasks.slice(taskPage * itemsPerPage, (taskPage + 1) * itemsPerPage);
   const effectiveHours = employee ? ((540 * (employee.efficiency || 100)) / 6000).toFixed(1) : 0;
 
+  const handleConfirmDelete = async () => {
+    const t = toast.loading("Purging records...");
+    try {
+      await deleteUser(employee.user._id).unwrap();
+      toast.success("Personnel removed from directory", { id: t });
+      setIsDeleteModalOpen(false);
+      navigate("/employees");
+    } catch (err) {
+      toast.error("Deletion failed", { id: t });
+    }
+  };
+
   if (userLoading || tasksLoading) return <Loader message="Accessing Personnel Files..." />;
 
   return (
@@ -86,17 +108,35 @@ export default function EmployeeDetailPage() {
             Back to Directory
           </button>
 
-          <div className="flex items-center gap-6">
-            <div className="w-20 h-20 bg-slate-900 rounded-[1.8rem] flex items-center justify-center text-orange-500 font-black text-4xl italic shadow-2xl shrink-0">
-              {employee?.user?.name?.charAt(0)}
-            </div>
-            <div className="space-y-3">
-              <h1 className="text-4xl font-black tracking-tighter uppercase leading-none">{employee?.user?.name}</h1>
-              <div className="flex items-center gap-3">
-                <StatusBadge status={employee?.user?.status} />
-                <span className="h-1 w-1 rounded-full bg-slate-300" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{employee?.designation || "Field Operator"}</span>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-6">
+              <div className="w-20 h-20 bg-slate-900 rounded-[1.8rem] flex items-center justify-center text-orange-500 font-black text-4xl italic shadow-2xl shrink-0">
+                {employee?.user?.name?.charAt(0)}
               </div>
+              <div className="space-y-3">
+                <h1 className="text-4xl font-black tracking-tighter uppercase leading-none">{employee?.user?.name}</h1>
+                <div className="flex items-center gap-3">
+                  <StatusBadge status={employee?.user?.status} />
+                  <span className="h-1 w-1 rounded-full bg-slate-300" />
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{employee?.designation || "Field Operator"}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* ACTION BLOCK */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsEditModalOpen(true)}
+                className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-3 rounded-xl font-bold text-xs uppercase hover:border-orange-500 hover:text-orange-600 transition-all cursor-pointer shadow-sm"
+              >
+                <HiOutlinePencilSquare size={16} /> Update Credentials
+              </button>
+              <button
+                onClick={() => setIsDeleteModalOpen(true)}
+                className="flex items-center gap-2 bg-rose-50 text-rose-600 px-5 py-3 rounded-xl font-bold text-xs uppercase hover:bg-rose-600 hover:text-white transition-all cursor-pointer"
+              >
+                <HiOutlineTrash size={16} /> Purge Record
+              </button>
             </div>
           </div>
         </div>
@@ -104,7 +144,7 @@ export default function EmployeeDetailPage() {
 
       <main className="max-w-[1400px] mx-auto px-6 -mt-8">
         <div className="grid lg:grid-cols-12 gap-8">
-          
+
           {/* LEFT: LOGS */}
           <div className="lg:col-span-8 space-y-10">
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
@@ -169,6 +209,18 @@ export default function EmployeeDetailPage() {
           </div>
         </div>
       </main>
+      <EmployeeModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        editData={employee}
+      />
+
+      <DeleteConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        employeeName={employee?.user?.name}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }

@@ -1,13 +1,13 @@
 import React from "react";
 import { FiEdit } from "react-icons/fi";
-import { HiOutlineArrowPath } from "react-icons/hi2"; // New Sync Icon
+import { HiOutlineArrowPath } from "react-icons/hi2";
 
-const renderStatusBadge = (status, onStatusClick, task) => {
+// --- CLEAN BADGE RENDERS (Visual Only) ---
+
+const renderStatusBadge = (status) => {
   const themes = {
     "completed": "bg-emerald-50 text-emerald-600 border-emerald-100",
-    "in progress": "bg-blue-50 text-blue-600 border-blue-100",
     "on hold": "bg-slate-100 text-slate-600 border-slate-300",
-    "to be started": "bg-indigo-50 text-indigo-500 border-indigo-100",
     "feedback pending": "bg-yellow-50 text-yellow-600 border-yellow-200",
     "final rendering": "bg-orange-50 text-orange-600 border-orange-200",
     "postproduction": "bg-purple-50 text-purple-600 border-purple-200",
@@ -17,19 +17,13 @@ const renderStatusBadge = (status, onStatusClick, task) => {
   const themeClass = themes[normalizedStatus] || "bg-slate-50 text-slate-500 border-slate-200";
 
   return (
-    <div 
-      onClick={(e) => { e.stopPropagation(); onStatusClick(task); }}
-      className="group/stat cursor-pointer flex items-center justify-center gap-2"
-    >
-      <span className={`inline-block text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest border shadow-sm transition-all group-hover/stat:border-orange-300 ${themeClass}`}>
-        {status}
-      </span>
-      <HiOutlineArrowPath className="text-slate-300 group-hover/stat:text-orange-500 transition-colors opacity-0 group-hover/stat:opacity-100" size={12} />
-    </div>
+    <span className={`inline-block text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest border shadow-sm ${themeClass}`}>
+      {status}
+    </span>
   );
 };
 
-const renderActiveStatus = (status, onStatusClick, task) => {
+const renderActiveStatus = (status) => {
   const isFinal = status === "Final";
   const isPreFinal = status === "Pre-Final";
 
@@ -45,16 +39,10 @@ const renderActiveStatus = (status, onStatusClick, task) => {
   }
 
   return (
-    <div 
-      onClick={(e) => { e.stopPropagation(); onStatusClick(task); }}
-      className="group/act cursor-pointer flex items-center justify-center gap-2"
-    >
-      <div className={`flex items-center justify-center px-3 py-1 rounded-lg border border-slate-100 ${bgColor} shadow-sm inline-flex transition-all group-hover/act:border-orange-300`}>
-        <span className={`text-[10px] font-black uppercase tracking-tighter ${textColor}`}>
-          {status || "DRAFT-1"}
-        </span>
-      </div>
-      <HiOutlineArrowPath className="text-slate-300 group-hover/act:text-orange-500 transition-colors opacity-0 group-hover/act:opacity-100" size={12} />
+    <div className={`flex items-center justify-center px-3 py-1 rounded-lg border border-slate-100 ${bgColor} shadow-sm inline-flex`}>
+      <span className={`text-[10px] font-black uppercase tracking-tighter ${textColor}`}>
+        {status || "DRAFT-1"}
+      </span>
     </div>
   );
 };
@@ -67,7 +55,7 @@ const renderUtilization = (task) => {
     <div className="flex flex-col min-w-[200px] pr-8">
       <div className="flex justify-between items-end mb-2">
         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-          <span className="text-slate-900">{(task.totalConsumedTime / 60 || 0).toFixed(1)}h</span> / {(task.allocatedTime || 0).toFixed(1)}h
+          <span className="text-slate-900">{(task.totalConsumedHours || 0).toFixed(1)}h</span> / {(task.allocatedTime || 0).toFixed(1)}h
         </span>
         <span className={`text-[10px] font-black ${isWarning ? 'text-rose-600' : 'text-emerald-600'}`}>
           {progress}%
@@ -83,9 +71,8 @@ const renderUtilization = (task) => {
   );
 };
 
-/**
- * Updated Columns with separate Status Trigger
- */
+// --- MAIN COLUMN DEFINITION ---
+
 export const getAdminTaskColumns = (onEdit, onStatusUpdate) => [
   {
     header: "Project Code",
@@ -155,26 +142,57 @@ export const getAdminTaskColumns = (onEdit, onStatusUpdate) => [
     )
   },
   {
+    header: "Live Status",
+    className: "text-center",
+    cellClassName: "text-center",
+    render: (task) => (
+      <div className={`inline-flex items-center justify-center px-3 py-1 rounded-lg border shadow-sm ${
+        task.liveStatus?.toLowerCase() === "in progress"
+          ? "bg-blue-50 text-blue-600 border-blue-100"
+          : "bg-indigo-50 text-indigo-500 border-indigo-100"
+      }`}>
+        <span className="text-[10px] font-black uppercase tracking-tighter">
+          {task.liveStatus || "TO BE STARTED"}
+        </span>
+      </div>
+    )
+  },
+  {
     header: "Initiative Status",
     className: "text-center",
     cellClassName: "text-center",
-    render: (task) => renderStatusBadge(task.status, onStatusUpdate, task)
+    render: (task) => renderStatusBadge(task.status)
   },
   {
     header: "Active Status",
     className: "text-center",
     cellClassName: "text-center",
-    render: (task) => renderActiveStatus(task.activeStatus || "Draft-1", onStatusUpdate, task)
+    render: (task) => renderActiveStatus(task.activeStatus || "Draft-1")
   },
   {
     header: "Actions",
+    className: "text-right",
+    cellClassName: "text-right",
     render: (task) => (
-      <button
-        onClick={(e) => { e.stopPropagation(); onEdit(task); }}
-        className="text-yellow-500 hover:text-yellow-600 transition-all active:scale-90 cursor-pointer"
-      >
-        <FiEdit size={18} />
-      </button>
+      <div className="flex items-center justify-end gap-2">
+        {/* Status Update Trigger */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onStatusUpdate(task); }}
+          className=" text-green-500 hover:text-green-600 rounded-xl transition-all active:scale-90 cursor-pointer group"
+          title="Update Status & Version"
+        >
+          <HiOutlineArrowPath size={18} className="group-hover:rotate-180 transition-transform duration-500" />
+        </button>
+
+        {/* Edit Task Trigger */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onEdit(task); }}
+          className=" text-yellow-500 hover:text-yellow-600 rounded-xl transition-all active:scale-90 cursor-pointer"
+          title="Edit Details"
+        >
+          <FiEdit size={18} />
+        </button>
+      </div>
     )
   }
 ];
