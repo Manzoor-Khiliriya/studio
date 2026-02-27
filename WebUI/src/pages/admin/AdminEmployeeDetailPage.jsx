@@ -114,7 +114,7 @@ export default function EmployeeDetailPage() {
                 {employee?.user?.name?.charAt(0)}
               </div>
               <div className="space-y-3">
-                <h1 className="text-4xl font-black tracking-tighter uppercase leading-none">{employee?.user?.name}</h1>
+                <h1 className="text-4xl font-black tracking-tighter uppercase leading-none">{employee?.user?.name}{employee?.employee_code ? ` (${employee.employee_code})` : ""}</h1>
                 <div className="flex items-center gap-3">
                   <StatusBadge status={employee?.user?.status} />
                   <span className="h-1 w-1 rounded-full bg-slate-300" />
@@ -127,15 +127,15 @@ export default function EmployeeDetailPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setIsEditModalOpen(true)}
-                className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-3 rounded-xl font-bold text-xs uppercase hover:border-orange-500 hover:text-orange-600 transition-all cursor-pointer shadow-sm"
+                className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-3 rounded-xl font-bold text-xs uppercase hover:border-yellow-500 hover:text-yellow-600 transition-all cursor-pointer shadow-sm"
               >
-                <HiOutlinePencilSquare size={16} /> Update Credentials
+                <HiOutlinePencilSquare size={16} /> Update Employee
               </button>
               <button
                 onClick={() => setIsDeleteModalOpen(true)}
                 className="flex items-center gap-2 bg-rose-50 text-rose-600 px-5 py-3 rounded-xl font-bold text-xs uppercase hover:bg-rose-600 hover:text-white transition-all cursor-pointer"
               >
-                <HiOutlineTrash size={16} /> Purge Record
+                <HiOutlineTrash size={16} /> Delete Employee
               </button>
             </div>
           </div>

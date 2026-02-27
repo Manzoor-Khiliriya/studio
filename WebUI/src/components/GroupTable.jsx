@@ -36,23 +36,7 @@ export default function GroupedTaskTable({ tasks, columns, onRowClick, emptyMess
           {projectGroups.length > 0 ? (
             projectGroups.map((group) => (
               <React.Fragment key={group.projectNumber}>
-                {/* --- STICKY PROJECT HEADER --- */}
-                <tr className="sticky top-[52px] z-10 shadow-sm">
-                  <td colSpan={columns.length} className="px-6 py-3 bg-slate-900 border-y border-slate-800">
-                    <div className="flex items-center gap-4">
-                      <span className="bg-orange-500 text-white px-2 py-0.5 rounded text-[10px] font-black tracking-tighter shadow-sm">
-                        {group.projectNumber}
-                      </span>
-                      <span className="text-white text-[11px] font-bold uppercase tracking-widest">
-                        {group.projectTitle}
-                      </span>
-                      <div className="h-[1px] flex-grow bg-white/10"></div>
-                      <span className="text-white/40 text-[9px] font-black uppercase tracking-tighter">
-                        {group.taskList.length} Tasks assigned
-                      </span>
-                    </div>
-                  </td>
-                </tr>
+                
 
                 {/* --- TASK ROWS --- */}
                 {group.taskList.map((task, idx) => (

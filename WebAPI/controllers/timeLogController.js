@@ -158,56 +158,78 @@ exports.getMyLogs = async (req, res) => {
 exports.getTaskPerformanceReport = async (req, res) => {
   try {
     const report = await Task.aggregate([
+      // 1. Filter out completed tasks to focus on active work
       { $match: { status: { $ne: "Completed" } } },
+
+      // 2. Join with Project collection to get the projectNumber
       {
         $lookup: {
-          from: "timelogs",
+          from: "projects", // collection name in MongoDB
+          localField: "project",
+          foreignField: "_id",
+          as: "projectData"
+        }
+      },
+      { $unwind: "$projectData" },
+
+      // 3. Join with TimeLog collection to get durations
+      {
+        $lookup: {
+          from: "timelogs", // collection name in MongoDB
           localField: "_id",
           foreignField: "task",
           as: "logs"
         }
       },
+
+      // 4. Calculate totalWorkHours (converting seconds to hours)
       {
         $project: {
           title: 1,
-          projectNumber: 1,
           allocatedTime: 1,
           status: 1,
+          // Extract projectNumber from the joined projectData
+          projectNumber: "$projectData.projectNumber",
           totalWorkHours: {
-            $round: [{
-              $divide: [
-                {
-                  $sum: {
-                    $map: {
-                      input: {
-                        $filter: {
-                          input: "$logs",
-                          as: "l",
-                          cond: { $eq: ["$$l.logType", "work"] }
-                        }
-                      },
-                      as: "item",
-                      in: { $ifNull: ["$$item.durationSeconds", 0] }
+            $round: [
+              {
+                $divide: [
+                  {
+                    $reduce: {
+                      input: "$logs",
+                      initialValue: 0,
+                      in: {
+                        $cond: [
+                          { $eq: ["$$this.logType", "work"] },
+                          { $add: ["$$value", { $ifNull: ["$$this.durationSeconds", 0] }] },
+                          "$$value"
+                        ]
+                      }
                     }
-                  }
-                },
-                3600
-              ]
-            }, 2]
-          }
-        }
-      },
-      {
-        $addFields: {
-          completionPercentage: {
-            $cond: [
-              { $gt: ["$allocatedTime", 0] },
-              { $round: [{ $multiply: [{ $divide: ["$totalWorkHours", "$allocatedTime"] }, 100] }, 1] },
-              0
+                  },
+                  3600
+                ]
+              },
+              2
             ]
           }
         }
       },
+
+      // 5. Calculate percentage with safety check for 0 allocatedTime
+      {
+        $addFields: {
+          completionPercentage: {
+            $cond: {
+              if: { $gt: ["$allocatedTime", 0] },
+              then: { $round: [{ $multiply: [{ $divide: ["$totalWorkHours", "$allocatedTime"] }, 100] }, 1] },
+              else: 0
+            }
+          }
+        }
+      },
+
+      // 6. Sort by highest usage first (highest risk)
       { $sort: { completionPercentage: -1 } }
     ]);
 

@@ -145,23 +145,60 @@ exports.updateTaskStatus = async (req, res) => {
 
 exports.getAllTasks = async (req, res) => {
   try {
-    const { search, status, liveStatus, page = 1, limit = 10 } = req.query;
+    const { search, status, page = 1, limit = 10, createdAt, startDate, endDate } = req.query;
     let query = {};
 
-    // Search logic: Note that searching by project title requires a different 
-    // approach (aggregation) if searching via $regex. 
-    // For now, we search task title.
+    // --- 1. SEARCH LOGIC ---
     if (search) {
-      query.title = { $regex: search, $options: "i" };
+      const matchingProjects = await Project.find({
+        $or: [
+          { projectNumber: { $regex: search, $options: "i" } },
+          { title: { $regex: search, $options: "i" } }
+        ]
+      }).select('_id');
+
+      query.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { project: { $in: matchingProjects.map(p => p._id) } }
+      ];
     }
 
+    // --- 2. STATUS FILTER ---
     if (status && status !== "All") query.status = status;
-    if (liveStatus && liveStatus !== "All") query.liveStatus = liveStatus;
 
+    // --- 3. CREATED AT FILTER (Exact Day) ---
+    if (createdAt) {
+      const dayStart = new Date(createdAt);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(createdAt);
+      dayEnd.setHours(23, 59, 59, 999);
+      
+      query.createdAt = { $gte: dayStart, $lte: dayEnd };
+    }
+
+    // --- 4. START & END DATE RANGE FILTER ---
+    // If only startDate is provided: show tasks starting on or after that date
+    // If only endDate is provided: show tasks starting on or before that date
+    // If both: show tasks within that specific range
+    if (startDate || endDate) {
+      query.startDate = {};
+      if (startDate) {
+        const sDate = new Date(startDate);
+        sDate.setHours(0, 0, 0, 0);
+        query.startDate.$gte = sDate;
+      }
+      if (endDate) {
+        const eDate = new Date(endDate);
+        eDate.setHours(23, 59, 59, 999);
+        query.startDate.$lte = eDate;
+      }
+    }
+
+    // --- 5. EXECUTION ---
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const tasks = await Task.find(query)
-      .populate("project") // <-- CRUCIAL FOR THE TABLE
+      .populate("project")
       .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
       .populate("timeLogs")
       .sort({ createdAt: -1 })
@@ -182,6 +219,7 @@ exports.getAllTasks = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 exports.getTaskDetail = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id)
