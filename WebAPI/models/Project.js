@@ -1,11 +1,12 @@
 const mongoose = require("mongoose");
 
 const projectSchema = new mongoose.Schema({
-  projectNumber: { type: String, required: true, unique: true, uppercase: true },
+  project_code: { type: String, required: true, unique: true, uppercase: true },
   title: { type: String, required: true },
-  description: { type: String },
   clientName: { type: String },
-  status: { type: String, default: "In Progress" }
+  startDate: { type: Date, required: true },
+  endDate: { type: Date, required: true },
+  status: { type: String, enum: ["Active", "Inactive"], default: "Active" }
 }, { timestamps: true });
 
 module.exports = mongoose.model("Project", projectSchema);

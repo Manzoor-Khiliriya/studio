@@ -23,7 +23,7 @@ import AdminLeavePage from "./pages/admin/AdminLeavePage";
 import AdminHolidayPage from "./pages/admin/AdminHolidayPage";
 import AdminTaskReportPage from "./pages/admin/AdminReportsPage";
 import AdminTaskCalender from "./pages/admin/AdminTaskCalender";
-
+import AdminAttendanceListPage from "./pages/admin/AdminAttendanceListPage";
 
 // Employee Pages
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
@@ -81,6 +81,7 @@ function App() {
                 <Route path="/holidays" element={<AdminHolidayPage />} />
                 <Route path="/reports" element={<AdminTaskReportPage />} />
                 <Route path="/tasks-calender" element={<AdminTaskCalender />} />
+                <Route path="/attendance" element={<AdminAttendanceListPage />} />
               </Route>
             </Route>
 

@@ -1,10 +1,18 @@
 import React from "react";
 import { HiOutlinePlus } from "react-icons/hi2";
 
-const PageHeader = ({ title, subtitle, iconText = "T", actionLabel, onAction }) => {
+const PageHeader = ({ 
+  title, 
+  subtitle, 
+  iconText = "P", 
+  actionLabel, 
+  onAction,
+  secondaryActionLabel,
+  onSecondaryAction 
+}) => {
   return (
     <header className="bg-white border-b border-slate-200 pt-10 pb-12">
-      <div className="max-w-[1600px] mx-auto px-8">
+      <div className="max-w-[1700px] mx-auto px-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <div className="flex items-center gap-3 mb-2">
@@ -22,15 +30,29 @@ const PageHeader = ({ title, subtitle, iconText = "T", actionLabel, onAction }) 
             )}
           </div>
 
-          {actionLabel && (
-            <button
-              onClick={onAction}
-              className="flex items-center justify-center gap-2 bg-slate-900 hover:bg-orange-600 text-white px-7 py-4 rounded-2xl font-bold transition-all shadow-xl shadow-slate-200 active:scale-95 cursor-pointer"
-            >
-              <HiOutlinePlus strokeWidth={3} size={18} />
-              <span className="uppercase tracking-tight text-sm">{actionLabel}</span>
-            </button>
-          )}
+          <div className="flex items-center gap-4">
+            {/* SECONDARY ACTION (e.g., New Project) */}
+            {secondaryActionLabel && (
+              <button
+                onClick={onSecondaryAction}
+                className="flex items-center justify-center gap-2 bg-slate-900 hover:bg-orange-600 text-white px-7 py-4 rounded-2xl font-bold transition-all shadow-xl shadow-slate-200 active:scale-95 cursor-pointer"
+              >
+                <HiOutlinePlus strokeWidth={3} size={18} />
+                <span className="uppercase tracking-tight text-sm">{secondaryActionLabel}</span>
+              </button>
+            )}
+
+            {/* PRIMARY ACTION (e.g., Assign Task) */}
+            {actionLabel && (
+              <button
+                onClick={onAction}
+                className="flex items-center justify-center gap-2 bg-slate-900 hover:bg-orange-600 text-white px-7 py-4 rounded-2xl font-bold transition-all shadow-xl shadow-slate-200 active:scale-95 cursor-pointer"
+              >
+                <HiOutlinePlus strokeWidth={3} size={18} />
+                <span className="uppercase tracking-tight text-sm">{actionLabel}</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </header>

@@ -1,10 +1,11 @@
 const express = require("express");
 const router = express.Router();
-const { 
-  createProject, 
-  getAllProjects, 
-  updateProject, 
-  deleteProject 
+const {
+  createProject,
+  getAllProjects,
+  getEstimate,
+  updateProject,
+  deleteProject
 } = require("../controllers/projectController");
 
 // Import your auth middleware
@@ -17,5 +18,7 @@ router.route("/")
 router.route("/:id")
   .put(authenticate, authorize("Admin"), updateProject)
   .delete(authenticate, authorize("Admin"), deleteProject);
+
+router.get("/:id/calculate-estimate", authenticate, getEstimate);
 
 module.exports = router;

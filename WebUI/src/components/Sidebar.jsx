@@ -38,7 +38,7 @@ export default function Sidebar() {
     { to: '/holidays', label: 'Holidays', icon: <HiOutlineFlag /> },
     { to: "/reports", label: "Performance", icon: <HiOutlineDocumentChartBar /> },
     { to: "/tasks-calender", label: "Task Calender", icon: <HiCalendar /> },
-
+    { to: "/attendance", label: "Attendance", icon: <HiOutlineViewColumns /> },
   ];
 
   const employeeLinks = [

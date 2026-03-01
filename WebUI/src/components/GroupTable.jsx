@@ -2,10 +2,10 @@ import React from 'react';
 
 export default function GroupedTaskTable({ tasks, columns, onRowClick, emptyMessage = "No records found" }) {
   const grouped = tasks.reduce((acc, task) => {
-    const pCode = task.project?.projectNumber || "UNASSIGNED";
+    const pCode = task.project?.project_code || "UNASSIGNED";
     if (!acc[pCode]) {
       acc[pCode] = { 
-        projectNumber: pCode, 
+        project_code: pCode, 
         projectTitle: task.project?.title || "Unknown Project", 
         taskList: [] 
       };
@@ -17,8 +17,8 @@ export default function GroupedTaskTable({ tasks, columns, onRowClick, emptyMess
   const projectGroups = Object.values(grouped);
 
   return (
-    <div className="overflow-x-auto custom-scrollbar">
-      <table className="w-full text-left border-separate border-spacing-0">
+    <div className="overflow-x-auto custom-scrollbar rounder-b-lg">
+      <table className="w-full text-left border-separate border-spacing-0 ">
         <thead>
           <tr className="bg-slate-50/80 backdrop-blur-sm sticky top-0 z-20">
             {columns.map((col, idx) => (
@@ -35,15 +35,14 @@ export default function GroupedTaskTable({ tasks, columns, onRowClick, emptyMess
         <tbody>
           {projectGroups.length > 0 ? (
             projectGroups.map((group) => (
-              <React.Fragment key={group.projectNumber}>
-                
+              <React.Fragment key={group.project_code}>
 
                 {/* --- TASK ROWS --- */}
                 {group.taskList.map((task, idx) => (
                   <tr
                     key={task._id || idx}
                     onClick={() => onRowClick && onRowClick(task)}
-                    className="group transition-all hover:bg-orange-50/40 cursor-pointer"
+                    className="group transition-all hover:bg-orange-100/20 cursor-pointer"
                   >
                     {columns.map((col, colIdx) => (
                       <td key={colIdx} className={`px-6 py-4 border-b border-slate-50 transition-colors ${col.cellClassName || ''}`}>

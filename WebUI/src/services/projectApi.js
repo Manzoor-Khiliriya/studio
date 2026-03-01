@@ -2,10 +2,12 @@ import { apiSlice } from './apiSlice';
 
 export const projectApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    
-    // 1. GET ALL PROJECTS (Used for dropdowns & management)
+
+    // 1. Get All Projects
     getProjects: builder.query({
       query: () => '/projects',
+      // Backend returns { success: true, data: projects[] }
+      transformResponse: (response) => response.projects || [],
       providesTags: (result) =>
         result
           ? [
@@ -15,44 +17,54 @@ export const projectApiSlice = apiSlice.injectEndpoints({
           : [{ type: 'Project', id: 'LIST' }],
     }),
 
-    // 2. CREATE PROJECT
+    // 2. Create a New Project
     createProject: builder.mutation({
       query: (newProject) => ({
         url: '/projects',
         method: 'POST',
         body: newProject,
       }),
+      // Extracts the project object from { success, message, data: {...} }
+      transformResponse: (response) => response.project || {},
       invalidatesTags: [{ type: 'Project', id: 'LIST' }],
     }),
 
-    // 3. UPDATE PROJECT
+    // 3. Update Project
     updateProject: builder.mutation({
       query: ({ id, ...updateData }) => ({
         url: `/projects/${id}`,
         method: 'PUT',
         body: updateData,
       }),
+      transformResponse: (response) => response.project || {},
       invalidatesTags: (result, error, { id }) => [
         { type: 'Project', id: 'LIST' },
         { type: 'Project', id },
-        // We invalidate Task LIST because task table shows project titles
-        { type: 'Task', id: 'LIST' }, 
+        { type: 'Task', id: 'LIST' },
       ],
     }),
 
-    // 4. DELETE PROJECT
+    // 4. Delete Project
     deleteProject: builder.mutation({
       query: (id) => ({
         url: `/projects/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: [{ type: 'Project', id: 'LIST' }],
+      // No transform needed for 204 No Content
+      invalidatesTags: [
+        { type: 'Project', id: 'LIST' },
+        { type: 'Task', id: 'LIST' },
+      ],
     }),
 
-    // 5. GET SINGLE PROJECT DETAILS (Optional)
-    getProjectDetail: builder.query({
-      query: (id) => `/projects/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Project', id }],
+    // 6. Get Project Hours Estimate
+    getProjectEstimate: builder.query({
+      query: (projectId) => `/projects/${projectId}/calculate-estimate`,
+      transformResponse: (response) => response.hours,
+      providesTags: (result, error, projectId) => [
+        { type: 'Project', id: projectId },
+        { type: 'Task', id: 'LIST' },
+      ],
     }),
   }),
 });
@@ -63,4 +75,5 @@ export const {
   useUpdateProjectMutation,
   useDeleteProjectMutation,
   useGetProjectDetailQuery,
+  useGetProjectEstimateQuery,
 } = projectApiSlice;

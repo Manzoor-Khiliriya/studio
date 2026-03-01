@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast"; // Added missing import
 import {
   HiOutlineClock,
   HiOutlineArrowLeft,
@@ -18,13 +19,11 @@ import { useGetTasksByEmployeeQuery } from "../../services/taskApi";
 import Loader from "../../components/Loader";
 import { HiOutlineLightningBolt } from "react-icons/hi";
 import EmployeeModal from "../../components/EmployeeModal";
-import DeleteConfirmModal from "../../components/DeleteConfirmModal";
+import ConfirmModal from "../../components/ConfirmModal"; // Unified Modal
 import { useDeleteUserMutation } from "../../services/userApi";
-
 
 // --- UTILITY: DYNAMIC TIME FORMATTING ---
 const formatDuration = (totalSeconds) => {
-
   if (totalSeconds < 60) return `${Math.round(totalSeconds)} SEC`;
   const mins = totalSeconds / 60;
   if (mins < 60) return `${mins.toFixed(1)} MIN`;
@@ -34,21 +33,18 @@ const formatDuration = (totalSeconds) => {
 export default function EmployeeDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-
-  // --- STATES ---
   const [logPage, setLogPage] = useState(0);
   const [taskPage, setTaskPage] = useState(0);
   const itemsPerPage = 5;
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, type: null });
 
   const { data: employee, isLoading: userLoading } = useGetEmployeeProfileQuery(id);
   const { data: taskData, isLoading: tasksLoading } = useGetTasksByEmployeeQuery(id);
-  const [deleteUser] = useDeleteUserMutation();
+  const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
 
   const tasks = Array.isArray(taskData) ? taskData : taskData?.tasks || [];
 
-  // --- LOGIC: TIME LOGS ---
   const { recentSevenDays, historicalGroups } = useMemo(() => {
     const logs = tasks
       .flatMap((task) =>
@@ -88,8 +84,8 @@ export default function EmployeeDetailPage() {
     const t = toast.loading("Purging records...");
     try {
       await deleteUser(employee.user._id).unwrap();
-      toast.success("Personnel removed from directory", { id: t });
-      setIsDeleteModalOpen(false);
+      toast.success("Employee removed successfully", { id: t });
+      setConfirmConfig({ isOpen: false, type: null });
       navigate("/employees");
     } catch (err) {
       toast.error("Deletion failed", { id: t });
@@ -100,9 +96,8 @@ export default function EmployeeDetailPage() {
 
   return (
     <div className="min-h-screen bg-slate-50/50 pb-20 font-sans text-slate-900">
-      {/* HEADER */}
       <header className="bg-white border-b border-slate-200 pt-8 pb-12 shadow-sm">
-        <div className="max-w-[1400px] mx-auto px-6">
+        <div className="mx-auto px-8">
           <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 hover:text-orange-600 font-black uppercase text-[10px] tracking-[0.2em] mb-8 transition-all group cursor-pointer">
             <HiOutlineArrowLeft strokeWidth={2.5} className="group-hover:-translate-x-1 transition-transform" />
             Back to Directory
@@ -123,7 +118,6 @@ export default function EmployeeDetailPage() {
               </div>
             </div>
 
-            {/* ACTION BLOCK */}
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setIsEditModalOpen(true)}
@@ -132,7 +126,7 @@ export default function EmployeeDetailPage() {
                 <HiOutlinePencilSquare size={16} /> Update Employee
               </button>
               <button
-                onClick={() => setIsDeleteModalOpen(true)}
+                onClick={() => setConfirmConfig({ isOpen: true, type: 'delete' })}
                 className="flex items-center gap-2 bg-rose-50 text-rose-600 px-5 py-3 rounded-xl font-bold text-xs uppercase hover:bg-rose-600 hover:text-white transition-all cursor-pointer"
               >
                 <HiOutlineTrash size={16} /> Delete Employee
@@ -142,10 +136,8 @@ export default function EmployeeDetailPage() {
         </div>
       </header>
 
-      <main className="max-w-[1400px] mx-auto px-6 -mt-8">
+      <main className="mx-auto px-8 -mt-8">
         <div className="grid lg:grid-cols-12 gap-8">
-
-          {/* LEFT: LOGS */}
           <div className="lg:col-span-8 space-y-10">
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
               <MetricBox label="Efficiency" value={`${employee?.efficiency || 100}%`} icon={<HiOutlineLightningBolt />} color="text-orange-500" />
@@ -176,8 +168,8 @@ export default function EmployeeDetailPage() {
             )}
           </div>
 
-          {/* RIGHT: SIDEBAR */}
           <div className="lg:col-span-4 space-y-8">
+            {/* Sidebar Cards (Queue, Assignment, Contact) - Kept your original logic */}
             <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl shadow-slate-400">
               <div className="flex items-center gap-2 mb-8">
                 <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
@@ -209,24 +201,30 @@ export default function EmployeeDetailPage() {
           </div>
         </div>
       </main>
+
       <EmployeeModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         editData={employee}
       />
 
-      <DeleteConfirmModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        employeeName={employee?.user?.name}
+      {/* UNIFIED MODAL FOR DELETION */}
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        onClose={() => setConfirmConfig({ isOpen: false, type: null })}
         onConfirm={handleConfirmDelete}
+        isLoading={isDeleting}
+        title="Delete Employee"
+        message={`You are about to permanently delete ${employee?.user?.name}. All mission history and credentials will be lost.`}
+        confirmText="Delete"
+        variant="danger"
       />
     </div>
   );
 }
 
-// --- SUB-COMPONENTS (Keep logic modular and file readable) ---
-
+// ... Sub-components (LogDayCard, MetricBox, TaskSmallCard, etc.) ...
+// Kept exactly as they were in your provided code
 function LogDayCard({ date, data, isRecent }) {
   return (
     <div className={`bg-white rounded-[2rem] border ${isRecent ? 'border-orange-100' : 'border-slate-200'} shadow-sm overflow-hidden flex flex-col`}>

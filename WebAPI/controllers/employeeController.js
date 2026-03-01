@@ -1,10 +1,6 @@
 const Employee = require("../models/Employee");
 const User = require("../models/User");
 
-/**
- * GET ALL EMPLOYEES (Admin)
- * Supports: Search (name), Status (Enable/Disable), Pagination
- */
 exports.getAllEmployees = async (req, res) => {
   try {
     const { search = "", page = 1, limit = 10, status } = req.query;
@@ -15,12 +11,10 @@ exports.getAllEmployees = async (req, res) => {
     let userCriteria = {};
     if (search) userCriteria.name = { $regex: search, $options: "i" };
     
-    // Support the status filter from the frontend (All, Active, Disabled)
     if (status && status !== "All") {
       userCriteria.status = status === "Active" ? "Enable" : "Disable";
     }
 
-    // Find valid user IDs first based on name and status
     const users = await User.find(userCriteria).select("_id");
     const userIds = users.map(u => u._id);
 
@@ -47,12 +41,8 @@ exports.getAllEmployees = async (req, res) => {
   }
 };
 
-/**
- * UPDATE EMPLOYEE PROFILE (Admin)
- */
 exports.updateEmployeeStats = async (req, res) => {
   try {
-    // 1. Add 'leaves' to this list
     const { designation, dailyWorkLimit, efficiency, skills, joinedDate, photo, leaves } = req.body;
 
     const updateData = {};
@@ -63,7 +53,6 @@ exports.updateEmployeeStats = async (req, res) => {
     if (joinedDate !== undefined) updateData.joinedDate = joinedDate;
     if (photo !== undefined) updateData.photo = photo;
     
-    // 2. Add this line so the array actually saves
     if (leaves !== undefined) updateData.leaves = leaves; 
 
     const employee = await Employee.findOneAndUpdate(
@@ -79,9 +68,6 @@ exports.updateEmployeeStats = async (req, res) => {
   }
 };
 
-/**
- * GET EMPLOYEE PROFILE
- */
 exports.getEmployeeProfile = async (req, res) => {
   try {
     const employee = await Employee.findOne({ user: req.params.userId })
@@ -96,9 +82,6 @@ exports.getEmployeeProfile = async (req, res) => {
   }
 };
 
-/**
- * GET LOGGED-IN EMPLOYEE PROFILE
- */
 exports.getMyEmployeeProfile = async (req, res) => {
   try {
     const employee = await Employee.findOne({ user: req.user._id })

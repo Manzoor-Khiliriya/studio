@@ -2,7 +2,7 @@ import { apiSlice } from './apiSlice';
 
 export const attendanceApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    
+
     // 1. Get Today's Status (Checks if already clocked in)
     getTodayStatus: builder.query({
       query: () => '/attendance/today',
@@ -36,10 +36,17 @@ export const attendanceApiSlice = apiSlice.injectEndpoints({
       providesTags: (result) =>
         result?.history
           ? [
-              ...result.history.map(({ _id }) => ({ type: 'Attendance', id: _id })),
-              { type: 'Attendance', id: 'LIST' },
-            ]
+            ...result.history.map(({ _id }) => ({ type: 'Attendance', id: _id })),
+            { type: 'Attendance', id: 'LIST' },
+          ]
           : [{ type: 'Attendance', id: 'LIST' }],
+    }),
+    getAllAttendance: builder.query({
+      query: (params) => ({
+        url: '/attendance/admin/all', // Make sure this route is defined in Express
+        params, // { startDate, endDate, userId }
+      }),
+      providesTags: ['Attendance'],
     }),
   }),
 });
@@ -49,4 +56,5 @@ export const {
   useClockInMutation,
   useClockOutMutation,
   useGetAttendanceHistoryQuery,
+  useGetAllAttendanceQuery, // Export this new hook
 } = attendanceApiSlice;

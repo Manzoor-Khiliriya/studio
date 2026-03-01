@@ -4,7 +4,7 @@ export default function Table({ columns, data, onRowClick, emptyMessage = "No re
   return (
     /* Added custom-scrollbar and pb-2 here */
     <div className="overflow-x-auto custom-scrollbar pb-2">
-      <table className="w-full text-left border-collapse">
+      <table className="w-full text-left border-collapse [&_th]:align-top">
         <thead>
           <tr className="bg-slate-50/50 border-b-2 border-slate-100">
             {columns.map((col, idx) => (
@@ -17,13 +17,13 @@ export default function Table({ columns, data, onRowClick, emptyMessage = "No re
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-50">
+        <tbody className="divide-y divide-slate-100">
           {data.length > 0 ? (
             data.map((row, rowIdx) => (
               <tr
                 key={row._id || rowIdx}
                 onClick={() => onRowClick && onRowClick(row)}
-                className={`group transition-all ${onRowClick ? 'hover:bg-orange-50/20 cursor-pointer' : ''}`}
+                className={`group transition-all ${onRowClick ? 'hover:bg-orange-100/20 cursor-pointer' : ''}`}
               >
                 {columns.map((col, colIdx) => (
                   <td key={colIdx} className={`px-6 py-5 ${col.cellClassName || ''}`}>

@@ -1,103 +1,90 @@
 const mongoose = require("mongoose");
 const Task = require("../models/Task");
-const Project = require("../models/Project"); // <-- ADD THIS IMPORT
+const Project = require("../models/Project");
 const TimeLog = require("../models/TimeLog");
 const Employee = require("../models/Employee");
 const sendTaskNotification = require("../utils/notifier");
 const { calculateEstimatedHours } = require("../utils/taskHelpers");
 
-// POST: Create a task under a project
 exports.createTask = async (req, res) => {
   try {
-    // Note: 'project' comes from the frontend payload fix we did earlier
-    const { project, title, startDate, endDate, priority, allocatedTime, projectDetails } = req.body;
+    const { project, title, description, allocatedTime } = req.body;
 
-    if (!title || !project || !startDate || !endDate) {
-      return res.status(400).json({ message: "Missing required fields" });
+    if (!title || !project) {
+      return res.status(400).json({ success: false, message: "Missing required fields" });
     }
-
-    const start = new Date(startDate);
-    const end = new Date(endDate);
 
     const projectExists = await Project.findById(project);
     if (!projectExists) {
-      return res.status(404).json({ message: "Parent Project not found" });
+      return res.status(404).json({ success: false, message: "Project not found" });
     }
-
-    const estimatedTime = await calculateEstimatedHours(startDate, endDate);
-    const finalAllocatedTime = allocatedTime !== undefined ? Number(allocatedTime) : estimatedTime;
+    const estimatedTime = await calculateEstimatedHours(
+      projectExists.startDate,
+      projectExists.endDate
+    );
 
     const task = await Task.create({
       title,
-      project, // ObjectId linking to Project Model
-      projectDetails,
-      createdBy: req.user._id,
-      assignedTo: [],
+      project,
+      description,
       estimatedTime,
-      allocatedTime: finalAllocatedTime,
-      priority: priority || "Medium",
-      startDate: start,
-      endDate: end,
+      allocatedTime: allocatedTime || estimatedTime
     });
 
-    // Populate project before sending back so UI has the title immediately
     const populatedTask = await task.populate("project");
-
-    res.status(201).json(populatedTask);
+    return res.status(201).json({ success: true, message: "Task created successfully", task: populatedTask });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
-// PATCH: Update specific task details
 exports.updateTask = async (req, res) => {
   try {
-    const {
-      title, assignedTo, startDate, endDate, project, // Included project link
-      priority, status, allocatedTime, activeStatus, liveStatus, projectDetails
-    } = req.body;
+    const { title, assignedTo, project, priority, allocatedTime, description } = req.body;
 
     const io = req.app.get('socketio');
     const task = await Task.findById(req.params.id);
 
-    if (!task) return res.status(404).json({ message: "Task not found" });
+    if (!task) {
+      return res.status(404).json({ success: false, message: "Task not found" });
+    }
 
     const oldAssigneeIds = task.assignedTo.map(id => id.toString());
 
-    // Basic fields
     if (title) task.title = title;
-    if (project) task.project = project; // Allow re-assigning to different project
     if (priority) task.priority = priority;
-    if (status) task.status = status;
-    if (activeStatus) task.activeStatus = activeStatus;
-    if (liveStatus) task.liveStatus = liveStatus;
-    if (projectDetails !== undefined) task.projectDetails = projectDetails;
+    if (assignedTo) task.assignedTo = assignedTo;
+    if (description !== undefined) task.description = description;
 
-    // Date/Assignment Logic
-    if (startDate || endDate || assignedTo) {
-      task.startDate = startDate ? new Date(startDate) : task.startDate;
-      task.endDate = endDate ? new Date(endDate) : task.endDate;
-      if (assignedTo) task.assignedTo = assignedTo;
+    if (project && project !== task.project.toString()) {
+      const projectExists = await Project.findById(project);
+      if (!projectExists) {
+        return res.status(404).json({ success: false, message: "Project not found" });
+      }
 
-      task.estimatedTime = await calculateEstimatedHours(task.startDate, task.endDate);
-      if (allocatedTime !== undefined) task.allocatedTime = Number(allocatedTime);
+      task.project = project;
+      task.estimatedTime = await calculateEstimatedHours(
+        projectExists.startDate,
+        projectExists.endDate
+      );
     }
 
+    if (allocatedTime !== undefined) {
+      task.allocatedTime = Number(allocatedTime);
+    }
     await task.save();
-
-    // Re-populate everything for the response
     const updated = await Task.findById(task._id)
-      .populate("project") // Essential for the table view
+      .populate("project")
       .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
       .populate("timeLogs");
 
-    // Notifications
     if (assignedTo) {
       const newAssigneeIds = assignedTo.map(id => id.toString());
       const added = newAssigneeIds.filter(id => !oldAssigneeIds.includes(id));
 
-      if (added.length > 0) {
+      if (added.length) {
         const addedEmps = await Employee.find({ _id: { $in: added } }).populate("user");
+
         for (const emp of addedEmps) {
           await sendTaskNotification(emp.user, {
             type: "task",
@@ -107,142 +94,139 @@ exports.updateTask = async (req, res) => {
         }
       }
     }
-
-    res.json(updated);
+    return res.status(200).json({ success: true, message: "Task updated successfully", task: updated });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
-
-// GET: All Tasks (Updated to populate project)
 
 exports.updateTaskStatus = async (req, res) => {
   try {
     const { status, activeStatus } = req.body;
 
-    if (!status && !activeStatus) {
-      return res.status(400).json({ message: "No status updates provided" });
-    }
-
-    const task = await Task.findById(req.params.id);
+    const task = await Task.findById(req.params.id).populate("project");
     if (!task) return res.status(404).json({ message: "Task not found" });
 
     if (status) task.status = status;
     if (activeStatus) task.activeStatus = activeStatus;
 
     await task.save();
-
-    res.json({
-      _id: task._id,
-      status: task.status,
-      activeStatus: task.activeStatus,
-      projectNumber: task.projectNumber
+    return res.status(200).json({
+      success: true,
+      message: "Task status updated",
+      task: {
+        _id: task._id,
+        status: task.status,
+        activeStatus: task.activeStatus
+      }
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
 exports.getAllTasks = async (req, res) => {
   try {
-    const { search, status, page = 1, limit = 10, createdAt, startDate, endDate } = req.query;
-    let query = {};
+    const { search, status, page = 1, limit = 5, createdAt, startDate, endDate } = req.query;
 
-    // --- 1. SEARCH LOGIC ---
+    // 1. BUILD PROJECT QUERY
+    const projectQuery = { status: 'Active' };
+
     if (search) {
-      const matchingProjects = await Project.find({
-        $or: [
-          { projectNumber: { $regex: search, $options: "i" } },
-          { title: { $regex: search, $options: "i" } }
-        ]
-      }).select('_id');
-
-      query.$or = [
-        { title: { $regex: search, $options: "i" } },
-        { project: { $in: matchingProjects.map(p => p._id) } }
+      projectQuery.$or = [
+        { project_code: { $regex: search, $options: "i" } },
+        { title: { $regex: search, $options: "i" } }
       ];
     }
 
-    // --- 2. STATUS FILTER ---
-    if (status && status !== "All") query.status = status;
-
-    // --- 3. CREATED AT FILTER (Exact Day) ---
     if (createdAt) {
       const dayStart = new Date(createdAt);
       dayStart.setHours(0, 0, 0, 0);
       const dayEnd = new Date(createdAt);
       dayEnd.setHours(23, 59, 59, 999);
-      
-      query.createdAt = { $gte: dayStart, $lte: dayEnd };
+      projectQuery.createdAt = { $gte: dayStart, $lte: dayEnd };
     }
 
-    // --- 4. START & END DATE RANGE FILTER ---
-    // If only startDate is provided: show tasks starting on or after that date
-    // If only endDate is provided: show tasks starting on or before that date
-    // If both: show tasks within that specific range
     if (startDate || endDate) {
-      query.startDate = {};
+      const dateFilter = {};
       if (startDate) {
-        const sDate = new Date(startDate);
-        sDate.setHours(0, 0, 0, 0);
-        query.startDate.$gte = sDate;
+        const s = new Date(startDate);
+        s.setHours(0, 0, 0, 0);
+        dateFilter.$gte = s;
       }
       if (endDate) {
-        const eDate = new Date(endDate);
-        eDate.setHours(23, 59, 59, 999);
-        query.startDate.$lte = eDate;
+        const e = new Date(endDate);
+        e.setHours(23, 59, 59, 999);
+        dateFilter.$lte = e;
       }
+      projectQuery.startDate = dateFilter;
     }
 
-    // --- 5. EXECUTION ---
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    const tasks = await Task.find(query)
-      .populate("project")
-      .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
-      .populate("timeLogs")
+    // 2. PAGINATE PROJECTS (These will be your "Cards")
+    const skip = (Number(page) - 1) * Number(limit);
+    
+    const totalProjects = await Project.countDocuments(projectQuery);
+    const paginatedProjects = await Project.find(projectQuery)
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(Number(limit));
 
-    const total = await Task.countDocuments(query);
-    const availableStatuses = await Task.distinct("status");
+    const projectIds = paginatedProjects.map(p => p._id);
 
-    res.json({
-      tasks,
-      totalTasks: total,
-      totalPages: Math.ceil(total / parseInt(limit)),
-      currentPage: parseInt(page),
-      availableStatuses: ["All", ...availableStatuses.filter(Boolean)]
+    // 3. FETCH TASKS ONLY FOR THESE PAGINATED PROJECTS
+    const taskQuery = { project: { $in: projectIds } };
+    
+    // Apply status filter to tasks if provided
+    if (status && status !== "All") {
+      taskQuery.status = status;
+    }
+
+    const tasks = await Task.find(taskQuery)
+      .populate("project", "project_code title clientName startDate endDate createdAt")
+      .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
+      .populate("timeLogs")
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      tasks, // Only tasks for the projects on this page
+      allProjects: paginatedProjects, // The projects for this page
+      pagination: {
+        totalProjects: totalProjects,
+        totalPages: Math.ceil(totalProjects / limit),
+        currentPage: Number(page),
+        limit: Number(limit)
+      }
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
 exports.getTaskDetail = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id)
-      .populate("createdBy", "name")
+      .populate("project", "project_code title clientName startDate endDate createdAt")
       .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
-      .populate("timeLogs");
-    if (!task) return res.status(404).json({ message: "Task not found" });
-    res.json(task);
+      .populate("timeLogs")
+    if (!task) {
+      return res.status(404).json({ success: false, message: "Task not found" });
+    }
+    return res.status(200).json({ success: true, task });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
 exports.getTasksByEmployee = async (req, res) => {
   try {
-    // Find the employee profile using the User ID from the URL params
     const employee = await Employee.findOne({ user: req.params.userId });
 
     if (!employee) {
-      return res.status(404).json({ message: "Employee profile not found" });
+      return res.status(404).json({ success: false, message: "Employee profile not found" });
     }
 
-    // New: Handle optional liveStatus filtering from query (e.g., ?liveStatus=In progress)
     const { liveStatus } = req.query;
     const query = { assignedTo: employee._id };
 
@@ -251,15 +235,15 @@ exports.getTasksByEmployee = async (req, res) => {
     }
 
     const tasks = await Task.find(query)
-      .populate({ path: "createdBy", select: "name" })
-      .populate("timeLogs") // Crucial for totalConsumedHours virtual
+      .populate("project", "project_code title startDate endDate createdAt")
+      .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
+      .populate("timeLogs")
       .sort({ createdAt: -1 })
-      .lean({ virtuals: true }); // Ensures virtuals like progressPercent are included
+      .lean({ virtuals: true });
 
-    res.json(tasks);
+    return res.status(200).json({ success: true, tasks });
   } catch (err) {
-    console.error("Get Tasks By Employee Error:", err);
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -267,40 +251,33 @@ exports.getMyTasks = async (req, res) => {
   try {
     const { search, status, liveStatus, activeStatus, page = 1, limit = 6 } = req.query;
 
-    // 1. Find the employee profile
     const employee = await Employee.findOne({ user: req.user._id });
     if (!employee) {
-      return res.json({ tasks: [], pagination: { current: 1, totalPages: 0, totalTasks: 0 } });
+      return res.status(200).json({ success: true, data: [], pagination: { current: 1, totalPages: 0, totalTasks: 0 } });
     }
 
-    // 2. Base Query: Only tasks assigned to this employee
     const query = { assignedTo: employee._id };
 
-    // 3. Search Filter
     if (search) {
+      const matchingProjects = await Project.find({
+        project_code: { $regex: search, $options: "i" }
+      }).select("_id");
+
       query.$or = [
         { title: { $regex: search, $options: "i" } },
-        { projectNumber: { $regex: search, $options: "i" } },
+        { project: { $in: matchingProjects.map(p => p._id) } }
       ];
     }
 
-    /** * 4. NOT EQUAL LOGIC: 
-     * If status starts with "!", we use MongoDB's $ne operator.
-     * Example: status="!Completed" => query.status = { $ne: "Completed" }
-     */
     if (status && status !== "All") {
       if (status.startsWith("!")) {
-        const excludeValue = status.substring(1); // "Completed"
+        const excludeValue = status.substring(1);
         query.status = { $ne: excludeValue };
       } else {
         query.status = status;
       }
     }
 
-    /**
-     * 5. ACTIVE STATUS FILTER:
-     * Added specifically for your request to filter by activeStatus
-     */
     if (activeStatus && activeStatus !== "All") {
       if (activeStatus.startsWith("!")) {
         query.activeStatus = { $ne: activeStatus.substring(1) };
@@ -309,16 +286,15 @@ exports.getMyTasks = async (req, res) => {
       }
     }
 
-    // 6. Live Status Filter (comma-separated support)
     if (liveStatus && liveStatus !== "All") {
       const liveStatuses = liveStatus.split(",");
       query.liveStatus = { $in: liveStatuses };
     }
 
-    // 7. Execution
     const skip = (Number(page) - 1) * Number(limit);
     const tasks = await Task.find(query)
-      .populate("createdBy", "name")
+      .populate("project", "project_code title startDate endDate createdAt")
+      .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
       .populate("timeLogs")
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -326,17 +302,17 @@ exports.getMyTasks = async (req, res) => {
 
     const total = await Task.countDocuments(query);
 
-    res.json({
+    return res.status(200).json({
+      success: true,
       tasks,
       pagination: {
         current: Number(page),
         totalPages: Math.ceil(total / Number(limit)),
-        totalTasks: total,
-        count: total // Added count for your StatCards
+        totalTasks: total
       }
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -344,14 +320,20 @@ exports.deleteTask = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const task = await Task.findByIdAndDelete(req.params.id).session(session);
-    if (!task) throw new Error("Task not found");
+    const task = await Task.findById(req.params.id).session(session);
+
+    if (!task) {
+      await session.abortTransaction();
+      return res.status(404).json({ success: false, message: "Task not found" });
+    }
+
+    await Task.deleteOne({ _id: task._id }).session(session);
     await TimeLog.deleteMany({ task: task._id }).session(session);
     await session.commitTransaction();
-    res.json({ message: "Task and related logs deleted" });
+    return res.status(204).send();
   } catch (err) {
     await session.abortTransaction();
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   } finally {
     session.endSession();
   }

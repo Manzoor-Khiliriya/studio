@@ -1,68 +1,95 @@
 const Project = require("../models/Project");
+const { calculateEstimatedHours } = require("../utils/taskHelpers");
 
-// @desc    Create a new project
-// @route   POST /api/projects
 exports.createProject = async (req, res) => {
   try {
-    const { projectNumber, title, description, clientName } = req.body;
+    const { project_code, title, clientName, startDate, endDate } = req.body;
 
-    // Check if project number already exists
-    const existingProject = await Project.findOne({ projectNumber: projectNumber.toUpperCase() });
+    if (!project_code || !title || !startDate || !endDate) {
+      return res.status(400).json({ success: false, message: "Missing required fields" });
+    }
+
+    const existingProject = await Project.findOne({ project_code: project_code.toUpperCase() });
+
     if (existingProject) {
-      return res.status(400).json({ message: "Project ID already exists" });
+      return res.status(409).json({ success: false, message: "Project Code already exists" });
     }
 
     const project = await Project.create({
-      projectNumber,
+      project_code: project_code.toUpperCase(),
       title,
-      description,
-      clientName
+      clientName,
+      startDate,
+      endDate
     });
 
-    res.status(201).json(project);
+    return res.status(201).json({ success: true, message: "Project created successfully", project });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error(error);
+
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
-// @desc    Get all projects
-// @route   GET /api/projects
 exports.getAllProjects = async (req, res) => {
   try {
-    const projects = await Project.find().sort({ createdAt: -1 });
-    res.status(200).json(projects);
+    const projects = await Project.find()
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({ success: true, projects });
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
-// @desc    Update a project
-// @route   PUT /api/projects/:id
+exports.getEstimate = async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) return res.status(404).json({ message: "Project not found" });
+
+    const hours = await calculateEstimatedHours(project.startDate, project.endDate);
+
+    return res.status(200).json({ success: true, hours });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 exports.updateProject = async (req, res) => {
   try {
-    const project = await Project.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
-    
-    if (!project) return res.status(404).json({ message: "Project not found" });
-    res.status(200).json(project);
+    const { project_code, title, clientName, startDate, endDate, status } = req.body;
+    const project = await Project.findById(req.params.id);
+
+    if (!project) {
+      return res.status(404).json({ success: false, message: "Project not found" });
+    }
+
+    if (project_code) project.project_code = project_code.toUpperCase();
+    if (title) project.title = title;
+    if (clientName !== undefined) project.clientName = clientName;
+    if (startDate) project.startDate = startDate;
+    if (endDate) project.endDate = endDate;
+    if (status) project.status = status;
+
+    await project.save();
+    return res.status(200).json({ success: true, message: "Project updated successfully", project });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
-// @desc    Delete a project
-// @route   DELETE /api/projects/:id
 exports.deleteProject = async (req, res) => {
   try {
-    const project = await Project.findByIdAndDelete(req.params.id);
-    if (!project) return res.status(404).json({ message: "Project not found" });
-    
-    // Note: You might want to delete associated tasks here too
-    res.status(200).json({ message: "Project deleted successfully" });
+    const project = await Project.findById(req.params.id);
+
+    if (!project) {
+      return res.status(404).json({ success: false, message: "Project not found" });
+    }
+
+    await Project.deleteOne({ _id: project._id });
+    return res.status(204).send();
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

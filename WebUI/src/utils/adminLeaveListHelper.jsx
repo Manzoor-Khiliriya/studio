@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  HiOutlineClock,
   HiOutlineCalendar,
   HiOutlineCheckCircle,
   HiOutlineXCircle
@@ -11,9 +10,9 @@ import {
  */
 export const StatusBadge = ({ status }) => {
   const styles = {
-    Pending: "bg-orange-50 text-orange-600 border-orange-100",
-    Approved: "bg-emerald-50 text-emerald-600 border-emerald-100",
-    Rejected: "bg-rose-50 text-rose-600 border-rose-100",
+    Pending: "text-orange-600 border-orange-100",
+    Approved: "text-emerald-600 border-emerald-100",
+    Rejected: "text-rose-600 border-rose-100",
   };
 
   const label = {
@@ -22,17 +21,11 @@ export const StatusBadge = ({ status }) => {
     Rejected: "Declined",
   };
 
-  const dotColors = {
-    Pending: "bg-orange-500 animate-pulse",
-    Approved: "bg-emerald-500",
-    Rejected: "bg-rose-500",
-  };
-
   return (
     <span
-      className={`px-6 py-2 rounded-2xl text-[9px] font-black uppercase tracking-[0.25em] border-2 shadow-sm inline-flex items-center gap-2 ${styles[status]}`}
+      className={`px-2 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] inline-flex items-center gap-2 ${styles[status]}`}
     >
-      <div className={`w-1.5 h-1.5 rounded-full ${dotColors[status]}`} />
+      <div className={`w-1.5 h-1.5 rounded-full`} />
       {label[status]}
     </span>
   );
@@ -40,52 +33,58 @@ export const StatusBadge = ({ status }) => {
 
 /**
  * Generates columns for the Admin Leave Table
- * @param {Function} onAction - Callback for handling status updates (processLeave)
  */
 export const getAdminLeaveColumns = (onAction) => [
-  {
-    header: "Employee / Classification",
+ {
+    header: "Employee",
+    className: "text-left pl-4",
     render: (req) => (
-      <div className="flex items-center gap-4 py-2 group">
-        <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-black text-sm shadow-lg group-hover:bg-orange-600 transition-colors duration-300 uppercase">
-          {req.user?.name?.charAt(0)}
-        </div>
-        <div className="flex flex-col">
-          <p className="font-black text-slate-900 uppercase text-sm tracking-tight">
-            {req.user?.name}
-          </p>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-            <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.15em]">
-              {req.type}
-            </p>
-          </div>
-        </div>
-      </div>
-    ),
-  },
-  {
-    header: "Operational Absence",
-    render: (req) => (
-      <div className="flex items-center gap-2 mt-1 italic">
-        <HiOutlineCalendar className="text-slate-300" size={12} />
-        <p className="text-[10px] text-slate-400 font-bold tracking-tighter tabular-nums">
-          {new Date(req.startDate).toLocaleDateString()} —{" "}
-          {new Date(req.endDate).toLocaleDateString()}
+      <div className="flex items-center gap-3 py-1">
+        <p className="font-black text-slate-800 hover:text-orange-600 text-[11px] uppercase tracking-tight transition-colors">
+          {req.user?.name || "Unknown"}
         </p>
       </div>
     ),
   },
   {
-    header: "Registry Status",
+    header: "Leave Type",
     className: "text-left",
+    render: (req) => (
+      <div className="flex flex-col">
+        <span className="text-[10px] text-slate-700 font-black uppercase tracking-widest inline-block">
+          {req.type}
+        </span>
+      </div>
+    ),
+  },
+  {
+    header: "Leave Timeline",
+    className: "text-left",
+    render: (req) => (
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-2">
+          <HiOutlineCalendar className="text-orange-500" size={13} />
+          <p className="text-[10px] text-slate-900 font-black tracking-widest tabular-nums uppercase">
+            {new Date(req.startDate).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+            <span className="text-slate-300 mx-2">—</span>
+            {new Date(req.endDate).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+          </p>
+        </div>
+      </div>
+    ),
+  },
+  {
+    header: "Status",
+    className: "text-center",
+    cellClassName: "text-center",
     render: (req) => <StatusBadge status={req.status} />,
   },
   {
-    header: "Command Action",
-    className: "text-right pr-10",
+    header: "Actions",
+    className: "",
+    cellClassName: "",
     render: (req) => (
-      <div className="flex justify-end gap-2">
+      <div className="flex items-center gap-2">
         {req.status === "Pending" ? (
           <>
             <button
@@ -93,28 +92,26 @@ export const getAdminLeaveColumns = (onAction) => [
                 e.stopPropagation();
                 onAction(req._id, "Approved");
               }}
-              className="group flex items-center gap-2 px-5 py-2.5 bg-emerald-50 text-emerald-600 rounded-[1rem] hover:bg-emerald-600 hover:text-white transition-all border border-emerald-100 active:scale-95 cursor-pointer"
+              className="text-emerald-500 hover:text-emerald-600 transition-all active:scale-90 cursor-pointer"
+              title="Approve Leave"
             >
-              <HiOutlineCheckCircle size={18} />
-              <span className="text-[10px] font-black uppercase">Approve</span>
+              <HiOutlineCheckCircle size={22} strokeWidth={2} />
             </button>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onAction(req._id, "Rejected");
               }}
-              className="group flex items-center gap-2 px-5 py-2.5 bg-rose-50 text-rose-600 rounded-[1rem] hover:bg-rose-600 hover:text-white transition-all border border-rose-100 active:scale-95 cursor-pointer"
+              className="text-rose-500 hover:text-rose-600 transition-all active:scale-90 cursor-pointer"
+              title="Reject Leave"
             >
-              <HiOutlineXCircle size={18} />
-              <span className="text-[10px] font-black uppercase">Decline</span>
+              <HiOutlineXCircle size={22} strokeWidth={2} />
             </button>
           </>
         ) : (
-          <div className="px-4 py-2 rounded-xl bg-slate-50 border border-slate-100 opacity-60">
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-              Closed Log
-            </span>
-          </div>
+          <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic pr-2">
+            Processed
+          </span>
         )}
       </div>
     ),

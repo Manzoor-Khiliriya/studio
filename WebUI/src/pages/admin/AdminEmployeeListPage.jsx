@@ -1,13 +1,10 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import {
-  useGetAllEmployeesQuery
-} from "../../services/employeeApi";
-import {
-  useChangeUserStatusMutation,
-  useDeleteUserMutation
-} from "../../services/userApi";
+
+// API Services
+import { useGetAllEmployeesQuery } from "../../services/employeeApi";
+import { useChangeUserStatusMutation, useDeleteUserMutation } from "../../services/userApi";
 
 // Icons
 import { HiOutlineMagnifyingGlass, HiOutlineXMark } from "react-icons/hi2";
@@ -18,7 +15,7 @@ import Table from "../../components/Table";
 import Loader from "../../components/Loader";
 import Pagination from "../../components/Pagination";
 import EmployeeModal from "../../components/EmployeeModal";
-import DeleteConfirmModal from "../../components/DeleteConfirmModal";
+import ConfirmModal from "../../components/ConfirmModal";
 
 // Helpers
 import { getEmployeeColumns } from "../../utils/adminEmployeeListHelper";
@@ -26,16 +23,23 @@ import { getEmployeeColumns } from "../../utils/adminEmployeeListHelper";
 export default function EmployeeListPage() {
   const navigate = useNavigate();
 
-  // --- STATE ---
+  // --- UI STATE ---
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(5);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedEmp, setSelectedEmp] = useState(null);
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
-  // --- API ---
+  // Modal States
+  const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
+  const [selectedEmp, setSelectedEmp] = useState(null);
+
+  // Unified Confirmation Modal State
+  const [confirmConfig, setConfirmConfig] = useState({
+    isOpen: false,
+    type: null, // 'delete' or 'toggle'
+  });
+
+  // --- API HOOKS ---
   const { data, isLoading, isFetching } = useGetAllEmployeesQuery({
     page: currentPage,
     limit: limit,
@@ -43,39 +47,55 @@ export default function EmployeeListPage() {
     search: searchTerm,
   });
 
-  const [changeUserStatus] = useChangeUserStatusMutation();
-  const [deleteUser] = useDeleteUserMutation();
+  const [changeUserStatus, { isLoading: isUpdatingStatus }] = useChangeUserStatusMutation();
+  const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
 
-  // --- HANDLERS ---
-  const handleToggleStatus = async (emp) => {
-    const isActive = emp.user?.status === "Enable";
-    const newStatus = isActive ? "Disable" : "Enable";
-    const t = toast.loading(`Switching status to ${newStatus}...`);
-    try {
-      await changeUserStatus({ id: emp.user._id, status: newStatus }).unwrap();
-      toast.success(`Personnel access ${newStatus === "Enable" ? "restored" : "revoked"}`, { id: t });
-    } catch (err) {
-      toast.error("Operation failed", { id: t });
-    }
+  // --- CONSOLIDATED HANDLERS ---
+
+  const closeConfirmModal = () => {
+    setConfirmConfig({ isOpen: false, type: null });
   };
 
-  const handleConfirmDelete = async () => {
-    if (!selectedEmp?.user?._id) return;
-    const t = toast.loading("Purging records...");
+  const handleExecuteConfirm = async () => {
+    if (!selectedEmp) return;
+
+    const isDelete = confirmConfig.type === 'delete';
+    const loadingMessage = isDelete ? "Deleting records..." : "Updating access...";
+    const t = toast.loading(loadingMessage);
+
     try {
-      await deleteUser(selectedEmp.user._id).unwrap();
-      toast.success("Personnel removed from directory", { id: t });
-      setIsDeleteOpen(false);
+      if (isDelete) {
+        // Handle Deletion
+        await deleteUser(selectedEmp.user._id).unwrap();
+        toast.success("Employee removed successfully", { id: t });
+      } else {
+        // Handle Status Toggle
+        const currentStatus = selectedEmp.user?.status;
+        const newStatus = currentStatus === "Enable" ? "Disable" : "Enable";
+        await changeUserStatus({ id: selectedEmp.user._id, status: newStatus }).unwrap();
+        toast.success(`Access ${newStatus === "Enable" ? "enabled" : "disabled"}`, { id: t });
+      }
+      closeConfirmModal();
       setSelectedEmp(null);
     } catch (err) {
-      toast.error("Deletion failed", { id: t });
+      toast.error(err?.data?.message || "Operation failed", { id: t });
     }
   };
 
+  // --- TABLE COLUMNS CONFIG ---
   const columns = useMemo(() => getEmployeeColumns({
-    onEdit: (emp) => { setSelectedEmp(emp); setIsModalOpen(true); },
-    onDelete: (emp) => { setSelectedEmp(emp); setIsDeleteOpen(true); },
-    onToggle: handleToggleStatus
+    onEdit: (emp) => {
+      setSelectedEmp(emp);
+      setIsEmployeeModalOpen(true);
+    },
+    onDelete: (emp) => {
+      setSelectedEmp(emp);
+      setConfirmConfig({ isOpen: true, type: 'delete' });
+    },
+    onToggle: (emp) => {
+      setSelectedEmp(emp);
+      setConfirmConfig({ isOpen: true, type: 'toggle' });
+    }
   }), []);
 
   if (isLoading) return <Loader message="Accessing Workforce Database..." />;
@@ -86,20 +106,19 @@ export default function EmployeeListPage() {
         title="Personnel Hub"
         subtitle="Manage agent credentials, performance metrics, and tactical access."
         iconText="E"
-        actionLabel="Add Personnel"
-        onAction={() => { setSelectedEmp(null); setIsModalOpen(true); }}
+        actionLabel="Add Employee"
+        onAction={() => { setSelectedEmp(null); setIsEmployeeModalOpen(true); }}
       />
 
-      <main className="max-w-[1700px] mx-auto px-8 -mt-10">
-        {/* TACTICAL FILTER BAR */}
+      <main className="mx-auto px-8 -mt-10">
+        {/* SEARCH & FILTER BAR */}
         <div className="bg-white/90 backdrop-blur-xl border border-slate-200 p-5 rounded-[2.5rem] shadow-xl shadow-slate-200/50 mb-8 flex flex-col gap-6">
           <div className="flex flex-wrap items-center gap-4">
-
             <div className="relative flex-1 min-w-[300px] group">
               <HiOutlineMagnifyingGlass className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors" size={20} />
               <input
                 type="text"
-                placeholder="Search agent name..."
+                placeholder="Search employee name..."
                 className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/5 outline-none font-bold text-sm transition-all"
                 value={searchTerm}
                 onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
@@ -112,8 +131,8 @@ export default function EmployeeListPage() {
                   key={status}
                   onClick={() => { setStatusFilter(status); setCurrentPage(1); }}
                   className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === status
-                      ? "bg-white text-orange-600 shadow-md ring-1 ring-slate-200"
-                      : "text-slate-500 hover:text-slate-800"
+                    ? "bg-white text-orange-600 shadow-md ring-1 ring-slate-200"
+                    : "text-slate-500 hover:text-slate-800"
                     }`}
                 >
                   {status}
@@ -180,12 +199,38 @@ export default function EmployeeListPage() {
         </div>
       </main>
 
-      <EmployeeModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} editData={selectedEmp} />
-      <DeleteConfirmModal
-        isOpen={isDeleteOpen}
-        onClose={() => setIsDeleteOpen(false)}
-        employeeName={selectedEmp?.user?.name}
-        onConfirm={handleConfirmDelete}
+      {/* 1. EMPLOYEE ADD/EDIT MODAL */}
+      <EmployeeModal
+        isOpen={isEmployeeModalOpen}
+        onClose={() => setIsEmployeeModalOpen(false)}
+        editData={selectedEmp}
+      />
+
+      {/* 2. UNIFIED CONFIRMATION MODAL (Handles Delete and Status Toggles) */}
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        onClose={closeConfirmModal}
+        onConfirm={handleExecuteConfirm}
+        isLoading={isUpdatingStatus || isDeleting}
+
+        // Dynamic properties based on the type of action
+        title={confirmConfig.type === 'delete' ? "Delete Employee" : "Update Access"}
+        message={confirmConfig.type === 'delete'
+          ? `You are about to permanently delete ${selectedEmp?.user?.name}. This action cannot be undone.`
+          : `Are you sure you want to change the access status for ${selectedEmp?.user?.name}?`}
+
+        confirmText={
+          confirmConfig.type === 'delete'
+            ? "Delete Employee"
+            : (selectedEmp?.user?.status === "Enable" ? "Disable Access" : "Enable Access")
+        }
+        // Dynamic Visual Variant
+        variant={
+          confirmConfig.type === 'delete'
+            ? 'danger'
+            : (selectedEmp?.user?.status === "Enable" ? 'danger' : 'success')
+        }
+
       />
     </div>
   );

@@ -55,3 +55,29 @@ exports.getTodayStatus = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// --- ADMIN: GET ALL ATTENDANCE ---
+exports.getAllAttendance = async (req, res) => {
+  try {
+    const { startDate, endDate, userId } = req.query;
+    let query = {};
+
+    // Date Range Filter (Optional)
+    if (startDate && endDate) {
+      query.date = { $gte: startDate, $lte: endDate };
+    }
+
+    // Specific User Filter (Optional)
+    if (userId) {
+      query.user = userId;
+    }
+
+    const records = await Attendance.find(query)
+      .populate("user", "name email") // Get name/email from User model
+      .sort({ date: -1, clockIn: -1 });
+
+    res.json(records);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

@@ -34,7 +34,7 @@ export default function CommonModal({ isOpen, onClose, title, subtitle, children
               </div>
               <button
                 onClick={onClose}
-                className="p-2 rounded-xl transition-all text-slate-400 hover:text-slate-900 hover:bg-slate-100 hover:rotate-90 cursor-pointer"
+                className="p-2 rounded-xl transition-all text-slate-500 hover:text-slate-900 hover:rotate-90 cursor-pointer"
               >
                 <HiOutlineXMark size={20} />
               </button>
