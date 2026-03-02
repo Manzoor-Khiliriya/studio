@@ -1,6 +1,7 @@
 const TimeLog = require("../models/TimeLog");
 const Task = require("../models/Task");
 const Employee = require("../models/Employee");
+const Project = require("../models/Project");
 const mongoose = require("mongoose");
 
 exports.startTimer = async (req, res) => {
@@ -157,83 +158,130 @@ exports.getMyLogs = async (req, res) => {
 
 exports.getTaskPerformanceReport = async (req, res) => {
   try {
-    const report = await Task.aggregate([
-      // 1. Filter out completed tasks to focus on active work
-      { $match: { status: { $ne: "Completed" } } },
+    const { page = 1, limit = 5, search = "" } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
 
-      // 2. Join with Project collection to get the projectNumber
+    // 1. Build Project Filter (Search by Project Code or Title)
+    const projectQuery = {};
+    if (search) {
+      projectQuery.$or = [
+        { project_code: { $regex: search, $options: "i" } },
+        { title: { $regex: search, $options: "i" } }
+      ];
+    }
+
+    // 2. Aggregate from Project Collection
+    const report = await Project.aggregate([
+      { $match: projectQuery },
+      { $sort: { createdAt: -1 } },
+      
+      // Pagination at Project Level
+      { $skip: skip },
+      { $limit: Number(limit) },
+
+      // 3. Lookup Tasks for each Project
       {
         $lookup: {
-          from: "projects", // collection name in MongoDB
-          localField: "project",
-          foreignField: "_id",
-          as: "projectData"
-        }
-      },
-      { $unwind: "$projectData" },
-
-      // 3. Join with TimeLog collection to get durations
-      {
-        $lookup: {
-          from: "timelogs", // collection name in MongoDB
+          from: "tasks",
           localField: "_id",
-          foreignField: "task",
-          as: "logs"
+          foreignField: "project",
+          as: "taskList"
         }
       },
 
-      // 4. Calculate totalWorkHours (converting seconds to hours)
-      {
-        $project: {
-          title: 1,
-          allocatedTime: 1,
-          status: 1,
-          // Extract projectNumber from the joined projectData
-          projectNumber: "$projectData.projectNumber",
-          totalWorkHours: {
-            $round: [
-              {
-                $divide: [
-                  {
-                    $reduce: {
-                      input: "$logs",
-                      initialValue: 0,
-                      in: {
-                        $cond: [
-                          { $eq: ["$$this.logType", "work"] },
-                          { $add: ["$$value", { $ifNull: ["$$this.durationSeconds", 0] }] },
-                          "$$value"
-                        ]
-                      }
-                    }
-                  },
-                  3600
-                ]
-              },
-              2
-            ]
-          }
-        }
-      },
-
-      // 5. Calculate percentage with safety check for 0 allocatedTime
+      // 4. Filter for only active tasks (optional, remove if you want all)
       {
         $addFields: {
-          completionPercentage: {
-            $cond: {
-              if: { $gt: ["$allocatedTime", 0] },
-              then: { $round: [{ $multiply: [{ $divide: ["$totalWorkHours", "$allocatedTime"] }, 100] }, 1] },
-              else: 0
+          taskList: {
+            $filter: {
+              input: "$taskList",
+              as: "task",
+              cond: { $ne: ["$$task.status", "Completed"] }
             }
           }
         }
       },
 
-      // 6. Sort by highest usage first (highest risk)
-      { $sort: { completionPercentage: -1 } }
+      // 5. Lookup Timelogs for these tasks
+      {
+        $lookup: {
+          from: "timelogs",
+          localField: "taskList._id",
+          foreignField: "task",
+          as: "allLogs"
+        }
+      },
+
+      // 6. Calculate Metrics for each Task and Project totals
+      {
+        $project: {
+          project_code: 1,
+          title: 1,
+          clientName: 1,
+          taskList: {
+            $map: {
+              input: "$taskList",
+              as: "t",
+              in: {
+                _id: "$$t._id",
+                title: "$$t.title",
+                status: "$$t.status",
+                allocatedTime: "$$t.allocatedTime",
+                // Sum work hours for THIS specific task
+                totalWorkHours: {
+                  $round: [
+                    {
+                      $divide: [
+                        {
+                          $reduce: {
+                            input: {
+                              $filter: {
+                                input: "$allLogs",
+                                as: "log",
+                                cond: { 
+                                  $and: [
+                                    { $eq: ["$$log.task", "$$t._id"] },
+                                    { $eq: ["$$log.logType", "work"] }
+                                  ]
+                                }
+                              }
+                            },
+                            initialValue: 0,
+                            in: { $add: ["$$value", { $ifNull: ["$$this.durationSeconds", 0] }] }
+                          }
+                        },
+                        3600
+                      ]
+                    },
+                    2
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+
+      // 7. Add Project-level Totals
+      {
+        $addFields: {
+          totalBudget: { $sum: "$taskList.allocatedTime" },
+          totalConsumed: { $sum: "$taskList.totalWorkHours" }
+        }
+      }
     ]);
 
-    res.json(report);
+    // 8. Get Total Count for Pagination
+    const totalProjects = await Project.countDocuments(projectQuery);
+
+    res.json({
+      projects: report,
+      pagination: {
+        totalProjects,
+        totalPages: Math.ceil(totalProjects / limit),
+        currentPage: Number(page)
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

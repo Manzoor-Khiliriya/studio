@@ -4,27 +4,22 @@ export const timeLogApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     
     // 1. GET TODAY'S LOGS & ACTIVE STATUS
-    // Matches: GET /api/timelogs/my
     getMyTodayLogs: builder.query({
       query: () => '/timelogs/my',
       providesTags: ['TimeLog'],
     }),
 
     // 2. START TIMER
-    // Matches: POST /api/timelogs/start
     startTimer: builder.mutation({
       query: (taskId) => ({
         url: '/timelogs/start',
         method: 'POST',
         body: { taskId },
       }),
-      // Invalidates TimeLog to refresh the log list, 
-      // and Task because status might change to "In Progress"
-      invalidatesTags: ['TimeLog', 'Task'],
+      invalidatesTags: ['TimeLog', 'Task', 'Project'], 
     }),
 
     // 3. TOGGLE PAUSE (Work <-> Break)
-    // Matches: POST /api/timelogs/pause
     togglePause: builder.mutation({
       query: () => ({
         url: '/timelogs/pause',
@@ -34,7 +29,6 @@ export const timeLogApiSlice = apiSlice.injectEndpoints({
     }),
 
     // 4. STOP TIMER
-    // Matches: POST /api/timelogs/stop
     stopTimer: builder.mutation({
       query: () => ({
         url: '/timelogs/stop',
@@ -43,15 +37,25 @@ export const timeLogApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: ['TimeLog'],
     }),
 
-    // 5. GET TASK PERFORMANCE REPORT (Admin)
-    // Matches: GET /api/timelogs/report/tasks
+    // 5. GET TASK PERFORMANCE REPORT (Admin - Optimized for Projects)
+    // Now accepts an object: { page, limit, search }
     getTaskPerformanceReport: builder.query({
-      query: () => '/timelogs/report/tasks',
-      providesTags: ['TimeLog', 'Task'],
+      query: (params) => ({
+        url: '/timelogs/report/tasks',
+        params, // Automatically appends ?page=X&limit=Y&search=Z
+      }),
+      // Providing tags for both Projects and Tasks to ensure the report stays live
+      providesTags: (result) =>
+        result?.projects
+          ? [
+              ...result.projects.map(({ _id }) => ({ type: 'Project', id: _id })),
+              { type: 'Project', id: 'REPORT_LIST' },
+              { type: 'Task', id: 'REPORT_LIST' }
+            ]
+          : [{ type: 'Project', id: 'REPORT_LIST' }],
     }),
 
-    // 6. EMPLOYEE WEEKLY REPORT (Admin or Self)
-    // Matches: GET /api/timelogs/report/employee/:userId
+    // 6. EMPLOYEE WEEKLY REPORT
     getWeeklyReport: builder.query({
       query: (userId) => `/timelogs/report/employee/${userId}`,
       providesTags: (result, error, userId) => [{ type: 'TimeLog', id: userId }],
@@ -64,6 +68,6 @@ export const {
   useStartTimerMutation,
   useTogglePauseMutation,
   useStopTimerMutation,
-  useGetTaskPerformanceReportQuery,
+  useGetTaskPerformanceReportQuery, // Use this with params in your component
   useGetWeeklyReportQuery,
 } = timeLogApiSlice;

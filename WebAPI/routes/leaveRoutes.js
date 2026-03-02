@@ -14,4 +14,7 @@ router.get("/all", authorize("Admin"), leaveController.getAllLeaves);
 router.patch("/process/:id", authorize("Admin"), leaveController.processLeave);
 router.delete("/admin/delete/:id", authorize("Admin"), leaveController.deleteLeave);
 
+router.get("/settings", authorize("Admin"), leaveController.getLeaveSettings);
+router.put("/settings", authorize("Admin"), leaveController.updateLeaveSettings);
+
 module.exports = router;

@@ -40,21 +40,7 @@ function App() {
         <Toaster
           position="top-right"
           toastOptions={{
-            duration: 4000,
-            style: {
-              background: '#0f172a',
-              color: '#fff',
-              borderRadius: '1.5rem',
-              padding: '16px 24px',
-              fontWeight: '900',
-              fontSize: '11px',
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              border: '1px solid rgba(255,255,255,0.1)'
-            },
-            success: {
-              iconTheme: { primary: '#f97316', secondary: '#fff' },
-            }
+            duration: 4000
           }}
         />
 
@@ -63,10 +49,10 @@ function App() {
             {/* PUBLIC ROUTES */}
             <Route path="/login" element={<LoginPage />} />
             {/* STEP 1: Request Code */}
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} /> 
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             {/* STEP 2: Verify & Reset */}
             <Route path="/reset-password" element={<ResetPasswordPage />} />
-            
+
             <Route path="/home" element={<Navigate to="/login" replace />} />
 
             {/* ADMIN SECTION */}

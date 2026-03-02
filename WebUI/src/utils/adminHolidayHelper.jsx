@@ -50,19 +50,18 @@ export const getAdminHolidayColumns = (onEdit, onDelete) => [
   },
   {
     header: "Actions",
-    className: "text-right pr-10",
     render: (r) => (
-      <div className="flex justify-end gap-3">
+      <div className="flex items-center gap-2">
         <button
           onClick={(e) => { e.stopPropagation(); onEdit(r); }}
-          className="p-2 text-amber-500 hover:bg-amber-50 rounded-xl transition-all active:scale-90 cursor-pointer"
+          className="text-yellow-500 hover:text-yellow-600 transition-all active:scale-90 cursor-pointer"
           title="Update Holiday"
         >
           <FiEdit size={18} />
         </button>
         <button
-          onClick={(e) => { e.stopPropagation(); onDelete(r._id); }}
-          className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-all active:scale-90 cursor-pointer"
+          onClick={(e) => { e.stopPropagation(); onDelete(r); }}
+          className="text-rose-500 hover:text-rose-600 transition-all active:scale-90 cursor-pointer"
           title="Delete Holiday"
         >
           <FiTrash2 size={18} />

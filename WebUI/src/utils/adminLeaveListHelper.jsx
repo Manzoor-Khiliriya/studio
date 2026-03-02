@@ -36,16 +36,19 @@ export const StatusBadge = ({ status }) => {
  */
 export const getAdminLeaveColumns = (onAction) => [
  {
-    header: "Employee",
-    className: "text-left pl-4",
-    render: (req) => (
-      <div className="flex items-center gap-3 py-1">
-        <p className="font-black text-slate-800 hover:text-orange-600 text-[11px] uppercase tracking-tight transition-colors">
-          {req.user?.name || "Unknown"}
-        </p>
-      </div>
-    ),
-  },
+  header: "Employee",
+  className: "text-left",
+  render: (req) => (
+    <div className="flex items-center group">
+      <p className="font-black text-slate-800 group-hover:text-orange-600 text-[11px] uppercase tracking-tight transition-colors">
+        {req.user?.name || "Unknown"}
+        <span className="ml-1.5 text-slate-400 font-bold lowercase tracking-normal italic">
+          ({req.employee_code || "no-code"})
+        </span>
+      </p>
+    </div>
+  ),
+},
   {
     header: "Leave Type",
     className: "text-left",

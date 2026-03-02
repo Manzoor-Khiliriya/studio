@@ -1,4 +1,5 @@
 const Project = require("../models/Project");
+const Task = require("../models/Task");
 const { calculateEstimatedHours } = require("../utils/taskHelpers");
 
 exports.createProject = async (req, res) => {
@@ -31,13 +32,53 @@ exports.createProject = async (req, res) => {
   }
 };
 
+// exports.getAllProjects = async (req, res) => {
+//   try {
+//     const projects = await Project.find()
+//       .sort({ createdAt: -1 });
+
+//     return res.status(200).json({ success: true, projects });
+
+//   } catch (error) {
+//     return res.status(500).json({ success: false, message: "Internal server error" });
+//   }
+// };
+
 exports.getAllProjects = async (req, res) => {
   try {
-    const projects = await Project.find()
-      .sort({ createdAt: -1 });
+    const { page = 1, limit = 5, search } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
 
-    return res.status(200).json({ success: true, projects });
+    // Filter logic
+    const query = {};
+    if (search) {
+      query.$or = [
+        { project_code: { $regex: search, $options: "i" } },
+        { title: { $regex: search, $options: "i" } }
+      ];
+    }
 
+    const total = await Project.countDocuments(query);
+
+    const projects = await Project.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit))
+      // This populates the virtual "tasks" we created in the schema
+      .populate({
+        path: 'tasks',
+        populate: { path: 'assignedTo', populate: { path: 'user', select: 'name' } }
+      });
+
+    return res.status(200).json({ 
+      success: true, 
+      projects,
+      pagination: {
+        totalProjects: total,
+        totalPages: Math.ceil(total / limit),
+        currentPage: Number(page)
+      }
+    });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
@@ -91,5 +132,52 @@ exports.deleteProject = async (req, res) => {
     return res.status(204).send();
   } catch (error) {
     return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+exports.getProjectCalendarStacks = async (req, res) => {
+  try {
+    const { search } = req.query;
+
+    const taskEvents = await Project.aggregate([
+      {
+        $match: search 
+          ? { $or: [
+                { project_code: { $regex: search, $options: "i" } },
+                { title: { $regex: search, $options: "i" } }
+              ] 
+            }
+          : {}
+      },
+      {
+        $lookup: {
+          from: "tasks", // Ensure this matches your collection name
+          localField: "_id",
+          foreignField: "project",
+          as: "taskList"
+        }
+      },
+      // CRITICAL: Turn each task into its own event
+      { $unwind: "$taskList" },
+      {
+        $project: {
+          _id: 0,
+          id: { $toString: "$taskList._id" }, // Using Task ID for navigation
+          title: "$taskList.title",           // Task Title
+          start: { $dateToString: { format: "%Y-%m-%d", date: "$startDate" } },
+          end: { $dateToString: { format: "%Y-%m-%d", date: "$endDate" } },
+          allDay: { $literal: true },
+          extendedProps: {
+            projectCode: "$project_code",
+            liveStatus: "$taskList.liveStatus",
+            hasActive: { $eq: ["$taskList.liveStatus", "In progress"] }
+          }
+        }
+      }
+    ]);
+
+    res.status(200).json(taskEvents);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };

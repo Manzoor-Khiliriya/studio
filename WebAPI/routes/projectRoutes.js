@@ -5,16 +5,22 @@ const {
   getAllProjects,
   getEstimate,
   updateProject,
-  deleteProject
+  deleteProject,
+  getProjectCalendarStacks // <--- Import the new controller function
 } = require("../controllers/projectController");
 
-// Import your auth middleware
 const { authenticate, authorize } = require("../middlewares/authMiddleware");
 
+// 1. Base Project Routes
 router.route("/")
   .get(authenticate, getAllProjects)
   .post(authenticate, authorize("Admin"), createProject);
 
+// 2. Calendar Aggregation Route (Place this BEFORE /:id)
+// Matches: GET /api/projects/calendar?search=PROJ-101
+router.get("/calendar", authenticate, getProjectCalendarStacks);
+
+// 3. Specific Project ID Routes
 router.route("/:id")
   .put(authenticate, authorize("Admin"), updateProject)
   .delete(authenticate, authorize("Admin"), deleteProject);

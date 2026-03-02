@@ -158,7 +158,7 @@ export default function EmployeeListPage() {
             columns={columns}
             data={data?.employees || []}
             onRowClick={(emp) => navigate(`/employees/${emp.user?._id}`)}
-            emptyMessage="No personnel found matching current criteria."
+            emptyMessage="No employees found."
           />
 
           {/* PAGINATION FOOTER */}

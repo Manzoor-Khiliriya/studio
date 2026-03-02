@@ -3,42 +3,61 @@ const router = express.Router();
 const timeLogController = require("../controllers/timeLogController");
 const { authenticate, authorize } = require("../middlewares/authMiddleware");
 
-/* =========================================================
-   EMPLOYEE ROUTES (Self Time Tracking)
-   ========================================================= */
+// All time tracking routes require authentication
 router.use(authenticate);
 
-// Start working on a task
+/* =========================================================
+   EMPLOYEE ACTIONS (Self Time Tracking)
+   ========================================================= */
+
+// Start/Resume work on a task
 router.post("/start", timeLogController.startTimer);
 
-// Pause / Resume (work <-> break)
+// Toggle between 'work' and 'break'
 router.post("/pause", timeLogController.togglePause);
 
-// Stop current timer
+// Stop current active timer
 router.post("/stop", timeLogController.stopTimer);
 
-// Get today’s logs + active status
+// Get today’s logs + active status for the dashboard
 router.get("/my", timeLogController.getMyLogs);
 
 
 /* =========================================================
-   ADMIN REPORT ROUTES
+   ADMIN REPORTING (Aggregated Metrics)
    ========================================================= */
 
-// Overall task performance (hours spent vs allocated)
-router.get("/report/tasks", authorize("Admin"), timeLogController.getTaskPerformanceReport);
+/**
+ * GET /api/timelogs/report/tasks
+ * Query Params: ?page=1&limit=5&search=PROJ-101
+ * Returns paginated project-task-duration tree
+ */
+router.get(
+  "/report/tasks", 
+  authorize("Admin"), 
+  timeLogController.getTaskPerformanceReport
+);
 
+// Optional: Weekly breakdown for a specific employee
+// router.get("/report/employee/:userId", authorize("Admin"), timeLogController.getWeeklyReport);
 
-// ... existing imports
 
 /* =========================================================
-   ADMIN CONTROL ROUTES
+   ADMIN CONTROLS (Global Actions)
    ========================================================= */
 
-// Matches: POST /api/timelogs/clear-all
-router.post("/clear-all", authorize("Admin"), timeLogController.clearAllLogs);
+// Emergency stop for all active timers across the company
+router.post(
+  "/stop-all", 
+  authorize("Admin"), 
+  timeLogController.stopAllLiveSessions
+);
 
-// Matches: POST /api/timelogs/stop-all
-router.post("/stop-all", authorize("Admin"), timeLogController.stopAllLiveSessions);
+// Archive/Clear logs from the active admin view
+router.post(
+  "/clear-all", 
+  authorize("Admin"), 
+  timeLogController.clearAllLogs
+);
 
 module.exports = router;

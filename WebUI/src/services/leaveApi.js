@@ -2,7 +2,7 @@ import { apiSlice } from './apiSlice';
 
 export const leaveApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    
+
     // --- EMPLOYEE ENDPOINTS ---
 
     // 1. GET MY LEAVES (History + Stats + Pagination)
@@ -15,9 +15,9 @@ export const leaveApiSlice = apiSlice.injectEndpoints({
       providesTags: (result) =>
         result?.history
           ? [
-              ...result.history.map(({ _id }) => ({ type: 'Leave', id: _id })),
-              { type: 'Leave', id: 'PARTIAL-LIST' },
-            ]
+            ...result.history.map(({ _id }) => ({ type: 'Leave', id: _id })),
+            { type: 'Leave', id: 'PARTIAL-LIST' },
+          ]
           : [{ type: 'Leave', id: 'PARTIAL-LIST' }],
     }),
 
@@ -54,22 +54,22 @@ export const leaveApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: [{ type: 'Leave', id: 'PARTIAL-LIST' }],
     }),
 
-    // --- ADMIN ENDPOINTS ---
-
     // 5. GET ALL LEAVES (Admin View + Pagination)
     getAllLeaves: builder.query({
       query: (params) => ({
         url: '/leaves/all',
-        params, // Sends ?status=x&search=y&page=z
+        params,
       }),
       providesTags: (result) =>
         result?.leaves
           ? [
-              ...result.leaves.map(({ _id }) => ({ type: 'Leave', id: _id })),
-              { type: 'Leave', id: 'ADMIN-LIST' },
-            ]
+            ...result.leaves.map(({ _id }) => ({ type: 'Leave', id: _id })),
+            { type: 'Leave', id: 'ADMIN-LIST' },
+            { type: 'Leave', id: 'SETTINGS' }, // Added tag for settings context
+          ]
           : [{ type: 'Leave', id: 'ADMIN-LIST' }],
     }),
+    processLeave: builder.mutation({ /* ... */ }),
 
     // 6. PROCESS LEAVE (Approve/Reject)
     processLeave: builder.mutation({
@@ -84,6 +84,27 @@ export const leaveApiSlice = apiSlice.injectEndpoints({
         { type: 'Leave', id: 'ADMIN-LIST' }
       ],
     }),
+    
+    getLeaveSettings: builder.query({
+      query: () => '/leaves/settings',
+      providesTags: [{ type: 'Leave', id: 'SETTINGS' }],
+    }),
+
+    // 8. UPDATE GLOBAL LEAVE SETTINGS
+    updateLeaveSettings: builder.mutation({
+      query: (newSettings) => ({
+        url: '/leaves/settings',
+        method: 'PUT',
+        body: newSettings,
+      }),
+      // This is the "Magic" part: 
+      // Updating settings forces all leave lists to refresh with new proportions
+      invalidatesTags: [
+        { type: 'Leave', id: 'SETTINGS' },
+        { type: 'Leave', id: 'ADMIN-LIST' },
+        { type: 'Leave', id: 'PARTIAL-LIST' }
+      ],
+    }),
   }),
 });
 
@@ -94,4 +115,6 @@ export const {
   useDeleteLeaveMutation,
   useGetAllLeavesQuery,
   useProcessLeaveMutation,
+  useGetLeaveSettingsQuery,
+  useUpdateLeaveSettingsMutation,
 } = leaveApiSlice;

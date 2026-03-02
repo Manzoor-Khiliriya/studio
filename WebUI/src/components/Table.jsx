@@ -22,8 +22,8 @@ export default function Table({ columns, data, onRowClick, emptyMessage = "No re
             data.map((row, rowIdx) => (
               <tr
                 key={row._id || rowIdx}
-                onClick={() => onRowClick && onRowClick(row)}
-                className={`group transition-all ${onRowClick ? 'hover:bg-orange-100/20 cursor-pointer' : ''}`}
+                onClick={() => onRowClick?.(row)}
+                className={`group transition-all hover:bg-orange-100/20 ${onRowClick ? 'cursor-pointer' : ''}`}
               >
                 {columns.map((col, colIdx) => (
                   <td key={colIdx} className={`px-6 py-5 ${col.cellClassName || ''}`}>
