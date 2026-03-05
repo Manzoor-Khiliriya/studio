@@ -37,24 +37,6 @@ export const timeLogApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: ['TimeLog'],
     }),
 
-    // 5. GET TASK PERFORMANCE REPORT (Admin - Optimized for Projects)
-    // Now accepts an object: { page, limit, search }
-    getTaskPerformanceReport: builder.query({
-      query: (params) => ({
-        url: '/timelogs/report/tasks',
-        params, // Automatically appends ?page=X&limit=Y&search=Z
-      }),
-      // Providing tags for both Projects and Tasks to ensure the report stays live
-      providesTags: (result) =>
-        result?.projects
-          ? [
-              ...result.projects.map(({ _id }) => ({ type: 'Project', id: _id })),
-              { type: 'Project', id: 'REPORT_LIST' },
-              { type: 'Task', id: 'REPORT_LIST' }
-            ]
-          : [{ type: 'Project', id: 'REPORT_LIST' }],
-    }),
-
     // 6. EMPLOYEE WEEKLY REPORT
     getWeeklyReport: builder.query({
       query: (userId) => `/timelogs/report/employee/${userId}`,
@@ -68,6 +50,5 @@ export const {
   useStartTimerMutation,
   useTogglePauseMutation,
   useStopTimerMutation,
-  useGetTaskPerformanceReportQuery, // Use this with params in your component
   useGetWeeklyReportQuery,
 } = timeLogApiSlice;

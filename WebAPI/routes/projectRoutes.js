@@ -6,7 +6,8 @@ const {
   getEstimate,
   updateProject,
   deleteProject,
-  getProjectCalendarStacks // <--- Import the new controller function
+  getProjectCalendarStacks, // <--- Import the new controller function
+  getTaskPerformanceReport
 } = require("../controllers/projectController");
 
 const { authenticate, authorize } = require("../middlewares/authMiddleware");
@@ -19,6 +20,12 @@ router.route("/")
 // 2. Calendar Aggregation Route (Place this BEFORE /:id)
 // Matches: GET /api/projects/calendar?search=PROJ-101
 router.get("/calendar", authenticate, getProjectCalendarStacks);
+router.get(
+  "/reports/performance", 
+  authenticate,
+  authorize("Admin"), 
+  getTaskPerformanceReport
+);
 
 // 3. Specific Project ID Routes
 router.route("/:id")
@@ -26,5 +33,7 @@ router.route("/:id")
   .delete(authenticate, authorize("Admin"), deleteProject);
 
 router.get("/:id/calculate-estimate", authenticate, getEstimate);
+
+
 
 module.exports = router;

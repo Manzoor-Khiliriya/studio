@@ -32,11 +32,7 @@ router.get("/my", timeLogController.getMyLogs);
  * Query Params: ?page=1&limit=5&search=PROJ-101
  * Returns paginated project-task-duration tree
  */
-router.get(
-  "/report/tasks", 
-  authorize("Admin"), 
-  timeLogController.getTaskPerformanceReport
-);
+
 
 // Optional: Weekly breakdown for a specific employee
 // router.get("/report/employee/:userId", authorize("Admin"), timeLogController.getWeeklyReport);

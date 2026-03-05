@@ -96,6 +96,21 @@ export const projectApiSlice = apiSlice.injectEndpoints({
         { type: 'Task', id: 'LIST' },
       ],
     }),
+
+    getTaskPerformanceReport: builder.query({
+      query: (params) => ({
+        url: '/projects/reports/performance', // Updated URL to match project controller
+        params, 
+      }),
+      providesTags: (result) =>
+        result?.projects
+          ? [
+              ...result.projects.map(({ _id }) => ({ type: 'Project', id: _id })),
+              { type: 'Project', id: 'REPORT_LIST' },
+              { type: 'Task', id: 'LIST' }
+            ]
+          : [{ type: 'Project', id: 'REPORT_LIST' }],
+    }),
   }),
 });
 
@@ -107,4 +122,5 @@ export const {
   useUpdateProjectMutation,
   useDeleteProjectMutation,
   useGetProjectEstimateQuery,
+  useGetTaskPerformanceReportQuery, // Use this with params in your component
 } = projectApiSlice;

@@ -70,8 +70,8 @@ exports.getAllProjects = async (req, res) => {
         populate: { path: 'assignedTo', populate: { path: 'user', select: 'name' } }
       });
 
-    return res.status(200).json({ 
-      success: true, 
+    return res.status(200).json({
+      success: true,
       projects,
       pagination: {
         totalProjects: total,
@@ -135,48 +135,175 @@ exports.deleteProject = async (req, res) => {
   }
 };
 
-exports.getProjectCalendarStacks = async (req, res) => {
-  try {
-    const { search } = req.query;
+// project.controller.js
 
-    const taskEvents = await Project.aggregate([
-      {
-        $match: search 
-          ? { $or: [
-                { project_code: { $regex: search, $options: "i" } },
-                { title: { $regex: search, $options: "i" } }
-              ] 
-            }
-          : {}
-      },
+exports.getTaskPerformanceReport = async (req, res) => {
+  try {
+    const { page = 1, limit = 5, search = "" } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Filter projects first - This is why it's faster here
+    const projectQuery = {};
+    if (search) {
+      projectQuery.$or = [
+        { project_code: { $regex: search, $options: "i" } },
+        { title: { $regex: search, $options: "i" } }
+      ];
+    }
+
+    const report = await Project.aggregate([
+      { $match: projectQuery },
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: parseInt(limit) },
+
+      // Join Tasks
       {
         $lookup: {
-          from: "tasks", // Ensure this matches your collection name
+          from: "tasks",
           localField: "_id",
           foreignField: "project",
           as: "taskList"
         }
       },
-      // CRITICAL: Turn each task into its own event
-      { $unwind: "$taskList" },
+
+      // Join Timelogs only for the tasks found above
+      {
+        $lookup: {
+          from: "timelogs",
+          localField: "taskList._id",
+          foreignField: "task",
+          pipeline: [{ $match: { logType: "work" } }], // Filter logs early in the join
+          as: "workLogs"
+        }
+      },
+
       {
         $project: {
-          _id: 0,
-          id: { $toString: "$taskList._id" }, // Using Task ID for navigation
-          title: "$taskList.title",           // Task Title
-          start: { $dateToString: { format: "%Y-%m-%d", date: "$startDate" } },
-          end: { $dateToString: { format: "%Y-%m-%d", date: "$endDate" } },
-          allDay: { $literal: true },
-          extendedProps: {
-            projectCode: "$project_code",
-            liveStatus: "$taskList.liveStatus",
-            hasActive: { $eq: ["$taskList.liveStatus", "In progress"] }
+          project_code: 1,
+          title: 1,
+          clientName: 1,
+          startDate: 1,
+          endDate: 1,
+          taskList: {
+            $map: {
+              input: "$taskList",
+              as: "t",
+              in: {
+                _id: "$$t._id",
+                title: "$$t.title",
+                status: "$$t.status",
+                allocatedTime: { $ifNull: ["$$t.allocatedTime", 0] },
+                // Calculate hours for this specific task from the joined workLogs
+                consumedHours: {
+                  $round: [
+                    {
+                      $divide: [
+                        {
+                          $reduce: {
+                            input: {
+                              $filter: {
+                                input: "$workLogs",
+                                as: "log",
+                                cond: { $eq: ["$$log.task", "$$t._id"] }
+                              }
+                            },
+                            initialValue: 0,
+                            in: { $add: ["$$value", { $ifNull: ["$$this.durationSeconds", 0] }] }
+                          }
+                        },
+                        3600 // Convert seconds to hours
+                      ]
+                    },
+                    2
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+
+      // Final Totals for the Project Card
+      {
+        $addFields: {
+          totalBudget: { $sum: "$taskList.allocatedTime" },
+          totalConsumed: { $sum: "$taskList.consumedHours" },
+          progressPercent: {
+            $cond: [
+              { $gt: [{ $sum: "$taskList.allocatedTime" }, 0] },
+              {
+                $round: [
+                  {
+                    $multiply: [
+                      { $divide: [{ $sum: "$taskList.consumedHours" }, { $sum: "$taskList.allocatedTime" }] },
+                      100
+                    ]
+                  },
+                  0
+                ]
+              },
+              0
+            ]
           }
         }
       }
     ]);
 
-    res.status(200).json(taskEvents);
+    const totalProjects = await Project.countDocuments(projectQuery);
+
+    res.json({
+      projects: report,
+      pagination: {
+        totalProjects,
+        totalPages: Math.ceil(totalProjects / limit),
+        currentPage: Number(page)
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getProjectCalendarStacks = async (req, res) => {
+  try {
+    const { search } = req.query;
+
+    const projectStacks = await Project.aggregate([
+      {
+        $match: search
+          ? {
+            $or: [
+              { project_code: { $regex: search, $options: "i" } },
+              { title: { $regex: search, $options: "i" } }
+            ]
+          }
+          : {}
+      },
+      {
+        $lookup: {
+          from: "tasks",
+          localField: "_id",
+          foreignField: "project",
+          as: "taskList"
+        }
+      },
+      {
+        $project: {
+          id: { $toString: "$_id" },
+          title: "$title", // Project Title
+          start: { $dateToString: { format: "%Y-%m-%d", date: "$startDate" } },
+          end: { $dateToString: { format: "%Y-%m-%d", date: "$endDate" } },
+          extendedProps: {
+            projectCode: "$project_code",
+            tasks: "$taskList", // Send the whole array of tasks
+            taskCount: { $size: "$taskList" }
+          }
+        }
+      }
+    ]);
+
+    res.status(200).json(projectStacks);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

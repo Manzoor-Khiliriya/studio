@@ -1,4 +1,5 @@
 const Attendance = require("../models/Attendance");
+const User = require("../models/User");
 const moment = require("moment");
 
 // --- CLOCK IN ---
@@ -56,27 +57,57 @@ exports.getTodayStatus = async (req, res) => {
   }
 };
 
-// --- ADMIN: GET ALL ATTENDANCE ---
+// --- ADMIN: GET ALL ATTENDANCE WITH PAGINATION & SEARCH ---
 exports.getAllAttendance = async (req, res) => {
   try {
-    const { startDate, endDate, userId } = req.query;
+    const { startDate, endDate, userId, search, page = 1, limit = 10 } = req.query;
     let query = {};
 
-    // Date Range Filter (Optional)
+    // 1. Employee Name Search (Across Models)
+    if (search) {
+      // Find users whose names match the search string (case-insensitive)
+      const matchedUsers = await User.find({
+        name: { $regex: search, $options: "i" }
+      }).select("_id");
+
+      // Extract IDs and add to query
+      const userIds = matchedUsers.map(u => u._id);
+      query.user = { $in: userIds };
+    }
+
+    // 2. Date Range Filter
     if (startDate && endDate) {
       query.date = { $gte: startDate, $lte: endDate };
     }
 
-    // Specific User Filter (Optional)
+    // 3. Specific User Filter (Overrides search if both provided)
     if (userId) {
       query.user = userId;
     }
 
-    const records = await Attendance.find(query)
-      .populate("user", "name email") // Get name/email from User model
-      .sort({ date: -1, clockIn: -1 });
+    // Convert strings to numbers for pagination
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
 
-    res.json(records);
+    // Get total count for pagination metadata
+    const totalRecords = await Attendance.countDocuments(query);
+
+    const records = await Attendance.find(query)
+      .populate("user", "name email") // Populates the user data into the record
+      .sort({ date: -1, clockIn: -1 })
+      .skip(skip)
+      .limit(limitNum);
+
+    res.json({
+      records,
+      pagination: {
+        total: totalRecords,
+        page: pageNum,
+        pages: Math.ceil(totalRecords / limitNum),
+        limit: limitNum
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
