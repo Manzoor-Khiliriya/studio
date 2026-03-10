@@ -3,6 +3,12 @@ const TimeLog = require("../models/TimeLog");
 const Leave = require("../models/Leave");
 const Employee = require("../models/Employee");
 const { isActiveAdmin } = require("../utils/userHelpers");
+const Attendance = require("../models/Attendance");
+const moment = require("moment");
+const User = require("../models/User");
+const Project = require("../models/Project");
+
+
 
 exports.getSummary = async (req, res) => {
   try {
@@ -11,38 +17,56 @@ exports.getSummary = async (req, res) => {
     /* =============================================================
         ADMIN DASHBOARD
        ============================================================= */
-    if (isActiveAdmin(req.user)) {
-      const [totalTasks, activeTimers, pendingLeaves, recentActivity, taskStats, liveStats] = await Promise.all([
-        Task.countDocuments(),
 
+    if (isActiveAdmin(req.user)) {
+      const todayStr = moment().format("YYYY-MM-DD");
+
+      const [
+        totalActiveEmployees,
+        clockedInNow,
+        pendingLeaves,
+        inProgressTasks,
+        uniqueProjects,
+        activeTimers,
+        recentActivity
+      ] = await Promise.all([
+        // 1. Total Employees with Status 'active'
+        User.countDocuments({ status: "Enable", role: "Employee" }),
+
+        // 2. Currently Clocked In (Attendance record exists for today with no clockOut)
+        Attendance.countDocuments({ date: todayStr, clockOut: null }),
+
+        // 3. Total Leave Requests Pending
+        Leave.countDocuments({ status: "Pending" }),
+
+        // 4. Tasks with status "In progress"
+        Task.countDocuments({ liveStatus: "In progress" }),
+
+        // 5. Total Unique Project Numbers
+        Project.countDocuments({ status: "Active" }),
+        // Live Timers (For the list)
         TimeLog.find({ isRunning: true, logType: "work" })
           .populate({ path: "user", select: "name", populate: { path: "employee", select: "photo" } })
           .populate("task", "title projectNumber")
           .lean(),
 
-        Leave.countDocuments({ status: "Pending" }),
-
-        TimeLog.find({ logType: "work", clearedByAdmin: false }) 
+        // Recent Activity Feed
+        TimeLog.find({ logType: "work", clearedByAdmin: false })
           .sort({ createdAt: -1 })
-          .limit(50) 
+          .limit(10)
           .populate("user", "name")
           .populate("task", "title projectNumber")
           .lean(),
-
-        Task.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]),
-        Task.aggregate([{ $group: { _id: "$liveStatus", count: { $sum: 1 } } }])
       ]);
 
       return res.json({
         role: "Admin",
         stats: {
-          totalProjects: totalTasks,
-          currentlyWorking: activeTimers.length,
+          totalActiveEmployees,    // Status: Active
+          attendanceLive: clockedInNow, // Currently Clocked In
           pendingApprovals: pendingLeaves,
-          statusBreakdown: {
-            ...taskStats.reduce((a, c) => ({ ...a, [c._id]: c.count }), {}),
-            ...liveStats.reduce((a, c) => ({ ...a, [c._id]: c.count }), {})
-          }
+          tasksInProgress: inProgressTasks,
+          totalProjects: uniqueProjects,
         },
         liveTracking: activeTimers.map(t => ({
           id: t._id,
@@ -121,6 +145,8 @@ exports.getSummary = async (req, res) => {
     });
 
   } catch (err) {
+    console.error(err);
+
     res.status(500).json({ error: "Mission Control sync failed." });
   }
 };

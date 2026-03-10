@@ -34,6 +34,7 @@ exports.createTask = async (req, res) => {
     const populatedTask = await task.populate("project");
     return res.status(201).json({ success: true, message: "Task created successfully", task: populatedTask });
   } catch (err) {
+    console.error(err)
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
@@ -164,7 +165,7 @@ exports.getAllTasks = async (req, res) => {
 
     // 2. PAGINATE PROJECTS (These will be your "Cards")
     const skip = (Number(page) - 1) * Number(limit);
-    
+
     const totalProjects = await Project.countDocuments(projectQuery);
     const paginatedProjects = await Project.find(projectQuery)
       .sort({ createdAt: -1 })
@@ -175,7 +176,7 @@ exports.getAllTasks = async (req, res) => {
 
     // 3. FETCH TASKS ONLY FOR THESE PAGINATED PROJECTS
     const taskQuery = { project: { $in: projectIds } };
-    
+
     // Apply status filter to tasks if provided
     if (status && status !== "All") {
       taskQuery.status = status;
@@ -209,7 +210,10 @@ exports.getTaskDetail = async (req, res) => {
     const task = await Task.findById(req.params.id)
       .populate("project", "project_code title clientName startDate endDate createdAt")
       .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
-      .populate("timeLogs")
+      .populate({
+        path: "timeLogs",
+        populate: { path: "user", select: "name" }
+      })
     if (!task) {
       return res.status(404).json({ success: false, message: "Task not found" });
     }

@@ -56,7 +56,7 @@ export default function AdminHolidayPage() {
 
   const handleExecuteDelete = async () => {
     if (!holidayToDelete) return;
-    
+
     try {
       await deleteHoliday(holidayToDelete._id).unwrap();
       toast.success("Holiday deleted successfully");
@@ -101,29 +101,25 @@ export default function AdminHolidayPage() {
   if (isLoading) return <Loader message="Accessing Holidays..." />;
 
   return (
-    <div className="min-h-screen">
-
+    <div className="min-h-screen bg-slate-100">
       <PageHeader
-        title="Calendar Control"
-        subtitle="Registry management for public observances and operational downtime."
+        title="Holiday Management"
+        subtitle="Manage public and private holidays."
         actionLabel="Add Holiday"
         onAction={openCreateModal}
       />
 
-      <main className=" mx-auto px-8 -mt-10">
+      <main className=" mx-auto px-8 pb-20 -mt-10">
         {/* TACTICAL FILTER BAR */}
         <div className="bg-white/90 backdrop-blur-xl border border-slate-200 p-5 rounded-[2.5rem] shadow-xl shadow-slate-200/50 mb-8 flex flex-col gap-6">
           <div className="flex flex-wrap items-center gap-4">
             {/* Search Input */}
-            <div className="relative flex-1 min-w-[350px] group">
-              <HiOutlineMagnifyingGlass
-                className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors"
-                size={20}
-              />
+            <div className="relative flex-1 w-full group">
+              <HiOutlineMagnifyingGlass className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors" size={18} />
               <input
                 type="text"
                 placeholder="Search by title or description..."
-                className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/5 outline-none font-bold text-sm transition-all"
+                className="w-full pl-12 pr-6 py-3.5 bg-white border border-slate-200 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/5 outline-none font-bold text-xs transition-all shadow-sm group"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -134,7 +130,7 @@ export default function AdminHolidayPage() {
               <select
                 value={year}
                 onChange={(e) => setYear(e.target.value)}
-                className="appearance-none pl-6 pr-14 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:border-orange-500 outline-none font-black text-[11px] uppercase cursor-pointer transition-all text-slate-700 shadow-sm"
+                className="appearance-none pl-6 pr-14 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:border-orange-500 outline-none font-black text-[11px] uppercase cursor-pointer transition-all text-slate-700 shadow-sm group"
               >
                 <option value="">Cycle: All Years</option>
                 {dynamicYears.map((y) => (

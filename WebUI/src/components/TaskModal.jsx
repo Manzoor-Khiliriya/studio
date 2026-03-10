@@ -18,15 +18,15 @@ import { useCreateTaskMutation, useUpdateTaskMutation } from "../services/taskAp
 import { useGetActiveEmployeesQuery } from "../services/employeeApi";
 import { useGetProjectEstimateQuery } from "../services/projectApi";
 
-export default function TaskModal({ isOpen, onClose, editTask = null, projects }) {
+export default function TaskModal({ isOpen, onClose, editTask = null, projects, defaultProjectId = null }) {
   const isEditing = !!editTask;
   const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState({
     title: "",
     projectId: "",
     assignedTo: [],
-    estimatedTime: "",
-    allocatedTime: "",
+    estimatedTime: "8",
+    allocatedTime: "8",
     status: "On hold",
     activeStatus: "Draft-1",
     priority: "Medium",
@@ -36,6 +36,7 @@ export default function TaskModal({ isOpen, onClose, editTask = null, projects }
   const [createTask, { isLoading: isCreating }] = useCreateTaskMutation();
   const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation();
   const { data: activeEmployees } = useGetActiveEmployeesQuery();
+  
   const { data: estimateData, isFetching: isCalculating } = useGetProjectEstimateQuery(
     formData.projectId,
     { skip: !formData.projectId || !!editTask }
@@ -67,13 +68,18 @@ export default function TaskModal({ isOpen, onClose, editTask = null, projects }
       });
     } else if (isOpen) {
       setFormData({
-        title: "", projectId: "", assignedTo: [],
-        estimatedTime: "8", allocatedTime: "8",
-        status: "On hold", liveStatus: "To be started",
-        activeStatus: "Draft-1", priority: "Medium", description: ""
+        title: "", 
+        projectId: defaultProjectId || "", 
+        assignedTo: [],
+        estimatedTime: "8", 
+        allocatedTime: "8",
+        status: "On hold", 
+        activeStatus: "Draft-1", 
+        priority: "Medium", 
+        description: ""
       });
     }
-  }, [editTask, isOpen]);
+  }, [editTask, isOpen, defaultProjectId]);
 
   const filteredEmployees = activeEmployees?.filter(emp =>
     emp.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -115,7 +121,11 @@ export default function TaskModal({ isOpen, onClose, editTask = null, projects }
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.projectId) return toast.error("Please select a Project");
-    if (formData.assignedTo.length === 0) return toast.error("Please assign at least one operator");
+    
+    // Logic: Require assignments only during Update, or ignore check during Create
+    if (isEditing && formData.assignedTo.length === 0) {
+      return toast.error("Please assign at least one operator");
+    }
 
     const loadingToast = toast.loading(isEditing ? "Updating task..." : "Creating task...");
     try {
@@ -185,7 +195,6 @@ export default function TaskModal({ isOpen, onClose, editTask = null, projects }
 
         {/* Statuses & Priority */}
         <div className="grid grid-cols-12 gap-4">
-          {/* Estimated Time - Calculated by Backend */}
           <div className="col-span-12 md:col-span-3">
             <InputGroup label="Estimate (H)">
               {isCalculating ? (
@@ -204,7 +213,6 @@ export default function TaskModal({ isOpen, onClose, editTask = null, projects }
             </InputGroup>
           </div>
 
-          {/* Allocated Time - Suggested by Estimate but Editable */}
           <div className="col-span-12 md:col-span-3">
             <InputGroup label="Allocated (H)">
               <HiOutlineClock className={`input-icon ${formData.allocatedTime !== formData.estimatedTime ? 'text-orange-500' : 'text-slate-400'}`} />
@@ -234,7 +242,7 @@ export default function TaskModal({ isOpen, onClose, editTask = null, projects }
           </div>
         </div>
 
-        {/* Team Assignment */}
+        {/* --- EMPLOYEE LIST: ONLY VISIBLE WHEN UPDATING --- */}
         {isEditing && (
           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3">
@@ -242,7 +250,6 @@ export default function TaskModal({ isOpen, onClose, editTask = null, projects }
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
                   Assign Employees ({formData.assignedTo.length})
                 </label>
-                {/* Select All Toggle */}
                 {filteredEmployees.length > 0 && (
                   <button
                     type="button"
@@ -292,9 +299,7 @@ export default function TaskModal({ isOpen, onClose, editTask = null, projects }
           </div>
         )}
 
-        {/* Time & Description */}
         <div className="grid grid-cols-12 gap-4">
-
           <div className="col-span-12 md:col-span-6">
             <InputGroup label="Initiative Status">
               <HiOutlineQueueList className="input-icon" />
@@ -310,7 +315,6 @@ export default function TaskModal({ isOpen, onClose, editTask = null, projects }
             </InputGroup>
           </div>
           <div className="col-span-12 md:col-span-6">
-
             <InputGroup label="Active Status">
               <HiOutlineQueueList className="input-icon" />
               <select

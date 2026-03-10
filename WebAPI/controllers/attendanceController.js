@@ -34,7 +34,7 @@ exports.clockOut = async (req, res) => {
     if (!record) return res.status(404).json({ message: "Active session not found." });
 
     record.clockOut = new Date();
-    
+
     // Calculate total time
     const diffMs = record.clockOut - record.clockIn;
     record.totalWorkingMinutes = Math.floor(diffMs / 1000 / 60);
@@ -107,6 +107,39 @@ exports.getAllAttendance = async (req, res) => {
         pages: Math.ceil(totalRecords / limitNum),
         limit: limitNum
       }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// --- ADMIN: GET FULL CALENDAR DATA FOR A SPECIFIC EMPLOYEE ---
+exports.getEmployeeCalendar = async (req, res) => {
+  try {
+    const { userId, month, year } = req.query;
+
+    if (!userId) return res.status(400).json({ message: "User ID is required" });
+
+    // Create a date range for the specific month
+    const startOfMonth = moment([year, month - 1]).format("YYYY-MM-DD");
+    const endOfMonth = moment(startOfMonth).endOf('month').format("YYYY-MM-DD");
+
+    const records = await Attendance.find({
+      user: userId,
+      date: { $gte: startOfMonth, $lte: endOfMonth }
+    }).sort({ date: 1 });
+
+    // Optional: Transform into a dictionary { "2024-03-01": record } for faster frontend lookup
+    const calendarMap = records.reduce((acc, record) => {
+      acc[record.date] = record;
+      return acc;
+    }, {});
+
+    res.json({
+      userId,
+      month,
+      year,
+      records: calendarMap
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

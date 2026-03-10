@@ -1,15 +1,17 @@
 import React from "react";
 import { HiOutlinePlus } from "react-icons/hi2";
 
-const PageHeader = ({ 
-  title, 
-  subtitle, 
-  iconText = "P", 
-  actionLabel, 
+const PageHeader = ({
+  title,
+  subtitle,
+  iconText = "P",
+  actionLabel,
   onAction,
   secondaryActionLabel,
-  onSecondaryAction 
+  onSecondaryAction
 }) => {
+
+  const displayIcon = iconText || title?.charAt(0).toUpperCase() || "P";
   return (
     <header className="bg-white border-b border-slate-200 pt-10 pb-12">
       <div className="max-w-[1700px] mx-auto px-8">
@@ -17,8 +19,8 @@ const PageHeader = ({
           <div>
             <div className="flex items-center gap-3 mb-2">
               <span className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center text-white font-black text-2xl italic shadow-lg shadow-orange-200">
-                {iconText}
-              </span>
+                {displayIcon}
+              </span >
               <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">
                 {title}
               </h1>

@@ -34,9 +34,9 @@ export default function Sidebar() {
     { to: "/admin", label: "Dashboard", icon: <HiOutlineSquares2X2 /> },
     { to: "/employees", label: "Team Space", icon: <HiOutlineUsers /> },
     { to: "/tasks", label: "Tasks", icon: <HiOutlineQueueList /> },
-    { to: '/leaves', label: 'Leaves', icon: <HiOutlineCalendar /> },
     { to: '/holidays', label: 'Holidays', icon: <HiOutlineFlag /> },
     { to: "/reports", label: "Performance", icon: <HiOutlineDocumentChartBar /> },
+    { to: '/leaves', label: 'Leaves', icon: <HiOutlineCalendar /> },
     { to: "/tasks-calender", label: "Task Calender", icon: <HiCalendar /> },
     { to: "/attendance", label: "Attendance", icon: <HiOutlineViewColumns /> },
   ];

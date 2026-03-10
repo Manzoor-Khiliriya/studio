@@ -101,36 +101,37 @@ export default function EmployeeListPage() {
   if (isLoading) return <Loader message="Accessing Workforce Database..." />;
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-slate-100">
       <PageHeader
-        title="Personnel Hub"
-        subtitle="Manage agent credentials, performance metrics, and tactical access."
+        title="Employee Management"
+        subtitle="Manage employee credentials, performance metrics, and tactical access."
         iconText="E"
         actionLabel="Add Employee"
         onAction={() => { setSelectedEmp(null); setIsEmployeeModalOpen(true); }}
       />
 
-      <main className="mx-auto px-8 -mt-10">
+      <main className="mx-auto px-8 pb-10 -mt-10">
         {/* SEARCH & FILTER BAR */}
         <div className="bg-white/90 backdrop-blur-xl border border-slate-200 p-5 rounded-[2.5rem] shadow-xl shadow-slate-200/50 mb-8 flex flex-col gap-6">
           <div className="flex flex-wrap items-center gap-4">
-            <div className="relative flex-1 min-w-[300px] group">
-              <HiOutlineMagnifyingGlass className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors" size={20} />
+
+            <div className="relative flex-1 w-full group">
+              <HiOutlineMagnifyingGlass className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors" size={18} />
               <input
                 type="text"
                 placeholder="Search employee name..."
-                className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/5 outline-none font-bold text-sm transition-all"
+                className="w-full pl-12 pr-6 py-3.5 bg-white border border-slate-200 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/5 outline-none font-bold text-xs transition-all shadow-sm group"
                 value={searchTerm}
                 onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
               />
             </div>
 
-            <div className="flex bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/50">
+            <div className="flex bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/50 shadow-sm">
               {["All", "Active", "Disabled"].map((status) => (
                 <button
                   key={status}
                   onClick={() => { setStatusFilter(status); setCurrentPage(1); }}
-                  className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === status
+                  className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${statusFilter === status
                     ? "bg-white text-orange-600 shadow-md ring-1 ring-slate-200"
                     : "text-slate-500 hover:text-slate-800"
                     }`}

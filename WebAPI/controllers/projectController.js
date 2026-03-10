@@ -32,30 +32,63 @@ exports.createProject = async (req, res) => {
   }
 };
 
-// exports.getAllProjects = async (req, res) => {
-//   try {
-//     const projects = await Project.find()
-//       .sort({ createdAt: -1 });
-
-//     return res.status(200).json({ success: true, projects });
-
-//   } catch (error) {
-//     return res.status(500).json({ success: false, message: "Internal server error" });
-//   }
-// };
-
 exports.getAllProjects = async (req, res) => {
   try {
-    const { page = 1, limit = 5, search } = req.query;
+    const { page = 1, limit = 5, search, status, createdAt, startDate, endDate } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
 
-    // Filter logic
+    // Build Filter logic
     const query = {};
+
+    // 1. Text Search
     if (search) {
       query.$or = [
         { project_code: { $regex: search, $options: "i" } },
         { title: { $regex: search, $options: "i" } }
       ];
+    }
+
+    // 2. Status Filter
+    if (status && status !== "All") {
+      query.status = status;
+    }
+
+    // 3. Exact Creation Date Filter (matches start of day)
+    // 3. Exact Creation Date Filter
+    if (createdAt) {
+      const start = new Date(createdAt);
+      const end = new Date(createdAt);
+      end.setHours(23, 59, 59, 999);
+      query.createdAt = { $gte: start, $lte: end };
+    }
+
+    // 4. Project Timeline Range (Improved Logic)
+    // Check if we are searching within the project's own start/end timeline
+    if (startDate || endDate) {
+      // We use startDate as the primary field to check the range
+      query.startDate = {};
+
+      if (startDate && endDate) {
+        // Show projects that start BETWEEN these two dates
+        query.startDate = {
+          $gte: new Date(startDate),
+          $lte: new Date(endDate)
+        };
+      } else if (startDate) {
+        // Only start date: Show projects starting ON this specific day
+        const start = new Date(startDate);
+        const end = new Date(startDate);
+        end.setHours(23, 59, 59, 999);
+        query.startDate = { $gte: start, $lte: end };
+      } else if (endDate) {
+        // Only end date: Show projects ending ON this specific day
+        const start = new Date(endDate);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.endDate = { $gte: start, $lte: end };
+        // Remove the empty startDate object if only endDate is used
+        delete query.startDate;
+      }
     }
 
     const total = await Project.countDocuments(query);
@@ -64,10 +97,17 @@ exports.getAllProjects = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(Number(limit))
-      // This populates the virtual "tasks" we created in the schema
       .populate({
-        path: 'tasks',
-        populate: { path: 'assignedTo', populate: { path: 'user', select: 'name' } }
+        path: "tasks",
+        populate: [
+          {
+            path: "assignedTo",
+            populate: { path: "user", select: "name" }
+          },
+          {
+            path: "timeLogs"
+          }
+        ]
       });
 
     return res.status(200).json({
@@ -80,6 +120,7 @@ exports.getAllProjects = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error("Project Fetch Error:", error);
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

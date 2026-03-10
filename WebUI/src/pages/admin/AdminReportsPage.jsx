@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 // Changed import to projectApiSlice
-import { useGetTaskPerformanceReportQuery } from '../../services/projectApi'; 
+import { useGetTaskPerformanceReportQuery } from '../../services/projectApi';
 import Loader from '../../components/Loader';
 import PageHeader from '../../components/PageHeader';
 import Pagination from '../../components/Pagination';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  HiChevronDown, 
-  HiOutlineChartBarSquare, 
-  HiOutlineMagnifyingGlass, 
+import {
+  HiChevronDown,
+  HiOutlineChartBarSquare,
+  HiOutlineMagnifyingGlass,
   HiOutlineXMark,
-  HiOutlineExclamationTriangle 
+  HiOutlineExclamationTriangle
 } from 'react-icons/hi2';
 
 // --- SUB-COMPONENT: REUSABLE PROGRESS BAR WITH BREAKPOINTS ---
@@ -21,26 +21,25 @@ const CustomProgressBar = ({ percentage, isOver }) => {
     <div className="relative w-full">
       <div className="relative h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50 shadow-inner">
         {breakpoints.map((pt) => (
-          <div 
-            key={pt} 
-            className="absolute top-0 bottom-0 border-r border-slate-300/40 z-20" 
-            style={{ left: `${pt}%` }} 
+          <div
+            key={pt}
+            className="absolute top-0 bottom-0 border-r border-slate-300/40 z-20"
+            style={{ left: `${pt}%` }}
           />
         ))}
 
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${Math.min(percentage, 100)}%` }}
-          className={`h-full relative z-10 transition-colors duration-700 ${
-            isOver 
-              ? 'bg-gradient-to-r from-rose-500 to-rose-600' 
-              : percentage > 75 
-                ? 'bg-gradient-to-r from-orange-400 to-orange-500' 
+          className={`h-full relative z-10 transition-colors duration-700 ${isOver
+              ? 'bg-gradient-to-r from-rose-500 to-rose-600'
+              : percentage > 75
+                ? 'bg-gradient-to-r from-orange-400 to-orange-500'
                 : 'bg-gradient-to-r from-emerald-400 to-emerald-500'
-          }`}
+            }`}
         />
       </div>
-      
+
       <div className="flex justify-between w-full px-0.5 mt-1 opacity-30 text-[7px] font-black tracking-tighter uppercase">
         <span>0%</span>
         <span>25%</span>
@@ -90,33 +89,33 @@ const AdminTaskReportPage = () => {
   if (isLoading) return <Loader message="Analyzing Mission Metrics..." />;
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-20">
+    <div className="min-h-screen bg-slate-100">
       <PageHeader
-        title="Live Performance"
+        title="Project Performance"
         subtitle="Tracking time consumption and budget limits for active projects."
       />
 
-      <main className="max-w-[1700px] mx-auto px-8 -mt-10">
+      <main className="max-w-[1700px] mx-auto px-8 pb-10 -mt-10">
 
         {/* --- SEARCH BAR --- */}
         <div className="bg-white border border-slate-200 p-5 rounded-[2.5rem] shadow-xl shadow-slate-200/50 mb-8 flex flex-col md:flex-row gap-4 items-center">
-          <div className="relative group flex-1 w-full">
-            <HiOutlineMagnifyingGlass className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors" size={20} />
+          <div className="relative flex-1 w-full group">
+            <HiOutlineMagnifyingGlass className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors" size={18} />
             <input
               type="text"
               placeholder="Filter by Project Code or Project Title..."
-              className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:border-orange-500 outline-none font-bold text-sm transition-all"
+              className="w-full pl-12 pr-6 py-3.5 bg-white border border-slate-200 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/5 outline-none font-bold text-xs transition-all shadow-sm group"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          
+
           {searchTerm && (
-            <button 
+            <button
               onClick={() => setSearchTerm("")}
               className="px-6 py-4 bg-rose-50 text-rose-500 rounded-2xl font-bold text-xs flex items-center gap-2 hover:bg-rose-100 transition-all cursor-pointer"
             >
-              <HiOutlineXMark size={18}/> CLEAR SEARCH
+              <HiOutlineXMark size={18} /> CLEAR SEARCH
             </button>
           )}
         </div>
@@ -154,10 +153,10 @@ const AdminTaskReportPage = () => {
                     <div className="flex items-center gap-8">
                       <div className="hidden lg:flex flex-col items-end min-w-[250px]">
                         <div className="flex justify-between w-full mb-1 px-1">
-                           <span className={`text-[9px] font-black uppercase tracking-widest ${isExpanded ? 'text-slate-500' : 'text-slate-400'}`}>Global Consumption</span>
-                           <span className={`text-[10px] font-black ${isProjectOver ? 'text-rose-400' : isExpanded ? 'text-white' : 'text-slate-900'}`}>
-                             {projectPerc.toFixed(1)}%
-                           </span>
+                          <span className={`text-[9px] font-black uppercase tracking-widest ${isExpanded ? 'text-slate-500' : 'text-slate-400'}`}>Global Consumption</span>
+                          <span className={`text-[10px] font-black ${isProjectOver ? 'text-rose-400' : isExpanded ? 'text-white' : 'text-slate-900'}`}>
+                            {projectPerc.toFixed(1)}%
+                          </span>
                         </div>
                         <CustomProgressBar percentage={projectPerc} isOver={isProjectOver} />
                       </div>
@@ -184,7 +183,7 @@ const AdminTaskReportPage = () => {
                             return (
                               <div key={task._id} className="bg-white px-6 py-5 rounded-2xl border border-slate-200 shadow-sm hover:border-orange-500/30 transition-all group/task">
                                 <div className="flex flex-col md:flex-row md:items-center gap-4">
-                                  
+
                                   <div className="md:w-1/4 flex items-center gap-3">
                                     <div className="flex-1">
                                       <h4 className="font-black text-slate-800 text-[13px] uppercase truncate tracking-tight group-hover/task:text-orange-600 transition-colors">
@@ -208,7 +207,7 @@ const AdminTaskReportPage = () => {
                                   <div className="flex items-center justify-end gap-6 border-l border-slate-100 pl-8">
                                     <Metric label="Done" value={`${(task.consumedHours || 0).toFixed(1)}h`} />
                                     <Metric label="Allocated" value={`${task.allocatedTime}h`} />
-                                    
+
                                     {isTaskOver && (
                                       <div className="flex flex-col items-end">
                                         <span className="text-[8px] font-black text-rose-500 uppercase italic tracking-tighter">Overrun</span>
