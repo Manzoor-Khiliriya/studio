@@ -27,8 +27,6 @@ export default function TaskModal({ isOpen, onClose, editTask = null, projects, 
     assignedTo: [],
     estimatedTime: "8",
     allocatedTime: "8",
-    status: "On hold",
-    activeStatus: "Draft-1",
     priority: "Medium",
     description: ""
   });
@@ -61,8 +59,6 @@ export default function TaskModal({ isOpen, onClose, editTask = null, projects, 
         assignedTo: assigneeIds,
         estimatedTime: String(editTask.estimatedTime || 8),
         allocatedTime: String(editTask.allocatedTime || 8),
-        status: editTask.status || "On hold",
-        activeStatus: editTask.activeStatus || "Draft-1",
         priority: editTask.priority || "Medium",
         description: editTask.description || ""
       });
@@ -73,8 +69,6 @@ export default function TaskModal({ isOpen, onClose, editTask = null, projects, 
         assignedTo: [],
         estimatedTime: "8", 
         allocatedTime: "8",
-        status: "On hold", 
-        activeStatus: "Draft-1", 
         priority: "Medium", 
         description: ""
       });
@@ -122,11 +116,6 @@ export default function TaskModal({ isOpen, onClose, editTask = null, projects, 
     e.preventDefault();
     if (!formData.projectId) return toast.error("Please select a Project");
     
-    // Logic: Require assignments only during Update, or ignore check during Create
-    if (isEditing && formData.assignedTo.length === 0) {
-      return toast.error("Please assign at least one operator");
-    }
-
     const loadingToast = toast.loading(isEditing ? "Updating task..." : "Creating task...");
     try {
       const payload = {
@@ -298,37 +287,6 @@ export default function TaskModal({ isOpen, onClose, editTask = null, projects, 
             </div>
           </div>
         )}
-
-        <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-12 md:col-span-6">
-            <InputGroup label="Initiative Status">
-              <HiOutlineQueueList className="input-icon" />
-              <select
-                className="form-input font-bold text-[11px]"
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-              >
-                {["On hold", "Feedback pending", "Final rendering", "Postproduction", "Completed"].map(s => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </InputGroup>
-          </div>
-          <div className="col-span-12 md:col-span-6">
-            <InputGroup label="Active Status">
-              <HiOutlineQueueList className="input-icon" />
-              <select
-                className="form-input font-bold text-[11px]"
-                value={formData.activeStatus}
-                onChange={(e) => setFormData({ ...formData, activeStatus: e.target.value })}
-              >
-                {["Draft-1", "Draft-2", "Draft-3", "Draft-4", "Draft-5", "Pre-Final", "Final"].map(v => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </select>
-            </InputGroup>
-          </div>
-        </div>
 
         <InputGroup label="Task Details">
           <textarea

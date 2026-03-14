@@ -105,22 +105,28 @@ exports.updateTaskStatus = async (req, res) => {
   try {
     const { status, activeStatus } = req.body;
 
-    const task = await Task.findById(req.params.id).populate("project");
-    if (!task) return res.status(404).json({ message: "Task not found" });
+    const task = await Task.findById(req.params.id);
+
+    if (!task) {
+      return res.status(404).json({ success: false, message: "Task not found" });
+    }
 
     if (status) task.status = status;
     if (activeStatus) task.activeStatus = activeStatus;
 
     await task.save();
+
+    const updatedTask = await Task.findById(task._id)
+      .populate("project", "project_code title clientName startDate endDate createdAt")
+      .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
+      .populate("timeLogs");
+
     return res.status(200).json({
       success: true,
       message: "Task status updated",
-      task: {
-        _id: task._id,
-        status: task.status,
-        activeStatus: task.activeStatus
-      }
+      task: updatedTask
     });
+
   } catch (err) {
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
@@ -223,29 +229,49 @@ exports.getTaskDetail = async (req, res) => {
   }
 };
 
+// Inside your existing task controller
 exports.getTasksByEmployee = async (req, res) => {
   try {
     const employee = await Employee.findOne({ user: req.params.userId });
-
     if (!employee) {
-      return res.status(404).json({ success: false, message: "Employee profile not found" });
+      return res.status(404).json({ success: false, message: "Employee not found" });
     }
 
+    // 1. Get IDs of all tasks where the user has logged time
+    const tasksWithLogs = await TimeLog.distinct("task", { user: req.params.userId });
+
+    // 2. Query for both assigned and previously worked tasks
     const { liveStatus } = req.query;
-    const query = { assignedTo: employee._id };
+    const query = {
+      $or: [
+        { assignedTo: employee._id },
+        { _id: { $in: tasksWithLogs } }
+      ]
+    };
 
     if (liveStatus && liveStatus !== "All") {
       query.liveStatus = { $in: liveStatus.split(",") };
     }
 
-    const tasks = await Task.find(query)
-      .populate("project", "project_code title startDate endDate createdAt")
-      .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
+    const allRelatedTasks = await Task.find(query)
+      .populate("project", "title project_code")
       .populate("timeLogs")
       .sort({ createdAt: -1 })
       .lean({ virtuals: true });
 
-    return res.status(200).json({ success: true, tasks });
+    // 3. Split the results into two categories
+    const response = {
+      success: true,
+      // Group A: Specifically where they are the current assignee
+      currentlyAssigned: allRelatedTasks.filter(task =>
+        task.assignedTo?.toString() === employee._id.toString()
+      ),
+      // Group B: The "Contribution" list (Assigned OR Logged time)
+      workedAndAssigned: allRelatedTasks
+    };
+
+    return res.status(200).json(response);
+
   } catch (err) {
     return res.status(500).json({ success: false, message: "Internal server error" });
   }

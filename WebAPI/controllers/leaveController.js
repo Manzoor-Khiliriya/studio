@@ -41,12 +41,12 @@ exports.getMyLeaves = async (req, res) => {
     // Use dynamic annual rate
     const earned = months * settings.annualLeaveRate;
 
-    const allApproved = await Leave.find({ 
-      user: userId, 
-      status: "Approved", 
-      type: "Annual Leave" 
+    const allApproved = await Leave.find({
+      user: userId,
+      status: "Approved",
+      type: "Annual Leave"
     });
-    
+
     let taken = 0;
     for (const l of allApproved) {
       taken += await calculateLeaveDays(l.startDate, l.endDate);
@@ -57,12 +57,12 @@ exports.getMyLeaves = async (req, res) => {
       businessDays: await calculateLeaveDays(l.startDate, l.endDate)
     })));
 
-    res.json({ 
-      history, 
-      stats: { 
-        earned: +earned.toFixed(1), 
-        taken, 
-        remaining: +(earned - taken).toFixed(1) 
+    res.json({
+      history,
+      stats: {
+        earned: +earned.toFixed(1),
+        taken,
+        remaining: +(earned - taken).toFixed(1)
       },
       pagination: {
         totalLeaves,
@@ -93,7 +93,7 @@ exports.applyLeave = async (req, res) => {
       const joinDate = employee?.joinedDate || req.user.createdAt;
 
       const months = (new Date().getFullYear() - joinDate.getFullYear()) * 12 + (new Date().getMonth() - joinDate.getMonth());
-      
+
       // Use dynamic annual rate
       const earned = months * settings.annualLeaveRate;
 
@@ -133,7 +133,7 @@ exports.getAllLeaves = async (req, res) => {
         .populate({
           path: "user",
           select: "name email",
-          populate: { path: "employee", select: "designation joinedDate" },
+          populate: { path: "employee", select: "employee_code designation joinedDate" },
         })
         .sort({ createdAt: -1 }).skip(skip).limit(parseInt(limit)).lean();
 
@@ -254,6 +254,46 @@ exports.updateLeave = async (req, res) => {
 
     await leave.save();
     res.json(leave);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getLeaveCalendar = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    const leaves = await Leave.find({
+      status: "Approved",
+      startDate: { $lte: new Date(endDate) },
+      endDate: { $gte: new Date(startDate) }
+    })
+      .populate({
+        path: "user",
+        select: "name",
+        populate: { path: "employee", select: "employee_code" }
+      })
+      .lean();
+
+    const result = [];
+
+    for (const leave of leaves) {
+      let current = new Date(leave.startDate);
+      const end = new Date(leave.endDate);
+
+      while (current <= end) {
+        result.push({
+          date: current.toISOString().split("T")[0],
+          name: leave.user?.name,
+          employeeCode: leave.user?.employee?.employee_code,
+          type: leave.type
+        });
+
+        current.setDate(current.getDate() + 1);
+      }
+    }
+
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

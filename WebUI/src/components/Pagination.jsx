@@ -28,10 +28,6 @@ export default function Pagination({ pagination, onPageChange, loading, label = 
 
   return (
     <div className="flex flex-col sm:flex-row items-center justify-end w-full gap-4">
-      {/* INFO TEXT (Optional) */}
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-        Page {current} of {totalPages} ({totalItems} {label})
-      </p>
       
       <div className="flex items-center gap-2">
         <button

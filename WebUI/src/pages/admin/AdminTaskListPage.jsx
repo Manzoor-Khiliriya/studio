@@ -176,7 +176,7 @@ export default function AdminTasksPage() {
               const totalTasks = tasks.length;
 
               return (
-                <div key={project._id} className={`bg-white rounded-lg border transition-all duration-300 ${expandedProject === project.project_code ? "border-orange-500/30 shadow-xl shadow-orange-500/5" : "border-slate-200 shadow-sm"}`}
+                <div key={project._id} className={`bg-white rounded-lg border transition-all duration-300 cursor-pointer ${expandedProject === project.project_code ? "border-orange-500/30 shadow-xl shadow-orange-500/5" : "border-slate-200 shadow-sm"}`}
                   onClick={() => setExpandedProject(expandedProject === project.project_code ? null : project.project_code)}
                 >
                   <div className="p-6 flex items-center justify-between hover:bg-slate-50/80 transition-all group/header border-b border-slate-100 last:border-0">
@@ -192,10 +192,10 @@ export default function AdminTasksPage() {
                           </span>
                         </div>
                         <div>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Project Name</p>
                           <h3 className="text-lg font-black uppercase tracking-tight text-slate-900 group-hover/header:text-orange-600 transition-colors">
                             {project.title}
                           </h3>
-                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Project Objective</p>
                         </div>
                       </div>
 
@@ -203,7 +203,7 @@ export default function AdminTasksPage() {
                       <div className="hidden lg:flex items-center gap-12">
                         {/* Client Info */}
                         <div className="flex flex-col gap-1">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em]">Client Entity</span>
+                          <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">Client Name</span>
                           <div className="flex items-center gap-2">
                             <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center">
                               <HiOutlineUser size={10} className="text-orange-500" />
@@ -216,7 +216,7 @@ export default function AdminTasksPage() {
 
                         {/* Timeline Info */}
                         <div className="flex flex-col gap-1">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em]">Active Schedule</span>
+                          <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">Timeline</span>
                           <div className="flex items-center gap-2">
                             <HiOutlineCalendarDays size={14} className="text-orange-500" />
                             <span className="text-[11px] font-bold text-slate-800 font-mono">
@@ -227,7 +227,7 @@ export default function AdminTasksPage() {
 
                         {/* Task Count Badge */}
                         <div className="flex flex-col gap-1 items-center">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em]">Total Units</span>
+                          <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">Total Tasks</span>
                           <span className="text-[11px] font-bold text-slate-800 font-mono">{totalTasks} Tasks</span>
                         </div>
                       </div>
@@ -237,7 +237,7 @@ export default function AdminTasksPage() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={(e) => { e.stopPropagation(); openTaskModalForProject(project); }}
-                        className="flex items-center gap-2 px-5 py-3 rounded-xl bg-orange-500 text-white hover:bg-slate-900 transition-all font-black text-[10px] uppercase tracking-widest shadow-xl shadow-orange-100 active:scale-95"
+                        className="flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-900 border border-slate-900 hover:bg-orange-500 hover:border-orange-500 text-white  transition-all font-black text-[10px] uppercase tracking-widest shadow-xl shadow-orange-100 active:scale-95 cursor-pointer"
                       >
                         <HiOutlinePlusCircle size={16} />
                         <span>Assign Task</span>
@@ -245,15 +245,15 @@ export default function AdminTasksPage() {
 
                       <button
                         onClick={(e) => { e.stopPropagation(); setEditingProject(project); setShowProjectModal(true); }}
-                        className="p-3 rounded-xl border border-slate-200 text-slate-400 hover:border-orange-500 hover:text-orange-500 transition-all bg-white hover:shadow-md"
-                        title="Edit Project"
+                        className="p-3 rounded-xl border border-slate-200 text-yellow-500 hover:text-yellow-600 hover:border-orange-500  transition-all bg-white shadow-xl cursor-pointer"
+                        title="Update Project"
                       >
                         <HiOutlinePencilSquare />
                       </button>
 
                       <div
                         onClick={() => setExpandedProject(expandedProject === project.project_code ? null : project.project_code)}
-                        className={`cursor-pointer transition-all p-2 ml-2 rounded-full hover:bg-slate-100 ${expandedProject === project.project_code ? "text-orange-500 rotate-180 bg-orange-50" : "text-slate-300"
+                        className={`cursor-pointer transition-all p-2 ml-2 rounded-full text-orange-500 ${expandedProject === project.project_code ? " rotate-180" : ""
                           }`}
                       >
                         <HiChevronDown size={24} />
@@ -283,7 +283,35 @@ export default function AdminTasksPage() {
           )}
         </div>
 
-        <div className="bg-white p-6 rounded-lg border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200 pr-3">
+                Page Limit
+              </span>
+              <select
+                value={limit}
+                onChange={(e) => {
+                  setLimit(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="bg-transparent text-[9px] font-black outline-none focus:ring-0 cursor-pointer text-slate-700"
+              >
+                {[5, 10, 25, 50].map((v) => (
+                  <option key={v} value={v}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {data?.pagination?.totalProjects && (
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight ml-2">
+                Total {data?.pagination?.totalProjects} projects
+              </span>
+            )}
+          </div>
+
           <Pagination
             pagination={{
               current: data?.pagination?.currentPage,

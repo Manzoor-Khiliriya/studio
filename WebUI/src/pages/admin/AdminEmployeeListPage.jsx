@@ -194,7 +194,7 @@ export default function EmployeeListPage() {
               }}
               onPageChange={setCurrentPage}
               loading={isFetching}
-              label="Personnel"
+              label="Employees"
             />
           </div>
         </div>

@@ -170,7 +170,7 @@ export default function AdminHolidayPage() {
           </div>
           <div className="bg-slate-50/50 p-6 border-t border-slate-100 flex justify-between items-center">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-              Total Logs: {holidays.length}
+              Total Holidays: {holidays.length}
             </span>
           </div>
         </div>

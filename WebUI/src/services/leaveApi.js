@@ -29,7 +29,11 @@ export const leaveApiSlice = apiSlice.injectEndpoints({
         body: newLeave,
       }),
       // Invalidates the list so the new leave appears on page 1
-      invalidatesTags: [{ type: 'Leave', id: 'PARTIAL-LIST' }],
+      invalidatesTags: [
+        { type: 'Leave', id: 'PARTIAL-LIST' },
+        { type: "Leave", id: "CALENDAR" }
+      ],
+
     }),
 
     // 3. UPDATE LEAVE (Pending only)
@@ -51,7 +55,10 @@ export const leaveApiSlice = apiSlice.injectEndpoints({
         url: `/leaves/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: [{ type: 'Leave', id: 'PARTIAL-LIST' }],
+      invalidatesTags: [
+        { type: 'Leave', id: 'PARTIAL-LIST' },
+        { type: "Leave", id: "CALENDAR" }
+      ],
     }),
 
     // 5. GET ALL LEAVES (Admin View + Pagination)
@@ -69,7 +76,6 @@ export const leaveApiSlice = apiSlice.injectEndpoints({
           ]
           : [{ type: 'Leave', id: 'ADMIN-LIST' }],
     }),
-    processLeave: builder.mutation({ /* ... */ }),
 
     // 6. PROCESS LEAVE (Approve/Reject)
     processLeave: builder.mutation({
@@ -81,10 +87,11 @@ export const leaveApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, { id }) => [
         { type: 'Leave', id },
         { type: 'Leave', id: 'PARTIAL-LIST' }, // Recalculates employee stats
-        { type: 'Leave', id: 'ADMIN-LIST' }
+        { type: 'Leave', id: 'ADMIN-LIST' },
+        { type: "Leave", id: "CALENDAR" }
       ],
     }),
-    
+
     getLeaveSettings: builder.query({
       query: () => '/leaves/settings',
       providesTags: [{ type: 'Leave', id: 'SETTINGS' }],
@@ -105,6 +112,14 @@ export const leaveApiSlice = apiSlice.injectEndpoints({
         { type: 'Leave', id: 'PARTIAL-LIST' }
       ],
     }),
+    getLeaveCalendar: builder.query({
+      query: (params) => ({
+        url: "/leaves/calendar",
+        params,
+      }),
+      transformResponse: (response) => response || [],
+      providesTags: [{ type: "Leave", id: "CALENDAR" }],
+    }),
   }),
 });
 
@@ -117,4 +132,5 @@ export const {
   useProcessLeaveMutation,
   useGetLeaveSettingsQuery,
   useUpdateLeaveSettingsMutation,
+  useGetLeaveCalendarQuery
 } = leaveApiSlice;

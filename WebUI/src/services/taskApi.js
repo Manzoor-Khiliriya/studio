@@ -69,18 +69,30 @@ export const taskApiSlice = apiSlice.injectEndpoints({
     }),
 
     // 5. Get Tasks for a Specific Employee
+    // 5. Get Tasks for a Specific Employee (Split by Active/History)
     getTasksByEmployee: builder.query({
       query: (userId) => `/tasks/employee-tasks/${userId}`,
-      transformResponse: (response) => response.tasks || [],
-      providesTags: (result) =>
-        result && Array.isArray(result)
-          ? [
-            ...result.map(({ _id }) => ({ type: 'Task', id: _id })),
-            { type: 'Task', id: 'LIST' },
-          ]
-          : [{ type: 'Task', id: 'LIST' }],
-    }),
+      // Transform now handles the object containing two arrays
+      transformResponse: (response) => ({
+        currentlyAssigned: response.currentlyAssigned || [],
+        workedAndAssigned: response.workedAndAssigned || [],
+      }),
+      providesTags: (result) => {
+        // We combine both lists to extract IDs for granular cache invalidation
+        const allTasks = [
+          ...(result?.currentlyAssigned || []),
+          ...(result?.workedAndAssigned || []),
+        ];
 
+        return result
+          ? [
+            ...allTasks.map(({ _id }) => ({ type: 'Task', id: _id })),
+            { type: 'Task', id: 'LIST' },
+            { type: 'Task', id: 'EMPLOYEE_TASKS' }, // Specific tag if you want to invalidate just this view
+          ]
+          : [{ type: 'Task', id: 'LIST' }];
+      },
+    }),
     // 6. Get Single Task Detail
     getTaskDetail: builder.query({
       query: (id) => `/tasks/detail/${id}`,
@@ -120,6 +132,7 @@ export const taskApiSlice = apiSlice.injectEndpoints({
         { type: 'Task', id: 'LIST' },
         { type: 'Task', id: 'MY_LIST' },
         { type: 'Task', id },
+        { type: 'Project', id: 'LIST' },
       ],
     }),
   }),

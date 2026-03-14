@@ -16,5 +16,6 @@ router.delete("/admin/delete/:id", authorize("Admin"), leaveController.deleteLea
 
 router.get("/settings", authorize("Admin"), leaveController.getLeaveSettings);
 router.put("/settings", authorize("Admin"), leaveController.updateLeaveSettings);
+router.get("/calendar", authorize("Admin"), leaveController.getLeaveCalendar);
 
 module.exports = router;

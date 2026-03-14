@@ -64,6 +64,8 @@ export default function StatusUpdateModal({ isOpen, onClose, task }) {
           >
             {[
               "On hold", 
+              "Modeling", 
+              "Lighting and Texturing",
               "Feedback pending", 
               "Final rendering", 
               "Postproduction", 
