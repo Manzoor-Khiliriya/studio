@@ -26,10 +26,10 @@ import { useDeleteUserMutation } from "../../services/userApi";
 const formatToHrMin = (totalSeconds) => {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
-  return `${hours.toString().padStart(2, '0')} Hrs ${minutes.toString().padStart(2, '0')} Mins`;
+  return `${hours.toString().padStart(2, "0")} Hrs ${minutes.toString().padStart(2, "0")} Mins`;
 };
 
-// --- SUB-COMPONENT: DYNAMIC GRID VIEW ---
+// --- SUB-COMPONENT: PERFORMANCE GRID (Used for Monthly History) ---
 const TaskGridView = ({ tasks, userId }) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
 
@@ -78,51 +78,34 @@ const TaskGridView = ({ tasks, userId }) => {
 
   return (
     <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm w-full mb-10">
-      <div className="flex flex-wrap justify-between items-center mb-8 gap-4">
-        <div className="flex items-center gap-1 bg-indigo-600 text-white p-1 rounded-xl shadow-lg shadow-indigo-100">
-          <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-            <HiOutlineChevronLeft size={16} />
-          </button>
-          <div className="px-3 py-1 font-black text-xs uppercase tracking-widest whitespace-nowrap">
-            {displayRange}
-          </div>
-          <button onClick={() => changeMonth(1)} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-            <HiOutlineChevronRight size={16} />
-          </button>
+      <div className="flex flex-wrap justify-between items-center mb-5 gap-4">
+        <div className="flex items-center gap-1 bg-indigo-600 text-white p-2 rounded-xl shadow-lg shadow-indigo-100">
+          <button onClick={() => changeMonth(-1)} className="hover:bg-white/10 rounded-lg transition-colors cursor-pointer"><HiOutlineChevronLeft size={16} /></button>
+          <div className="px-3 font-black text-xs uppercase tracking-widest">{displayRange}</div>
+          <button onClick={() => changeMonth(1)} className="hover:bg-white/10 rounded-lg transition-colors cursor-pointer"><HiOutlineChevronRight size={16} /></button>
         </div>
-
-        <div className="flex gap-12">
-          <div className="text-center">
-            <p className="text-indigo-600 font-black text-sm">{totalHoursStr}</p>
-            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Personal Monthly Hours</p>
-          </div>
-          <div className="text-center">
-            <p className="text-indigo-600 font-black text-sm">{gridData.length}</p>
-            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Project Contributions</p>
-          </div>
+        <div className="flex gap-8">
+            <div className="text-center">
+                <p className="text-indigo-600 font-black text-sm">{totalHoursStr}</p>
+                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Monthly Capacity</p>
+            </div>
         </div>
       </div>
-
-      {gridData.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-          {gridData.map((item, index) => (
-            <div key={item.id} className={`${colors[index % colors.length]} rounded-2xl p-4 text-white relative overflow-hidden group transition-all hover:shadow-lg`}>
-              <div className="relative z-10">
-                <h4 className="text-[11px] font-black uppercase tracking-tight truncate w-4/5">{item.title}</h4>
-                <p className="text-[9px] font-medium opacity-80 mt-0.5">{item.timeStr}</p>
-                <div className="w-full bg-white/20 h-1.5 rounded-full mt-4">
-                  <div className="bg-white h-full rounded-full transition-all duration-700" style={{ width: `${item.percentage}%` }} />
-                </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {gridData.map((item, index) => (
+          <div key={item.id} className={`${colors[index % colors.length]} rounded-2xl p-3 text-white relative overflow-hidden transition-all hover:shadow-lg`}>
+            <div className="relative z-10">
+              <div className="flex items-center justify-between gap-2">
+                <h4 className="text-[11px] font-black uppercase tracking-tight truncate">{item.title}</h4>
+                <p className="text-[9px] font-medium opacity-80">{item.timeStr}</p>
               </div>
-              <div className="absolute inset-0 bg-gradient-to-tr from-black/10 to-transparent pointer-events-none" />
+              <div className="w-full bg-white/20 h-1.5 rounded-full mt-2">
+                <div className="bg-white h-full rounded-full transition-all duration-700" style={{ width: `${item.percentage}%` }} />
+              </div>
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="py-12 text-center border-2 border-dashed border-slate-100 rounded-3xl">
-          <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">No logs found for {displayRange}</p>
-        </div>
-      )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
@@ -136,57 +119,59 @@ export default function EmployeeDetailPage() {
   const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, type: null });
 
   const { data: employee, isLoading: userLoading } = useGetEmployeeProfileQuery(id);
-  
-  // Destructure the two lists from taskData
   const { data: taskData, isLoading: tasksLoading } = useGetTasksByEmployeeQuery(id);
+  
   const currentlyAssigned = taskData?.currentlyAssigned || [];
   const workedAndAssigned = taskData?.workedAndAssigned || [];
 
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
   const userId = employee?.user?._id;
 
-  // RECENT OUTPUT: Uses workedAndAssigned to catch all historical activity logs
+  // --- RECENT 7-DAY LOGIC: Grouped by Date, then by Task with Graph UI ---
   const { recentSevenDays } = useMemo(() => {
     if (!userId || !workedAndAssigned.length) return { recentSevenDays: [] };
 
-    const logs = workedAndAssigned
-      .flatMap((task) =>
-        (task.timeLogs || [])
-          .filter(log => (log.user?._id || log.user) === userId)
-          .map((log) => ({
-            ...log,
-            taskTitle: task.title,
-            projectNumber: task.project?.project_code || 'N/A',
-          }))
-      )
-      .filter((l) => l.logType === "work")
-      .sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+    const logsByDate = {};
 
-    const groups = {};
-    logs.forEach((log) => {
-      const dateKey = new Date(log.startTime).toLocaleDateString("en-GB", {
-        day: "2-digit", month: "short", year: "numeric",
-      });
-      if (!groups[dateKey]) {
-        groups[dateKey] = { logs: [], totalSeconds: 0, rawDate: new Date(log.startTime) };
-      }
-      groups[dateKey].logs.push(log);
-      groups[dateKey].totalSeconds += log.durationSeconds || 0;
+    workedAndAssigned.forEach((task) => {
+      (task.timeLogs || [])
+        .filter(log => (log.user?._id || log.user) === userId && log.logType === "work")
+        .forEach(log => {
+          const dateKey = new Date(log.startTime).toLocaleDateString("en-GB", {
+            day: "2-digit", month: "short", year: "numeric",
+          });
+          
+          if (!logsByDate[dateKey]) {
+            logsByDate[dateKey] = { date: dateKey, tasks: {}, totalDaySeconds: 0, rawDate: new Date(log.startTime) };
+          }
+
+          if (!logsByDate[dateKey].tasks[task._id]) {
+            logsByDate[dateKey].tasks[task._id] = {
+              title: task.title,
+              projectCode: task.project?.project_code || 'N/A',
+              seconds: 0,
+              allocated: (task.allocatedTime || 0) * 3600
+            };
+          }
+
+          logsByDate[dateKey].tasks[task._id].seconds += log.durationSeconds || 0;
+          logsByDate[dateKey].totalDaySeconds += log.durationSeconds || 0;
+        });
     });
 
-    return {
-      recentSevenDays: Object.entries(groups).sort((a, b) => b[1].rawDate - a[1].rawDate).slice(0, 7),
-    };
+    const sortedDates = Object.values(logsByDate)
+      .sort((a, b) => b.rawDate - a.rawDate)
+      .slice(0, 7)
+      .map(day => ({
+        ...day,
+        tasks: Object.values(day.tasks) // Convert task map to array for rendering
+      }));
+
+    return { recentSevenDays: sortedDates };
   }, [workedAndAssigned, userId]);
 
-  // LIVE MISSION QUEUE: Use the list where they are currently the assignee
-  const activeTasks = currentlyAssigned.filter((t) => 
-    ["In progress", "To be started"].includes(t.liveStatus)
-  );
-
-  // FULL HISTORY: Paginate the full list
+  const activeTasks = currentlyAssigned.filter((t) => ["In progress", "To be started"].includes(t.liveStatus));
   const paginatedAllTasks = workedAndAssigned.slice(taskPage * itemsPerPage, (taskPage + 1) * itemsPerPage);
-  
   const effectiveHours = employee ? ((540 * (employee.efficiency || 100)) / 6000).toFixed(1) : 0;
 
   const handleConfirmDelete = async () => {
@@ -207,7 +192,7 @@ export default function EmployeeDetailPage() {
     <div className="min-h-screen bg-slate-50/50 pb-20 font-sans text-slate-900">
       <header className="bg-white border-b border-slate-200 pt-8 pb-12 shadow-sm">
         <div className="mx-auto px-8">
-          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 hover:text-orange-600 font-black uppercase text-[10px] tracking-[0.2em] mb-8 transition-all group cursor-pointer">
+          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 hover:text-orange-600 font-black uppercase text-[10px] tracking-[0.2em] mb-8 transition-all group bg-transparent border-none cursor-pointer">
             <HiOutlineArrowLeft strokeWidth={2.5} className="group-hover:-translate-x-1 transition-transform" />
             Back to Directory
           </button>
@@ -249,13 +234,48 @@ export default function EmployeeDetailPage() {
               <MetricBox label="Leaves Taken" value={employee?.leaves?.length || 0} icon={<HiOutlineCalendarDays />} color="text-slate-500" />
             </div>
 
-            <SectionHeader title="Personal Performance History" />
+            <SectionHeader title="Monthly Performance History" />
             <TaskGridView tasks={workedAndAssigned} userId={userId} />
 
-            <div className="space-y-4">
-              <SectionHeader title="Recent 7-Day Personal Output" />
+            <div className="space-y-6">
+              <SectionHeader title="Daily Personal Output (Last 7 Days)" />
               {recentSevenDays.length > 0 ? (
-                recentSevenDays.map(([date, data]) => <LogDayCard key={date} date={date} data={data} isRecent={true} />)
+                recentSevenDays.map((day) => (
+                    <div key={day.date} className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
+                        <div className="bg-slate-50/80 px-8 py- flex justify-between items-center border-b border-slate-100">
+                            <div className="flex items-center gap-3">
+                                <HiOutlineCalendarDays className="text-orange-500" size={18} />
+                                <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest">{day.date}</span>
+                            </div>
+                            <span className="text-[10px] font-black text-orange-600 bg-white border border-orange-100 px-4 py-1.5 rounded-full shadow-sm">
+                                {formatToHrMin(day.totalDaySeconds)}
+                            </span>
+                        </div>
+                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {day.tasks.map((task, idx) => {
+                                const percentage = task.allocated > 0 ? Math.min((task.seconds / task.allocated) * 100, 100) : 0;
+                                const colors = ['bg-orange-500', 'bg-amber-500', 'bg-rose-500', 'bg-indigo-500'];
+                                return (
+                                    <div key={idx} className={`${colors[idx % colors.length]} rounded-2xl p-3 text-white relative overflow-hidden group transition-all hover:shadow-md`}>
+                                        <div className="relative z-10">
+                                            <div className="flex items-center justify-between gap-2 mb-2">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[7px] font-black bg-white/20 rounded uppercase inline-block">{task.projectCode}</span>
+                                                    <h4 className="text-[11px] font-black uppercase tracking-tight truncate">{task.title}</h4>
+                                                </div>
+                                                <p className="text-[10px] font-black">{formatToHrMin(task.seconds)}</p>
+                                            </div>
+                                            <div className="w-full bg-white/20 h-1.5 rounded-full">
+                                                <div className="bg-white h-full rounded-full transition-all duration-700" style={{ width: `${percentage}%` }} />
+                                            </div>
+                                        </div>
+                                        <div className="absolute inset-0 bg-gradient-to-tr from-black/10 to-transparent pointer-events-none" />
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+                ))
               ) : (
                 <EmptyState message="No personal activity recorded recently" />
               )}
@@ -280,8 +300,8 @@ export default function EmployeeDetailPage() {
               </div>
               <div className="space-y-3">
                 {paginatedAllTasks.map(t => {
-                   const isAssigned = currentlyAssigned.some(a => a._id === t._id);
-                   return <TaskSmallCard key={t._id} task={t} historical={!isAssigned} />;
+                  const isAssigned = currentlyAssigned.some(a => a._id === t._id);
+                  return <TaskSmallCard key={t._id} task={t} historical={!isAssigned} />;
                 })}
               </div>
             </div>
@@ -313,48 +333,7 @@ export default function EmployeeDetailPage() {
   );
 }
 
-// --- REMAINING SUB-COMPONENTS (UNTOUCHED) ---
-
-function LogDayCard({ date, data, isRecent }) {
-  const formatDuration = (totalSeconds) => {
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    if (hours > 0) return `${hours}H ${minutes}M`;
-    return `${minutes} MIN`;
-  };
-
-  return (
-    <div className={`bg-white rounded-[2rem] border ${isRecent ? 'border-orange-100' : 'border-slate-200'} shadow-sm overflow-hidden flex flex-col`}>
-      <div className={`px-6 py-4 flex justify-between items-center shrink-0 ${isRecent ? 'bg-orange-50/40' : 'bg-slate-50/80'}`}>
-        <div className="flex items-center gap-3">
-          <HiOutlineCalendarDays className={isRecent ? 'text-orange-500' : 'text-slate-400'} size={18} />
-          <span className="text-[11px] font-black text-slate-900 uppercase tracking-wider">{date}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-black text-orange-600 bg-white border border-orange-100 px-3 py-1 rounded-full">{formatDuration(data.totalSeconds)}</span>
-        </div>
-      </div>
-      <div className="overflow-y-auto max-h-[300px] divide-y divide-slate-50">
-        {data.logs.map((log, idx) => (
-          <div key={idx} className="px-6 py-4 flex items-center justify-between hover:bg-slate-50/80 transition-all group">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[8px] font-black text-white bg-slate-900 px-1.5 py-0.5 rounded tracking-tighter">{log.projectNumber}</span>
-                <p className="text-[12px] font-black text-slate-800 uppercase truncate group-hover:text-orange-600">{log.taskTitle}</p>
-              </div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase italic">
-                {new Date(log.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })} / {new Date(log.endTime || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
-              </p>
-            </div>
-            <div className="bg-slate-50 group-hover:bg-orange-500 group-hover:text-white px-3 py-2 rounded-xl transition-all border border-slate-200 min-w-[85px] text-center">
-              <p className="text-[10px] font-black uppercase">{formatDuration(log.durationSeconds || 0)}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+// --- SUB-COMPONENTS ---
 
 function MetricBox({ label, value, icon, color }) {
   return (
@@ -370,11 +349,10 @@ function MetricBox({ label, value, icon, color }) {
 
 function TaskSmallCard({ task, active, historical }) {
   return (
-    <div className={`p-5 rounded-2xl border transition-all ${
-      active ? 'bg-white/5 border-white/10 hover:bg-white/10' : 
-      historical ? 'bg-slate-50 border-slate-100 opacity-60 grayscale-[0.5]' :
-      'bg-slate-50 border-slate-100 hover:border-slate-200'
-    }`}>
+    <div className={`p-5 rounded-2xl border transition-all ${active ? 'bg-white/5 border-white/10 hover:bg-white/10' :
+        historical ? 'bg-slate-50 border-slate-100 opacity-60 grayscale-[0.5]' :
+          'bg-slate-50 border-slate-100 hover:border-slate-200'
+      }`}>
       <div className="flex justify-between items-start gap-2">
         <p className={`text-[11px] font-black uppercase tracking-tight ${active ? 'text-slate-100' : 'text-slate-800'}`}>{task.title}</p>
         {historical && <span className="text-[7px] font-black text-slate-400 uppercase border border-slate-200 px-1 rounded">History</span>}
@@ -391,9 +369,9 @@ function PaginationControls({ current, total, setPage }) {
   if (total <= 1) return null;
   return (
     <div className="flex items-center gap-1">
-      <button disabled={current === 0} onClick={() => setPage(p => p - 1)} className="p-1.5 hover:bg-slate-100 rounded-lg disabled:opacity-20 transition-all"><HiOutlineChevronLeft size={16} /></button>
+      <button disabled={current === 0} onClick={() => setPage(p => p - 1)} className="p-1.5 hover:bg-slate-100 rounded-lg disabled:opacity-20 transition-all cursor-pointer"><HiOutlineChevronLeft size={16} /></button>
       <span className="text-[10px] font-black text-slate-400 min-w-[30px] text-center">{current + 1}/{total}</span>
-      <button disabled={current >= total - 1} onClick={() => setPage(p => p + 1)} className="p-1.5 hover:bg-slate-100 rounded-lg disabled:opacity-20 transition-all"><HiOutlineChevronRight size={16} /></button>
+      <button disabled={current >= total - 1} onClick={() => setPage(p => p + 1)} className="p-1.5 hover:bg-slate-100 rounded-lg disabled:opacity-20 transition-all cursor-pointer"><HiOutlineChevronRight size={16} /></button>
     </div>
   );
 }

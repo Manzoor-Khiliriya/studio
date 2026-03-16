@@ -42,9 +42,7 @@ export default function LoginPage() {
     try {
       const userData = await loginPromise;
       dispatch(setCredentials({ ...userData }));
-      setTimeout(() => {
-        navigate(userData.user.role === "Admin" ? "/admin" : "/employee");
-      }, 800);
+      navigate(userData.user.role === "Admin" ? "/admin" : "/employee");
     } catch (err) {
       console.error("Login Error:", err);
     }
