@@ -27,7 +27,7 @@ const CustomProgressBar = ({ percentage, isOver }) => {
             style={{ left: `${pt}%` }}
           />
         ))}
-        
+
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${Math.min(percentage, 100)}%` }}
@@ -91,15 +91,15 @@ const AdminTaskReportPage = () => {
       />
 
       <main className="max-w-[1500px] mx-auto px-6 pb-10 -mt-8">
-        
+
         {/* --- COMPACT SEARCH BAR --- */}
-        <div className="bg-white border border-slate-200 p-2 rounded-[1.5rem] shadow-lg shadow-slate-200/40 mb-6 flex flex-col md:flex-row gap-2 items-center">
+        <div className="bg-white border border-slate-200 p-5 rounded-[1.5rem] shadow-lg shadow-slate-200/40 mb-6 flex flex-col md:flex-row gap-2 items-center">
           <div className="relative flex-1 w-full group">
-            <HiOutlineMagnifyingGlass className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <HiOutlineMagnifyingGlass className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors" size={18} />
             <input
               type="text"
               placeholder="Search Project Code..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border-none rounded-xl focus:ring-1 focus:ring-orange-500/20 outline-none font-black text-[11px] uppercase"
+              className="w-full pl-12 pr-6 py-3.5 bg-white border border-slate-200 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/5 outline-none font-bold text-xs transition-all shadow-sm group"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -118,10 +118,10 @@ const AdminTaskReportPage = () => {
               const projectPerc = group.progressPercent ?? ((group.totalConsumed / group.totalBudget) * 100 || 0);
               const isProjectOver = projectPerc > 100;
               const isExpanded = expandedProject === group._id;
-              
+
               // Date Calculation
               const subDate = group.endDate ? new Date(group.endDate) : null;
-              const formattedDate = subDate ? subDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'N/A';
+              const formattedDate = subDate ? subDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
 
               return (
                 <div key={group._id} className={`bg-white rounded-[1.5rem] border transition-all duration-300 ${isExpanded ? 'border-orange-500 shadow-md' : 'border-slate-200'}`}>
@@ -131,14 +131,14 @@ const AdminTaskReportPage = () => {
                     onClick={() => setExpandedProject(isExpanded ? null : group._id)}
                     className={`px-5 py-3 flex items-center justify-between cursor-pointer rounded-[1.5rem] ${isExpanded ? 'bg-slate-900 text-white' : 'hover:bg-slate-50'}`}
                   >
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 flex-1">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isExpanded ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
                         <HiOutlineChartBarSquare size={20} />
                       </div>
                       <div className="min-w-[120px]">
                         <h3 className="font-black text-sm uppercase tracking-tighter italic leading-none">{group.project_code || "N/A"}</h3>
                         <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[7px] font-black uppercase opacity-50">{group.taskList?.length || 0} Tasks</span>
+                          <span className="text-[7px] font-black uppercase opacity-50">{group.taskList?.length || 0} Tasks</span>
                         </div>
                       </div>
 
@@ -146,14 +146,14 @@ const AdminTaskReportPage = () => {
                       <div className="hidden sm:flex items-center gap-2 border-l border-slate-200/20 pl-4">
                         <HiOutlineCalendarDays className={isExpanded ? 'text-orange-500' : 'text-slate-300'} size={14} />
                         <div>
-                            <p className="text-[6px] font-black uppercase opacity-40 leading-none">Submission</p>
-                            <p className={`text-[10px] font-black uppercase ${isExpanded ? 'text-white' : 'text-slate-600'}`}>{formattedDate}</p>
+                          <p className="text-[6px] font-black uppercase opacity-40 leading-none">Submission</p>
+                          <p className={`text-[10px] font-black uppercase ${isExpanded ? 'text-white' : 'text-slate-600'}`}>{formattedDate}</p>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-6">
-                      <div className="hidden lg:flex flex-col items-end min-w-[180px]">
+                    <div className="flex items-center gap-6 flex-1">
+                      <div className="hidden lg:flex flex-col items-end min-w-[280px] flex-1">
                         <div className="flex justify-between w-full mb-1">
                           <span className="text-[7px] font-black uppercase opacity-50">Usage</span>
                           <span className={`text-[9px] font-black ${isProjectOver ? 'text-rose-400' : isExpanded ? 'text-white' : 'text-slate-900'}`}>
