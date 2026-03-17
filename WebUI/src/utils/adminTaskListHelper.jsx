@@ -107,13 +107,13 @@ export const getAdminTaskColumns = (onEdit, onStatusUpdate) => [
     className: "text-left",
     render: (task) => (
       <p className="text-[9px] font-bold text-slate-400 line-clamp-1 italic">
-        {task.projectDetails || "No protocol details."}
+        {task.description || "No task details."}
       </p>
     ),
   },
 
   {
-  header: <span className={headerClass}>Team</span>,
+  header: <span className={headerClass}>Team Members</span>,
   className: "text-center",
   cellClassName: "text-center",
   render: (task) => {
@@ -133,7 +133,7 @@ export const getAdminTaskColumns = (onEdit, onStatusUpdate) => [
       <div className="flex justify-center">
         <span
           title={employeeCodes || "No members assigned"}
-          className="w-8 h-8 rounded-lg bg-slate-900 text-orange-500 border-2 border-white flex items-center justify-center text-[11px] font-black shadow-sm cursor-pointer transition-transform hover:scale-110"
+          className="text-orange-500 text-[11px] font-black cursor-pointer transition-transform hover:scale-110"
         >
           {task.assignedTo?.length || 0}
         </span>

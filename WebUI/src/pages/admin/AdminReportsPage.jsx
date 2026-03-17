@@ -62,7 +62,7 @@ const AdminTaskReportPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(5);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -136,7 +136,7 @@ const AdminTaskReportPage = () => {
                         <HiOutlineChartBarSquare size={20} />
                       </div>
                       <div className="min-w-[120px]">
-                        <h3 className="font-black text-sm uppercase tracking-tighter italic leading-none">{group.project_code || "N/A"}</h3>
+                        <h3 className="font-black text-sm uppercase tracking-tighter italic leading-none">{group.title || "N/A"}</h3>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-[7px] font-black uppercase opacity-50">{group.taskList?.length || 0} Tasks</span>
                         </div>
@@ -225,16 +225,33 @@ const AdminTaskReportPage = () => {
         </div>
 
         {/* --- MINI PAGINATION FOOTER --- */}
-        <div className="bg-slate-900 px-6 py-3 rounded-[1.5rem] flex items-center justify-between gap-4 shadow-xl">
-          <div className="flex items-center gap-2">
-            <span className="text-[8px] font-black text-slate-500 uppercase">Limit</span>
-            <select
-              value={limit}
-              onChange={(e) => { setLimit(Number(e.target.value)); setCurrentPage(1); }}
-              className="bg-transparent text-[10px] font-black outline-none text-white cursor-pointer"
-            >
-              {[10, 20, 50].map((v) => <option key={v} value={v} className="bg-slate-900">{v}</option>)}
-            </select>
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100 shadow-sm">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200 pr-3">
+                Page Limit
+              </span>
+              <select
+                value={limit}
+                onChange={(e) => {
+                  setLimit(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="bg-transparent text-[9px] font-black outline-none focus:ring-0 cursor-pointer text-slate-700"
+              >
+                {[5, 10, 25, 50].map((v) => (
+                  <option key={v} value={v}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {data?.pagination?.totalProjects && (
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight ml-2">
+                Total {data?.pagination?.totalProjects} projects
+              </span>
+            )}
           </div>
           <Pagination
             pagination={{

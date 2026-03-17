@@ -11,6 +11,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* --- Form Inputs --- */
 .form-input {
   width: 100%;
   padding: 0.85rem 1rem 0.85rem 2.75rem;
@@ -44,6 +45,7 @@ body {
   color: #f97316;
 }
 
+/* --- Scrollbar --- */
 .custom-scrollbar::-webkit-scrollbar {
   width: 7px;
   height: 7px;
@@ -56,92 +58,99 @@ body {
   border-radius: 10px;
 }
 
-/* Core Layout Overrides */
+/* --- Core FullCalendar Overrides --- */
 .modern-calendar-wrapper .fc {
   --fc-border-color: #f1f5f9;
-  --fc-today-bg-color: #f8fafc;
+  --fc-today-bg-color: transparent !important; /* Managed by custom class below */
   --fc-button-bg-color: #ffffff;
   --fc-button-border-color: #e2e8f0;
   --fc-button-text-color: #475569;
   --fc-button-hover-bg-color: #f8fafc;
-  --fc-button-active-bg-color: #4f46e5;
+  --fc-button-active-bg-color: #f97316; 
+  --fc-button-active-border-color: #f97316;
   font-family: 'Inter', system-ui, sans-serif;
 }
 
-/* Toolbar Styling */
-.modern-calendar-wrapper .fc .fc-toolbar-title {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #0f172a;
+/* --- Today's Date Highlight --- */
+.modern-calendar-wrapper .fc-day-today {
+  background-color: #fff3ed !important; /* Very light orange bg */
+  position: relative;
 }
 
-.modern-calendar-wrapper .fc .fc-button {
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 0.875rem;
-  padding: 8px 16px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-  text-transform: capitalize;
+/* Adding an orange ring around the date number for today */
+.modern-calendar-wrapper .fc-day-today .fc-daygrid-day-number {
+  background-color: #f97316;
+  color: white !important;
+  border-radius: 8px;
+  min-width: 24px;
+  text-align: center;
+  box-shadow: 0 4px 6px -1px rgba(249, 115, 22, 0.3);
 }
 
-.modern-calendar-wrapper .fc .fc-button-active {
-  color: #fff !important;
-  background-color: #4f46e5 !important;
-  border-color: #4f46e5 !important;
+/* --- Holiday Highlight --- */
+
+/* Target the wrapper FullCalendar creates for background events */
+.fc-daygrid-bg-harness:has(.holiday-bg-highlight) {
+  background-color: rgba(216, 39, 39, 0.589) !important; /* Soft red tint */
+  z-index: 1; 
 }
 
-/* Event Styling */
-.event-card {
-  border: none !important;
-  border-radius: 8px !important;
-  margin: 1px 4px !important;
-  padding: 2px !important;
-  transition: transform 0.15s ease-in-out;
-}
-
-.event-card:hover {
-  transform: translateY(-1px);
-  filter: brightness(1.05);
-}
-
-.event-in-progress { background-color: #f97316 !important; }
-.event-completed { background-color: #10b981 !important; }
-.event-default { background-color: #4f46e5 !important; }
-
-/* Background / Holiday Styling */
+/* The actual element you assigned the class to */
 .holiday-bg-highlight {
-  background-color: rgba(239, 68, 68, 0.12) !important;
+  background-color: rgba(216, 39, 39, 0.589) !important; /* Soft red tint */
+  border-top: 4px solid #dc2626 !important;
   opacity: 1 !important;
+  display: block !important;
+  height: 100%;
 }
 
-.weekend-bg-highlight {
-  background-color: rgba(241, 245, 249, 0.8) !important;
-  opacity: 1 !important;
+/* Priority: Ensure it shows over weekends */
+.fc-day-sat .fc-daygrid-bg-harness:has(.holiday-bg-highlight), 
+.fc-day-sun .fc-daygrid-bg-harness:has(.holiday-bg-highlight) {
+  background-color: rgba(220, 38, 38, 0.25) !important;
 }
 
-/* Ensure background events are visible */
-.fc-bg-event {
-  z-index: 1 !important;
+.fc-day-sat, .fc-day-sun {
+  background-color: #bfd7f0 !important; /* Keeping weekends slightly grey-blue */
 }
 
-/* Day cell number styling */
-.modern-calendar-wrapper .fc-daygrid-day-number {
-  padding: 10px !important;
-  font-weight: 600;
-  color: #64748b;
-  font-size: 0.85rem;
+/* Priority: If a holiday falls on a weekend */
+.fc-day-sat.holiday-bg-highlight, 
+.fc-day-sun.holiday-bg-highlight {
+  background-color: rgba(220, 38, 38, 0.35) !important;
 }
 
-/* Weekday column headers */
-.modern-calendar-wrapper .fc-col-header-cell {
-  padding: 12px 0;
-  background-color: #fcfcfd;
+/* --- Layout Details --- */
+.fc-daygrid-day-frame { 
+  overflow: visible !important; 
+  min-height: 120px !important; 
+}
+
+.fc-daygrid-event-harness { 
+  z-index: 10 !important; 
+  margin-bottom: 6px !important; 
+}
+
+.fc-event { 
+  background: transparent !important; 
+  border: none !important; 
+}
+
+.fc-daygrid-day-number {
+  padding: 8px !important;
+  font-weight: 700;
+  color: #94a3b8;
+  font-size: 0.8rem;
 }
 
 .modern-calendar-wrapper .fc-col-header-cell-cushion {
-  color: #94a3b8;
-  font-size: 0.75rem;
-  font-weight: 700;
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
+}
+
+.fc-daygrid-day:hover {
+  background-color: rgba(241, 245, 249, 0.6);
 }

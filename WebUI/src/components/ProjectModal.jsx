@@ -91,7 +91,6 @@ export default function ProjectModal({ isOpen, onClose, editProject = null }) {
             <HiOutlineHashtag className="input-icon" />
             <input
               required
-              disabled={isEditing}
               className="form-input uppercase font-black text-orange-600 disabled:bg-slate-50 disabled:text-slate-400"
               placeholder="E.G. PRJ-2024-001"
               value={formData.project_code}

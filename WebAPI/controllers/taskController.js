@@ -215,16 +215,59 @@ exports.getTaskDetail = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id)
       .populate("project", "project_code title clientName startDate endDate createdAt")
-      .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
+      .populate({ path: "assignedTo", populate: { path: "user", select: "name employee_code" } })
       .populate({
         path: "timeLogs",
-        populate: { path: "user", select: "name" }
-      })
+        populate: { path: "user", select: "name employee_code" }
+      });
+
     if (!task) {
       return res.status(404).json({ success: false, message: "Task not found" });
     }
-    return res.status(200).json({ success: true, task });
+
+    // --- CUSTOM CALCULATIONS ---
+    const totalAllocatedSeconds = (task.allocatedTime || 0) * 3600;
+    const contributorMap = new Map();
+
+    // Loop through logs to find every unique person who ever worked
+    task.timeLogs.forEach((log) => {
+      if (log.logType !== "work") return;
+
+      const user = log.user;
+      const userId = user?._id.toString();
+
+      if (!contributorMap.has(userId)) {
+        contributorMap.set(userId, {
+          id: userId,
+          name: user?.name || "Unknown",
+          code: user?.employee_code || "N/A",
+          seconds: 0,
+          isCurrentlyAssigned: task.assignedTo.some(a => a.user?._id.toString() === userId)
+        });
+      }
+
+      const current = contributorMap.get(userId);
+      current.seconds += (log.durationSeconds || 0);
+    });
+
+    const historicalContributors = Array.from(contributorMap.values()).map(c => ({
+      ...c,
+      percentage: totalAllocatedSeconds > 0 ? ((c.seconds / totalAllocatedSeconds) * 100).toFixed(1) : 0
+    }));
+
+    // Construct the final response object
+    const taskData = {
+      ...task.toObject(),
+      stats: {
+        totalAssigned: task.assignedTo?.length || 0,
+        totalHistoricalContributors: historicalContributors.length,
+        historicalContributors
+      }
+    };
+
+    return res.status(200).json({ success: true, task: taskData });
   } catch (err) {
+    console.error(err);
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
