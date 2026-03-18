@@ -21,8 +21,8 @@ import AdminTasksPage from "./pages/admin/AdminTaskListPage";
 import AdminTaskDetailPage from "./pages/admin/AdminTaskDetailPage";
 import AdminLeavePage from "./pages/admin/AdminLeavePage";
 import AdminHolidayPage from "./pages/admin/AdminHolidayPage";
-import AdminTaskReportPage from "./pages/admin/AdminReportsPage";
-import AdminTaskCalender from "./pages/admin/AdminTaskCalender";
+import AdminTaskPerformancePage from "./pages/admin/AdminTaskPerformancePage";
+import AdminProjectCalendar from "./pages/admin/AdminProjectCalender";
 import AdminAttendanceListPage from "./pages/admin/AdminAttendanceListPage";
 
 // Employee Pages
@@ -36,14 +36,13 @@ function App() {
   return (
     <Provider store={store}>
       <NotificationHandler />
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000
+        }}
+      />
       <BrowserRouter>
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 4000
-          }}
-        />
-
         <div className="min-h-screen bg-slate-50">
           <Routes>
             {/* PUBLIC ROUTES */}
@@ -61,12 +60,12 @@ function App() {
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/employees" element={<EmployeeListPage />} />
                 <Route path="/employees/:id" element={<EmployeeDetailPage />} />
-                <Route path="/tasks" element={<AdminTasksPage />} />
+                <Route path="/projects" element={<AdminTasksPage />} />
                 <Route path="/tasks/:id" element={<AdminTaskDetailPage />} />
                 <Route path="/leaves" element={<AdminLeavePage />} />
                 <Route path="/holidays" element={<AdminHolidayPage />} />
-                <Route path="/reports" element={<AdminTaskReportPage />} />
-                <Route path="/tasks-calender" element={<AdminTaskCalender />} />
+                <Route path="/performance" element={<AdminTaskPerformancePage />} />
+                <Route path="/projects-calender" element={<AdminProjectCalendar />} />
                 <Route path="/attendance" element={<AdminAttendanceListPage />} />
               </Route>
             </Route>

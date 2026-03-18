@@ -57,7 +57,7 @@ const Metric = ({ label, value, colorClass = "text-slate-700" }) => (
   </div>
 );
 
-const AdminTaskReportPage = () => {
+const AdminTaskPerformancePage = () => {
   const [expandedProject, setExpandedProject] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -270,4 +270,4 @@ const AdminTaskReportPage = () => {
   );
 };
 
-export default AdminTaskReportPage;
+export default AdminTaskPerformancePage;

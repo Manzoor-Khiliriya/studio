@@ -74,7 +74,7 @@ const LeaveModal = ({ isOpen, onClose, initialData }) => {
           >
             <option>Annual Leave</option>
             <option>Sick Leave</option>
-            <option>Personal Leave</option>
+            <option>Casual Leave</option>
             <option>Maternity Leave</option>
             <option>Paternity Leave</option>
             <option>Unpaid Leave</option>

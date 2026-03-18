@@ -33,11 +33,11 @@ export default function Sidebar() {
   const adminLinks = [
     { to: "/admin", label: "Dashboard", icon: <HiOutlineSquares2X2 /> },
     { to: "/employees", label: "Team Space", icon: <HiOutlineUsers /> },
-    { to: "/tasks", label: "Tasks", icon: <HiOutlineQueueList /> },
+    { to: "/projects", label: "Projects", icon: <HiOutlineQueueList /> },
     { to: '/holidays', label: 'Holidays', icon: <HiOutlineFlag /> },
-    { to: "/reports", label: "Performance", icon: <HiOutlineDocumentChartBar /> },
+    { to: "/performance", label: "Performance", icon: <HiOutlineDocumentChartBar /> },
     { to: '/leaves', label: 'Leaves', icon: <HiOutlineCalendar /> },
-    { to: "/tasks-calender", label: "Task Calender", icon: <HiCalendar /> },
+    { to: "/projects-calender", label: "Project Calender", icon: <HiCalendar /> },
     { to: "/attendance", label: "Attendance", icon: <HiOutlineViewColumns /> },
   ];
 

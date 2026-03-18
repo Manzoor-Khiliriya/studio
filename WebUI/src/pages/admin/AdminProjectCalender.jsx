@@ -7,7 +7,7 @@ import { useGetHolidaysQuery } from '../../services/holidayApi';
 import { useNavigate } from 'react-router-dom';
 import { HiChevronDown, HiChevronUp, HiOutlineQueueList, HiOutlineFlag } from 'react-icons/hi2';
 
-const TaskCalendar = () => {
+const AdminProjectCalendar = () => {
   const navigate = useNavigate();
   const [expandedProjects, setExpandedProjects] = useState(new Set());
   const [activeTab, setActiveTab] = useState('all');
@@ -80,20 +80,15 @@ const TaskCalendar = () => {
         <div
           onClick={(e) => toggleProject(projectId, e)}
           className={`cursor-pointer px-2 py-0.5 flex justify-between items-center transition-colors ${isExpanded
-              ? (isDeadlineView ? 'bg-rose-600 rounded-t-xl' : 'bg-indigo-600 rounded-t-xl')
-              : (isHovered
-                ? 'bg-orange-600 rounded-xl' // Different color for hover state
-                : (isDeadlineView ? 'bg-rose-800 rounded-xl hover:bg-rose-700' : 'bg-slate-800 rounded-xl hover:bg-slate-700'))
+            ? (isDeadlineView ? 'bg-rose-600 rounded-t-xl' : 'bg-indigo-600 rounded-t-xl')
+            : (isHovered
+              ? 'bg-orange-600 rounded-xl' // Different color for hover state
+              : (isDeadlineView ? 'bg-rose-800 rounded-xl hover:bg-rose-700' : 'bg-slate-800 rounded-xl hover:bg-slate-700'))
             }`}
         >
-          <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-            <span className="text-[7px] font-black text-white/70 uppercase whitespace-nowrap">
-              {projectCode}
-            </span>
-            <span className="text-[9px] font-bold text-white truncate uppercase italic">
-              {eventInfo.event.title}
-            </span>
-          </div>
+          <span className="text-[9px] font-bold text-white truncate uppercase italic">
+            {eventInfo.event.title} ({projectCode})
+          </span>
           <div className="flex items-center gap-1.5">
             <span className="text-[7px] font-black text-white bg-white/10 px-1 rounded uppercase tracking-tighter">{taskCount}</span>
             {isExpanded ? <HiChevronUp size={12} className="text-white" /> : <HiChevronDown size={12} className="text-white" />}
@@ -178,4 +173,4 @@ const TaskCalendar = () => {
   );
 };
 
-export default TaskCalendar;
+export default AdminProjectCalendar;
