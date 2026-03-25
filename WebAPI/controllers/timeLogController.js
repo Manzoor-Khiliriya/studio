@@ -11,47 +11,40 @@ exports.startTimer = async (req, res) => {
   try {
     const { taskId } = req.body;
     const userId = req.user._id;
-
-    if (!taskId) throw new Error("Task ID is required.");
-
-    const employee = await Employee.findOne({ user: userId });
-    if (!employee) throw new Error("Employee profile not found for this user.");
-
-    const task = await Task.findOne({
-      _id: taskId,
-      assignedTo: employee._id
-    });
-
-    if (!task) throw new Error("Task not found or not assigned to your employee profile.");
-
     const today = new Date().toISOString().split("T")[0];
 
-    // 1. Check Daily Limit
+    const employee = await Employee.findOne({ user: userId });
+    if (!employee) throw new Error("Employee profile not found.");
+
+    const task = await Task.findOne({ _id: taskId, assignedTo: employee._id });
+    if (!task) throw new Error("Task not found or not assigned to you.");
+
+    // 1. Daily Limit Check
     const logs = await TimeLog.find({ user: userId, dateString: today, logType: "work" });
     const hoursToday = logs.reduce((sum, l) => sum + (l.durationSeconds / 3600 || 0), 0);
-
     if (hoursToday >= employee.dailyWorkLimit) {
-      throw new Error(`Daily limit reached (${employee.dailyWorkLimit} hrs). Please contact admin.`);
+      throw new Error(`Daily limit reached (${employee.dailyWorkLimit} hrs).`);
     }
 
-    // 2. Stop any existing running timers (Auto-switch)
+    // 2. Stop existing timers (Auto-switch)
     const activeLog = await TimeLog.findOne({ user: userId, isRunning: true });
     if (activeLog) {
-        const now = new Date();
-        const duration = Math.floor((now.getTime() - new Date(activeLog.startTime).getTime()) / 1000);
-        activeLog.endTime = now;
-        activeLog.isRunning = false;
-        activeLog.durationSeconds = Math.max(0, duration);
-        await activeLog.save({ session });
+      const now = new Date();
+      activeLog.endTime = now;
+      activeLog.isRunning = false;
+      activeLog.durationSeconds = Math.max(0, Math.floor((now - new Date(activeLog.startTime)) / 1000));
+      // We don't mark auto-switches as "Stop" to keep the log clean
+      await activeLog.save({ session });
     }
 
-    // 3. Create new Work Log
+    // 3. Create Start Log
     const log = await TimeLog.create([{
       user: userId,
       task: taskId,
       startTime: new Date(),
       isRunning: true,
       logType: "work",
+      action: "Start", // <--- Key for Admin Log
       dateString: today
     }], { session });
 
@@ -62,11 +55,10 @@ exports.startTimer = async (req, res) => {
 
     await session.commitTransaction();
     res.status(201).json(log[0]);
-
   } catch (err) {
     await session.abortTransaction();
-    const message = err.name === "CastError" ? "Invalid Task ID format" : err.message;
-    res.status(400).json({ error: message });
+    console.error(err)
+    res.status(400).json({ error: err.message });
   } finally {
     session.endSession();
   }
@@ -75,36 +67,29 @@ exports.startTimer = async (req, res) => {
 exports.togglePause = async (req, res) => {
   try {
     const userId = req.user._id;
-    const today = new Date().toISOString().split("T")[0];
-
     const active = await TimeLog.findOne({ user: userId, isRunning: true });
-    if (!active) return res.status(404).json({ message: "No active timer found." });
+    if (!active) return res.status(404).json({ message: "No active timer." });
 
     const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - new Date(active.startTime).getTime()) / 1000);
-
-    // Close Current Log
     active.endTime = now;
     active.isRunning = false;
-    active.durationSeconds = Math.max(0, diffInSeconds);
+    active.durationSeconds = Math.max(0, Math.floor((now - new Date(active.startTime)) / 1000));
+    // Notice: We do NOT set an action here so it stays out of the Admin Activity Feed
     await active.save();
 
-    // Switch types: if was "work" -> "break", if was "break" -> "work"
     const newType = active.logType === "work" ? "break" : "work";
-
     const newLog = await TimeLog.create({
       user: userId,
       task: active.task,
       startTime: new Date(),
       logType: newType,
       isRunning: true,
-      dateString: today
+      dateString: active.dateString
+      // action is undefined here intentionally
     });
 
     res.json({ status: newType, log: newLog });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
 exports.stopTimer = async (req, res) => {
@@ -113,18 +98,17 @@ exports.stopTimer = async (req, res) => {
     if (!log) return res.status(400).json({ message: "No active timer found." });
 
     const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - new Date(log.startTime).getTime()) / 1000);
-
     log.endTime = now;
     log.isRunning = false;
-    log.durationSeconds = Math.max(0, diffInSeconds);
+    log.durationSeconds = Math.max(0, Math.floor((now - new Date(log.startTime)) / 1000));
+    log.action = "Stop"; // <--- Key for Admin Log
     await log.save();
 
     res.json({ message: "Session Terminated", log });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 };
+
+// ... (Keep other methods as they were)
 
 exports.getMyLogs = async (req, res) => {
   try {

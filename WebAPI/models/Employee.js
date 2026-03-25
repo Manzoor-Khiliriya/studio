@@ -8,7 +8,7 @@ const employeeSchema = new mongoose.Schema({
     unique: true,
     index: true,
   },
-  employee_code: { 
+  employeeCode: { 
     type: String, 
     trim: true,
     unique: true,

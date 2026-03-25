@@ -86,7 +86,7 @@ const AdminDashboard = () => {
 
           {/* 2. Total Employees (Status: Active) */}
           <StatCard
-            label="Active Personnel"
+            label="Active Employees"
             value={stats.totalActiveEmployees || 0}
             icon={<HiOutlineUserGroup size={22} />}
             delay={0.2}
@@ -103,7 +103,7 @@ const AdminDashboard = () => {
 
           {/* 4. Tasks in Progress */}
           <StatCard
-            label="Production"
+            label="Task In Progress"
             value={stats.tasksInProgress || 0}
             icon={<HiOutlineArrowTrendingUp size={22} />}
             delay={0.4}
@@ -111,7 +111,7 @@ const AdminDashboard = () => {
 
           {/* 5. Pending Leaves */}
           <StatCard
-            label="Requests"
+            label="Leave Requests"
             value={stats.pendingApprovals || 0}
             variant={stats.pendingApprovals > 0 ? "warning" : "default"}
             icon={<BiTask size={22} />}
@@ -186,48 +186,85 @@ const AdminDashboard = () => {
           </div>
 
           {/* --- ACTIVITY LOG COLUMN --- */}
+          {/* --- ACTIVITY LOG COLUMN --- */}
           <div className="lg:col-span-8 bg-slate-900 rounded-[3rem] p-8 shadow-2xl border border-slate-800 flex flex-col h-[700px]">
             <div className="flex justify-between items-center mb-10 shrink-0 px-2">
-              <h3 className="font-black text-white text-sm uppercase tracking-widest">Operational Log</h3>
+              <div>
+                <h3 className="font-black text-white text-sm uppercase tracking-widest">Operational History</h3>
+                <p className="text-[9px] text-slate-500 font-bold uppercase mt-1 italic">Tracking Start & Termination Events Only</p>
+              </div>
               <button
                 onClick={handleClearHistory}
                 disabled={isClearing || recentActivity.length === 0}
-                className="flex items-center gap-2 text-[12px] font-black text-slate-500 hover:text-white transition-colors uppercase tracking-widest cursor-pointer"
+                className="flex items-center gap-1 text-[12px] font-black text-red-500 hover:text-red-600 transition-colors uppercase tracking-widest cursor-pointer"
+                title='Clear Logs'
               >
-                <BiTrash size={14} /> {isClearing ? 'Purging...' : 'Purge View'}
+                <BiTrash size={20} />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar space-y-4">
               {recentActivity.length > 0 ? (
-                recentActivity.map((log, index) => (
-                  <div key={log.id} className="flex gap-6 items-start group">
-                    <div className="flex flex-col items-center mt-2 shrink-0">
-                      <div className={`w-2 h-2 rounded-full ${index === 0 ? 'bg-blue-500 shadow-[0_0_8px_#3b82f6]' : 'bg-slate-700'}`}></div>
-                      {index !== recentActivity.length - 1 && <div className="w-[1px] h-12 bg-slate-800 mt-2"></div>}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between items-center bg-white/5 p-5 rounded-[1.8rem] border border-white/5 hover:border-white/10 transition-all">
-                        <div className="min-w-0">
-                          <p className="text-xs text-slate-400">
-                            <span className="font-black text-white uppercase">{log.userName}</span>
-                            <span className="mx-3 text-[9px] font-black text-slate-600">ENGAGED</span>
-                            <span className="text-blue-400 font-black uppercase">{log.taskTitle}</span>
-                          </p>
-                          <p className="text-[9px] font-black text-slate-600 uppercase mt-2 tracking-tighter">PROJECT ID: {log.projectCode || 'INTERNAL'}</p>
-                        </div>
-                        <div className="text-right ml-4">
-                          <div className="px-3 py-1 bg-slate-800 rounded-lg text-[10px] font-black text-slate-400 tabular-nums">
-                            {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                recentActivity.map((log, index) => {
+                  // Determine the type of log for styling
+                  const isStopAction = log.action === 'Stop' || log.action === 'Terminated';
+
+                  return (
+                    <div key={log.id} className="flex gap-6 items-start group">
+                      <div className="flex flex-col items-center mt-2 shrink-0">
+                        <div className={`w-2.5 h-2.5 rounded-full ${isStopAction ? 'bg-red-500 shadow-[0_0_8px_#ef4444]' : 'bg-emerald-500 shadow-[0_0_8px_#10b981]'
+                          }`}></div>
+                        {index !== recentActivity.length - 1 && <div className="w-[1px] h-16 bg-slate-800 mt-2"></div>}
+                      </div>
+
+                      <div className="flex-1">
+                        <div className="flex justify-between items-center bg-white/5 p-5 rounded-[1.8rem] border border-white/5 hover:border-white/10 transition-all">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-3 mb-1">
+                              <span className="font-black text-white text-xs uppercase">{log.userName}</span>
+                              <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${isStopAction ? 'bg-red-500/10 text-red-500' : 'bg-emerald-500/10 text-emerald-500'
+                                }`}>
+                                {isStopAction ? 'TERMINATED' : 'DEPLOYED'}
+                              </span>
+                            </div>
+
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">
+                              {log.taskTitle}
+                            </p>
+
+                            <div className="flex items-center gap-4 mt-3">
+                              <p className="text-[9px] font-black text-slate-600 uppercase tracking-tighter">
+                                PRJ: {log.projectCode || 'INTERNAL'}
+                              </p>
+
+                              {/* SHOW DURATION ONLY ON TERMINATE/STOP */}
+                              {isStopAction && log.duration && (
+                                <div className="flex items-center gap-1.5 text-blue-400">
+                                  <BiTimeFive size={12} />
+                                  <span className="text-[10px] font-black uppercase tracking-tighter">
+                                    Worked: {log.duration} Mins
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="text-right ml-4">
+                            <div className="px-3 py-1 bg-slate-800 rounded-lg text-[10px] font-black text-slate-400 tabular-nums">
+                              {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                            <p className="text-[8px] text-slate-600 font-black mt-2 uppercase italic">
+                              {new Date(log.createdAt).toLocaleDateString('en-GB')}
+                            </p>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="h-full flex items-center justify-center text-slate-700 text-[10px] font-black uppercase tracking-[0.4em]">
-                  Awaiting system interaction...
+                  Awaiting Deployment...
                 </div>
               )}
             </div>

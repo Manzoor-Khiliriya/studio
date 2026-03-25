@@ -18,7 +18,6 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 // RTK Query & Shared Components
 import { useGetTaskDetailQuery, useDeleteTaskMutation } from "../../services/taskApi";
 import Loader from "../../components/Loader";
-import TaskModal from "../../components/TaskModal";
 import ConfirmModal from "../../components/ConfirmModal";
 
 // --- UTILITY ---
@@ -36,7 +35,6 @@ const getOperatorColor = (index) => {
 export default function AdminTaskDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [editingTask, setEditingTask] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const { data: task, isLoading, isError } = useGetTaskDetailQuery(id);
@@ -58,18 +56,18 @@ export default function AdminTaskDetailPage() {
   // UPDATED: Contributor data now uses Minutes for the Pie Chart
   const employeePieData = (stats?.historicalContributors || [])
     .filter((op) => op.seconds > 0)
-    .map((op) => ({ 
-      name: op.name, 
+    .map((op) => ({
+      name: op.name,
       value: Math.floor(op.seconds / 60) // Convert seconds to minutes
     }));
 
   const handleConfirmDelete = async () => {
     try {
       await deleteTask(id).unwrap();
-      toast.success("Task record purged.");
-      navigate("/tasks");
+      toast.success("Task record deleted.");
+      navigate("/projects");
     } catch (err) {
-      toast.error(err?.data?.message || "Purge failed.");
+      toast.error(err?.data?.message || "Delete failed.");
     } finally {
       setIsDeleteModalOpen(false);
     }
@@ -102,11 +100,8 @@ export default function AdminTaskDetailPage() {
             </div>
 
             <div className="flex gap-3">
-              <button onClick={() => setEditingTask(task)} className="bg-white border border-slate-200 px-5 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest hover:border-orange-500 cursor-pointer shadow-sm active:scale-95 transition-all">
-                <HiOutlinePencilSquare className="inline mr-2" /> Update Task
-              </button>
               <button onClick={() => setIsDeleteModalOpen(true)} className="bg-rose-50 text-rose-600 px-5 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-600 hover:text-white cursor-pointer transition-all active:scale-95">
-                <HiOutlineTrash className="inline mr-2" /> Purge
+                <HiOutlineTrash className="inline mr-2" /> Delete Task
               </button>
             </div>
           </div>
@@ -126,7 +121,7 @@ export default function AdminTaskDetailPage() {
             <div className="grid md:grid-cols-2 gap-8">
               <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm relative overflow-hidden">
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <HiOutlineChartPie className="text-orange-500" /> Time Distribution
+                  <HiOutlineChartPie className="text-orange-500" /> Time Distribution
                 </h3>
                 <div className="h-[280px]">
                   <ResponsiveContainer width="100%" height="100%">
@@ -147,7 +142,7 @@ export default function AdminTaskDetailPage() {
 
               <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <HiOutlineUserGroup className="text-orange-500" /> Contributor Split (Mins)
+                  <HiOutlineUserGroup className="text-orange-500" /> Contributor Split (Mins)
                 </h3>
                 <div className="h-[280px]">
                   <ResponsiveContainer width="100%" height="100%">
@@ -171,7 +166,7 @@ export default function AdminTaskDetailPage() {
                   <HiOutlineClock className="text-orange-500" /> Performance Analysis (All Records)
                 </h3>
                 <span className="text-[9px] font-black text-slate-400 uppercase bg-white px-3 py-1 rounded-full border border-slate-200 shadow-sm">
-                    {stats?.totalHistoricalContributors || 0} Total Contributors
+                  {stats?.totalHistoricalContributors || 0} Total Contributors
                 </span>
               </div>
               <div className="p-8 space-y-8">
@@ -183,9 +178,9 @@ export default function AdminTaskDetailPage() {
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{op.code}</span>
                             {op.isCurrentlyAssigned && (
-                                <span className="bg-emerald-50 text-emerald-600 text-[7px] font-black uppercase px-1.5 py-0.5 rounded border border-emerald-100 flex items-center gap-1">
-                                    <HiCheckBadge size={8}/> Currently Assigned
-                                </span>
+                              <span className="bg-emerald-50 text-emerald-600 text-[7px] font-black uppercase px-1.5 py-0.5 rounded border border-emerald-100 flex items-center gap-1">
+                                <HiCheckBadge size={8} /> Currently Assigned
+                              </span>
                             )}
                           </div>
                           <h4 className="text-sm font-black text-slate-900 uppercase group-hover:text-orange-600 transition-colors">{op.name}</h4>
@@ -211,40 +206,40 @@ export default function AdminTaskDetailPage() {
 
           <div className="lg:col-span-4 space-y-8">
             <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-6 flex items-center justify-between">
-                    Active Assignment
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                </h3>
-                <div className="space-y-3">
-                    {task.assignedTo?.length > 0 ? (
-                        task.assignedTo.map((emp) => (
-                            <div key={emp.user?._id} className="flex items-center gap-4 p-3 rounded-2xl border border-slate-50 bg-slate-50/30">
-                                <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white text-xs font-black uppercase italic">
-                                    {emp.user?.name?.charAt(0)}
-                                </div>
-                                <div className="flex flex-col min-w-0">
-                                    <span className="text-[11px] font-black text-slate-900 uppercase truncate">{emp.user?.name}</span>
-                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
-                                      {emp.user?.employee_code || "N/A"}
-                                    </span>
-                                </div>
-                            </div>
-                        ))
-                    ) : (
-                        <p className="text-[10px] font-black text-slate-300 uppercase italic text-center py-4">No active personnel assigned.</p>
-                    )}
-                </div>
+              <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-6 flex items-center justify-between">
+                Active Employees
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              </h3>
+              <div className="space-y-3">
+                {task.assignedTo?.length > 0 ? (
+                  task.assignedTo.map((emp) => (
+                    <div key={emp.user?._id} className="flex items-center gap-4 p-3 rounded-2xl border border-slate-50 bg-slate-50/30">
+                      <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white text-xs font-black uppercase italic">
+                        {emp.user?.name?.charAt(0)}
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[11px] font-black text-slate-900 uppercase truncate">{emp.user?.name}</span>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
+                          {emp.user?.employeeCode || "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-[10px] font-black text-slate-300 uppercase italic text-center py-4">No active personnel assigned.</p>
+                )}
+              </div>
             </div>
 
             <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
               <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-6 flex items-center gap-2">
-                <HiOutlineClipboardDocumentList size={14} className="text-orange-500"/> Task Description
+                <HiOutlineClipboardDocumentList size={14} className="text-orange-500" /> Task Description
               </h3>
               <p className="text-sm text-slate-600 leading-relaxed font-medium">
                 {task.description || "No tactical description provided."}
               </p>
             </div>
-            
+
             <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-xl">
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Mission Timeline</h3>
               <div className="space-y-4">
@@ -257,7 +252,6 @@ export default function AdminTaskDetailPage() {
         </div>
       </main>
 
-      <TaskModal isOpen={!!editingTask} onClose={() => setEditingTask(null)} editData={editingTask} />
       <ConfirmModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleConfirmDelete} isLoading={isDeleting} title="Purge Task" message="Warning: This will permanently remove all time logs and metrics. Proceed?" variant="danger" />
     </div>
   );

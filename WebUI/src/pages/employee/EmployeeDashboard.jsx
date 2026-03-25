@@ -4,13 +4,11 @@ import { FiZap, FiClock, FiTarget, FiBriefcase, FiActivity, FiLock, FiTrendingUp
 import { HiOutlineBolt } from 'react-icons/hi2';
 import { toast } from "react-hot-toast";
 
-// RTK Query Hooks
 import { useGetDashboardSummaryQuery } from "../../services/dashboardApi";
 import { useGetMyTasksQuery } from "../../services/taskApi";
 import { useGetMyTodayLogsQuery } from "../../services/timeLogApi";
 import { useGetTodayStatusQuery, useClockInMutation, useClockOutMutation } from "../../services/attendanceApi";
 
-// Components
 import ClockInOut from "../../components/ClockInOut";
 import TaskCard from "../../components/TaskCard";
 import Loader from "../../components/Loader";
@@ -22,7 +20,6 @@ export default function EmployeeDashboard() {
   const timerRef = useRef(null);
   const shiftTimerRef = useRef(null);
 
-  // Local State
   const [todaySeconds, setTodaySeconds] = useState(0);
   const [shiftSeconds, setShiftSeconds] = useState(0);
   const [runningTask, setRunningTask] = useState(null);
@@ -30,13 +27,11 @@ export default function EmployeeDashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  // 1. API Calls
   const { data: summaryData, isLoading: summaryLoading } = useGetDashboardSummaryQuery();
   const { data: attendanceStatus, isLoading: attendanceLoading } = useGetTodayStatusQuery();
   const [clockIn] = useClockInMutation();
   const [clockOut] = useClockOutMutation();
 
-  // 2. Fetch Tasks (Not Completed) for both Dropdown and List
   const { data: tasksData, isLoading: tasksLoading } = useGetMyTasksQuery({
     status: "!Completed",
     limit: 100 
@@ -44,11 +39,9 @@ export default function EmployeeDashboard() {
 
   const { data: logsData, isSuccess: logsLoaded } = useGetMyTodayLogsQuery();
 
-  // 3. Derived Data
   const allActiveTasks = useMemo(() => tasksData?.tasks || [], [tasksData]);
-  
   const liveMissions = useMemo(() => 
-    allActiveTasks.filter(task => ["In Progress", "To be started"].includes(task.liveStatus)),
+    allActiveTasks.filter(task => !["In progress", "To be started"].includes(task.liveStatus)),
     [allActiveTasks]
   );
 
@@ -60,11 +53,11 @@ export default function EmployeeDashboard() {
   const isOnShift = attendanceStatus?.clockIn && !attendanceStatus?.clockOut;
   const empStats = summaryData?.stats || {};
 
-  // 4. Project Ticker & Sync Logic
+  // SYNC LOGIC: Only count "work" type logs for the productivity timer
   useEffect(() => {
     if (logsLoaded && logsData) {
       const { logs } = logsData;
-      let totalSeconds = 0;
+      let totalWorkSeconds = 0;
       let activeTaskName = null;
       let isBreak = false;
 
@@ -78,27 +71,30 @@ export default function EmployeeDashboard() {
         if (log.logType === "work") {
           if (log.isRunning) {
             const diffSec = Math.floor((Date.now() - new Date(log.startTime).getTime()) / 1000);
-            totalSeconds += Math.max(0, diffSec);
+            totalWorkSeconds += Math.max(0, diffSec);
           } else {
-            totalSeconds += (log.durationSeconds || 0);
+            totalWorkSeconds += (log.durationSeconds || 0);
           }
         }
       });
 
       setRunningTask(activeTaskName);
       setIsOnBreak(isBreak);
-      setTodaySeconds(totalSeconds);
+      setTodaySeconds(totalWorkSeconds);
     }
   }, [logsData, logsLoaded]);
 
-  // 5. Tickers
+  // Productivity Ticker (Stops if on break)
   useEffect(() => {
     if (runningTask && !isOnBreak) {
       timerRef.current = setInterval(() => setTodaySeconds(prev => prev + 1), 1000);
-    } else clearInterval(timerRef.current);
+    } else {
+      clearInterval(timerRef.current);
+    }
     return () => clearInterval(timerRef.current);
   }, [runningTask, isOnBreak]);
 
+  // Attendance/Shift Ticker
   useEffect(() => {
     if (isOnShift && attendanceStatus?.clockIn) {
       const start = new Date(attendanceStatus.clockIn).getTime();
@@ -138,13 +134,12 @@ export default function EmployeeDashboard() {
           subtitle={isOnShift ? "System Online • Operator Active" : "System Standby • Please Clock In"}
         />
 
-        {/* --- KPI GRID --- */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 my-8">
           <StatCard
             label="Daily Productivity"
             value={formatTime(todaySeconds)}
-            icon={<FiClock className={runningTask ? "text-orange-500 animate-pulse" : ""} />}
-            variant={runningTask ? "active" : "default"}
+            icon={<FiClock className={runningTask && !isOnBreak ? "text-emerald-500 animate-pulse" : "text-slate-400"} />}
+            variant={runningTask && !isOnBreak ? "active" : "default"}
           />
           <StatCard
             label="Shift Timer"
@@ -164,29 +159,20 @@ export default function EmployeeDashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-          {/* --- LEFT: STATION CONTROL --- */}
           <div className="lg:col-span-4 space-y-6">
-            
-            {/* Attendance Module */}
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-blue-900/5 border border-white">
+            <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-white">
               <div className="flex flex-col items-center text-center">
                 <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${isOnShift ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
                   <FiActivity size={30} className={isOnShift ? "animate-bounce" : ""} />
                 </div>
                 <h3 className="text-xl font-black text-slate-800 tracking-tight">Daily Attendance</h3>
                 <p className="text-slate-500 text-sm mb-6">Log your daily presence</p>
-
                 <button
                   onClick={handleAttendanceToggle}
-                  className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${isOnShift
-                      ? "bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white"
-                      : "bg-slate-900 text-white hover:shadow-lg hover:bg-black"
-                    }`}
+                  className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${isOnShift ? "bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white" : "bg-slate-900 text-white hover:bg-black"}`}
                 >
                   {isOnShift ? "End Work Day" : "Start Work Day"}
                 </button>
-
                 {isOnShift && (
                   <div className="mt-6 p-4 bg-slate-50 rounded-2xl w-full flex justify-between items-center">
                     <span className="text-[10px] font-black text-slate-400 uppercase">Login Time</span>
@@ -198,20 +184,13 @@ export default function EmployeeDashboard() {
               </div>
             </div>
 
-            {/* Project Timer Module */}
             <div className="bg-[#0f1115] p-8 rounded-[3rem] shadow-2xl relative overflow-hidden group">
-              <ClockInOut 
-                todaySeconds={todaySeconds} 
-                taskList={allActiveTasks} 
-              />
+              <ClockInOut taskList={allActiveTasks} />
               <FiZap className="absolute -right-10 -bottom-10 text-white/[0.03]" size={200} />
             </div>
           </div>
 
-          {/* --- RIGHT: MISSION QUEUE --- */}
           <div className="lg:col-span-8 relative">
-
-            {/* Tactical Lock Overlay */}
             {!isOnShift && (
               <div className="absolute inset-0 z-30 backdrop-blur-md bg-white/40 rounded-[3rem] flex items-center justify-center text-center">
                 <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-slate-100 max-w-sm">
@@ -230,9 +209,6 @@ export default function EmployeeDashboard() {
                 <h3 className="font-black text-slate-800 text-lg flex items-center gap-2">
                   <HiOutlineBolt className="text-orange-500" /> Active Objectives
                 </h3>
-                <span className="text-[10px] font-black bg-white px-3 py-1 rounded-full text-slate-400 border border-slate-100 uppercase tracking-widest">
-                  {liveMissions.length} Total
-                </span>
               </div>
 
               <div className="min-h-[500px] space-y-4">
@@ -254,7 +230,6 @@ export default function EmployeeDashboard() {
                 </AnimatePresence>
               </div>
 
-              {/* Pagination */}
               {liveMissions.length > itemsPerPage && (
                 <div className="bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm mt-6">
                   <Pagination

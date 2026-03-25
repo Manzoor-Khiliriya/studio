@@ -255,7 +255,7 @@ export default function EmployeeDetailPage() {
               <div className="space-y-3">
                 <h1 className="text-4xl font-black tracking-tighter uppercase leading-none">
                   {employee?.user?.name}
-                  {employee?.employee_code ? ` (${employee.employee_code})` : ""}
+                  {employee?.employeeCode ? ` (${employee.employeeCode})` : ""}
                 </h1>
                 <div className="flex items-center gap-3">
                   <StatusBadge status={employee?.user?.status} />

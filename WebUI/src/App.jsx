@@ -15,9 +15,9 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import EmployeeListPage from "./pages/admin/AdminEmployeeListPage";
-import EmployeeDetailPage from "./pages/admin/AdminEmployeeDetailPage";
-import AdminTasksPage from "./pages/admin/AdminTaskListPage";
+import AdminEmployeeListPage from "./pages/admin/AdminEmployeeListPage";
+import AdminEmployeeDetailPage from "./pages/admin/AdminEmployeeDetailPage";
+import AdminTaskListPage from "./pages/admin/AdminTaskListPage";
 import AdminTaskDetailPage from "./pages/admin/AdminTaskDetailPage";
 import AdminLeavePage from "./pages/admin/AdminLeavePage";
 import AdminHolidayPage from "./pages/admin/AdminHolidayPage";
@@ -58,9 +58,9 @@ function App() {
             <Route element={<ProtectedRoute allowedRoles={["Admin"]} />}>
               <Route element={<Layout />}>
                 <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="/employees" element={<EmployeeListPage />} />
-                <Route path="/employees/:id" element={<EmployeeDetailPage />} />
-                <Route path="/projects" element={<AdminTasksPage />} />
+                <Route path="/employees" element={<AdminEmployeeListPage />} />
+                <Route path="/employees/:id" element={<AdminEmployeeDetailPage />} />
+                <Route path="/projects" element={<AdminTaskListPage />} />
                 <Route path="/tasks/:id" element={<AdminTaskDetailPage />} />
                 <Route path="/leaves" element={<AdminLeavePage />} />
                 <Route path="/holidays" element={<AdminHolidayPage />} />

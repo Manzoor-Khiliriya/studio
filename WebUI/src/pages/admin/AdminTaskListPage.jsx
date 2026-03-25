@@ -10,7 +10,8 @@ import {
   HiOutlinePencilSquare,
   HiOutlineBriefcase,
   HiChevronDown,
-  HiOutlinePlusCircle // Added for the individual project task button
+  HiOutlinePlusCircle,
+  HiOutlineCommandLine // Icon for task specific search
 } from "react-icons/hi2";
 
 import PageHeader from "../../components/PageHeader";
@@ -28,9 +29,16 @@ export default function AdminTasksPage() {
   // --- STATE MANAGEMENT ---
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  
+  // New Task Filters
+  const [taskSearch, setTaskSearch] = useState("");
+  const [liveStatusFilter, setLiveStatusFilter] = useState("All");
+  const [taskStatusFilter, setTaskStatusFilter] = useState("All");
+
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(5);
   const [expandedProject, setExpandedProject] = useState(null);
+  
   const [dateFilters, setDateFilters] = useState({
     createdAt: "",
     startDate: "",
@@ -39,11 +47,9 @@ export default function AdminTasksPage() {
 
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
-
-  // Task Modal States
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  const [preSelectedProject, setPreSelectedProject] = useState(null); // New state for auto-selection
+  const [preSelectedProject, setPreSelectedProject] = useState(null);
   const [statusUpdateTask, setStatusUpdateTask] = useState(null);
 
   // --- DATA FETCHING ---
@@ -55,6 +61,9 @@ export default function AdminTasksPage() {
     createdAt: dateFilters.createdAt,
     startDate: dateFilters.startDate,
     endDate: dateFilters.endDate,
+    taskSearch, // Added
+    liveStatus: liveStatusFilter, // Added
+    taskStatus: taskStatusFilter, // Added
   });
 
   const projectGroups = data?.projects || [];
@@ -73,12 +82,15 @@ export default function AdminTasksPage() {
   const clearFilters = () => {
     setSearchTerm("");
     setStatusFilter("All");
+    setTaskSearch("");
+    setLiveStatusFilter("All");
+    setTaskStatusFilter("All");
     setDateFilters({ createdAt: "", startDate: "", endDate: "" });
     setCurrentPage(1);
   };
 
   const openTaskModalForProject = (project) => {
-    setPreSelectedProject(project._id); // Pass the ID to the modal
+    setPreSelectedProject(project._id);
     setShowTaskModal(true);
   };
 
@@ -98,7 +110,7 @@ export default function AdminTasksPage() {
         subtitle="Manage operational projects and nested task objectives."
         actionLabel="Assign Task"
         onAction={() => {
-          setPreSelectedProject(null); // No specific project
+          setPreSelectedProject(null);
           setShowTaskModal(true);
         }}
         secondaryActionLabel="New Project"
@@ -110,47 +122,91 @@ export default function AdminTasksPage() {
 
       <main className="max-w-[1700px] mx-auto px-8 pb-10 -mt-10">
         {/* --- FILTER BAR --- */}
-        <div className="bg-white/90 backdrop-blur-xl border border-slate-200 p-5 rounded-[2.5rem] shadow-xl shadow-slate-200/50 mb-8 flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="relative flex-1 w-full group">
+        <div className="bg-white/90 backdrop-blur-xl border border-slate-200 p-6 rounded-[2.5rem] shadow-xl shadow-slate-200/50 mb-8 flex flex-col gap-5">
+          
+          {/* Row 1: Primary Searches */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <div className="lg:col-span-5 relative group">
               <HiOutlineMagnifyingGlass className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors" size={18} />
               <input
                 type="text"
                 placeholder="Search projects by code or title..."
-                className="w-full pl-12 pr-6 py-3.5 bg-white border border-slate-200 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/5 outline-none font-bold text-xs transition-all shadow-sm group"
+                className="w-full pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/5 outline-none font-bold text-xs transition-all shadow-sm"
                 value={searchTerm}
                 onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
               />
             </div>
 
-            <div className="relative min-w-[200px]">
-              <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest block mb-1">Project Status</label>
+            <div className="lg:col-span-5 relative group">
+              <HiOutlineCommandLine className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
+              <input
+                type="text"
+                placeholder="Filter by specific Task Name..."
+                className="w-full pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none font-bold text-xs transition-all shadow-sm"
+                value={taskSearch}
+                onChange={(e) => { setTaskSearch(e.target.value); setCurrentPage(1); }}
+              />
+            </div>
+
+            <div className="lg:col-span-2 relative">
               <select
                 value={statusFilter}
                 onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                className="w-full pl-5 pr-10 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-[11px] font-black uppercase tracking-widest outline-none appearance-none cursor-pointer focus:bg-white text-orange-600"
+                className="w-full pl-5 pr-10 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-[11px] font-black uppercase tracking-widest outline-none appearance-none cursor-pointer focus:bg-white text-orange-600"
               >
-                {["All", "Active", "Inactive"].map((status) => (
-                  <option key={status} value={status}>{status}</option>
-                ))}
+                <option value="All">Project: All</option>
+                <option value="Active">Active Only</option>
+                <option value="Inactive">Inactive Only</option>
               </select>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-slate-100">
-            <div className="flex flex-wrap items-center gap-4">
+          {/* Row 2: Status & Date Filters */}
+          <div className="flex flex-wrap items-end justify-between gap-6 pt-5 border-t border-slate-100">
+            <div className="flex flex-wrap items-center gap-6">
+              
+              {/* Live Status Select */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Live Status</label>
+                <select
+                  value={liveStatusFilter}
+                  onChange={(e) => { setLiveStatusFilter(e.target.value); setCurrentPage(1); }}
+                  className="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 outline-none focus:border-orange-500 transition-all appearance-none cursor-pointer min-w-[140px]"
+                >
+                  <option value="All">All Status</option>
+                  <option value="To be started">To be started</option>
+                  <option value="In progress">In progress</option>
+                </select>
+              </div>
+
+              {/* Milestone Filter */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Initiative Status</label>
+                <select
+                  value={taskStatusFilter}
+                  onChange={(e) => { setTaskStatusFilter(e.target.value); setCurrentPage(1); }}
+                  className="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 outline-none focus:border-orange-500 transition-all appearance-none cursor-pointer min-w-[180px]"
+                >
+                  <option value="All">All Initiative Status</option>
+                  {["On hold", "Modeling", "Lighting and Texturing", "Feedback pending", "Final rendering", "Postproduction", "Completed"].map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Existing Dates */}
               {[
                 { label: "Created", key: "createdAt" },
                 { label: "Start Date", key: "startDate" },
                 { label: "End Date", key: "endDate" },
               ].map((filter) => (
-                <div key={filter.key} className="flex flex-col gap-1">
+                <div key={filter.key} className="flex flex-col gap-1.5">
                   <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">{filter.label}</label>
                   <div className="relative group">
                     <HiOutlineCalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                     <input
                       type="date"
-                      className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[11px] font-bold text-slate-700 outline-none focus:border-orange-500 focus:bg-white transition-all"
+                      className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 outline-none focus:border-orange-500 focus:bg-white transition-all"
                       value={dateFilters[filter.key]}
                       onChange={(e) => handleDateChange(filter.key, e.target.value)}
                     />
@@ -159,10 +215,11 @@ export default function AdminTasksPage() {
               ))}
             </div>
 
-            {(searchTerm || statusFilter !== "All" || dateFilters.createdAt || dateFilters.startDate || dateFilters.endDate) && (
-              <button onClick={clearFilters} className="flex items-center gap-2 px-6 py-3 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-2xl transition-all font-bold text-xs cursor-pointer self-end">
+            {/* Clear Button */}
+            {(searchTerm || taskSearch || statusFilter !== "All" || liveStatusFilter !== "All" || taskStatusFilter !== "All" || dateFilters.createdAt || dateFilters.startDate || dateFilters.endDate) && (
+              <button onClick={clearFilters} className="flex items-center gap-2 px-6 py-3 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-2xl transition-all font-black text-[10px] tracking-widest cursor-pointer">
                 <HiOutlineXMark size={18} strokeWidth={2.5} />
-                <span>CLEAR FILTERS</span>
+                <span>RESET FILTERS</span>
               </button>
             )}
           </div>
@@ -180,10 +237,7 @@ export default function AdminTasksPage() {
                   onClick={() => setExpandedProject(expandedProject === project.project_code ? null : project.project_code)}
                 >
                   <div className="p-6 flex items-center justify-between hover:bg-slate-50/80 transition-all group/header border-b border-slate-100 last:border-0">
-                    <div
-                      className="flex items-center gap-10 cursor-pointer flex-1"
-                    >
-                      {/* Project Identity Section */}
+                    <div className="flex items-center gap-10 cursor-pointer flex-1">
                       <div className="flex items-center gap-5 min-w-[300px]">
                         <div className="relative">
                           <div className="absolute inset-0 bg-orange-500/20 blur-md rounded-full group-hover/header:bg-orange-500/30 transition-all"></div>
@@ -199,22 +253,19 @@ export default function AdminTasksPage() {
                         </div>
                       </div>
 
-                      {/* Metadata Grid */}
                       <div className="hidden lg:flex items-center gap-12">
-                        {/* Client Info */}
                         <div className="flex flex-col gap-1">
-                          <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">Client Name</span>
+                          <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">Client</span>
                           <div className="flex items-center gap-2">
                             <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center">
                               <HiOutlineUser size={10} className="text-orange-500" />
                             </div>
-                            <span className="text-[11px] font-bold text-slate-800 uppercase tracking-tight">
+                            <span className="text-[11px] font-mono text-slate-800 uppercase tracking-tight">
                               {project.clientName || "Direct Client"}
                             </span>
                           </div>
                         </div>
 
-                        {/* Timeline Info */}
                         <div className="flex flex-col gap-1">
                           <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">Timeline</span>
                           <div className="flex items-center gap-2">
@@ -225,19 +276,17 @@ export default function AdminTasksPage() {
                           </div>
                         </div>
 
-                        {/* Task Count Badge */}
                         <div className="flex flex-col gap-1 items-center">
-                          <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">Total Tasks</span>
+                          <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">No. Of Tasks</span>
                           <span className="text-[11px] font-bold text-slate-800 font-mono">{totalTasks} Tasks</span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Action Section */}
                     <div className="flex items-center gap-2">
                       <button
                         onClick={(e) => { e.stopPropagation(); openTaskModalForProject(project); }}
-                        className="flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-900 border border-slate-900 hover:bg-orange-500 hover:border-orange-500 text-white  transition-all font-black text-[10px] uppercase tracking-widest shadow-xl shadow-orange-100 active:scale-95 cursor-pointer"
+                        className="flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-900 border border-slate-900 hover:bg-orange-500 hover:border-orange-500 text-white transition-all font-black text-[10px] uppercase tracking-widest shadow-xl shadow-orange-100 active:scale-95 cursor-pointer"
                       >
                         <HiOutlinePlusCircle size={16} />
                         <span>Assign Task</span>
@@ -245,17 +294,13 @@ export default function AdminTasksPage() {
 
                       <button
                         onClick={(e) => { e.stopPropagation(); setEditingProject(project); setShowProjectModal(true); }}
-                        className="p-3 rounded-xl border border-slate-200 text-yellow-500 hover:text-yellow-600 hover:border-orange-500  transition-all bg-white shadow-xl cursor-pointer"
+                        className="p-3 rounded-xl border border-slate-200 text-yellow-500 hover:text-yellow-600 hover:border-orange-500 transition-all bg-white shadow-xl cursor-pointer"
                         title="Update Project"
                       >
                         <HiOutlinePencilSquare />
                       </button>
 
-                      <div
-                        onClick={() => setExpandedProject(expandedProject === project.project_code ? null : project.project_code)}
-                        className={`cursor-pointer transition-all p-2 ml-2 rounded-full text-orange-500 ${expandedProject === project.project_code ? " rotate-180" : ""
-                          }`}
-                      >
+                      <div className={`cursor-pointer transition-all p-2 ml-2 rounded-full text-orange-500 ${expandedProject === project.project_code ? " rotate-180" : ""}`}>
                         <HiChevronDown size={24} />
                       </div>
                     </div>
@@ -267,7 +312,7 @@ export default function AdminTasksPage() {
                         <GroupedTaskTable columns={columns} tasks={tasks} onRowClick={(task) => navigate(`/tasks/${task._id}`)} />
                       ) : (
                         <div className="py-12 flex flex-col items-center justify-center bg-slate-50/50">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No tasks assigned yet.</p>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No tasks matching filters found.</p>
                         </div>
                       )}
                     </div>
@@ -278,33 +323,24 @@ export default function AdminTasksPage() {
           ) : (
             <div className="bg-white rounded-[3rem] p-32 text-center border-2 border-dashed border-slate-200">
               <HiOutlineBriefcase size={40} className="text-slate-200 mx-auto mb-6" />
-              <p className="text-slate-300 font-black uppercase italic text-xl">No active projects found.</p>
+              <p className="text-slate-300 font-black uppercase italic text-xl">No active projects matching filters.</p>
             </div>
           )}
         </div>
 
+        {/* --- FOOTER / PAGINATION --- */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100 shadow-sm">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200 pr-3">
-                Page Limit
-              </span>
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200 pr-3">Page Limit</span>
               <select
                 value={limit}
-                onChange={(e) => {
-                  setLimit(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
+                onChange={(e) => { setLimit(Number(e.target.value)); setCurrentPage(1); }}
                 className="bg-transparent text-[9px] font-black outline-none focus:ring-0 cursor-pointer text-slate-700"
               >
-                {[5, 10, 25, 50].map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
+                {[5, 10, 25, 50].map((v) => <option key={v} value={v}>{v}</option>)}
               </select>
             </div>
-
             {data?.pagination?.totalProjects && (
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight ml-2">
                 Total {data?.pagination?.totalProjects} projects
@@ -327,15 +363,13 @@ export default function AdminTasksPage() {
       </main>
 
       <ProjectModal isOpen={showProjectModal} onClose={() => { setShowProjectModal(false); setEditingProject(null); }} editProject={editingProject} />
-
       <TaskModal
         isOpen={showTaskModal || !!editingTask}
         onClose={() => { setShowTaskModal(false); setEditingTask(null); setPreSelectedProject(null); }}
         editTask={editingTask}
         projects={projectGroups}
-        defaultProjectId={preSelectedProject} // Pass this to the modal
+        defaultProjectId={preSelectedProject}
       />
-
       <StatusUpdateModal isOpen={!!statusUpdateTask} onClose={() => setStatusUpdateTask(null)} task={statusUpdateTask} />
     </div>
   );

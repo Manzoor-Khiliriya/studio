@@ -60,7 +60,7 @@ export const getAdminLeaveColumns = (onAction) => [
         <p className="font-black text-slate-800 group-hover:text-orange-600 text-[11px] uppercase tracking-tight transition-colors">
           {req.user?.name || "Unknown"}
           <span className="ml-1.5 text-slate-400 font-bold lowercase tracking-normal italic">
-            ({req?.user?.employee?.employee_code || "no-code"})
+            ({req?.user?.employee?.employeeCode || "no-code"})
           </span>
         </p>
       </div>

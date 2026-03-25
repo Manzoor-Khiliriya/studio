@@ -22,7 +22,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
   const getToday = () => new Date().toISOString().split("T")[0];
 
   const [formData, setFormData] = useState({
-    name: "", employee_code: "", email: "", password: "", designation: "",
+    name: "", employeeCode: "", email: "", password: "", designation: "",
     efficiency: "100", joinedDate: getToday(), dailyWorkLimit: "9",
     mobileNumber: "",
     dateOfBirth: ""  
@@ -36,7 +36,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
 
       setFormData({
         name: editData.user?.name || editData.name || "",
-        employee_code: editData?.employee_code || "",
+        employeeCode: editData?.employeeCode || "",
         email: editData.user?.email || editData.email || "",
         designation: editData.designation || editData.employee?.designation || "",
         efficiency: String(editData.efficiency ?? editData.employee?.efficiency ?? 100),
@@ -102,7 +102,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
           </InputGroup>
           <InputGroup label="Employee Code">
             <HiOutlineIdentification className="input-icon" />
-            <input required name="employee_code" value={formData.employee_code} onChange={handleChange} className="form-input" placeholder="e.g. EMP001" />
+            <input required name="employeeCode" value={formData.employeeCode} onChange={handleChange} className="form-input" placeholder="e.g. EMP001" />
           </InputGroup>
           <InputGroup label="Job Title">
             <HiOutlineBriefcase className="input-icon" />

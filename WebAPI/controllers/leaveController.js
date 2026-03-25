@@ -155,7 +155,7 @@ exports.getAllLeaves = async (req, res) => {
       }
       const totalLeaves = await Leave.countDocuments(query);
       const leaves = await Leave.find(query)
-        .populate({ path: "user", select: "name email", populate: { path: "employee", select: "employee_code designation" } })
+        .populate({ path: "user", select: "name email", populate: { path: "employee", select: "employeeCode designation" } })
         .sort({ createdAt: -1 }).skip(skip).limit(parseInt(limit)).lean();
 
       return res.json({ leaves, pagination: { totalLeaves, totalPages: Math.ceil(totalLeaves / parseInt(limit)), currentPage: parseInt(page) } });
@@ -288,7 +288,7 @@ exports.getLeaveCalendar = async (req, res) => {
       status: "Approved",
       startDate: { $lte: new Date(endDate) },
       endDate: { $gte: new Date(startDate) }
-    }).populate({ path: "user", select: "name", populate: { path: "employee", select: "employee_code" } }).lean();
+    }).populate({ path: "user", select: "name", populate: { path: "employee", select: "employeeCode" } }).lean();
 
     const result = [];
     for (const leave of leaves) {
@@ -298,7 +298,7 @@ exports.getLeaveCalendar = async (req, res) => {
         result.push({
           date: current.toISOString().split("T")[0],
           name: leave.user?.name,
-          employeeCode: leave.user?.employee?.employee_code,
+          employeeCode: leave.user?.employee?.employeeCode,
           type: leave.type
         });
         current.setDate(current.getDate() + 1);

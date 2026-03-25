@@ -34,27 +34,51 @@ exports.createProject = async (req, res) => {
 
 exports.getAllProjects = async (req, res) => {
   try {
-    const { page = 1, limit = 5, search, status, createdAt, startDate, endDate } = req.query;
-    const skip = (Number(page) - 1) * Number(limit);
+    const {
+      page = 1,
+      limit = 5,
+      search,
+      status,
+      createdAt,
+      startDate,
+      endDate,
+      taskSearch, // New
+      liveStatus, // New
+      taskStatus  // New
+    } = req.query;
 
-    // Build Filter logic
+    const skip = (Number(page) - 1) * Number(limit);
     const query = {};
 
-    // 1. Text Search
+    // --- Project Level Filters ---
     if (search) {
       query.$or = [
         { project_code: { $regex: search, $options: "i" } },
         { title: { $regex: search, $options: "i" } }
       ];
     }
+    if (status && status !== "All") query.status = status;
 
-    // 2. Status Filter
-    if (status && status !== "All") {
-      query.status = status;
+    // --- Task Level Filtering (The "Deep" Search) ---
+    const isTaskSearching = (taskSearch && taskSearch.trim() !== "");
+    const isLiveStatusFiltering = (liveStatus && liveStatus !== "All" && liveStatus !== "");
+    const isTaskStatusFiltering = (taskStatus && taskStatus !== "All" && taskStatus !== "");
+
+    // ONLY enter this block if a real filter is applied
+    if (isTaskSearching || isLiveStatusFiltering || isTaskStatusFiltering) {
+      const taskFilter = {};
+      if (isTaskSearching) taskFilter.title = { $regex: taskSearch, $options: "i" };
+      if (isLiveStatusFiltering) taskFilter.liveStatus = liveStatus;
+      if (isTaskStatusFiltering) taskFilter.status = taskStatus;
+
+      // This finds projects that HAVE tasks matching these specific criteria
+      const matchingTaskProjects = await Task.find(taskFilter).distinct("project");
+
+      // Apply the ID constraint to the project query
+      query._id = { $in: matchingTaskProjects };
     }
 
-    // 3. Exact Creation Date Filter (matches start of day)
-    // 3. Exact Creation Date Filter
+    // Date filters (Keep your existing logic)
     if (createdAt) {
       const start = new Date(createdAt);
       const end = new Date(createdAt);
@@ -99,25 +123,22 @@ exports.getAllProjects = async (req, res) => {
       .limit(Number(limit))
       .populate({
         path: "tasks",
+        // This ensures the tasks SHOWN inside the card also respect the filters
+        match: {
+          ...(taskSearch && { title: { $regex: taskSearch, $options: "i" } }),
+          ...(liveStatus && liveStatus !== "All" && { liveStatus }),
+          ...(taskStatus && taskStatus !== "All" && { status: taskStatus }),
+        },
         populate: [
-          {
-            path: "assignedTo",
-            populate: { path: "user", select: "name" }
-          },
-          {
-            path: "timeLogs"
-          }
+          { path: "assignedTo", populate: { path: "user", select: "name" } },
+          { path: "timeLogs" }
         ]
       });
 
     return res.status(200).json({
       success: true,
       projects,
-      pagination: {
-        totalProjects: total,
-        totalPages: Math.ceil(total / limit),
-        currentPage: Number(page)
-      }
+      pagination: { totalProjects: total, totalPages: Math.ceil(total / limit), currentPage: Number(page) }
     });
   } catch (error) {
     console.error("Project Fetch Error:", error);

@@ -82,7 +82,7 @@ export default function ClockInOut({ todaySeconds: dashboardDailySecs, taskList 
   const handlePopOut = async () => {
     if (!('documentPictureInPicture' in window)) return toast.error("PiP unsupported");
     try {
-      const pipWindow = await window.documentPictureInPicture.requestWindow({ width: 260, height: 130 });
+      const pipWindow = await window.documentPictureInPicture.requestWindow({ width: 250, height: 90 });
       pipWindowRef.current = pipWindow;
       setIsPipActive(true);
       const style = pipWindow.document.createElement('style');

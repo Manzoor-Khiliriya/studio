@@ -10,6 +10,11 @@ const timeLogSchema = new mongoose.Schema({
   durationSeconds: { type: Number, default: 0 },
 
   logType: { type: String, enum: ["work", "break"], default: "work" },
+  action: {
+    type: String,
+    enum: ["Start", "Stop", null],
+    default: null
+  },
   isRunning: { type: Boolean, default: true },
 
   dateString: {
@@ -21,7 +26,7 @@ const timeLogSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   }
-}, { 
+}, {
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }

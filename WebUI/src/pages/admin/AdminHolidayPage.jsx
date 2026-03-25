@@ -164,7 +164,6 @@ export default function AdminHolidayPage() {
             <Table
               columns={columns}
               data={holidays}
-              onRowClick={startEdit}
               emptyMessage="No holidays found."
             />
           </div>

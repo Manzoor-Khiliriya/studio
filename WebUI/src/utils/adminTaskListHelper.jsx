@@ -123,7 +123,7 @@ export const getAdminTaskColumns = (onEdit, onStatusUpdate) => [
           ? emp.user.name.charAt(0).toUpperCase() + emp.user.name.slice(1).toLowerCase()
           : "Unknown";
         
-        const code = emp.employee_code?.toUpperCase() ?? "N/A";
+        const code = emp.employeeCode?.toUpperCase() ?? "N/A";
         
         return `${name} (${code})`;
       })

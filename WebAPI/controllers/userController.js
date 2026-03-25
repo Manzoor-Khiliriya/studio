@@ -8,7 +8,7 @@ const sendNotification = require("../utils/notifier");
 exports.createUser = async (req, res) => {
   try {
     const {
-      name, employee_code, email, password, designation,
+      name, employeeCode, email, password, designation,
       dailyWorkLimit, efficiency, joinedDate,
       mobileNumber, dateOfBirth
     } = req.body;
@@ -27,7 +27,7 @@ exports.createUser = async (req, res) => {
     if (user.role === "Employee") {
       await Employee.create({
         user: user._id,
-        employee_code: employee_code.toLowerCase(),
+        employeeCode: employeeCode.toLowerCase(),
         designation: designation || "Junior Developer",
         dailyWorkLimit: dailyWorkLimit || 9,
         efficiency: efficiency || 100,
@@ -58,7 +58,7 @@ exports.createUser = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const {
-      name, email, employee_code, designation, dailyWorkLimit,
+      name, email, employeeCode, designation, dailyWorkLimit,
       joinedDate, efficiency, leaves,
       mobileNumber, dateOfBirth
     } = req.body;
@@ -76,7 +76,7 @@ exports.updateUser = async (req, res) => {
       await Employee.findOneAndUpdate(
         { user: user._id },
         {
-          employee_code: employee_code.toLowerCase(),
+          employeeCode: employeeCode.toLowerCase(),
           designation,
           dailyWorkLimit,
           efficiency,

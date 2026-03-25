@@ -8,15 +8,9 @@ const moment = require("moment");
 const User = require("../models/User");
 const Project = require("../models/Project");
 
-
-
 exports.getSummary = async (req, res) => {
   try {
     const userId = req.user._id;
-
-    /* =============================================================
-        ADMIN DASHBOARD
-       ============================================================= */
 
     if (isActiveAdmin(req.user)) {
       const todayStr = moment().format("YYYY-MM-DD");
@@ -28,61 +22,88 @@ exports.getSummary = async (req, res) => {
         inProgressTasks,
         uniqueProjects,
         activeTimers,
-        recentActivity
+        rawActivity
       ] = await Promise.all([
-        // 1. Total Employees with Status 'active'
         User.countDocuments({ status: "Enable", role: "Employee" }),
-
-        // 2. Currently Clocked In (Attendance record exists for today with no clockOut)
         Attendance.countDocuments({ date: todayStr, clockOut: null }),
-
-        // 3. Total Leave Requests Pending
         Leave.countDocuments({ status: "Pending" }),
-
-        // 4. Tasks with status "In progress"
         Task.countDocuments({ liveStatus: "In progress" }),
-
-        // 5. Total Unique Project Numbers
         Project.countDocuments({ status: "Active" }),
-        // Live Timers (For the list)
         TimeLog.find({ isRunning: true, logType: "work" })
           .populate({ path: "user", select: "name", populate: { path: "employee", select: "photo" } })
-          .populate("task", "title projectNumber")
-          .lean(),
+          .populate({
+            path: "task",
+            select: "title project",
+            populate: {
+              path: "project",
+              select: "project_code"
+            }
+          }).lean(),
 
-        // Recent Activity Feed
-        TimeLog.find({ logType: "work", clearedByAdmin: false })
+        // Fetch only Start/Stop actions for the log
+        TimeLog.find({
+          action: { $in: ["Start", "Stop"] },
+          clearedByAdmin: false
+        })
           .sort({ createdAt: -1 })
-          .limit(10)
+          .limit(15)
           .populate("user", "name")
-          .populate("task", "title projectNumber")
-          .lean(),
+          .populate({
+            path: "task",
+            select: "title project",
+            populate: {
+              path: "project",
+              select: "project_code"
+            }
+          }).lean()
       ]);
+
+      // Calculate aggregated duration for Stop logs
+      const recentActivity = await Promise.all(rawActivity.map(async (log) => {
+        let duration = null;
+
+        if (log.action === "Stop") {
+          // Sum only "work" logs for this specific task/user session today
+          const workSegments = await TimeLog.find({
+            user: log.user?._id,
+            task: log.task?._id,
+            dateString: log.dateString,
+            logType: "work"
+          });
+          const totalSeconds = workSegments.reduce((s, l) => s + (l.durationSeconds || 0), 0);
+          duration = Math.round(totalSeconds / 60); // Convert to minutes
+        }
+
+        return {
+          id: log._id,
+          userName: log.user?.name,
+          taskTitle: log.task?.title,
+          projectCode: log.task?.project?.project_code,
+          action: log.action,
+          duration: duration,
+          createdAt: log.createdAt
+        };
+      }));
 
       return res.json({
         role: "Admin",
         stats: {
-          totalActiveEmployees,    // Status: Active
-          attendanceLive: clockedInNow, // Currently Clocked In
+          totalActiveEmployees,
+          attendanceLive: clockedInNow,
           pendingApprovals: pendingLeaves,
           tasksInProgress: inProgressTasks,
           totalProjects: uniqueProjects,
         },
         liveTracking: activeTimers.map(t => ({
           id: t._id,
+          userId: t.user?._id,
           employee: t.user?.name,
+          photo: t.user?.employee?.photo,
           task: t.task?.title,
           projectCode: t.task?.projectNumber,
-          since: t.startTime,
-          logType: t.logType
+          since: t.startTime
         })),
-        recentActivity: recentActivity.map(log => ({
-          id: log._id,
-          userName: log.user?.name,
-          taskTitle: log.task?.title,
-          projectCode: log.task?.projectNumber,
-          createdAt: log.createdAt
-        }))
+        recentActivity
       });
     }
 
@@ -106,8 +127,14 @@ exports.getSummary = async (req, res) => {
       Leave.find({ user: userId }).sort({ startDate: -1 }).limit(5).lean(),
 
       TimeLog.findOne({ user: userId, isRunning: true })
-        .populate("task", "title projectNumber")
-        .lean()
+        .populate({
+          path: "task",
+          select: "title project",
+          populate: {
+            path: "project",
+            select: "project_code"
+          }
+        }).lean()
     ]);
 
     const totalWeeklySeconds = weeklyLogs.reduce((a, l) => a + (l.durationSeconds || 0), 0);
