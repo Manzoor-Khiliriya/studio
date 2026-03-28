@@ -8,7 +8,7 @@ const taskSchema = new mongoose.Schema({
   estimatedTime: { type: Number, required: true },
   allocatedTime: { type: Number, required: true },
   priority: { type: String, enum: ["Low", "Medium", "High"], default: "Medium" },
-  liveStatus: { type: String, enum: ["To be started", "In progress"], default: "To be started" },
+  liveStatus: { type: String, enum: ["To be started", "Started", "In progress"], default: "To be started" },
   status: { type: String, enum: ["On hold", "Modeling", "Lighting and Texturing", "Feedback pending", "Final rendering", "Postproduction", "Completed",], default: "Modeling" },
   activeStatus: { type: String, enum: ["Draft-1", "Draft-2", "Draft-3", "Draft-4", "Draft-5", "Pre-Final", "Final"], default: "Draft-1" }
 }, { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } });

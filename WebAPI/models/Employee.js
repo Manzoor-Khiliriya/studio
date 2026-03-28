@@ -31,7 +31,7 @@ const employeeSchema = new mongoose.Schema({
     max: 24,
   },
 
-  efficiency: {
+  proficiency: {
     type: Number,
     default: 100,
     min: 1,

@@ -61,10 +61,10 @@ export const getEmployeeColumns = ({ onEdit, onDelete, onToggle }) => [
     )
   },
   {
-    header: "Efficiency",
+    header: "Proficiency",
     className: "text-center",
     render: (emp) => {
-      const score = emp.efficiency || 100;
+      const score = emp.proficiency || "";
       return (
         <div className="flex flex-col items-center gap-1">
           <span className={`text-xs font-black ${score > 80 ? 'text-emerald-600' : 'text-orange-500'}`}>

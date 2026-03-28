@@ -25,7 +25,7 @@ const EmployeeTaskChart = ({ tasks, isLoading }) => {
         fullName: task.title,
         consumed: parseFloat(consumed.toFixed(2)),
         allocated: allocated,
-        // Calculate efficiency or identify overtime
+        // Calculate proficiency or identify overtime
         isOvertime: consumed > allocated
       };
     });
@@ -51,7 +51,7 @@ const EmployeeTaskChart = ({ tasks, isLoading }) => {
             <span className="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.4)]"></span>
             Workload Distribution
           </h3>
-          <p className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-tight">Individual Task Efficiency (Hours)</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-tight">Individual Task proficiency (Hours)</p>
         </div>
         
         {/* Simple Legend for Overtime */}

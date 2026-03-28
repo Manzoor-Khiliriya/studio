@@ -11,6 +11,8 @@ import {
   HiOutlineChartPie,
   HiOutlineClipboardDocumentList,
   HiCheckBadge,
+  HiOutlineUserPlus,
+  HiOutlineArrowPath,
 } from "react-icons/hi2";
 import { toast } from "react-hot-toast";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
@@ -19,6 +21,10 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { useGetTaskDetailQuery, useDeleteTaskMutation } from "../../services/taskApi";
 import Loader from "../../components/Loader";
 import ConfirmModal from "../../components/ConfirmModal";
+import EmployeeAssignModal from "../../components/EmployeeAssignModal";
+import StatusUpdateModal from "../../components/StatusUpdateModal";
+import TaskModal from "../../components/TaskModal";
+import { useGetProjectsQuery } from "../../services/projectApi";
 
 // --- UTILITY ---
 const formatToHrMin = (totalSeconds) => {
@@ -36,6 +42,9 @@ export default function AdminTaskDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const { data: task, isLoading, isError } = useGetTaskDetailQuery(id);
   const [deleteTask, { isLoading: isDeleting }] = useDeleteTaskMutation();
@@ -100,6 +109,19 @@ export default function AdminTaskDetailPage() {
             </div>
 
             <div className="flex gap-3">
+              <button
+                onClick={() => setIsStatusModalOpen(true)}
+                className="flex items-center gap-2 bg-white border border-slate-200 text-emerald-600 px-5 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest hover:border-emerald-600 transition-all shadow-sm active:scale-95 cursor-pointer"
+              >
+                <HiOutlineArrowPath size={18} /> Update Status
+              </button>
+
+              <button
+                onClick={() => setIsEditModalOpen(true)}
+                className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-orange-600 transition-all shadow-xl shadow-orange-100 active:scale-95 cursor-pointer"
+              >
+                <HiOutlinePencilSquare size={18} /> Update Task
+              </button>
               <button onClick={() => setIsDeleteModalOpen(true)} className="bg-rose-50 text-rose-600 px-5 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-600 hover:text-white cursor-pointer transition-all active:scale-95">
                 <HiOutlineTrash className="inline mr-2" /> Delete Task
               </button>
@@ -206,10 +228,21 @@ export default function AdminTaskDetailPage() {
 
           <div className="lg:col-span-4 space-y-8">
             <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-              <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-6 flex items-center justify-between">
-                Active Employees
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              </h3>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                  Active Employees
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                </h3>
+
+                {/* Assignment Trigger Button */}
+                <button
+                  onClick={() => setIsAssignModalOpen(true)}
+                  className="p-2 bg-orange-50 text-orange-600 rounded-xl hover:bg-orange-600 hover:text-white transition-all cursor-pointer shadow-sm border border-orange-100"
+                  title="Manage Team"
+                >
+                  <HiOutlineUserPlus size={18} />
+                </button>
+              </div>
               <div className="space-y-3">
                 {task.assignedTo?.length > 0 ? (
                   task.assignedTo.map((emp) => (
@@ -253,6 +286,24 @@ export default function AdminTaskDetailPage() {
       </main>
 
       <ConfirmModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleConfirmDelete} isLoading={isDeleting} title="Purge Task" message="Warning: This will permanently remove all time logs and metrics. Proceed?" variant="danger" />
+      <EmployeeAssignModal
+        isOpen={isAssignModalOpen}
+        onClose={() => setIsAssignModalOpen(false)}
+        task={task}
+      />
+
+      <StatusUpdateModal
+        isOpen={isStatusModalOpen}
+        onClose={() => setIsStatusModalOpen(false)}
+        task={task}
+      />
+
+      <TaskModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        editTask={task}
+        singleProject={task.project}
+      />
     </div>
   );
 }

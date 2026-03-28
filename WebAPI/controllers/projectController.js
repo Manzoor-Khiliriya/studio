@@ -38,7 +38,6 @@ exports.getAllProjects = async (req, res) => {
       page = 1,
       limit = 5,
       search,
-      status,
       createdAt,
       startDate,
       endDate,
@@ -48,7 +47,7 @@ exports.getAllProjects = async (req, res) => {
     } = req.query;
 
     const skip = (Number(page) - 1) * Number(limit);
-    const query = {};
+    let query = { status: "Active" };
 
     // --- Project Level Filters ---
     if (search) {
@@ -57,28 +56,23 @@ exports.getAllProjects = async (req, res) => {
         { title: { $regex: search, $options: "i" } }
       ];
     }
-    if (status && status !== "All") query.status = status;
 
     // --- Task Level Filtering (The "Deep" Search) ---
     const isTaskSearching = (taskSearch && taskSearch.trim() !== "");
     const isLiveStatusFiltering = (liveStatus && liveStatus !== "All" && liveStatus !== "");
     const isTaskStatusFiltering = (taskStatus && taskStatus !== "All" && taskStatus !== "");
 
-    // ONLY enter this block if a real filter is applied
     if (isTaskSearching || isLiveStatusFiltering || isTaskStatusFiltering) {
       const taskFilter = {};
       if (isTaskSearching) taskFilter.title = { $regex: taskSearch, $options: "i" };
       if (isLiveStatusFiltering) taskFilter.liveStatus = liveStatus;
       if (isTaskStatusFiltering) taskFilter.status = taskStatus;
 
-      // This finds projects that HAVE tasks matching these specific criteria
       const matchingTaskProjects = await Task.find(taskFilter).distinct("project");
 
-      // Apply the ID constraint to the project query
       query._id = { $in: matchingTaskProjects };
     }
 
-    // Date filters (Keep your existing logic)
     if (createdAt) {
       const start = new Date(createdAt);
       const end = new Date(createdAt);
@@ -86,31 +80,24 @@ exports.getAllProjects = async (req, res) => {
       query.createdAt = { $gte: start, $lte: end };
     }
 
-    // 4. Project Timeline Range (Improved Logic)
-    // Check if we are searching within the project's own start/end timeline
     if (startDate || endDate) {
-      // We use startDate as the primary field to check the range
       query.startDate = {};
 
       if (startDate && endDate) {
-        // Show projects that start BETWEEN these two dates
         query.startDate = {
           $gte: new Date(startDate),
           $lte: new Date(endDate)
         };
       } else if (startDate) {
-        // Only start date: Show projects starting ON this specific day
         const start = new Date(startDate);
         const end = new Date(startDate);
         end.setHours(23, 59, 59, 999);
         query.startDate = { $gte: start, $lte: end };
       } else if (endDate) {
-        // Only end date: Show projects ending ON this specific day
         const start = new Date(endDate);
         const end = new Date(endDate);
         end.setHours(23, 59, 59, 999);
         query.endDate = { $gte: start, $lte: end };
-        // Remove the empty startDate object if only endDate is used
         delete query.startDate;
       }
     }

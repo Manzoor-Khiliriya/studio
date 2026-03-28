@@ -43,12 +43,12 @@ exports.getAllEmployees = async (req, res) => {
 
 exports.updateEmployeeStats = async (req, res) => {
   try {
-    const { designation, dailyWorkLimit, efficiency, skills, joinedDate, photo, leaves } = req.body;
+    const { designation, dailyWorkLimit, proficiency, skills, joinedDate, photo, leaves } = req.body;
 
     const updateData = {};
     if (designation !== undefined) updateData.designation = designation;
     if (dailyWorkLimit !== undefined) updateData.dailyWorkLimit = dailyWorkLimit;
-    if (efficiency !== undefined) updateData.efficiency = efficiency;
+    if (proficiency !== undefined) updateData.proficiency = proficiency;
     if (skills !== undefined) updateData.skills = skills;
     if (joinedDate !== undefined) updateData.joinedDate = joinedDate;
     if (photo !== undefined) updateData.photo = photo;

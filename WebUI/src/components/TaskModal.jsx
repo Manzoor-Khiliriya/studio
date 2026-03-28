@@ -2,29 +2,26 @@ import { useState, useEffect } from "react";
 import {
   HiOutlineDocumentText,
   HiOutlineClock,
-  HiOutlineCalendarDays,
-  HiOutlineInformationCircle,
-  HiCheckCircle,
-  HiOutlineMagnifyingGlass,
   HiOutlineFlag,
   HiOutlineBriefcase,
-  HiOutlineBolt,
-  HiOutlineQueueList
 } from "react-icons/hi2";
 import { CgSpinner } from "react-icons/cg";
 import { toast } from "react-hot-toast";
 import CommonModal, { InputGroup } from "./CommonModal";
 import { useCreateTaskMutation, useUpdateTaskMutation } from "../services/taskApi";
-import { useGetActiveEmployeesQuery } from "../services/employeeApi";
 import { useGetProjectEstimateQuery } from "../services/projectApi";
 
-export default function TaskModal({ isOpen, onClose, editTask = null, projects, defaultProjectId = null }) {
+export default function TaskModal({ 
+  isOpen, 
+  onClose, 
+  editTask = null, 
+  singleProject = null 
+}) {
   const isEditing = !!editTask;
-  const [searchTerm, setSearchTerm] = useState("");
+  
   const [formData, setFormData] = useState({
     title: "",
     projectId: "",
-    assignedTo: [],
     estimatedTime: "8",
     allocatedTime: "8",
     priority: "Medium",
@@ -33,98 +30,68 @@ export default function TaskModal({ isOpen, onClose, editTask = null, projects, 
 
   const [createTask, { isLoading: isCreating }] = useCreateTaskMutation();
   const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation();
-  const { data: activeEmployees } = useGetActiveEmployeesQuery();
   
+  // Only fetch project-based estimates if we are creating a NEW task
   const { data: estimateData, isFetching: isCalculating } = useGetProjectEstimateQuery(
     formData.projectId,
-    { skip: !formData.projectId || !!editTask }
+    { skip: !formData.projectId || isEditing || !isOpen }
   );
 
+  // Auto-fill estimate data for new tasks when project estimate is fetched
   useEffect(() => {
-    if (estimateData?.hours && !editTask) {
+    if (estimateData?.hours && !isEditing) {
       setFormData((prev) => ({
         ...prev,
         estimatedTime: String(estimateData.hours),
         allocatedTime: String(estimateData.hours),
       }));
     }
-  }, [estimateData, editTask]);
+  }, [estimateData, isEditing]);
 
+  // Synchronize form with the specific project or task context
   useEffect(() => {
-    if (editTask && isOpen) {
-      const assigneeIds = editTask.assignedTo?.map(emp => emp._id || emp) || [];
-      setFormData({
-        title: editTask.title || "",
-        projectId: editTask.project?._id || editTask.project || "",
-        assignedTo: assigneeIds,
-        estimatedTime: String(editTask.estimatedTime || 8),
-        allocatedTime: String(editTask.allocatedTime || 8),
-        priority: editTask.priority || "Medium",
-        description: editTask.description || ""
-      });
-    } else if (isOpen) {
-      setFormData({
-        title: "", 
-        projectId: defaultProjectId || "", 
-        assignedTo: [],
-        estimatedTime: "8", 
-        allocatedTime: "8",
-        priority: "Medium", 
-        description: ""
-      });
+    if (isOpen) {
+      if (editTask) {
+        setFormData({
+          title: editTask.title || "",
+          projectId: singleProject?._id || editTask.project?._id || editTask.project || "",
+          estimatedTime: String(editTask.estimatedTime || 8),
+          allocatedTime: String(editTask.allocatedTime || 8),
+          priority: editTask.priority || "Medium",
+          description: editTask.description || ""
+        });
+      } else if (singleProject) {
+        setFormData({
+          title: "", 
+          projectId: singleProject._id, 
+          estimatedTime: "8", 
+          allocatedTime: "8",
+          priority: "Medium", 
+          description: ""
+        });
+      }
     }
-  }, [editTask, isOpen, defaultProjectId]);
-
-  const filteredEmployees = activeEmployees?.filter(emp =>
-    emp.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.designation?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
-
-  const toggleMember = (id) => {
-    setFormData(prev => ({
-      ...prev,
-      assignedTo: prev.assignedTo.includes(id)
-        ? prev.assignedTo.filter(i => i !== id)
-        : [...prev.assignedTo, id]
-    }));
-  };
-
-  const handleSelectAll = () => {
-    const allFilteredSelected = filteredEmployees.every(emp =>
-      formData.assignedTo.includes(emp._id)
-    );
-
-    if (allFilteredSelected) {
-      const filteredIds = filteredEmployees.map(emp => emp._id);
-      setFormData(prev => ({
-        ...prev,
-        assignedTo: prev.assignedTo.filter(id => !filteredIds.includes(id))
-      }));
-    } else {
-      const newIds = filteredEmployees
-        .map(emp => emp._id)
-        .filter(id => !formData.assignedTo.includes(id));
-
-      setFormData(prev => ({
-        ...prev,
-        assignedTo: [...prev.assignedTo, ...newIds]
-      }));
-    }
-  };
+  }, [editTask, isOpen, singleProject]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.projectId) return toast.error("Please select a Project");
     
-    const loadingToast = toast.loading(isEditing ? "Updating task..." : "Creating task...");
+    // Safety check since we no longer have a dropdown to "select" from
+    if (!formData.projectId) {
+      return toast.error("Missing Project Context. Please try again.");
+    }
+    
+    const loadingToast = toast.loading(isEditing ? "Synchronizing updates..." : "Initializing task...");
+    
     try {
       const payload = {
         ...formData,
-        project: formData.projectId,
+        project: formData.projectId, // Map to backend 'project' field
         allocatedTime: Number(formData.allocatedTime),
         estimatedTime: Number(formData.estimatedTime)
       };
 
+      // Remove local helper key before sending to API
       delete payload.projectId;
 
       if (isEditing) {
@@ -133,7 +100,7 @@ export default function TaskModal({ isOpen, onClose, editTask = null, projects, 
         await createTask(payload).unwrap();
       }
 
-      toast.success(isEditing ? "Task updated!" : "Task created!", { id: loadingToast });
+      toast.success(isEditing ? "Task updated successfully!" : "Task created successfully!", { id: loadingToast });
       onClose();
     } catch (err) {
       toast.error(err.data?.message || "Operation failed", { id: loadingToast });
@@ -142,39 +109,36 @@ export default function TaskModal({ isOpen, onClose, editTask = null, projects, 
 
   return (
     <CommonModal
-      isOpen={isOpen} onClose={onClose}
+      isOpen={isOpen} 
+      onClose={onClose}
       title={isEditing ? "Edit Task" : "New Task Objective"}
-      subtitle={isEditing ? "Modify existing task parameters" : "Initialize a new task for an active project"}
-      maxWidth="max-w-2xl"
+      subtitle={isEditing ? "Modify existing task parameters" : "Initialize a new task for this project"}
+      maxWidth="max-w-xl"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Project & Title */}
+        {/* Project Context Display (Read Only) */}
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12 md:col-span-6">
             <InputGroup label="Target Project">
               <HiOutlineBriefcase className="input-icon" />
-              <select
-                required
-                className="form-input font-bold text-slate-700"
-                value={formData.projectId}
-                onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
-              >
-                <option value="">Select Project...</option>
-                {projects?.map(p => (
-                  <option key={p._id} value={p._id}>
-                    [{p.project_code || 'PROJ'}] {p.title}
-                  </option>
-                ))}
-              </select>
+              <div className="form-input bg-slate-50 flex items-center gap-2 border-slate-100 overflow-hidden">
+                <span className="px-2 py-0.5 rounded bg-slate-200 text-[9px] font-black text-slate-600 shrink-0">
+                  {singleProject?.project_code || 'PROJ'}
+                </span>
+                <span className="font-bold text-slate-500 truncate text-[11px]">
+                  {singleProject?.title || "Active Project"}
+                </span>
+              </div>
             </InputGroup>
           </div>
+
           <div className="col-span-12 md:col-span-6">
             <InputGroup label="Task Title">
               <HiOutlineDocumentText className="input-icon" />
               <input
                 required
                 className="form-input"
-                placeholder="Title (e.g. 3D Modeling)"
+                placeholder="Enter task title"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               />
@@ -182,7 +146,7 @@ export default function TaskModal({ isOpen, onClose, editTask = null, projects, 
           </div>
         </div>
 
-        {/* Statuses & Priority */}
+        {/* Resource Allocation & Priority */}
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12 md:col-span-3">
             <InputGroup label="Estimate (H)">
@@ -231,68 +195,12 @@ export default function TaskModal({ isOpen, onClose, editTask = null, projects, 
           </div>
         </div>
 
-        {/* --- EMPLOYEE LIST: ONLY VISIBLE WHEN UPDATING --- */}
-        {isEditing && (
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3">
-              <div className="flex items-center gap-3">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                  Assign Employees ({formData.assignedTo.length})
-                </label>
-                {filteredEmployees.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleSelectAll}
-                    className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-600 hover:border-orange-500 hover:text-orange-600 transition-colors"
-                  >
-                    {filteredEmployees.every(emp => formData.assignedTo.includes(emp._id))
-                      ? "Deselect All"
-                      : "Select All Employees"}
-                  </button>
-                )}
-              </div>
-
-              <div className="relative w-full sm:w-1/2">
-                <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                <input
-                  type="text"
-                  placeholder="Search team members..."
-                  className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 outline-none focus:border-orange-500 bg-white"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[140px] overflow-y-auto custom-scrollbar pr-1">
-              {filteredEmployees.map(emp => (
-                <div
-                  key={emp._id} onClick={() => toggleMember(emp._id)}
-                  className={`flex items-center justify-between p-2 rounded-xl cursor-pointer transition-all border 
-                ${formData.assignedTo.includes(emp._id) ? "bg-white border-orange-500 shadow-sm" : "bg-white/50 border-transparent hover:border-slate-200"}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black
-                  ${formData.assignedTo.includes(emp._id) ? "bg-slate-900 text-orange-500" : "bg-slate-200 text-slate-500"}`}>
-                      {emp.user?.name?.charAt(0)}
-                    </div>
-                    <div className="leading-tight">
-                      <p className="text-[11px] font-bold text-slate-800 uppercase tracking-tighter">{emp.user?.name}</p>
-                      <p className="text-[9px] text-slate-400 uppercase font-medium">{emp.designation}</p>
-                    </div>
-                  </div>
-                  {formData.assignedTo.includes(emp._id) && <HiCheckCircle className="text-orange-500" size={16} />}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <InputGroup label="Task Details">
+        {/* Description / Metadata */}
+        <InputGroup label="Task Description">
           <textarea
             rows={2}
             className="form-input resize-none"
-            placeholder="Enter task details or references..."
+            placeholder="Enter specific instructions or task scope..."
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           />

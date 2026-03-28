@@ -152,7 +152,7 @@ exports.getSummary = async (req, res) => {
         activeTasks: assignedTasks.length,
         weeklyHours: +(totalWeeklySeconds / 3600).toFixed(1),
         dailyLimit: employeeProfile?.dailyWorkLimit || 0,
-        efficiency: employeeProfile?.efficiency || 100
+        proficiency: employeeProfile?.proficiency || 100
       },
       taskSnapshot: assignedTasks.map(t => ({
         id: t._id,

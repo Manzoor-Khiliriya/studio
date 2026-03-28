@@ -124,12 +124,12 @@ const TaskGridView = ({ tasks, userId }) => {
         {/* Stats Row: Value on Top, Label Below */}
         <div className="flex gap-8">
           <div className="text-right">
-            <p className="text-slate-900 font-black text-sm leading-none mb-1">{totalHoursStr}</p>
-            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Total Hours</p>
+            <p className="text-slate-900 font-black text-sm leading-none mb-1 text-center">{totalHoursStr}</p>
+            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center">Total Hours</p>
           </div>
           <div className="text-right">
-            <p className="text-slate-900 font-black text-sm leading-none mb-1">{taskCount}</p>
-            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">No of Tasks</p>
+            <p className="text-slate-900 font-black text-sm leading-none mb-1 text-center">{taskCount}</p>
+            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center">No of Tasks</p>
           </div>
         </div>
       </div>
@@ -220,7 +220,7 @@ export default function EmployeeDetailPage() {
 
   const activeTasks = currentlyAssigned.filter((t) => ["In progress", "To be started"].includes(t.liveStatus));
   const paginatedAllTasks = workedAndAssigned.slice(taskPage * itemsPerPage, (taskPage + 1) * itemsPerPage);
-  const effectiveHours = employee ? ((540 * (employee.efficiency || 100)) / 6000).toFixed(1) : 0;
+  const effectiveHours = employee ? ((540 * (employee.proficiency || 100)) / 6000).toFixed(1) : 0;
 
   const handleConfirmDelete = async () => {
     const t = toast.loading("Purging records...");
@@ -289,14 +289,11 @@ export default function EmployeeDetailPage() {
         <div className="grid lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8 space-y-10">
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-              <MetricBox label="Efficiency" value={`${employee?.efficiency || 100}%`} icon={<HiOutlineLightningBolt />} color="text-orange-500" />
+              <MetricBox label="Proficiency" value={`${employee?.proficiency || ""}%`} icon={<HiOutlineLightningBolt />} color="text-orange-500" />
               <MetricBox label="Shift Capacity" value={`${effectiveHours}h`} icon={<HiOutlineClock />} color="text-slate-500" />
               <MetricBox label="Active Tasks" value={activeTasks.length} icon={<HiOutlineInboxStack />} color="text-slate-500" />
               <MetricBox label="Leaves Taken" value={employee?.leaves?.length || 0} icon={<HiOutlineCalendarDays />} color="text-slate-500" />
             </div>
-
-            <SectionHeader title="Annual Record Book" />
-            <TaskGridView tasks={workedAndAssigned} userId={userId} />
 
             <div className="space-y-6">
               <SectionHeader title="Daily Personal Output (Last 7 Days)" />
@@ -341,6 +338,9 @@ export default function EmployeeDetailPage() {
                 <EmptyState message="No personal activity recorded recently" />
               )}
             </div>
+
+            <SectionHeader title="Annual Record Book" />
+            <TaskGridView tasks={workedAndAssigned} userId={userId} />
           </div>
 
           <div className="lg:col-span-4 space-y-8">

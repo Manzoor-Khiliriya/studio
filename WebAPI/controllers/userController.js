@@ -9,7 +9,7 @@ exports.createUser = async (req, res) => {
   try {
     const {
       name, employeeCode, email, password, designation,
-      dailyWorkLimit, efficiency, joinedDate,
+      dailyWorkLimit, proficiency, joinedDate,
       mobileNumber, dateOfBirth
     } = req.body;
 
@@ -30,7 +30,7 @@ exports.createUser = async (req, res) => {
         employeeCode: employeeCode.toLowerCase(),
         designation: designation || "Junior Developer",
         dailyWorkLimit: dailyWorkLimit || 9,
-        efficiency: efficiency || 100,
+        proficiency: proficiency || 100,
         joinedDate: joinedDate || "",
         mobileNumber: mobileNumber || "",
         dateOfBirth: dateOfBirth || null
@@ -59,7 +59,7 @@ exports.updateUser = async (req, res) => {
   try {
     const {
       name, email, employeeCode, designation, dailyWorkLimit,
-      joinedDate, efficiency, leaves,
+      joinedDate, proficiency, leaves,
       mobileNumber, dateOfBirth
     } = req.body;
 
@@ -79,7 +79,7 @@ exports.updateUser = async (req, res) => {
           employeeCode: employeeCode.toLowerCase(),
           designation,
           dailyWorkLimit,
-          efficiency,
+          proficiency,
           joinedDate,
           leaves,
           mobileNumber, // Ensure this matches your Schema exactly

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useGetProjectsQuery } from "../../services/projectApi";
+import { useGetProjectsQuery, useUpdateProjectMutation } from "../../services/projectApi";
 
 import {
   HiOutlineMagnifyingGlass,
@@ -11,7 +11,8 @@ import {
   HiOutlineBriefcase,
   HiChevronDown,
   HiOutlinePlusCircle,
-  HiOutlineCommandLine // Icon for task specific search
+  HiOutlineCommandLine, // Icon for task specific search
+  HiOutlineTrash
 } from "react-icons/hi2";
 
 import PageHeader from "../../components/PageHeader";
@@ -22,6 +23,8 @@ import ProjectModal from "../../components/ProjectModal";
 import StatusUpdateModal from "../../components/StatusUpdateModal";
 import GroupedTaskTable from "../../components/GroupTable";
 import { getAdminTaskColumns } from "../../utils/adminTaskListHelper";
+import ConfirmModal from "../../components/ConfirmModal";
+import EmployeeAssignModal from "../../components/EmployeeAssignModal";
 
 export default function AdminTasksPage() {
   const navigate = useNavigate();
@@ -29,7 +32,7 @@ export default function AdminTasksPage() {
   // --- STATE MANAGEMENT ---
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
-  
+
   // New Task Filters
   const [taskSearch, setTaskSearch] = useState("");
   const [liveStatusFilter, setLiveStatusFilter] = useState("All");
@@ -38,7 +41,7 @@ export default function AdminTasksPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(5);
   const [expandedProject, setExpandedProject] = useState(null);
-  
+
   const [dateFilters, setDateFilters] = useState({
     createdAt: "",
     startDate: "",
@@ -51,6 +54,9 @@ export default function AdminTasksPage() {
   const [editingTask, setEditingTask] = useState(null);
   const [preSelectedProject, setPreSelectedProject] = useState(null);
   const [statusUpdateTask, setStatusUpdateTask] = useState(null);
+  const [assigningTeamTask, setAssigningTeamTask] = useState(null);
+  const [projectToDeactivate, setProjectToDeactivate] = useState(null);
+  const [updateProject, { isLoading: isDeactivating }] = useUpdateProjectMutation();
 
   // --- DATA FETCHING ---
   const { data, isLoading, isFetching } = useGetProjectsQuery({
@@ -69,8 +75,12 @@ export default function AdminTasksPage() {
   const projectGroups = data?.projects || [];
 
   const columns = useMemo(
-    () => getAdminTaskColumns(setEditingTask, setStatusUpdateTask),
-    [setEditingTask, setStatusUpdateTask]
+    () => getAdminTaskColumns(
+      setEditingTask,
+      setStatusUpdateTask,
+      setAssigningTeamTask // Pass the setter here
+    ),
+    [setEditingTask, setStatusUpdateTask, setAssigningTeamTask]
   );
 
   // --- HANDLERS ---
@@ -101,6 +111,22 @@ export default function AdminTasksPage() {
     });
   };
 
+  const handleConfirmDeactivate = async () => {
+    try {
+      // Changing status to "inactive" instead of actual deletion
+      await updateProject({
+        id: projectToDeactivate._id,
+        status: "Inactive"
+      }).unwrap();
+
+      toast.success("Project deleted successfully.");
+    } catch (err) {
+      toast.error(err?.data?.message || "Failed to delete project.");
+    } finally {
+      setProjectToDeactivate(null);
+    }
+  };
+
   if (isLoading) return <Loader message="Synchronizing Project Data..." />;
 
   return (
@@ -108,12 +134,7 @@ export default function AdminTasksPage() {
       <PageHeader
         title="Project Management"
         subtitle="Manage operational projects and nested task objectives."
-        actionLabel="Assign Task"
-        onAction={() => {
-          setPreSelectedProject(null);
-          setShowTaskModal(true);
-        }}
-        secondaryActionLabel="New Project"
+        secondaryActionLabel="Add Project"
         onSecondaryAction={() => {
           setEditingProject(null);
           setShowProjectModal(true);
@@ -123,10 +144,10 @@ export default function AdminTasksPage() {
       <main className="max-w-[1700px] mx-auto px-8 pb-10 -mt-10">
         {/* --- FILTER BAR --- */}
         <div className="bg-white/90 backdrop-blur-xl border border-slate-200 p-6 rounded-[2.5rem] shadow-xl shadow-slate-200/50 mb-8 flex flex-col gap-5">
-          
+
           {/* Row 1: Primary Searches */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-            <div className="lg:col-span-5 relative group">
+            <div className="lg:col-span-6 relative group">
               <HiOutlineMagnifyingGlass className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors" size={18} />
               <input
                 type="text"
@@ -137,7 +158,7 @@ export default function AdminTasksPage() {
               />
             </div>
 
-            <div className="lg:col-span-5 relative group">
+            <div className="lg:col-span-6 relative group">
               <HiOutlineCommandLine className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
               <input
                 type="text"
@@ -148,23 +169,12 @@ export default function AdminTasksPage() {
               />
             </div>
 
-            <div className="lg:col-span-2 relative">
-              <select
-                value={statusFilter}
-                onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                className="w-full pl-5 pr-10 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-[11px] font-black uppercase tracking-widest outline-none appearance-none cursor-pointer focus:bg-white text-orange-600"
-              >
-                <option value="All">Project: All</option>
-                <option value="Active">Active Only</option>
-                <option value="Inactive">Inactive Only</option>
-              </select>
-            </div>
           </div>
 
           {/* Row 2: Status & Date Filters */}
           <div className="flex flex-wrap items-end justify-between gap-6 pt-5 border-t border-slate-100">
             <div className="flex flex-wrap items-center gap-6">
-              
+
               {/* Live Status Select */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Live Status</label>
@@ -176,6 +186,7 @@ export default function AdminTasksPage() {
                   <option value="All">All Status</option>
                   <option value="To be started">To be started</option>
                   <option value="In progress">In progress</option>
+                  <option value="Started">Started</option>
                 </select>
               </div>
 
@@ -236,8 +247,8 @@ export default function AdminTasksPage() {
                 <div key={project._id} className={`bg-white rounded-lg border transition-all duration-300 cursor-pointer ${expandedProject === project.project_code ? "border-orange-500/30 shadow-xl shadow-orange-500/5" : "border-slate-200 shadow-sm"}`}
                   onClick={() => setExpandedProject(expandedProject === project.project_code ? null : project.project_code)}
                 >
-                  <div className="p-6 flex items-center justify-between hover:bg-slate-50/80 transition-all group/header border-b border-slate-100 last:border-0">
-                    <div className="flex items-center gap-10 cursor-pointer flex-1">
+                  <div className="p-6 flex items-start justify-between hover:bg-slate-50/80 transition-all group/header border-b border-slate-100 last:border-0">
+                    <div className="flex items-start gap-10 cursor-pointer flex-1">
                       <div className="flex items-center gap-5 min-w-[300px]">
                         <div className="relative">
                           <div className="absolute inset-0 bg-orange-500/20 blur-md rounded-full group-hover/header:bg-orange-500/30 transition-all"></div>
@@ -253,7 +264,7 @@ export default function AdminTasksPage() {
                         </div>
                       </div>
 
-                      <div className="hidden lg:flex items-center gap-12">
+                      <div className="flex items-start gap-12">
                         <div className="flex flex-col gap-1">
                           <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">Client</span>
                           <div className="flex items-center gap-2">
@@ -289,7 +300,7 @@ export default function AdminTasksPage() {
                         className="flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-900 border border-slate-900 hover:bg-orange-500 hover:border-orange-500 text-white transition-all font-black text-[10px] uppercase tracking-widest shadow-xl shadow-orange-100 active:scale-95 cursor-pointer"
                       >
                         <HiOutlinePlusCircle size={16} />
-                        <span>Assign Task</span>
+                        <span>Add Task</span>
                       </button>
 
                       <button
@@ -298,6 +309,17 @@ export default function AdminTasksPage() {
                         title="Update Project"
                       >
                         <HiOutlinePencilSquare />
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setProjectToDeactivate(project);
+                        }}
+                        className="p-3 rounded-xl border border-slate-200 text-rose-500 hover:text-rose-600 hover:border-rose-500 transition-all bg-white shadow-xl cursor-pointer"
+                        title="Delete Project"
+                      >
+                        <HiOutlineTrash />
                       </button>
 
                       <div className={`cursor-pointer transition-all p-2 ml-2 rounded-full text-orange-500 ${expandedProject === project.project_code ? " rotate-180" : ""}`}>
@@ -309,7 +331,7 @@ export default function AdminTasksPage() {
                   {expandedProject === project.project_code && (
                     <div className="bg-white border-t border-slate-50">
                       {tasks.length > 0 ? (
-                        <GroupedTaskTable columns={columns} tasks={tasks} onRowClick={(task) => navigate(`/tasks/${task._id}`)} />
+                        <GroupedTaskTable columns={columns} tasks={tasks} onRowClick={(task) => navigate(`/projects/${task._id}`)} />
                       ) : (
                         <div className="py-12 flex flex-col items-center justify-center bg-slate-50/50">
                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No tasks matching filters found.</p>
@@ -365,12 +387,34 @@ export default function AdminTasksPage() {
       <ProjectModal isOpen={showProjectModal} onClose={() => { setShowProjectModal(false); setEditingProject(null); }} editProject={editingProject} />
       <TaskModal
         isOpen={showTaskModal || !!editingTask}
-        onClose={() => { setShowTaskModal(false); setEditingTask(null); setPreSelectedProject(null); }}
+        onClose={() => {
+          setShowTaskModal(false);
+          setEditingTask(null);
+          setPreSelectedProject(null);
+        }}
         editTask={editingTask}
-        projects={projectGroups}
-        defaultProjectId={preSelectedProject}
+        singleProject={
+          projectGroups.find(p =>
+            p._id === (editingTask?.project?._id || editingTask?.project || preSelectedProject)
+          )
+        }
       />
       <StatusUpdateModal isOpen={!!statusUpdateTask} onClose={() => setStatusUpdateTask(null)} task={statusUpdateTask} />
+      <ConfirmModal
+        isOpen={!!projectToDeactivate}
+        onClose={() => setProjectToDeactivate(null)}
+        onConfirm={handleConfirmDeactivate}
+        isLoading={isDeactivating}
+        title="Deactivate Project"
+        message={`Are you sure you want to mark "${projectToDeactivate?.title}" as inactive? This will hide it from the active project list.`}
+        variant="danger"
+      />
+
+      <EmployeeAssignModal
+        isOpen={!!assigningTeamTask}
+        onClose={() => setAssigningTeamTask(null)}
+        task={assigningTeamTask}
+      />
     </div>
   );
 }

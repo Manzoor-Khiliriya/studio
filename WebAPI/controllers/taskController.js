@@ -51,12 +51,10 @@ exports.updateTask = async (req, res) => {
 
     const oldAssigneeIds = task.assignedTo.map(id => id.toString());
 
-    // 1. Update basic fields
     if (title) task.title = title;
     if (priority) task.priority = priority;
     if (description !== undefined) task.description = description;
 
-    // 2. Handle Project Change
     if (project && project !== task.project.toString()) {
       const projectExists = await Project.findById(project);
       if (!projectExists) {
@@ -69,13 +67,11 @@ exports.updateTask = async (req, res) => {
       );
     }
 
-    // 3. Handle Assignment & Status Logic
     if (assignedTo) {
       task.assignedTo = assignedTo;
       
-      // CRITICAL: If no one is assigned, force "To be started"
       if (assignedTo.length === 0) {
-        task.liveStatus = "To be started";
+        task.liveStatus = "Started";
       }
     }
 
@@ -83,16 +79,13 @@ exports.updateTask = async (req, res) => {
       task.allocatedTime = Number(allocatedTime);
     }
 
-    // 4. Save the changes ONCE
     await task.save();
 
-    // 5. Populate for response
     const updated = await Task.findById(task._id)
       .populate("project")
       .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
       .populate("timeLogs");
 
-    // 6. Handle Notifications
     if (assignedTo) {
       const newAssigneeIds = assignedTo.map(id => id.toString());
       const added = newAssigneeIds.filter(id => !oldAssigneeIds.includes(id));

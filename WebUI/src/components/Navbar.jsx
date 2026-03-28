@@ -12,7 +12,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useOnClickOutside } from "../hooks/useOnClickOutside";
 import { useNavigate } from "react-router-dom";
-import logo from "../assets/logo.png";
+import logo from "../assets/Sandd-Studio-Orange-BG.jpg";
 
 export default function Navbar() {
   const { user } = useSelector((state) => state.auth);
@@ -52,7 +52,7 @@ export default function Navbar() {
         <img
           src={logo}
           alt="logo"
-          className="h-10 w-auto cursor-pointer hover:opacity-80 transition-opacity"
+          className="h-12 w-auto cursor-pointer hover:opacity-90 transition-opacity"
           onClick={() => navigate(user.role === 'Admin' ? '/admin' : '/employee')}
         />
         <div className="hidden lg:block border-l border-orange-100 pl-6">

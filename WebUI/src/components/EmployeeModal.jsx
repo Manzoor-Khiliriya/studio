@@ -23,7 +23,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
 
   const [formData, setFormData] = useState({
     name: "", employeeCode: "", email: "", password: "", designation: "",
-    efficiency: "100", joinedDate: getToday(), dailyWorkLimit: "9",
+    proficiency: "100", joinedDate: getToday(), dailyWorkLimit: "9",
     mobileNumber: "",
     dateOfBirth: ""  
   });
@@ -39,7 +39,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
         employeeCode: editData?.employeeCode || "",
         email: editData.user?.email || editData.email || "",
         designation: editData.designation || editData.employee?.designation || "",
-        efficiency: String(editData.efficiency ?? editData.employee?.efficiency ?? 100),
+        proficiency: String(editData.proficiency ?? editData.employee?.proficiency ?? 100),
         dailyWorkLimit: String(editData.dailyWorkLimit ?? editData.employee?.dailyWorkLimit ?? 9),
         joinedDate: rawJoined ? new Date(rawJoined).toISOString().split('T')[0] : "",
         mobileNumber: editData.mobileNumber || editData.employee?.mobileNumber || "",
@@ -48,7 +48,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
     } else if (isOpen) {
       setFormData({
         name: "", email: "", password: "", designation: "",
-        efficiency: "100", joinedDate: getToday(), dailyWorkLimit: "9",
+        proficiency: "100", joinedDate: getToday(), dailyWorkLimit: "9",
         mobileNumber: "", dateOfBirth: ""
       });
     }
@@ -56,7 +56,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    let finalValue = (name === "efficiency" || name === "dailyWorkLimit")
+    let finalValue = (name === "proficiency" || name === "dailyWorkLimit")
       ? value.replace(/\D/g, "")
       : value;
     setFormData(prev => ({ ...prev, [name]: finalValue }));
@@ -68,7 +68,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
     try {
       const payload = {
         ...formData,
-        efficiency: Number(formData.efficiency),
+        proficiency: Number(formData.proficiency),
         dailyWorkLimit: Number(formData.dailyWorkLimit),
         email: formData.email.toLowerCase(),
       };
@@ -157,15 +157,15 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
           </InputGroup>
         </div>
 
-        {/* ROW 4: WORK LIMIT & EFFICIENCY */}
+        {/* ROW 4: WORK LIMIT & proficiency */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <InputGroup label="Daily Ops Limit (Hrs)">
+          <InputGroup label="Daily Work Limit (Hrs)">
             <HiOutlineClock className="input-icon" />
             <input required name="dailyWorkLimit" value={formData.dailyWorkLimit} onChange={handleChange} className="form-input" placeholder="9" />
           </InputGroup>
-          <InputGroup label="Personnel Efficiency (%)">
+          <InputGroup label="Proficiency (%)">
             <HiOutlineChartBar className="input-icon" />
-            <input required name="efficiency" value={formData.efficiency} onChange={handleChange} className="form-input" placeholder="100" />
+            <input required name="proficiency" value={formData.proficiency} onChange={handleChange} className="form-input" placeholder="100" />
           </InputGroup>
         </div>
 

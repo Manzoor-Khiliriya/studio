@@ -61,7 +61,7 @@ function App() {
                 <Route path="/employees" element={<AdminEmployeeListPage />} />
                 <Route path="/employees/:id" element={<AdminEmployeeDetailPage />} />
                 <Route path="/projects" element={<AdminTaskListPage />} />
-                <Route path="/tasks/:id" element={<AdminTaskDetailPage />} />
+                <Route path="/projects/:id" element={<AdminTaskDetailPage />} />
                 <Route path="/leaves" element={<AdminLeavePage />} />
                 <Route path="/holidays" element={<AdminHolidayPage />} />
                 <Route path="/performance" element={<AdminTaskPerformancePage />} />
