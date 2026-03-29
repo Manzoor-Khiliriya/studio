@@ -64,76 +64,107 @@ export default function MyTasksPage() {
     }
   };
 
-  // --- TABLE COLUMNS ---
-  const columns = [
-    {
-      header: "Project Info",
-      render: (row) => (
-        <div className="flex flex-col py-2">
-          <span className="text-[10px] font-black text-blue-600 uppercase tracking-tighter">
-            {row.project?.projectCode || "N/A"}
-          </span>
-          <p className="text-[11px] font-bold text-slate-500 uppercase truncate max-w-[150px]">
-            {row.project?.title || "Internal Task"}
-          </p>
-        </div>
-      )
-    },
-    {
-      header: "Task Parameters",
-      render: (row) => (
-        <div className="flex flex-col py-2">
-          <p className={`font-black text-sm uppercase tracking-tight ${runningTaskId === row._id ? 'text-orange-600 animate-pulse' : 'text-slate-800'}`}>
-            {row.title}
-          </p>
-          <div className="flex items-center gap-2 mt-1">
-            <span className={`text-[9px] font-black px-2 py-0.5 rounded uppercase ${row.priority === 'High' ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500'
-              }`}>
-              {row.priority} Priority
-            </span>
-          </div>
-        </div>
-      )
-    },
-    {
-      header: "Timeline",
-      render: (row) => (
-        <div className="flex flex-col">
-          <div className="flex items-center gap-1.5 text-slate-600">
-            <HiOutlineFlag size={14} className="text-slate-400" />
-            <span className="text-[10px] font-black uppercase tracking-tight">
-              {row.project?.endDate ? new Date(row.project.endDate).toLocaleDateString('en-GB') : 'No Date'}
-            </span>
-          </div>
-          <p className="text-[9px] font-bold text-slate-400 uppercase mt-1">
-            Est: {row.allocatedTime || 0} Hours
-          </p>
-        </div>
-      )
-    },
-    {
-      header: "Deployment Status",
-      render: (row) => {
-        // Calculate progress percentage (if you have spentTime from backend)
-        const progress = Math.min(((row.totalLoggedSeconds / 3600) / row.allocatedTime) * 100, 100) || 0;
+const headerClass = "text-[10px] font-black uppercase tracking-widest text-slate-400";
 
-        return (
-          <div className="flex flex-col w-32">
-            <div className="flex justify-between mb-1">
-              <span className="text-[9px] font-black uppercase text-slate-500">{row.status}</span>
-              <span className="text-[9px] font-black text-slate-400">{Math.round(progress)}%</span>
-            </div>
-            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-              <div
-                className={`h-full transition-all duration-500 ${row.status === 'Completed' ? 'bg-emerald-500' : 'bg-orange-500'}`}
-                style={{ width: `${progress}%` }}
-              />
-            </div>
+const renderStatusBadge = (status) => {
+  const themes = {
+    completed: "text-emerald-600 bg-emerald-50",
+    "on hold": "text-blue-600 bg-blue-50",
+    "feedback pending": "text-yellow-600 bg-yellow-50",
+    "final rendering": "text-orange-600 bg-orange-50",
+    postproduction: "text-purple-600 bg-purple-50",
+  };
+  const themeClass = themes[status?.toLowerCase()] || "text-slate-500 bg-slate-50";
+  return (
+    <span className={`inline-block text-[9px] font-black px-3 py-1 rounded-full tracking-widest ${themeClass}`}>
+      {status}
+    </span>
+  );
+};
+
+const getLiveStatusColor = (status) => {
+  const statusMap = {
+    "in progress": "text-green-600",
+    "started": "text-blue-600",
+  };
+  return statusMap[status?.toLowerCase()] || "text-yellow-600";
+};
+
+const columns = [
+  {
+    header: <span className={headerClass}>Project Info</span>,
+    className: "text-left",
+    render: (row) => (
+      <div className="flex flex-col py-2">
+        <span className="text-[10px] font-black text-blue-600 uppercase tracking-tighter">
+          {row.project?.projectCode || "INTERNAL"}
+        </span>
+        <p className="text-[11px] font-bold text-slate-900 uppercase truncate max-w-[150px] group-hover:text-orange-600 transition-colors">
+          {row.project?.title || "Direct Assignment"}
+        </p>
+      </div>
+    ),
+  },
+  {
+    header: <span className={headerClass}>Mission Parameters</span>,
+    className: "text-left",
+    render: (row) => (
+      <div className="flex flex-col py-2">
+        <p className={`font-black text-[11px] uppercase tracking-tight ${runningTaskId === row._id ? 'text-orange-600 animate-pulse' : 'text-slate-800'}`}>
+          {row.title}
+        </p>
+        <div className="flex items-center gap-2 mt-1">
+          <span className={`text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-tighter ${row.priority === 'High' ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-500'}`}>
+            {row.priority} PRIORITY
+          </span>
+          <span className="text-[9px] font-bold text-slate-400 italic line-clamp-1 max-w-[120px]">
+            {row.description || "No details provided."}
+          </span>
+        </div>
+      </div>
+    ),
+  },
+  {
+    header: <span className={headerClass}>Resource Usage</span>,
+    className: "text-left",
+    render: (row) => {
+      const consumedHours = (row.totalLoggedSeconds || 0) / 3600;
+      const progress = Math.min((consumedHours / (row.allocatedTime || 1)) * 100, 100);
+      const isWarning = progress > 90;
+
+      return (
+        <div className="flex flex-col min-w-[160px]">
+          <div className="flex justify-between items-end mb-1">
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+              <span className="text-slate-900">{consumedHours.toFixed(1)}h</span> / {(row.allocatedTime || 0).toFixed(1)}h
+            </span>
+            <span className={`text-[10px] font-black ${isWarning ? "text-rose-600" : "text-emerald-600"}`}>
+              {Math.round(progress)}%
+            </span>
           </div>
-        );
-      }
+          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div
+              className={`h-full transition-all duration-700 rounded-full ${isWarning ? "bg-rose-500 animate-pulse" : "bg-emerald-500"}`}
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+      );
     },
-  ];
+  },
+  {
+    header: <span className={headerClass}>Live Status</span>,
+    render: (row) => (
+      <span className={`text-[9px] font-black uppercase ${getLiveStatusColor(row.liveStatus)}`}>
+        {row.liveStatus || "To Be Started"}
+      </span>
+    ),
+  },
+  {
+    header: <span className={headerClass}>Initiative Status</span>,
+    render: (row) => renderStatusBadge(row.status),
+  }
+];
 
   if (isLoading) return <Loader message="Accessing Command Data..." />;
 

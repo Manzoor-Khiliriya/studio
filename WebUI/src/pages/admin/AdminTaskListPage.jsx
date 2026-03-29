@@ -378,14 +378,14 @@ export default function AdminTasksPage() {
 
                       {/* SELECTION CHECKBOX (Right Aligned) */}
                       <div
-                        className={`p-2.5 flex items-center rounded-xl border transition-all ${isSelected ? 'bg-orange-500 border-orange-500' : 'bg-white border-slate-200'}`}
+                        className={`p-2.5 flex items-center rounded-xl border hover:border-orange-500  transition-all ${isSelected ? 'bg-orange-500 border-orange-500' : 'bg-white border-slate-200'}`}
                         onClick={(e) => e.stopPropagation()}
                       >
                         <input
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => toggleProjectSelection(project._id)}
-                          className="w-5 h-5 accent-white cursor-pointer"
+                          className="w-4 h-5 accent-white cursor-pointer"
                         />
                       </div>
 

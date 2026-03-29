@@ -105,10 +105,10 @@ export default function EmployeeDashboard() {
     try {
       if (isOnShift) {
         await clockOut().unwrap();
-        toast.success("Shift Terminated");
+        toast.success("Clocked Out Successfully");
       } else {
         await clockIn().unwrap();
-        toast.success("Shift Initialized");
+        toast.success("Clock In Successfully");
       }
       refetch();
     } catch (err) {
@@ -180,10 +180,10 @@ export default function EmployeeDashboard() {
               {isSyncingAttendance ? "Syncing..." : (isOnShift ? "Clock Out" : "Clock In")}
             </button>
 
-            <p className="text-[9px] font-bold text-slate-400 mt-2 text-center uppercase tracking-tight h-2">
+            <p className="text-[9px] font-bold text-slate-400 text-center uppercase tracking-tight h-2">
               {isOnShift && attendanceStatus.clockIn
                 ? `Clocked In At ${new Date(attendanceStatus.clockIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                : "System Standby"}
+                : "Clock In To Start Your Shift"}
             </p>
           </motion.div>
         </div>
