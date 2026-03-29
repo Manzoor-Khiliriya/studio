@@ -341,16 +341,30 @@ exports.getMyTasks = async (req, res) => {
   try {
     const { search, status, liveStatus, activeStatus, page = 1, limit = 6 } = req.query;
 
+    // 1. Find the Employee profile
     const employee = await Employee.findOne({ user: req.user._id });
     if (!employee) {
-      return res.status(200).json({ success: true, data: [], pagination: { current: 1, totalPages: 0, totalTasks: 0 } });
+      return res.status(200).json({ 
+        success: true, 
+        tasks: [], 
+        pagination: { current: 1, totalPages: 0, totalTasks: 0 } 
+      });
     }
 
+    // 2. Build Query Base
     const query = { assignedTo: employee._id };
+
+    // 3. Project Filter (Only show tasks from projects that AREN'T deleted/archived)
+    // You can add { isDeleted: false } or { status: "Active" } here
+    const activeProjectFilter = { status: { $ne: "Inactive" } }; 
 
     if (search) {
       const matchingProjects = await Project.find({
-        projectCode: { $regex: search, $options: "i" }
+        ...activeProjectFilter,
+        $or: [
+          { projectCode: { $regex: search, $options: "i" } },
+          { title: { $regex: search, $options: "i" } }
+        ]
       }).select("_id");
 
       query.$or = [
@@ -359,42 +373,61 @@ exports.getMyTasks = async (req, res) => {
       ];
     }
 
+    // 4. Status Filters
     if (status && status !== "All") {
-      if (status.startsWith("!")) {
-        const excludeValue = status.substring(1);
-        query.status = { $ne: excludeValue };
-      } else {
-        query.status = status;
-      }
+      query.status = status.startsWith("!") 
+        ? { $ne: status.substring(1) } 
+        : status;
     }
 
     if (activeStatus && activeStatus !== "All") {
-      if (activeStatus.startsWith("!")) {
-        query.activeStatus = { $ne: activeStatus.substring(1) };
-      } else {
-        query.activeStatus = activeStatus;
-      }
+      query.activeStatus = activeStatus.startsWith("!") 
+        ? { $ne: activeStatus.substring(1) } 
+        : activeStatus;
     }
 
     if (liveStatus && liveStatus !== "All") {
-      const liveStatuses = liveStatus.split(",");
-      query.liveStatus = { $in: liveStatuses };
+      query.liveStatus = { $in: liveStatus.split(",") };
     }
 
+    // 5. Execution with Population
     const skip = (Number(page) - 1) * Number(limit);
+    
+    // We use .find(query) but also ensure the project itself exists and is valid
     const tasks = await Task.find(query)
-      .populate("project", "projectCode title startDate endDate createdAt")
-      .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
-      .populate("timeLogs")
+      .populate({
+        path: "project",
+        match: activeProjectFilter, // Only populates if project is active
+        select: "projectCode title startDate endDate createdAt"
+      })
+      .populate({ 
+        path: "assignedTo", 
+        populate: { path: "user", select: "name" } 
+      })
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .lean(); // Use lean for faster processing and to allow manual property editing
+
+    // 6. Filter out tasks where project became null due to the 'match' filter
+    const filteredTasks = tasks.filter(task => task.project !== null);
+
+    // 7. Calculate Seconds for Utilization Bar
+    // If your Task model doesn't have a virtual for totalSeconds, calculate it here:
+    const finalTasks = filteredTasks.map(task => {
+      const totalSeconds = task.timeLogs?.reduce((acc, log) => acc + (log.duration || 0), 0) || 0;
+      return {
+        ...task,
+        totalLoggedSeconds: totalSeconds,
+        totalConsumedHours: totalSeconds / 3600
+      };
+    });
 
     const total = await Task.countDocuments(query);
 
     return res.status(200).json({
       success: true,
-      tasks,
+      tasks: finalTasks,
       pagination: {
         current: Number(page),
         totalPages: Math.ceil(total / Number(limit)),
@@ -402,6 +435,7 @@ exports.getMyTasks = async (req, res) => {
       }
     });
   } catch (err) {
+    console.error("GetMyTasks Error:", err);
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
