@@ -3,13 +3,10 @@ import { apiSlice } from './apiSlice';
 export const attendanceApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
 
-    // 1. Get Today's Status (Checks if already clocked in)
     getTodayStatus: builder.query({
       query: () => '/attendance/today',
       providesTags: ['Attendance'],
     }),
-
-    // 2. Clock In
     clockIn: builder.mutation({
       query: () => ({
         url: '/attendance/clock-in',
@@ -17,8 +14,6 @@ export const attendanceApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Attendance'],
     }),
-
-    // 3. Clock Out
     clockOut: builder.mutation({
       query: () => ({
         url: '/attendance/clock-out',
@@ -26,12 +21,10 @@ export const attendanceApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Attendance'],
     }),
-
-    // 4. Get Attendance History (For a table/list)
     getAttendanceHistory: builder.query({
       query: (params) => ({
         url: '/attendance/history',
-        params, // { page, limit, startDate, endDate }
+        params,
       }),
       providesTags: (result) =>
         result?.history
@@ -43,8 +36,8 @@ export const attendanceApiSlice = apiSlice.injectEndpoints({
     }),
     getAllAttendance: builder.query({
       query: (params) => ({
-        url: '/attendance/admin/all', // Make sure this route is defined in Express
-        params, // { startDate, endDate, userId }
+        url: '/attendance/admin/all',
+        params,
       }),
       providesTags: ['Attendance'],
     }),

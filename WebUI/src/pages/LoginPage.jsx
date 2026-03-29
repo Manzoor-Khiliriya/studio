@@ -53,11 +53,11 @@ export default function LoginPage() {
     <div className="min-h-screen flex bg-slate-50 font-sans selection:bg-orange-100">
 
       {/* --- LEFT SIDE: BRAND PERSPECTIVE --- */}
-      <div className="hidden lg:flex lg:w-1/2 bg-slate-900 relative items-center justify-center p-16 overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-slate-900 relative items-center justify-center overflow-hidden">
         <img
           src={logo}
           alt="logo"
-          className="h-150 cursor-pointer transition-opacity"
+          className="h-auto w-full cursor-pointer transition-opacity"
         />
       </div>
 

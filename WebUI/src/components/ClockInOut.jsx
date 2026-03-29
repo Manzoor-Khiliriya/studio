@@ -15,13 +15,15 @@ export default function ClockInOut({ todaySeconds: dashboardDailySecs, taskList 
   // Poll logs for ticker synchronization
   const { data: logsData } = useGetMyTodayLogsQuery(undefined, { pollingInterval: 30000 });
 
-  const [startTimer] = useStartTimerMutation();
-  const [togglePause] = useTogglePauseMutation();
-  const [stopTimer] = useStopTimerMutation();
+  const [startTimer, { isLoading: isStarting }] = useStartTimerMutation();
+  const [togglePause, { isLoading: isToggling }] = useTogglePauseMutation();
+  const [stopTimer, { isLoading: isStopping }] = useStopTimerMutation();
 
+  // A helper to check if ANY action is pending
+  const isSyncing = isStarting || isToggling || isStopping;
   const activeLog = logsData?.logs?.find(log => log.isRunning);
   const isPaused = activeLog?.logType === "break";
-  const status = activeLog ? (isPaused ? "On Break" : "Mission Active") : "Standby";
+  const status = activeLog ? (isPaused ? "On Break" : "Mission Active") : "Not Started";
 
   // SYNC DROPDOWN WITH ACTIVE LOG
   useEffect(() => {
@@ -142,10 +144,10 @@ export default function ClockInOut({ todaySeconds: dashboardDailySecs, taskList 
           onChange={(e) => setSelectedTaskId(e.target.value)}
           className="w-full bg-white/[0.03] border border-white/10 text-white text-sm font-bold py-5 pl-12 pr-4 rounded-[1.5rem] outline-none disabled:opacity-50 appearance-none cursor-pointer"
         >
-          <option value="" className="bg-slate-900">Awaiting Assignment...</option>
+          <option value="" className="bg-slate-900">Select Task...</option>
           {taskList.map(task => (
-            <option key={task._id} value={task._id} className="bg-slate-900">
-              [{task.projectNumber}] {task.title}
+            <option key={task._id} value={task.id} className="bg-slate-900">
+              ({task.projectCode}) - {task.title}
             </option>
           ))}
         </select>
@@ -161,22 +163,35 @@ export default function ClockInOut({ todaySeconds: dashboardDailySecs, taskList 
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        {!activeLog ? (
-          <button onClick={handleStart} disabled={!selectedTaskId} className="col-span-2 py-5 rounded-[1.5rem] bg-orange-600 hover:bg-orange-50 text-white text-[11px] font-black uppercase tracking-widest disabled:opacity-20 transition-all">
-            Initiate Deployment
+      {!activeLog ? (
+        <div className="flex items-center gap-4">
+          <button
+            onClick={handleStart}
+            disabled={!selectedTaskId || isSyncing} // Disable if syncing
+            className="cursor-pointer flex-1 py-5 rounded-[1.5rem] bg-orange-600 hover:bg-orange-700 text-white text-[11px] font-black uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            {isStarting ? "Initializing..." : "Start Task"}
           </button>
-        ) : (
-          <>
-            <button onClick={() => togglePause()} className={`py-5 rounded-[1.5rem] font-black text-[11px] uppercase tracking-widest border transition-all ${isPaused ? "bg-white text-slate-950" : "bg-transparent border-white/10 text-white hover:bg-white/5"}`}>
-              {isPaused ? <><FiPlay className="inline mr-2" /> Resume</> : <><FiCoffee className="inline mr-2" /> Break</>}
-            </button>
-            <button onClick={handleStop} className="py-5 rounded-[1.5rem] bg-red-600/10 text-red-500 border border-red-600/20 text-[11px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all">
-              Terminate
-            </button>
-          </>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => togglePause()}
+            disabled={isSyncing} // Disable during any sync
+            className={`cursor-pointer flex-1 py-5 rounded-[1.5rem] flex items-center justify-center gap-3 font-black text-[11px] uppercase tracking-widest text-white transition-all disabled:opacity-50 ${isPaused ? "bg-green-500 text-slate-950 hover:bg-green-600" : "bg-slate-500 hover:bg-slate-600"}`}
+          >
+            {isToggling ? "Processing..." : (isPaused ? <><FiPlay size={18} /> Resume</> : <><FiCoffee size={18} /> Break</>)}
+          </button>
+
+          <button
+            onClick={handleStop}
+            disabled={isSyncing} // Disable during any sync
+            className="cursor-pointer flex-1 py-5 rounded-[1.5rem] bg-red-500 text-white  text-[11px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isStopping ? "Stopping..." : "Stop Task"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

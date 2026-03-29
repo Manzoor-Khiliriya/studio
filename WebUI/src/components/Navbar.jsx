@@ -1,6 +1,5 @@
 import { useState, useRef } from "react";
 import { useSelector } from "react-redux";
-import { useLazyGlobalSearchQuery } from "../services/searchApi";
 import {
   useGetNotificationsQuery,
   useMarkNotificationsReadMutation

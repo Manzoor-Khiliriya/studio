@@ -3,13 +3,11 @@ import { apiSlice } from './apiSlice';
 export const timeLogApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     
-    // 1. GET TODAY'S LOGS & ACTIVE STATUS
     getMyTodayLogs: builder.query({
       query: () => '/timelogs/my',
       providesTags: ['TimeLog'],
     }),
 
-    // 2. START TIMER
     startTimer: builder.mutation({
       query: (taskId) => ({
         url: '/timelogs/start',
@@ -19,7 +17,6 @@ export const timeLogApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: ['TimeLog', 'Task', 'Project'], 
     }),
 
-    // 3. TOGGLE PAUSE (Work <-> Break)
     togglePause: builder.mutation({
       query: () => ({
         url: '/timelogs/pause',
@@ -28,7 +25,6 @@ export const timeLogApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: ['TimeLog'],
     }),
 
-    // 4. STOP TIMER
     stopTimer: builder.mutation({
       query: () => ({
         url: '/timelogs/stop',
@@ -37,11 +33,6 @@ export const timeLogApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: ['TimeLog'],
     }),
 
-    // 6. EMPLOYEE WEEKLY REPORT
-    getWeeklyReport: builder.query({
-      query: (userId) => `/timelogs/report/employee/${userId}`,
-      providesTags: (result, error, userId) => [{ type: 'TimeLog', id: userId }],
-    }),
   }),
 });
 

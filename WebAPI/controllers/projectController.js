@@ -4,20 +4,20 @@ const { calculateEstimatedHours } = require("../utils/taskHelpers");
 
 exports.createProject = async (req, res) => {
   try {
-    const { project_code, title, clientName, startDate, endDate } = req.body;
+    const { projectCode, title, clientName, startDate, endDate } = req.body;
 
-    if (!project_code || !title || !startDate || !endDate) {
+    if (!projectCode || !title || !startDate || !endDate) {
       return res.status(400).json({ success: false, message: "Missing required fields" });
     }
 
-    const existingProject = await Project.findOne({ project_code: project_code.toUpperCase() });
+    const existingProject = await Project.findOne({ projectCode: projectCode.toUpperCase() });
 
     if (existingProject) {
       return res.status(409).json({ success: false, message: "Project Code already exists" });
     }
 
     const project = await Project.create({
-      project_code: project_code.toUpperCase(),
+      projectCode: projectCode.toUpperCase(),
       title,
       clientName,
       startDate,
@@ -52,7 +52,7 @@ exports.getAllProjects = async (req, res) => {
     // --- Project Level Filters ---
     if (search) {
       query.$or = [
-        { project_code: { $regex: search, $options: "i" } },
+        { projectCode: { $regex: search, $options: "i" } },
         { title: { $regex: search, $options: "i" } }
       ];
     }
@@ -148,23 +148,33 @@ exports.getEstimate = async (req, res) => {
 
 exports.updateProject = async (req, res) => {
   try {
-    const { project_code, title, clientName, startDate, endDate, status } = req.body;
-    const project = await Project.findById(req.params.id);
+    const { id } = req.params;
+    const updateData = { ...req.body };
+
+    if (updateData.projectCode) {
+      updateData.projectCode = updateData.projectCode.toUpperCase();
+    }
+
+    const project = await Project.findByIdAndUpdate(
+      id, 
+      { $set: updateData }, 
+      { new: true, runValidators: true }
+    );
 
     if (!project) {
       return res.status(404).json({ success: false, message: "Project not found" });
     }
 
-    if (project_code) project.project_code = project_code.toUpperCase();
-    if (title) project.title = title;
-    if (clientName !== undefined) project.clientName = clientName;
-    if (startDate) project.startDate = startDate;
-    if (endDate) project.endDate = endDate;
-    if (status) project.status = status;
-
-    await project.save();
-    return res.status(200).json({ success: true, message: "Project updated successfully", project });
+    return res.status(200).json({ 
+      success: true, 
+      message: "Project updated successfully", 
+      project 
+    });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ success: false, message: "Project Code already exists" });
+    }
+    console.error(error);
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
@@ -195,7 +205,7 @@ exports.getTaskPerformanceReport = async (req, res) => {
     const projectQuery = {};
     if (search) {
       projectQuery.$or = [
-        { project_code: { $regex: search, $options: "i" } },
+        { projectCode: { $regex: search, $options: "i" } },
         { title: { $regex: search, $options: "i" } }
       ];
     }
@@ -229,7 +239,7 @@ exports.getTaskPerformanceReport = async (req, res) => {
 
       {
         $project: {
-          project_code: 1,
+          projectCode: 1,
           title: 1,
           clientName: 1,
           startDate: 1,
@@ -323,7 +333,7 @@ exports.getProjectCalendarStacks = async (req, res) => {
         $match: search
           ? {
             $or: [
-              { project_code: { $regex: search, $options: "i" } },
+              { projectCode: { $regex: search, $options: "i" } },
               { title: { $regex: search, $options: "i" } }
             ]
           }
@@ -344,7 +354,7 @@ exports.getProjectCalendarStacks = async (req, res) => {
           start: { $dateToString: { format: "%Y-%m-%d", date: "$startDate" } },
           end: { $dateToString: { format: "%Y-%m-%d", date: "$endDate" } },
           extendedProps: {
-            projectCode: "$project_code",
+            projectCode: "$projectCode",
             tasks: "$taskList", // Send the whole array of tasks
             taskCount: { $size: "$taskList" }
           }

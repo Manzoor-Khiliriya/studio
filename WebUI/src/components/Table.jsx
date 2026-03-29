@@ -26,7 +26,7 @@ export default function Table({ columns, data, onRowClick, emptyMessage = "No re
                 className={`group transition-all hover:bg-orange-100/20 ${onRowClick ? 'cursor-pointer' : ''}`}
               >
                 {columns.map((col, colIdx) => (
-                  <td key={colIdx} className={`px-6 py-5 ${col.cellClassName || ''}`}>
+                  <td key={colIdx} className={`px-6 py-3 ${col.cellClassName || ''}`}>
                     {col.render ? col.render(row) : row[col.key]}
                   </td>
                 ))}

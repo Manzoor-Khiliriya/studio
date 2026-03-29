@@ -4,10 +4,14 @@ const Employee = require("../models/Employee");
 const LeaveSetting = require("../models/LeaveSetting");
 const { calculateLeaveDays, hasLeaveOverlap } = require("../utils/leaveHelpers");
 
-/* ================= HELPERS ================= */
 
 const getLeaveSetting = async (type) => {
-  return await LeaveSetting.findOne({ leaveType: type });
+  try {
+    const settings = await LeaveSetting.findOne({ leaveType: type });
+    return settings;
+  } catch (err) {
+    throw new Error(err.message);
+  }
 };
 
 const getTakenDays = async (userId, type, currentYearOnly = true) => {
@@ -28,8 +32,6 @@ const getTakenDays = async (userId, type, currentYearOnly = true) => {
   }
   return total;
 };
-
-/* ================= EMPLOYEE ================= */
 
 exports.getMyLeaves = async (req, res) => {
   try {
@@ -139,21 +141,69 @@ exports.applyLeave = async (req, res) => {
   }
 };
 
-/* ================= ADMIN ================= */
-
 exports.getAllLeaves = async (req, res) => {
   try {
-    const { status, search, page = 1, limit = 10, view = "requests" } = req.query;
+    const {
+      status,
+      search,
+      page = 1,
+      limit = 10,
+      view = "requests",
+      dateRange,
+      startDate: customStart,
+      endDate: customEnd
+    } = req.query;
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // --- VIEW 1: REQUESTS (Approval Workflow) ---
+    // --- 1. CONSTRUCT DATE FILTER BASED ON START DATE ---
+    // --- 1. CONSTRUCT DATE FILTER (STRICT BOUNDARIES) ---
+    let dateFilter = {};
+    if (dateRange && dateRange !== "all") {
+      const now = new Date();
+      let filterStart = new Date();
+      let filterEnd = new Date();
+
+      if (dateRange === "today") {
+        filterStart.setHours(0, 0, 0, 0);
+        filterEnd.setHours(23, 59, 59, 999);
+      } else if (dateRange === "week") {
+        const day = now.getDay();
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+        filterStart = new Date(now.setDate(diff));
+        filterStart.setHours(0, 0, 0, 0);
+        filterEnd = new Date(); // Or set to end of week if preferred
+        filterEnd.setHours(23, 59, 59, 999);
+      } else if (dateRange === "month") {
+        filterStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        filterEnd.setHours(23, 59, 59, 999);
+      } else if (dateRange === "lastMonth") {
+        filterStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        filterEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+        filterEnd.setHours(23, 59, 59, 999);
+      } else if (dateRange === "custom" && customStart && customEnd) {
+        filterStart = new Date(customStart);
+        filterStart.setHours(0, 0, 0, 0);
+        filterEnd = new Date(customEnd);
+        filterEnd.setHours(23, 59, 59, 999);
+      }
+
+      // STRICT LOGIC: 
+      // Leave must START after filterStart AND END before filterEnd
+      dateFilter.startDate = { $gte: filterStart };
+      dateFilter.endDate = { $lte: filterEnd };
+    }
+
+    // --- VIEW 1: REQUESTS ---
     if (view === "requests") {
-      let query = {};
+      // Merge dateFilter (startDate) with other request filters
+      let query = { ...dateFilter };
       if (status && status !== "All") query.status = status;
       if (search) {
         const users = await User.find({ name: { $regex: search, $options: "i" } }).select("_id");
         query.user = { $in: users.map((u) => u._id) };
       }
+
       const totalLeaves = await Leave.countDocuments(query);
       const leaves = await Leave.find(query)
         .populate({
@@ -161,7 +211,10 @@ exports.getAllLeaves = async (req, res) => {
           select: "name email",
           populate: { path: "employee", select: "employeeCode designation" }
         })
-        .sort({ createdAt: -1 }).skip(skip).limit(parseInt(limit)).lean();
+        .sort({ startDate: -1 }) // Sort by the actual leave date
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean();
 
       return res.json({
         leaves,
@@ -169,9 +222,9 @@ exports.getAllLeaves = async (req, res) => {
       });
     }
 
-    // --- VIEW 2: CASUAL & LOP (Date-wise Ledger) ---
+    // --- VIEW 2: CASUAL & LOP ---
     if (view === "casual-lop") {
-      let query = { type: { $in: ["Casual Leave", "LOP"] } };
+      let query = { type: { $in: ["Casual Leave", "LOP"] }, ...dateFilter };
 
       if (search) {
         const users = await User.find({ name: { $regex: search, $options: "i" } }).select("_id");
@@ -185,12 +238,11 @@ exports.getAllLeaves = async (req, res) => {
           select: "name email",
           populate: { path: "employee", select: "employeeCode designation" }
         })
-        .sort({ startDate: -1 }) // Sort by the actual date of leave
+        .sort({ startDate: -1 })
         .skip(skip)
         .limit(parseInt(limit))
         .lean();
 
-      // Add business days calculation for each record
       const leaves = await Promise.all(leavesRaw.map(async (l) => ({
         ...l,
         duration: await calculateLeaveDays(l.startDate, l.endDate)
@@ -202,11 +254,18 @@ exports.getAllLeaves = async (req, res) => {
       });
     }
 
-    // --- VIEW 3: QUOTA (Balance Matrix) ---
+   // --- VIEW 3: QUOTA ---
     if (view === "quota") {
-      const users = await User.find(search ? { name: { $regex: search, $options: "i" } } : {}).populate("employee").lean();
+      // UPDATED: Added { role: "employee" } to the query
+      const userQuery = { role: "Employee" };
+      if (search) {
+        userQuery.name = { $regex: search, $options: "i" };
+      }
+
+      const users = await User.find(userQuery).populate("employee").lean();
+      
       const settings = await LeaveSetting.find();
-      const leaveTypes = ["Annual Leave", "Sick Leave", "Bereavement Leave", "Paternity Leave", "Maternity Leave", "Casual Leave", "LOP"];
+      const leaveTypes = ["Annual Leave", "Sick Leave", "Bereavement Leave", "Paternity Leave", "Maternity Leave"];
 
       const quotaData = await Promise.all(users.map(async (user) => {
         const joinDate = new Date(user.employee?.joinedDate || user.createdAt);
@@ -220,8 +279,6 @@ exports.getAllLeaves = async (req, res) => {
             const earned = setting ? (months * setting.accrualRate) : 0;
             const taken = await getTakenDays(user._id, t, false);
             userBalances[t] = { earned: +earned.toFixed(1), taken, remaining: +(earned - taken).toFixed(1) };
-          } else if (["Casual Leave", "LOP"].includes(t)) {
-            userBalances[t] = { taken: await getTakenDays(user._id, t, true), quota: "Unlimited" };
           } else {
             const quota = setting ? setting.yearlyQuota : 10;
             const taken = await getTakenDays(user._id, t, true);
@@ -230,23 +287,29 @@ exports.getAllLeaves = async (req, res) => {
         }
         return {
           _id: user._id,
-          employee: { user: { name: user.name }, designation: user.employee?.designation || "Staff" },
+          employee: { 
+            user: { name: user.name }, 
+            designation: user.employee?.designation || "Staff" 
+          },
           balances: userBalances
         };
       }));
 
       const paginatedResults = quotaData.slice(skip, skip + parseInt(limit));
+      
       return res.json({
         leaves: paginatedResults,
-        pagination: { totalLeaves: quotaData.length, totalPages: Math.ceil(quotaData.length / parseInt(limit)), currentPage: parseInt(page) }
+        pagination: { 
+          totalLeaves: quotaData.length, 
+          totalPages: Math.ceil(quotaData.length / parseInt(limit)), 
+          currentPage: parseInt(page) 
+        }
       });
     }
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
-
-/* ================= SETTINGS ================= */
 
 exports.updateLeaveSettings = async (req, res) => {
   try {
@@ -271,8 +334,6 @@ exports.updateLeaveSettings = async (req, res) => {
   }
 };
 
-/* ================= COMMON ================= */
-
 exports.processLeave = async (req, res) => {
   try {
     const leave = await Leave.findById(req.params.id);
@@ -289,14 +350,54 @@ exports.updateLeave = async (req, res) => {
   try {
     const leave = await Leave.findById(req.params.id);
     if (!leave) return res.status(404).json({ message: "Not found" });
-    if (leave.user.toString() !== req.user._id.toString() || leave.status !== "Pending") return res.status(403).json({ message: "Unauthorized" });
+
+    // NEW LOGIC: Allow if owner OR if Admin. 
+    // Also: Admins can update even if status is not 'Pending'.
+    const isOwner = leave.user.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === "Admin";
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    // Users can only update 'Pending' leaves, but Admins can update 'Approved/Rejected' too
+    if (!isAdmin && leave.status !== "Pending") {
+      return res.status(400).json({ message: "Cannot update processed leaves" });
+    }
 
     Object.assign(leave, req.body);
-    const existing = await Leave.find({ user: req.user._id, status: { $ne: "Rejected" }, _id: { $ne: leave._id } });
-    if (hasLeaveOverlap(existing, leave.startDate, leave.endDate)) return res.status(400).json({ message: "Overlap detected" });
+
+    // Check for overlap (excluding this leave itself)
+    const existing = await Leave.find({
+      user: leave.user,
+      status: { $ne: "Rejected" },
+      _id: { $ne: leave._id }
+    });
+
+    if (hasLeaveOverlap(existing, leave.startDate, leave.endDate)) {
+      return res.status(400).json({ message: "Overlap detected" });
+    }
 
     await leave.save();
     res.json(leave);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+exports.deleteLeave = async (req, res) => {
+  try {
+    const leave = await Leave.findById(req.params.id);
+    if (!leave) return res.status(404).json({ message: "Not found" });
+
+    // NEW LOGIC: Allow Owner (if pending) OR Admin (anytime)
+    const isOwner = leave.user.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === "Admin";
+
+    if (isAdmin || (isOwner && leave.status === "Pending")) {
+      await Leave.findByIdAndDelete(req.params.id);
+      return res.json({ message: "Deleted successfully" });
+    }
+
+    res.status(403).json({ message: "Unauthorized to delete" });
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
@@ -327,19 +428,11 @@ exports.getLeaveCalendar = async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-exports.deleteLeave = async (req, res) => {
-  try {
-    const leave = await Leave.findById(req.params.id);
-    if (!leave) return res.status(404).json({ message: "Not found" });
-    if (req.user.role !== "Admin" && (leave.user.toString() !== req.user._id.toString() || leave.status !== "Pending")) return res.status(403).json({ message: "Unauthorized" });
-    await Leave.findByIdAndDelete(req.params.id);
-    res.json({ message: "Deleted" });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-};
-
 exports.getLeaveSettings = async (req, res) => {
   try {
     const settings = await LeaveSetting.find();
     res.json(settings);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };

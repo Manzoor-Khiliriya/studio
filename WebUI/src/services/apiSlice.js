@@ -5,7 +5,7 @@ export const apiSlice = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: import.meta.env.VITE_API_BASE_URL,
     prepareHeaders: (headers, { getState }) => {
-      const token = getState().auth.token; // 🔥 from Redux state
+      const token = getState().auth.token;
       if (token) {
         headers.set('authorization', `Bearer ${token}`);
       }
@@ -13,7 +13,6 @@ export const apiSlice = createApi({
     }
 
   }),
-  // IMPORTANT: All tags must be defined here for auto-refreshing to work
   tagTypes: ['Task', 'Project','Attendance', 'User', 'Employee', 'TimeLog', 'Leave', 'Dashboard', 'Holiday', 'Notification'],
-  endpoints: () => ({}), // Endpoints are injected from other files
+  endpoints: () => ({}), 
 });

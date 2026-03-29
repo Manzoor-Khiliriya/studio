@@ -6,7 +6,7 @@ export const getEmployeeColumns = ({ onEdit, onDelete, onToggle }) => [
   {
     header: "Employee",
     render: (emp) => (
-      <div className="flex items-center gap-3 py-1">
+      <div className="flex items-center gap-3">
         <div className="relative">
           <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-md group-hover:bg-orange-600 transition-all duration-300">
             {emp.user?.name?.charAt(0)?.toUpperCase() || "U"}

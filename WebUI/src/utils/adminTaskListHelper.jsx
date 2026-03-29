@@ -1,6 +1,6 @@
 import React from "react";
 import { FiEdit } from "react-icons/fi";
-import { HiOutlineArrowPath, HiOutlineUserPlus } from "react-icons/hi2";
+import { HiOutlineArrowPath, HiOutlineTrash, HiOutlineUserPlus } from "react-icons/hi2";
 
 /* ---------------------------------- */
 /* SHARED HEADER STYLE */
@@ -100,7 +100,7 @@ const getStatusColor = (status) => {
 /* FINAL COLUMN CONFIG */
 /* ---------------------------------- */
 
-export const getAdminTaskColumns = (onEdit, onStatusUpdate, onAssignTeam) => [
+export const getAdminTaskColumns = (onEdit, onStatusUpdate, onAssignTeam, onDelete) => [
   {
     header: <span className={headerClass}>Task Title</span>,
     className: "text-left",
@@ -185,10 +185,7 @@ export const getAdminTaskColumns = (onEdit, onStatusUpdate, onAssignTeam) => [
     render: (task) => (
       <div className="flex justify-center gap-2">
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onAssignTeam(task);
-          }}
+          onClick={(e) => { e.stopPropagation(); onAssignTeam(task); }}
           title="Assign Team"
           className="text-orange-500 hover:text-orange-600 transition-all active:scale-90 cursor-pointer"
         >
@@ -196,10 +193,7 @@ export const getAdminTaskColumns = (onEdit, onStatusUpdate, onAssignTeam) => [
         </button>
 
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onStatusUpdate(task);
-          }}
+          onClick={(e) => { e.stopPropagation(); onStatusUpdate(task); }}
           title="Update Status"
           className="text-emerald-500 hover:text-emerald-600 transition-all active:scale-90 cursor-pointer"
         >
@@ -207,14 +201,23 @@ export const getAdminTaskColumns = (onEdit, onStatusUpdate, onAssignTeam) => [
         </button>
 
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit(task);
-          }}
+          onClick={(e) => { e.stopPropagation(); onEdit(task); }}
           title="Update Task"
           className="text-amber-500 hover:text-amber-600 transition-all active:scale-90 cursor-pointer"
         >
           <FiEdit size={18} />
+        </button>
+
+        {/* --- NEW DELETE BUTTON --- */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(task);
+          }}
+          title="Delete Task"
+          className="text-rose-500 hover:text-rose-600 transition-all active:scale-90 cursor-pointer"
+        >
+          <HiOutlineTrash size={18} />
         </button>
       </div>
     ),

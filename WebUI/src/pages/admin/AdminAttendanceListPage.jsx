@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
-  HiOutlineUsers,
   HiOutlineAdjustmentsHorizontal,
   HiOutlineXMark,
   HiOutlineArrowRight,
@@ -9,8 +8,6 @@ import {
   HiOutlineListBullet,
   HiOutlineChevronLeft,
   HiOutlineChevronRight,
-  HiChevronUpDown,
-  HiCheck
 } from "react-icons/hi2";
 import {
   startOfToday, endOfToday, startOfYesterday, endOfYesterday,
@@ -18,23 +15,15 @@ import {
   subMonths, format, eachDayOfInterval, startOfISOWeek, endOfISOWeek,
   isSameMonth, addMonths, subMonths as dateFnsSubMonths
 } from "date-fns";
-
-// Services & Helpers
 import { useGetAllAttendanceQuery } from "../../services/attendanceApi";
-import { useGetAllUsersQuery } from "../../services/userApi";
 import { getAdminAttendanceColumns } from "../../utils/adminAttendanceListHelper";
-
-// Components
 import Table from "../../components/Table";
 import Loader from "../../components/Loader";
 import Pagination from "../../components/Pagination";
 import { useGetLeaveCalendarQuery } from "../../services/leaveApi";
 
 export default function AttendanceManagement() {
-  // --- NAVIGATION STATE ---
   const [activeTab, setActiveTab] = useState("logs");
-
-  // --- FILTER STATE ---
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState("");
@@ -44,11 +33,8 @@ export default function AttendanceManagement() {
     startDate: format(startOfToday(), "yyyy-MM-dd"),
     endDate: format(endOfToday(), "yyyy-MM-dd"),
   });
-
-  // --- CALENDAR STATE ---
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  // --- SEARCH DEBOUNCE ---
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(search);
@@ -57,7 +43,6 @@ export default function AttendanceManagement() {
     return () => clearTimeout(handler);
   }, [search]);
 
-  // --- DATA FETCHING ---
   const { data, isLoading, isFetching } = useGetAllAttendanceQuery({
     startDate: activeTab === "logs" ? dateFilter.startDate : format(startOfMonth(currentMonth), "yyyy-MM-dd"),
     endDate: activeTab === "logs" ? dateFilter.endDate : format(endOfMonth(currentMonth), "yyyy-MM-dd"),
@@ -74,14 +59,12 @@ export default function AttendanceManagement() {
   const attendanceData = data?.records || [];
   const pagination = data?.pagination || { total: 0, pages: 1 };
 
-  // --- CALENDAR LOGIC ---
   const calendarDays = useMemo(() => {
     const start = startOfISOWeek(startOfMonth(currentMonth));
     const end = endOfISOWeek(endOfMonth(currentMonth));
     return eachDayOfInterval({ start, end });
   }, [currentMonth]);
 
-  // --- HANDLERS ---
   const handleRangeChange = (e) => {
     const value = e.target.value;
     setRangeType(value);
@@ -130,9 +113,6 @@ export default function AttendanceManagement() {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <span className="w-10 h-10 bg-orange-600 rounded-xl flex items-center justify-center text-white font-black text-2xl italic shadow-lg">
-              A
-            </span>
             <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">
               Attendance Management
             </h1>

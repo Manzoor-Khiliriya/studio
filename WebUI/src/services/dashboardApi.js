@@ -3,32 +3,26 @@ import { apiSlice } from './apiSlice';
 export const dashboardApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
 
-    // 1. GET DASHBOARD SUMMARY
     getDashboardSummary: builder.query({
       query: () => '/dashboard/summary',
-      // Refresh when any of these change
       providesTags: ['Dashboard', 'Task', 'TimeLog', 'Leave'],
     }),
-
-    // 2. CLEAR OPERATIONAL LOGS
-    // Backend: exports.clearAllLogs (TimeLog controller)
-   // Inside dashboardApiSlice.js
-clearLogs: builder.mutation({
-  query: () => ({
-    url: '/timelogs/clear-all', // Updated to match router
-    method: 'POST',
-  }),
-  invalidatesTags: ['Dashboard'],
-}),
-
-stopAllSessions: builder.mutation({
-  query: () => ({ 
-    url: '/timelogs/stop-all', // Updated to match router
-    method: 'POST', 
-  }),
-  invalidatesTags: ['Dashboard', 'TimeLog'],
-}),
-
+    clearLogs: builder.mutation({
+      // Accept 'body' which will contain { date: "YYYY-MM-DD" }
+      query: (body) => ({
+        url: '/timelogs/clear-all',
+        method: 'POST',
+        body, // This sends the date object to your controller
+      }),
+      invalidatesTags: ['Dashboard'],
+    }),
+    stopAllSessions: builder.mutation({
+      query: () => ({
+        url: '/timelogs/stop-all',
+        method: 'POST',
+      }),
+      invalidatesTags: ['Dashboard', 'TimeLog'],
+    }),
   }),
 });
 

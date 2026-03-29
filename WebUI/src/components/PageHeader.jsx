@@ -11,7 +11,7 @@ const PageHeader = ({
   onSecondaryAction
 }) => {
 
-  const displayIcon = iconText || title?.charAt(0).toUpperCase() || "P";
+  const displayIcon = title?.charAt(0).toUpperCase() || iconText || "P";
   return (
     <header className="bg-white border-b border-slate-200 pt-10 pb-12">
       <div className="max-w-[1700px] mx-auto px-8">

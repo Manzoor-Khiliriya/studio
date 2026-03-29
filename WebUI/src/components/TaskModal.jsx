@@ -123,7 +123,7 @@ export default function TaskModal({
               <HiOutlineBriefcase className="input-icon" />
               <div className="form-input bg-slate-50 flex items-center gap-2 border-slate-100 overflow-hidden">
                 <span className="px-2 py-0.5 rounded bg-slate-200 text-[9px] font-black text-slate-600 shrink-0">
-                  {singleProject?.project_code || 'PROJ'}
+                  {singleProject?.projectCode || 'PROJ'}
                 </span>
                 <span className="font-bold text-slate-500 truncate text-[11px]">
                   {singleProject?.title || "Active Project"}

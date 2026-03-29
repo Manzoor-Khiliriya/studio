@@ -48,7 +48,7 @@ exports.startTimer = async (req, res) => {
       dateString: today
     }], { session });
 
-    if (task.liveStatus === "To be started") {
+    if (task.liveStatus === "To be started" || task.liveStatus === "Started") {
       task.liveStatus = "In progress";
       await task.save({ session });
     }
@@ -108,8 +108,6 @@ exports.stopTimer = async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-// ... (Keep other methods as they were)
-
 exports.getMyLogs = async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];
@@ -164,14 +162,29 @@ exports.stopAllLiveSessions = async (req, res) => {
   }
 };
 
-exports.clearAllLogs = async (req, res) => {
+exports.clearLogs = async (req, res) => {
   try {
-    // Admin operation to mark logs as "archived" from the dashboard view
-    await TimeLog.updateMany(
-      { isRunning: false, clearedByAdmin: { $ne: true } },
+    const { date } = req.body; // e.g., "2024-03-29"
+
+    if (!date) {
+      return res.status(400).json({ error: "Date is required to clear specific logs." });
+    }
+
+    // Update only logs that match the specific date string
+    // and are not currently running.
+    const result = await TimeLog.updateMany(
+      {
+        dateString: date,
+        isRunning: false,
+        clearedByAdmin: { $ne: true }
+      },
       { $set: { clearedByAdmin: true } }
     );
-    res.json({ message: "Admin dashboard logs cleared." });
+
+    res.json({
+      message: `Logs for ${date} have been cleared.`,
+      clearedCount: result.modifiedCount
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

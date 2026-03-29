@@ -20,7 +20,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null }) {
   const [updateProject, { isLoading: isUpdating }] = useUpdateProjectMutation();
 
   const [formData, setFormData] = useState({
-    project_code: "",
+    projectCode: "",
     title: "",
     clientName: "",
     startDate: "",
@@ -30,7 +30,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null }) {
   useEffect(() => {
     if (editProject && isOpen) {
       setFormData({
-        project_code: editProject.project_code || "",
+        projectCode: editProject.projectCode || "",
         title: editProject.title || "",
         clientName: editProject.clientName || "",
         startDate: editProject.startDate ? new Date(editProject.startDate).toISOString().split('T')[0] : "",
@@ -38,7 +38,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null }) {
       });
     } else if (isOpen) {
       setFormData({
-        project_code: "",
+        projectCode: "",
         title: "",
         clientName: "",
         startDate: "",
@@ -50,7 +50,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.project_code || !formData.title || !formData.startDate || !formData.endDate) {
+    if (!formData.projectCode || !formData.title || !formData.startDate || !formData.endDate) {
       return toast.error("Required fields missing");
     }
 
@@ -93,8 +93,8 @@ export default function ProjectModal({ isOpen, onClose, editProject = null }) {
               required
               className="form-input uppercase font-black text-orange-600 disabled:bg-slate-50 disabled:text-slate-400"
               placeholder="E.G. PRJ-2024-001"
-              value={formData.project_code}
-              onChange={(e) => setFormData({ ...formData, project_code: e.target.value })}
+              value={formData.projectCode}
+              onChange={(e) => setFormData({ ...formData, projectCode: e.target.value })}
             />
           </InputGroup>
 

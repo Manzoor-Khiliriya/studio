@@ -11,8 +11,9 @@ import {
   HiOutlineBriefcase,
   HiChevronDown,
   HiOutlinePlusCircle,
-  HiOutlineCommandLine, // Icon for task specific search
-  HiOutlineTrash
+  HiOutlineCommandLine,
+  HiOutlineTrash,
+  HiCheckCircle
 } from "react-icons/hi2";
 
 import PageHeader from "../../components/PageHeader";
@@ -25,28 +26,27 @@ import GroupedTaskTable from "../../components/GroupTable";
 import { getAdminTaskColumns } from "../../utils/adminTaskListHelper";
 import ConfirmModal from "../../components/ConfirmModal";
 import EmployeeAssignModal from "../../components/EmployeeAssignModal";
+import { useDeleteTaskMutation } from "../../services/taskApi";
+import toast from "react-hot-toast";
 
 export default function AdminTasksPage() {
   const navigate = useNavigate();
-
-  // --- STATE MANAGEMENT ---
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
-
-  // New Task Filters
   const [taskSearch, setTaskSearch] = useState("");
   const [liveStatusFilter, setLiveStatusFilter] = useState("All");
   const [taskStatusFilter, setTaskStatusFilter] = useState("All");
-
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(5);
   const [expandedProject, setExpandedProject] = useState(null);
-
   const [dateFilters, setDateFilters] = useState({
     createdAt: "",
     startDate: "",
     endDate: "",
   });
+
+  // Selection State
+  const [selectedProjects, setSelectedProjects] = useState([]);
 
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
@@ -56,6 +56,9 @@ export default function AdminTasksPage() {
   const [statusUpdateTask, setStatusUpdateTask] = useState(null);
   const [assigningTeamTask, setAssigningTeamTask] = useState(null);
   const [projectToDeactivate, setProjectToDeactivate] = useState(null);
+  const [taskToDelete, setTaskToDelete] = useState(null);
+
+  const [deleteTask, { isLoading: isDeletingTask }] = useDeleteTaskMutation();
   const [updateProject, { isLoading: isDeactivating }] = useUpdateProjectMutation();
 
   // --- DATA FETCHING ---
@@ -67,9 +70,9 @@ export default function AdminTasksPage() {
     createdAt: dateFilters.createdAt,
     startDate: dateFilters.startDate,
     endDate: dateFilters.endDate,
-    taskSearch, // Added
-    liveStatus: liveStatusFilter, // Added
-    taskStatus: taskStatusFilter, // Added
+    taskSearch,
+    liveStatus: liveStatusFilter,
+    taskStatus: taskStatusFilter,
   });
 
   const projectGroups = data?.projects || [];
@@ -78,12 +81,60 @@ export default function AdminTasksPage() {
     () => getAdminTaskColumns(
       setEditingTask,
       setStatusUpdateTask,
-      setAssigningTeamTask // Pass the setter here
+      setAssigningTeamTask,
+      setTaskToDelete
     ),
-    [setEditingTask, setStatusUpdateTask, setAssigningTeamTask]
+    [setEditingTask, setStatusUpdateTask, setAssigningTeamTask, setTaskToDelete]
   );
 
-  // --- HANDLERS ---
+  // --- BULK HANDLERS ---
+  const toggleProjectSelection = (projectId) => {
+    setSelectedProjects(prev =>
+      prev.includes(projectId) ? prev.filter(id => id !== projectId) : [...prev, projectId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedProjects.length === projectGroups.length) {
+      setSelectedProjects([]);
+    } else {
+      setSelectedProjects(projectGroups.map(p => p._id));
+    }
+  };
+
+  const handleConfirmDeactivate = async () => {
+    try {
+      if (projectToDeactivate?._id === "bulk") {
+        await Promise.all(
+          selectedProjects.map(id => updateProject({ id, status: "Inactive" }).unwrap())
+        );
+        toast.success(`${selectedProjects.length} projects deleted successfully.`);
+        setSelectedProjects([]);
+      } else {
+        await updateProject({
+          id: projectToDeactivate._id,
+          status: "Inactive"
+        }).unwrap();
+        toast.success("Project deleted successfully.");
+      }
+    } catch (err) {
+      toast.error(err?.data?.message || "Failed to process request.");
+    } finally {
+      setProjectToDeactivate(null);
+    }
+  };
+
+  const handleConfirmDeleteTask = async () => {
+    try {
+      await deleteTask(taskToDelete._id).unwrap();
+      toast.success("Task deleted successfully");
+    } catch (err) {
+      toast.error(err?.data?.message || "Failed to delete task");
+    } finally {
+      setTaskToDelete(null);
+    }
+  };
+
   const handleDateChange = (key, value) => {
     setDateFilters((prev) => ({ ...prev, [key]: value }));
     setCurrentPage(1);
@@ -97,6 +148,7 @@ export default function AdminTasksPage() {
     setTaskStatusFilter("All");
     setDateFilters({ createdAt: "", startDate: "", endDate: "" });
     setCurrentPage(1);
+    setSelectedProjects([]);
   };
 
   const openTaskModalForProject = (project) => {
@@ -109,22 +161,6 @@ export default function AdminTasksPage() {
     return new Date(date).toLocaleDateString('en-GB', {
       day: '2-digit', month: 'short', year: '2-digit'
     });
-  };
-
-  const handleConfirmDeactivate = async () => {
-    try {
-      // Changing status to "inactive" instead of actual deletion
-      await updateProject({
-        id: projectToDeactivate._id,
-        status: "Inactive"
-      }).unwrap();
-
-      toast.success("Project deleted successfully.");
-    } catch (err) {
-      toast.error(err?.data?.message || "Failed to delete project.");
-    } finally {
-      setProjectToDeactivate(null);
-    }
   };
 
   if (isLoading) return <Loader message="Synchronizing Project Data..." />;
@@ -142,10 +178,7 @@ export default function AdminTasksPage() {
       />
 
       <main className="max-w-[1700px] mx-auto px-8 pb-10 -mt-10">
-        {/* --- FILTER BAR --- */}
         <div className="bg-white/90 backdrop-blur-xl border border-slate-200 p-6 rounded-[2.5rem] shadow-xl shadow-slate-200/50 mb-8 flex flex-col gap-5">
-
-          {/* Row 1: Primary Searches */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             <div className="lg:col-span-6 relative group">
               <HiOutlineMagnifyingGlass className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors" size={18} />
@@ -168,14 +201,11 @@ export default function AdminTasksPage() {
                 onChange={(e) => { setTaskSearch(e.target.value); setCurrentPage(1); }}
               />
             </div>
-
           </div>
 
-          {/* Row 2: Status & Date Filters */}
           <div className="flex flex-wrap items-end justify-between gap-6 pt-5 border-t border-slate-100">
             <div className="flex flex-wrap items-center gap-6">
 
-              {/* Live Status Select */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Live Status</label>
                 <select
@@ -190,7 +220,6 @@ export default function AdminTasksPage() {
                 </select>
               </div>
 
-              {/* Milestone Filter */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Initiative Status</label>
                 <select
@@ -205,7 +234,6 @@ export default function AdminTasksPage() {
                 </select>
               </div>
 
-              {/* Existing Dates */}
               {[
                 { label: "Created", key: "createdAt" },
                 { label: "Start Date", key: "startDate" },
@@ -224,41 +252,66 @@ export default function AdminTasksPage() {
                   </div>
                 </div>
               ))}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Selection for Delete</label>
+                <div className="flex items-center gap-3 bg-slate-100/50 px-4 py-2 rounded-xl border border-slate-200">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 accent-orange-500 cursor-pointer"
+                    checked={projectGroups.length > 0 && selectedProjects.length === projectGroups.length}
+                    onChange={handleSelectAll}
+                  />
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Select All</span>
+                </div>
+              </div>
             </div>
 
-            {/* Clear Button */}
-            {(searchTerm || taskSearch || statusFilter !== "All" || liveStatusFilter !== "All" || taskStatusFilter !== "All" || dateFilters.createdAt || dateFilters.startDate || dateFilters.endDate) && (
-              <button onClick={clearFilters} className="flex items-center gap-2 px-6 py-3 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-2xl transition-all font-black text-[10px] tracking-widest cursor-pointer">
-                <HiOutlineXMark size={18} strokeWidth={2.5} />
-                <span>RESET FILTERS</span>
-              </button>
-            )}
+
+            <div className="flex items-center gap-3">
+              {selectedProjects.length > 0 && (
+                <button
+                  onClick={() => setProjectToDeactivate({ _id: "bulk", title: `${selectedProjects.length} selected projects` })}
+                  className="flex items-center gap-2 px-6 py-3 text-white bg-rose-600 hover:bg-rose-700 rounded-2xl transition-all font-black text-[10px] tracking-widest cursor-pointer shadow-lg shadow-rose-100"
+                >
+                  <HiOutlineTrash size={18} />
+                  <span>DELETE SELECTED ({selectedProjects.length})</span>
+                </button>
+              )}
+
+              {(searchTerm || taskSearch || statusFilter !== "All" || liveStatusFilter !== "All" || taskStatusFilter !== "All" || dateFilters.createdAt || dateFilters.startDate || dateFilters.endDate) && (
+                <button onClick={clearFilters} className="flex items-center gap-2 px-6 py-3 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-2xl transition-all font-black text-[10px] tracking-widest cursor-pointer">
+                  <HiOutlineXMark size={18} strokeWidth={2.5} />
+                  <span>RESET FILTERS</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
         {/* --- PROJECT CARDS LIST --- */}
-        <div className="space-y-4 mb-8">
+        <div className="space-y-2 mb-8">
           {projectGroups.length > 0 ? (
             projectGroups.map((project) => {
               const tasks = project.tasks || [];
               const totalTasks = tasks.length;
+              const isSelected = selectedProjects.includes(project._id);
 
               return (
-                <div key={project._id} className={`bg-white rounded-lg border transition-all duration-300 cursor-pointer ${expandedProject === project.project_code ? "border-orange-500/30 shadow-xl shadow-orange-500/5" : "border-slate-200 shadow-sm"}`}
-                  onClick={() => setExpandedProject(expandedProject === project.project_code ? null : project.project_code)}
+                <div key={project._id} className={`bg-white rounded-lg border transition-all duration-300 cursor-pointer ${isSelected ? "border-orange-500 bg-orange-50/20" : expandedProject === project.projectCode ? "border-orange-500/30 shadow-xl shadow-orange-500/5" : "border-slate-200 shadow-sm"}`}
+                  onClick={() => setExpandedProject(expandedProject === project.projectCode ? null : project.projectCode)}
                 >
-                  <div className="p-6 flex items-start justify-between hover:bg-slate-50/80 transition-all group/header border-b border-slate-100 last:border-0">
+                  <div className="p-2 px-5 flex items-start justify-between hover:bg-slate-50/80 transition-all group/header border-b border-slate-100 last:border-0">
                     <div className="flex items-start gap-10 cursor-pointer flex-1">
-                      <div className="flex items-center gap-5 min-w-[300px]">
-                        <div className="relative">
-                          <div className="absolute inset-0 bg-orange-500/20 blur-md rounded-full group-hover/header:bg-orange-500/30 transition-all"></div>
-                          <span className="px-4 py-1.5 rounded-xl text-[11px] font-black tracking-widest bg-slate-900 text-white uppercase relative z-10 border border-slate-800 shadow-sm">
-                            {project.project_code}
-                          </span>
+                      <div className="flex items-start gap-5 min-w-[300px]">
+                        <div>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Project Code</p>
+                          <h3 className="text-sm font-black uppercase tracking-tight text-slate-900 group-hover/header:text-orange-600 transition-colors">
+                            {project.projectCode}
+                          </h3>
                         </div>
                         <div>
                           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Project Name</p>
-                          <h3 className="text-lg font-black uppercase tracking-tight text-slate-900 group-hover/header:text-orange-600 transition-colors">
+                          <h3 className="text-sm font-black uppercase tracking-tight text-slate-900 group-hover/header:text-orange-600 transition-colors">
                             {project.title}
                           </h3>
                         </div>
@@ -294,6 +347,7 @@ export default function AdminTasksPage() {
                       </div>
                     </div>
 
+                    {/* ACTION BUTTONS + CHECKBOX */}
                     <div className="flex items-center gap-2">
                       <button
                         onClick={(e) => { e.stopPropagation(); openTaskModalForProject(project); }}
@@ -322,13 +376,26 @@ export default function AdminTasksPage() {
                         <HiOutlineTrash />
                       </button>
 
-                      <div className={`cursor-pointer transition-all p-2 ml-2 rounded-full text-orange-500 ${expandedProject === project.project_code ? " rotate-180" : ""}`}>
+                      {/* SELECTION CHECKBOX (Right Aligned) */}
+                      <div
+                        className={`p-2.5 flex items-center rounded-xl border transition-all ${isSelected ? 'bg-orange-500 border-orange-500' : 'bg-white border-slate-200'}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleProjectSelection(project._id)}
+                          className="w-5 h-5 accent-white cursor-pointer"
+                        />
+                      </div>
+
+                      <div className={`cursor-pointer transition-all p-2 ml-2 rounded-full text-orange-500 ${expandedProject === project.projectCode ? " rotate-180" : ""}`}>
                         <HiChevronDown size={24} />
                       </div>
                     </div>
                   </div>
 
-                  {expandedProject === project.project_code && (
+                  {expandedProject === project.projectCode && (
                     <div className="bg-white border-t border-slate-50">
                       {tasks.length > 0 ? (
                         <GroupedTaskTable columns={columns} tasks={tasks} onRowClick={(task) => navigate(`/projects/${task._id}`)} />
@@ -350,7 +417,6 @@ export default function AdminTasksPage() {
           )}
         </div>
 
-        {/* --- FOOTER / PAGINATION --- */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100 shadow-sm">
@@ -400,13 +466,17 @@ export default function AdminTasksPage() {
         }
       />
       <StatusUpdateModal isOpen={!!statusUpdateTask} onClose={() => setStatusUpdateTask(null)} task={statusUpdateTask} />
+
       <ConfirmModal
         isOpen={!!projectToDeactivate}
         onClose={() => setProjectToDeactivate(null)}
         onConfirm={handleConfirmDeactivate}
         isLoading={isDeactivating}
-        title="Deactivate Project"
-        message={`Are you sure you want to mark "${projectToDeactivate?.title}" as inactive? This will hide it from the active project list.`}
+        title={projectToDeactivate?._id === "bulk" ? "Deactivate Multiple Projects" : "Deactivate Project"}
+        message={projectToDeactivate?._id === "bulk"
+          ? `Are you sure you want to mark ${selectedProjects.length} selected projects as inactive?`
+          : `Are you sure you want to mark "${projectToDeactivate?.title}" as inactive?`
+        }
         variant="danger"
       />
 
@@ -414,6 +484,16 @@ export default function AdminTasksPage() {
         isOpen={!!assigningTeamTask}
         onClose={() => setAssigningTeamTask(null)}
         task={assigningTeamTask}
+      />
+
+      <ConfirmModal
+        isOpen={!!taskToDelete}
+        onClose={() => setTaskToDelete(null)}
+        onConfirm={handleConfirmDeleteTask}
+        isLoading={isDeletingTask}
+        title="Delete Task"
+        message={`Are you sure you want to permanently delete the task "${taskToDelete?.title}"? This action cannot be undone.`}
+        variant="danger"
       />
     </div>
   );

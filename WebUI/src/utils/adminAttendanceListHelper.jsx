@@ -22,7 +22,7 @@ export const getAdminAttendanceColumns = () => [
     )
   },
   {
-    header: "Entry Log",
+    header: "Clock In",
     className: "text-center",
     cellClassName: "text-center",
     render: (row) => (
@@ -33,7 +33,7 @@ export const getAdminAttendanceColumns = () => [
     )
   },
   {
-    header: "Exit Log",
+    header: "Clock Out",
     className: "text-center",
     cellClassName: "text-center",
     render: (row) => (

@@ -71,7 +71,7 @@ export default function MyTasksPage() {
       render: (row) => (
         <div className="flex flex-col py-2">
           <span className="text-[10px] font-black text-blue-600 uppercase tracking-tighter">
-            {row.project?.project_code || "N/A"}
+            {row.project?.projectCode || "N/A"}
           </span>
           <p className="text-[11px] font-bold text-slate-500 uppercase truncate max-w-[150px]">
             {row.project?.title || "Internal Task"}

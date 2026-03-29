@@ -17,8 +17,6 @@ const LeaveModal = ({ isOpen, onClose, initialData }) => {
   const [applyLeave, { isLoading: isApplying }] = useApplyLeaveMutation();
   const [updateLeave, { isLoading: isUpdating }] = useUpdateLeaveMutation();
 
-  const today = new Date().toISOString().split("T")[0];
-
   useEffect(() => {
     if (initialData && isOpen) {
       setFormData({
@@ -76,8 +74,9 @@ const LeaveModal = ({ isOpen, onClose, initialData }) => {
             <option>Sick Leave</option>
             <option>Casual Leave</option>
             <option>Maternity Leave</option>
+            <option>Bereavement Leave</option>
             <option>Paternity Leave</option>
-            <option>Unpaid Leave</option>
+            <option>LOP</option>
           </select>
         </InputGroup>
 
@@ -87,7 +86,6 @@ const LeaveModal = ({ isOpen, onClose, initialData }) => {
             <input
               type="date"
               name="startDate"
-              min={today}
               value={formData.startDate}
               onChange={handleChange}
               required
@@ -100,7 +98,7 @@ const LeaveModal = ({ isOpen, onClose, initialData }) => {
             <input
               type="date"
               name="endDate"
-              min={formData.startDate || today}
+              min={formData.startDate}
               value={formData.endDate}
               onChange={handleChange}
               required

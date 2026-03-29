@@ -2,8 +2,6 @@ import { apiSlice } from './apiSlice';
 
 export const projectApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-
-    // 1. Get All Projects (Paginated for List View)
     getProjects: builder.query({
       query: (params) => ({
         url: '/projects',
@@ -21,30 +19,22 @@ export const projectApiSlice = apiSlice.injectEndpoints({
           ]
           : [{ type: 'Project', id: 'LIST' }],
     }),
-
-    // 2. NEW: Get Project Calendar Stacks (Timeline Bars)
-    // Used in: TaskCalendar.jsx
     getProjectCalendar: builder.query({
       query: (search) => ({
         url: '/projects/calendar',
-        params: { search }, // matches GET /api/projects/calendar?search=...
+        params: { search },
       }),
-      // We return the raw array of events for FullCalendar
       transformResponse: (response) => response || [],
       providesTags: (result) => [
         { type: 'Project', id: 'CALENDAR' },
-        { type: 'Task', id: 'LIST' }, // Invalidate if tasks change
+        { type: 'Task', id: 'LIST' },
       ],
     }),
-
-    // 3. Get Project Detail
     getProjectDetail: builder.query({
       query: (id) => `/projects/${id}`,
       transformResponse: (response) => response.project || {},
       providesTags: (result, error, id) => [{ type: 'Project', id }],
     }),
-
-    // 4. Create a New Project
     createProject: builder.mutation({
       query: (newProject) => ({
         url: '/projects',
@@ -57,8 +47,6 @@ export const projectApiSlice = apiSlice.injectEndpoints({
         { type: 'Project', id: 'CALENDAR' }
       ],
     }),
-
-    // 5. Update Project
     updateProject: builder.mutation({
       query: ({ id, ...updateData }) => ({
         url: `/projects/${id}`,
@@ -73,8 +61,6 @@ export const projectApiSlice = apiSlice.injectEndpoints({
         { type: 'Task', id: 'LIST' },
       ],
     }),
-
-    // 6. Delete Project
     deleteProject: builder.mutation({
       query: (id) => ({
         url: `/projects/${id}`,
@@ -86,8 +72,6 @@ export const projectApiSlice = apiSlice.injectEndpoints({
         { type: 'Task', id: 'LIST' },
       ],
     }),
-
-    // 7. Get Project Hours Estimate
     getProjectEstimate: builder.query({
       query: (projectId) => `/projects/${projectId}/calculate-estimate`,
       transformResponse: (response) => response.hours,
@@ -96,10 +80,9 @@ export const projectApiSlice = apiSlice.injectEndpoints({
         { type: 'Task', id: 'LIST' },
       ],
     }),
-
     getTaskPerformanceReport: builder.query({
       query: (params) => ({
-        url: '/projects/reports/performance', // Updated URL to match project controller
+        url: '/projects/reports/performance',
         params, 
       }),
       providesTags: (result) =>
@@ -116,11 +99,11 @@ export const projectApiSlice = apiSlice.injectEndpoints({
 
 export const {
   useGetProjectsQuery,
-  useGetProjectCalendarQuery, // <--- EXPORT THIS
-  useGetProjectDetailQuery,   // <--- EXPORT THIS
+  useGetProjectCalendarQuery,
+  useGetProjectDetailQuery,
   useCreateProjectMutation,
   useUpdateProjectMutation,
   useDeleteProjectMutation,
   useGetProjectEstimateQuery,
-  useGetTaskPerformanceReportQuery, // Use this with params in your component
+  useGetTaskPerformanceReportQuery,
 } = projectApiSlice;

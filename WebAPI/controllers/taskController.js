@@ -69,7 +69,7 @@ exports.updateTask = async (req, res) => {
 
     if (assignedTo) {
       task.assignedTo = assignedTo;
-      
+
       if (assignedTo.length === 0) {
         task.liveStatus = "Started";
       }
@@ -125,7 +125,7 @@ exports.updateTaskStatus = async (req, res) => {
     await task.save();
 
     const updatedTask = await Task.findById(task._id)
-      .populate("project", "project_code title clientName startDate endDate createdAt")
+      .populate("project", "projectCode title clientName startDate endDate createdAt")
       .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
       .populate("timeLogs");
 
@@ -149,7 +149,7 @@ exports.getAllTasks = async (req, res) => {
 
     if (search) {
       projectQuery.$or = [
-        { project_code: { $regex: search, $options: "i" } },
+        { projectCode: { $regex: search, $options: "i" } },
         { title: { $regex: search, $options: "i" } }
       ];
     }
@@ -197,7 +197,7 @@ exports.getAllTasks = async (req, res) => {
     }
 
     const tasks = await Task.find(taskQuery)
-      .populate("project", "project_code title clientName startDate endDate createdAt")
+      .populate("project", "projectCode title clientName startDate endDate createdAt")
       .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
       .populate("timeLogs")
       .sort({ createdAt: -1 });
@@ -222,11 +222,27 @@ exports.getAllTasks = async (req, res) => {
 exports.getTaskDetail = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id)
-      .populate("project", "project_code title clientName startDate endDate createdAt")
-      .populate({ path: "assignedTo", populate: { path: "user", select: "name employeeCode" } })
+      .populate("project", "projectCode title clientName startDate endDate createdAt")
+      .populate({
+        path: "assignedTo", populate: {
+          path: "user",
+          select: "name",
+          populate: {
+            path: "employee",
+            select: "employeeCode"
+          }
+        }
+      })
       .populate({
         path: "timeLogs",
-        populate: { path: "user", select: "name employeeCode" }
+        populate: {
+          path: "user",
+          select: "name",
+          populate: {
+            path: "employee",
+            select: "employeeCode"
+          }
+        }
       });
 
     if (!task) {
@@ -248,7 +264,7 @@ exports.getTaskDetail = async (req, res) => {
         contributorMap.set(userId, {
           id: userId,
           name: user?.name || "Unknown",
-          code: user?.employeeCode || "N/A",
+          code: user?.employee?.employeeCode || "N/A",
           seconds: 0,
           isCurrentlyAssigned: task.assignedTo.some(a => a.user?._id.toString() === userId)
         });
@@ -280,18 +296,14 @@ exports.getTaskDetail = async (req, res) => {
   }
 };
 
-// Inside your existing task controller
 exports.getTasksByEmployee = async (req, res) => {
   try {
     const employee = await Employee.findOne({ user: req.params.userId });
     if (!employee) {
       return res.status(404).json({ success: false, message: "Employee not found" });
     }
-
-    // 1. Get IDs of all tasks where the user has logged time
     const tasksWithLogs = await TimeLog.distinct("task", { user: req.params.userId });
 
-    // 2. Query for both assigned and previously worked tasks
     const { liveStatus } = req.query;
     const query = {
       $or: [
@@ -305,19 +317,16 @@ exports.getTasksByEmployee = async (req, res) => {
     }
 
     const allRelatedTasks = await Task.find(query)
-      .populate("project", "title project_code")
+      .populate("project", "projectCode")
       .populate("timeLogs")
       .sort({ createdAt: -1 })
       .lean({ virtuals: true });
 
-    // 3. Split the results into two categories
     const response = {
       success: true,
-      // Group A: Specifically where they are the current assignee
       currentlyAssigned: allRelatedTasks.filter(task =>
         task.assignedTo?.toString() === employee._id.toString()
       ),
-      // Group B: The "Contribution" list (Assigned OR Logged time)
       workedAndAssigned: allRelatedTasks
     };
 
@@ -341,7 +350,7 @@ exports.getMyTasks = async (req, res) => {
 
     if (search) {
       const matchingProjects = await Project.find({
-        project_code: { $regex: search, $options: "i" }
+        projectCode: { $regex: search, $options: "i" }
       }).select("_id");
 
       query.$or = [
@@ -374,7 +383,7 @@ exports.getMyTasks = async (req, res) => {
 
     const skip = (Number(page) - 1) * Number(limit);
     const tasks = await Task.find(query)
-      .populate("project", "project_code title startDate endDate createdAt")
+      .populate("project", "projectCode title startDate endDate createdAt")
       .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
       .populate("timeLogs")
       .sort({ createdAt: -1 })

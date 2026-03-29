@@ -53,7 +53,7 @@ router.post(
 router.post(
   "/clear-all", 
   authorize("Admin"), 
-  timeLogController.clearAllLogs
+  timeLogController.clearLogs
 );
 
 module.exports = router;

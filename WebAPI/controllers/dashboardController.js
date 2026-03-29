@@ -22,7 +22,6 @@ exports.getSummary = async (req, res) => {
         inProgressTasks,
         uniqueProjects,
         activeTimers,
-        rawActivity
       ] = await Promise.all([
         User.countDocuments({ status: "Enable", role: "Employee" }),
         Attendance.countDocuments({ date: todayStr, clockOut: null }),
@@ -30,60 +29,64 @@ exports.getSummary = async (req, res) => {
         Task.countDocuments({ liveStatus: "In progress" }),
         Project.countDocuments({ status: "Active" }),
         TimeLog.find({ isRunning: true, logType: "work" })
-          .populate({ path: "user", select: "name", populate: { path: "employee", select: "photo" } })
+          .populate({ path: "user", select: "name", populate: { path: "employee", select: "employeeCode" } })
           .populate({
             path: "task",
             select: "title project",
             populate: {
               path: "project",
-              select: "project_code"
+              select: "projectCode"
             }
           }).lean(),
-
-        // Fetch only Start/Stop actions for the log
-        TimeLog.find({
-          action: { $in: ["Start", "Stop"] },
-          clearedByAdmin: false
-        })
-          .sort({ createdAt: -1 })
-          .limit(15)
-          .populate("user", "name")
-          .populate({
-            path: "task",
-            select: "title project",
-            populate: {
-              path: "project",
-              select: "project_code"
-            }
-          }).lean()
       ]);
 
-      // Calculate aggregated duration for Stop logs
-      const recentActivity = await Promise.all(rawActivity.map(async (log) => {
-        let duration = null;
+      const rawActivity = await TimeLog.find({
+        // action: "Stop",
+        clearedByAdmin: false
+      })
+        .sort({ createdAt: -1 })
+        .populate({
+          path: "user",
+          select: "name",
+          populate: {
+            path: "employee",
+            select: "employeeCode"
+          }
+        })
+        .populate("task", "title")
+        .lean();
 
-        if (log.action === "Stop") {
-          // Sum only "work" logs for this specific task/user session today
-          const workSegments = await TimeLog.find({
+      const groupedActivity = {};
+
+      for (const log of rawActivity) {
+        const groupKey = `${log.user?._id}_${log.dateString}`;
+
+        if (!groupedActivity[groupKey]) {
+
+          const allDayLogs = await TimeLog.find({
             user: log.user?._id,
-            task: log.task?._id,
             dateString: log.dateString,
-            logType: "work"
+            logType: "work",
+            isRunning: false
           });
-          const totalSeconds = workSegments.reduce((s, l) => s + (l.durationSeconds || 0), 0);
-          duration = Math.round(totalSeconds / 60); // Convert to minutes
-        }
 
-        return {
-          id: log._id,
-          userName: log.user?.name,
-          taskTitle: log.task?.title,
-          projectCode: log.task?.project?.project_code,
-          action: log.action,
-          duration: duration,
-          createdAt: log.createdAt
-        };
-      }));
+          const totalSeconds = allDayLogs.reduce((acc, curr) => acc + (curr.durationSeconds || 0), 0);
+
+          const h = Math.floor(totalSeconds / 3600);
+          const m = Math.floor((totalSeconds % 3600) / 60);
+          const s = totalSeconds % 60; 
+
+          groupedActivity[groupKey] = {
+            id: log._id,
+            userName: log.user?.name,
+            employeeCode: log.user?.employee?.employeeCode,
+            totalDailyTime: `${h}h ${m}m ${s}s`,
+            dateString: log.dateString,
+            lastActionAt: log.createdAt
+          };
+        }
+      }
+      const recentActivity = Object.values(groupedActivity).slice(0, 15);
 
       return res.json({
         role: "Admin",
@@ -98,9 +101,9 @@ exports.getSummary = async (req, res) => {
           id: t._id,
           userId: t.user?._id,
           employee: t.user?.name,
-          photo: t.user?.employee?.photo,
+          employeeCode: t.user?.employee?.employeeCode,
           task: t.task?.title,
-          projectCode: t.task?.projectNumber,
+          projectCode: t.task?.project?.projectCode || "N/A",
           since: t.startTime
         })),
         recentActivity
@@ -117,14 +120,16 @@ exports.getSummary = async (req, res) => {
 
     const employeeProfile = await Employee.findOne({ user: userId }).lean();
 
-    const [assignedTasks, weeklyLogs, myLeaves, runningTimer] = await Promise.all([
-      Task.find({ assignedTo: userId, liveStatus: { $in: ["In progress"] } })
+    const [assignedTasks, approvedLeavesCount, runningTimer] = await Promise.all([
+      Task.find({ assignedTo: employeeProfile._id, status: { $ne: "Completed" } })
         .sort({ priority: -1, endDate: 1 })
+        .populate({
+          path: "project",
+          select: "projectCode"
+        })
         .lean(),
 
-      TimeLog.find({ user: userId, startTime: { $gte: startOfWeek }, logType: "work" }),
-
-      Leave.find({ user: userId }).sort({ startDate: -1 }).limit(5).lean(),
+      Leave.countDocuments({ user: userId, status: "Approved" }).sort({ startDate: -1 }).limit(5).lean(),
 
       TimeLog.findOne({ user: userId, isRunning: true })
         .populate({
@@ -132,48 +137,34 @@ exports.getSummary = async (req, res) => {
           select: "title project",
           populate: {
             path: "project",
-            select: "project_code"
+            select: "projectCode"
           }
         }).lean()
     ]);
-
-    const totalWeeklySeconds = weeklyLogs.reduce((a, l) => a + (l.durationSeconds || 0), 0);
 
     return res.json({
       role: "Employee",
       activeTimer: runningTimer ? {
         logId: runningTimer._id,
         task: runningTimer.task?.title,
-        projectCode: runningTimer.task?.projectNumber,
+        projectCode: runningTimer.task?.project?.projectCode || "N/A",
         startedAt: runningTimer.startTime,
         type: runningTimer.logType
       } : null,
-      stats: {
-        activeTasks: assignedTasks.length,
-        weeklyHours: +(totalWeeklySeconds / 3600).toFixed(1),
-        dailyLimit: employeeProfile?.dailyWorkLimit || 0,
-        proficiency: employeeProfile?.proficiency || 100
-      },
       taskSnapshot: assignedTasks.map(t => ({
         id: t._id,
         title: t.title,
-        projectNumber: t.projectNumber,
+        projectCode: t?.project?.projectCode || "N/A",
         deadline: t.endDate,
         priority: t.priority,
-        status: t.liveStatus
+        status: t.liveStatus,
+        description: t.description,
+        updatedAt: t.updatedAt
       })),
-      upcomingLeaves: myLeaves.map(l => ({
-        id: l._id,
-        type: l.type,
-        status: l.status,
-        startDate: l.startDate,
-        endDate: l.endDate
-      }))
+      approvedLeavesCount: approvedLeavesCount
     });
 
   } catch (err) {
-    console.error(err);
-
-    res.status(500).json({ error: "Mission Control sync failed." });
+    res.status(500).json({ error: "Internal server error" });
   }
 };
