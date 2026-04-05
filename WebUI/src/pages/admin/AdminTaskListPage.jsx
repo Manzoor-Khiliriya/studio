@@ -304,7 +304,13 @@ export default function AdminTasksPage() {
 
               return (
                 <div key={project._id} className={`bg-white rounded-lg border transition-all duration-300 cursor-pointer ${isSelected ? "border-orange-500 bg-orange-50/20" : expandedProject === project.projectCode ? "border-orange-500/30 shadow-xl shadow-orange-500/5" : "border-slate-200 shadow-sm"}`}
-                  onClick={() => setExpandedProject(expandedProject === project.projectCode ? null : project.projectCode)}
+                  onClick={() => {
+                    if (activeTab === "live") {
+                      setExpandedProject(
+                        expandedProject === project.projectCode ? null : project.projectCode
+                      );
+                    }
+                  }}
                 >
                   <div className="p-2 px-5 flex items-start justify-between hover:bg-slate-50/80 transition-all group/header border-b border-slate-100 last:border-0">
                     <div className="flex items-start gap-10 cursor-pointer flex-1">
@@ -335,21 +341,32 @@ export default function AdminTasksPage() {
                             <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center">
                               <HiOutlineUser size={10} className="text-orange-500" />
                             </div>
-                            <span className="text-[11px] font-mono text-slate-800 uppercase tracking-tight">
+                            <span className="text-[11px] font-bold font-mono text-slate-800 uppercase tracking-tight">
                               {project.clientName || "Direct Client"}
                             </span>
                           </div>
                         </div>
 
-                        <div className="flex flex-col gap-1">
-                          <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">Timeline</span>
-                          <div className="flex items-center gap-2">
-                            <HiOutlineCalendarDays size={14} className="text-orange-500" />
-                            <span className="text-[11px] font-bold text-slate-800 font-mono">
-                              {formatDate(project.startDate)} — {formatDate(project.endDate)}
-                            </span>
+                        {activeTab === "live" ? (
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">Timeline</span>
+                            <div className="flex items-center gap-2">
+                              <HiOutlineCalendarDays size={14} className="text-orange-500" />
+                              <span className="text-[11px] font-bold text-slate-800 font-mono">
+                                {formatDate(project.startDate)} — {formatDate(project.endDate)}
+                              </span>
+                            </div>
+                          </div>) : (
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">Created Date</span>
+                            <div className="flex items-center gap-2">
+                              <HiOutlineCalendarDays size={14} className="text-orange-500" />
+                              <span className="text-[11px] font-bold text-slate-800 font-mono">
+                                {formatDate(project.createdAt)}
+                              </span>
+                            </div>
                           </div>
-                        </div>
+                        )}
 
                         <div className="flex flex-col gap-1 items-center">
                           <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">No. Of Tasks</span>
@@ -361,18 +378,34 @@ export default function AdminTasksPage() {
                           <span className="text-[11px] font-bold text-slate-800 font-mono">{project.status}</span>
                         </div>
 
+                        {activeTab === "all" && (
+                          <>
+                            <div className="flex flex-col gap-1 items-center">
+                              <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">Invoice Number</span>
+                              <span className="text-[11px] font-bold text-slate-800 font-mono">{project?.invoiceNumber || "N/A"}</span>
+                            </div>
+
+                            <div className="flex flex-col gap-1 items-center">
+                              <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">Invoice Date</span>
+                              <span className="text-[11px] font-bold text-slate-800 font-mono">{project?.invoiceDate ? formatDate(project.invoiceDate) : "dd-mmm-yy"}</span>
+                            </div>
+                          </>
+                        )}
+
                       </div>
                     </div>
 
                     {/* ACTION BUTTONS + CHECKBOX */}
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); openTaskModalForProject(project); }}
-                        className="flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-900 border border-slate-900 hover:bg-orange-500 hover:border-orange-500 text-white transition-all font-black text-[10px] uppercase tracking-widest shadow-xl  active:scale-95 cursor-pointer"
-                      >
-                        <HiOutlinePlusCircle size={16} />
-                        <span>Add Task</span>
-                      </button>
+                      {activeTab === "live" && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openTaskModalForProject(project); }}
+                          className="flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-900 border border-slate-900 hover:bg-orange-500 hover:border-orange-500 text-white transition-all font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 cursor-pointer"
+                        >
+                          <HiOutlinePlusCircle size={16} />
+                          <span>Add Task</span>
+                        </button>
+                      )}
 
                       <button
                         onClick={(e) => { e.stopPropagation(); setEditingProject(project); setShowProjectModal(true); }}
@@ -407,13 +440,15 @@ export default function AdminTasksPage() {
                         />
                       </div>
 
-                      <div className={`cursor-pointer transition-all p-2 ml-2 rounded-full text-orange-500 ${expandedProject === project.projectCode ? " rotate-180" : ""}`}>
-                        <HiChevronDown size={24} />
-                      </div>
+                      {activeTab === "live" && (
+                        <div className={`cursor-pointer transition-all p-2 ml-2 rounded-full text-orange-500 ${expandedProject === project.projectCode ? " rotate-180" : ""}`}>
+                          <HiChevronDown size={24} />
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {expandedProject === project.projectCode && (
+                  {activeTab === "live" && expandedProject === project.projectCode && (
                     <div className="bg-white border-t border-slate-50">
                       {tasks.length > 0 ? (
                         <GroupedTaskTable columns={columns} tasks={tasks} onRowClick={(task) => navigate(`/projects/${task._id}`)} />
