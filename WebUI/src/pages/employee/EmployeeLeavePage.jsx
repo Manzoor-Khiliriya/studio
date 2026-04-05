@@ -65,9 +65,8 @@ export default function EmployeeLeavePage() {
   const columns = [
     {
       header: "Leave Type",
-      className: "text-center",
       render: (req) => (
-        <p className="text-[10px] text-center text-slate-700 font-black uppercase tracking-widest">
+        <p className="text-[10px] text-slate-700 font-black uppercase tracking-widest">
           {req.type}
         </p>
       ),

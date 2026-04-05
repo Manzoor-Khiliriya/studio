@@ -318,6 +318,11 @@ export default function AdminTasksPage() {
                       </div>
 
                       <div className="flex items-start gap-12">
+                        <div className="flex flex-col gap-1 items-center">
+                          <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">Project Type</span>
+                          <span className="text-[11px] font-bold text-slate-800 font-mono">{project.projectType}</span>
+                        </div>
+
                         <div className="flex flex-col gap-1">
                           <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">Client</span>
                           <div className="flex items-center gap-2">
@@ -344,6 +349,12 @@ export default function AdminTasksPage() {
                           <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">No. Of Tasks</span>
                           <span className="text-[11px] font-bold text-slate-800 font-mono">{totalTasks} Tasks</span>
                         </div>
+
+                        <div className="flex flex-col gap-1 items-center">
+                          <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">Status</span>
+                          <span className="text-[11px] font-bold text-slate-800 font-mono">{project.status}</span>
+                        </div>
+
                       </div>
                     </div>
 
@@ -351,7 +362,7 @@ export default function AdminTasksPage() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={(e) => { e.stopPropagation(); openTaskModalForProject(project); }}
-                        className="flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-900 border border-slate-900 hover:bg-orange-500 hover:border-orange-500 text-white transition-all font-black text-[10px] uppercase tracking-widest shadow-xl shadow-orange-100 active:scale-95 cursor-pointer"
+                        className="flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-900 border border-slate-900 hover:bg-orange-500 hover:border-orange-500 text-white transition-all font-black text-[10px] uppercase tracking-widest shadow-xl  active:scale-95 cursor-pointer"
                       >
                         <HiOutlinePlusCircle size={16} />
                         <span>Add Task</span>
@@ -386,6 +397,7 @@ export default function AdminTasksPage() {
                           checked={isSelected}
                           onChange={() => toggleProjectSelection(project._id)}
                           className="w-4 h-5 accent-white cursor-pointer"
+                          title="Select To Delete Project"
                         />
                       </div>
 

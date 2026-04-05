@@ -264,10 +264,6 @@ exports.getAllLeaves = async (req, res) => {
         query.startDate = { $gte: filterStart, $lte: filterEnd };
       }
 
-      if (status && status !== "All") {
-        query.status = status;
-      }
-
       if (search) {
         const users = await User.find({ name: { $regex: search, $options: "i" } }).select("_id");
         query.user = { $in: users.map((u) => u._id) };

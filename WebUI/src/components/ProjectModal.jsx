@@ -4,6 +4,7 @@ import {
   HiOutlineHashtag,
   HiOutlineUser,
   HiOutlineCalendarDays,
+  HiOutlineFlag,
 } from "react-icons/hi2";
 import { CgSpinner } from "react-icons/cg";
 import { toast } from "react-hot-toast";
@@ -21,28 +22,34 @@ export default function ProjectModal({ isOpen, onClose, editProject = null }) {
 
   const [formData, setFormData] = useState({
     projectCode: "",
+    projectType: "Standard",
     title: "",
     clientName: "",
     startDate: "",
     endDate: "",
+    status: "Active",
   });
 
   useEffect(() => {
     if (editProject && isOpen) {
       setFormData({
         projectCode: editProject.projectCode || "",
+        projectType: editProject.projectType || "Standard",
         title: editProject.title || "",
         clientName: editProject.clientName || "",
         startDate: editProject.startDate ? new Date(editProject.startDate).toISOString().split('T')[0] : "",
         endDate: editProject.endDate ? new Date(editProject.endDate).toISOString().split('T')[0] : "",
+        status: editProject.status || "Active",
       });
     } else if (isOpen) {
       setFormData({
         projectCode: "",
+        projectType: "Standard",
         title: "",
         clientName: "",
         startDate: "",
         endDate: "",
+        status: "Active",
       });
     }
   }, [editProject, isOpen]);
@@ -66,7 +73,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null }) {
         await createProject(formData).unwrap();
       }
 
-      toast.success(isEditing ? "Project Synchronized" : "Project Initialized", { id: loadingToast });
+      toast.success(isEditing ? "Project Updated" : "Project Initialized", { id: loadingToast });
       onClose();
     } catch (err) {
       toast.error(err?.data?.message || "Protocol Failure", { id: loadingToast });
@@ -108,6 +115,21 @@ export default function ProjectModal({ isOpen, onClose, editProject = null }) {
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             />
           </InputGroup>
+
+          <div className="">
+            <InputGroup label="Project Type">
+              <HiOutlineFlag className={`input-icon`} />
+              <select
+                className="form-input font-bold text-[11px]"
+                value={formData.projectType}
+                onChange={(e) => setFormData({ ...formData, projectType: e.target.value })}
+                required
+              >
+                <option value="Low">Standard</option>
+                <option value="Medium">Revision</option>
+              </select>
+            </InputGroup>
+          </div>
         </div>
 
         {/* Client & Status Row */}
@@ -120,8 +142,6 @@ export default function ProjectModal({ isOpen, onClose, editProject = null }) {
             onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
           />
         </InputGroup>
-
-
 
         {/* Timeline Row */}
         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 grid grid-cols-2 gap-4">
@@ -145,6 +165,23 @@ export default function ProjectModal({ isOpen, onClose, editProject = null }) {
               value={formData.endDate}
               onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
             />
+          </InputGroup>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4">
+          <InputGroup label="Project Type">
+            <HiOutlineFlag className={`input-icon`} />
+            <select
+              className="form-input font-bold text-[11px]"
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                
+            >
+              <option value="Active">Active</option>
+              <option value="On hold">On Hold</option>
+              <option value="Submitted">Submitted</option>
+              <option value="Inactive">Inactive</option>
+            </select>
           </InputGroup>
         </div>
 

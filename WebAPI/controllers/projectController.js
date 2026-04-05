@@ -4,9 +4,9 @@ const { calculateEstimatedHours } = require("../utils/taskHelpers");
 
 exports.createProject = async (req, res) => {
   try {
-    const { projectCode, title, clientName, startDate, endDate } = req.body;
+    const { projectCode, projectType, title, clientName, startDate, endDate } = req.body;
 
-    if (!projectCode || !title || !startDate || !endDate) {
+    if (!projectCode || !projectType || !title || !startDate || !endDate) {
       return res.status(400).json({ success: false, message: "Missing required fields" });
     }
 
@@ -18,6 +18,7 @@ exports.createProject = async (req, res) => {
 
     const project = await Project.create({
       projectCode: projectCode.toUpperCase(),
+      projectType,
       title,
       clientName,
       startDate,
@@ -47,9 +48,8 @@ exports.getAllProjects = async (req, res) => {
     } = req.query;
 
     const skip = (Number(page) - 1) * Number(limit);
-    let query = { status: "Active" };
+    let query = { };
 
-    // --- Project Level Filters ---
     if (search) {
       query.$or = [
         { projectCode: { $regex: search, $options: "i" } },
@@ -57,7 +57,6 @@ exports.getAllProjects = async (req, res) => {
       ];
     }
 
-    // --- Task Level Filtering (The "Deep" Search) ---
     const isTaskSearching = (taskSearch && taskSearch.trim() !== "");
     const isLiveStatusFiltering = (liveStatus && liveStatus !== "All" && liveStatus !== "");
     const isTaskStatusFiltering = (taskStatus && taskStatus !== "All" && taskStatus !== "");
@@ -110,7 +109,6 @@ exports.getAllProjects = async (req, res) => {
       .limit(Number(limit))
       .populate({
         path: "tasks",
-        // This ensures the tasks SHOWN inside the card also respect the filters
         match: {
           ...(taskSearch && { title: { $regex: taskSearch, $options: "i" } }),
           ...(liveStatus && liveStatus !== "All" && { liveStatus }),

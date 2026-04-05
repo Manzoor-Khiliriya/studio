@@ -356,7 +356,7 @@ exports.getMyTasks = async (req, res) => {
 
     // 3. Project Filter (Only show tasks from projects that AREN'T deleted/archived)
     // You can add { isDeleted: false } or { status: "Active" } here
-    const activeProjectFilter = { status: { $ne: "Inactive" } }; 
+    const activeProjectFilter = { status: "Active" }; 
 
     if (search) {
       const matchingProjects = await Project.find({

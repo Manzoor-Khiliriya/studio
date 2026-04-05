@@ -238,19 +238,21 @@ export default function AdminLeavePage() {
 
           {activeTab !== "quota" && (
             <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm w-full md:w-auto">
-              <select
-                className="bg-slate-50 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest outline-none rounded-xl cursor-pointer text-slate-700 min-w-[140px] border border-slate-100"
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  setPage(1);
-                }}
-              >
-                <option value="All">All Status</option>
-                <option value="Pending" className="text-orange-500 font-bold">Pending</option>
-                <option value="Approved" className="text-emerald-500 font-bold">Approved</option>
-                <option value="Rejected" className="text-rose-500 font-bold">Declined</option>
-              </select>
+              {activeTab === "requests" && (
+                <select
+                  className="bg-slate-50 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest outline-none rounded-xl cursor-pointer text-slate-700 min-w-[140px] border border-slate-100"
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setPage(1);
+                  }}
+                >
+                  <option value="All">All Status</option>
+                  <option value="Pending" className="text-orange-500 font-bold">Pending</option>
+                  <option value="Approved" className="text-emerald-500 font-bold">Approved</option>
+                  <option value="Rejected" className="text-rose-500 font-bold">Declined</option>
+                </select>
+              )}
 
               <select
                 className="bg-slate-50 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest outline-none rounded-xl cursor-pointer text-slate-700 min-w-[160px]  border border-slate-100"
