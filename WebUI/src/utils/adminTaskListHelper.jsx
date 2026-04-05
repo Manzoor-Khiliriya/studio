@@ -2,16 +2,8 @@ import React from "react";
 import { FiEdit } from "react-icons/fi";
 import { HiOutlineArrowPath, HiOutlineTrash, HiOutlineUserPlus } from "react-icons/hi2";
 
-/* ---------------------------------- */
-/* SHARED HEADER STYLE */
-/* ---------------------------------- */
-
 const headerClass =
   "text-[10px] font-black uppercase tracking-widest text-slate-400";
-
-/* ---------------------------------- */
-/* STATUS BADGE */
-/* ---------------------------------- */
 
 const renderStatusBadge = (status) => {
   const themes = {
@@ -32,10 +24,6 @@ const renderStatusBadge = (status) => {
   );
 };
 
-/* ---------------------------------- */
-/* ACTIVE STATUS */
-/* ---------------------------------- */
-
 const renderActiveStatus = (status) => {
   const isFinal = status === "Final";
   const isPreFinal = status === "Pre-Final";
@@ -52,10 +40,6 @@ const renderActiveStatus = (status) => {
     </div>
   );
 };
-
-/* ---------------------------------- */
-/* UTILIZATION BAR */
-/* ---------------------------------- */
 
 const renderUtilization = (task) => {
   const progress = Math.min(task.progressPercent || 0, 100);
@@ -95,10 +79,6 @@ const getStatusColor = (status) => {
 
   return statusMap[status?.toLowerCase()] || "text-yellow-600";
 };
-
-/* ---------------------------------- */
-/* FINAL COLUMN CONFIG */
-/* ---------------------------------- */
 
 export const getAdminTaskColumns = (onEdit, onStatusUpdate, onAssignTeam, onDelete) => [
   {

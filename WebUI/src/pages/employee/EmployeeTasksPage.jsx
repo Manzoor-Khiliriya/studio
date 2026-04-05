@@ -20,7 +20,6 @@ export default function MyTasksPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const limit = 8;
 
-  // --- DATA FETCHING ---
   const { data, isLoading, isFetching } = useGetMyTasksQuery({
     page: currentPage,
     limit,
@@ -40,66 +39,130 @@ export default function MyTasksPage() {
     setCurrentPage(1);
   };
 
+  const renderStatusBadge = (status) => {
+    const themes = {
+      completed: "text-emerald-600",
+      "on hold": "text-blue-600",
+      "modeling": "text-green-600",
+      "lighting and texturing": "text-cyan-600",
+      "feedback pending": "text-yellow-600",
+      "final rendering": "text-orange-600",
+      postproduction: "text-purple-600",
+    };
+
+    const themeClass =
+      themes[status?.toLowerCase()] || "text-slate-500";
+
+    return (
+      <span className={`text-[10px] font-black py-2 tracking-widest ${themeClass}`}>
+        {status}
+      </span>
+    );
+  };
+
+  const renderActiveStatus = (status) => {
+    const isFinal = status === "Final";
+    const isPreFinal = status === "Pre-Final";
+
+    let textColor = "text-slate-500";
+    if (isFinal) textColor = "text-emerald-600";
+    else if (isPreFinal) textColor = "text-orange-600";
+
+    return (
+      <div className="flex justify-center">
+        <span className={`text-[10px] font-black py-2 tracking-widest ${textColor}`}>
+          {status || "DRAFT-1"}
+        </span>
+      </div>
+    );
+  };
+
+  const getStatusColor = (status) => {
+    const statusMap = {
+      "in progress": "text-green-600",
+      "started": "text-blue-600",
+    };
+
+    return statusMap[status?.toLowerCase()] || "text-yellow-600";
+  };
+
   const headerClass = "text-[10px] font-black uppercase tracking-widest text-slate-400";
 
   const columns = [
     {
       header: <span className={headerClass}>Project Info</span>,
       render: (row) => (
-        <div className="flex flex-col py-2">
-          <span className="text-[10px] font-black text-blue-600 uppercase tracking-tighter">
-            {row.project?.projectCode || "INTERNAL"}
-          </span>
-          <p className="text-[11px] font-bold text-slate-900 uppercase truncate max-w-[150px]">
-            {row.project?.title || "Direct Assignment"}
+        <div className="py-2">
+          <p className="text-[12px] font-bold text-slate-900 capitalize truncate max-w-[150px]">
+            {row.project?.title || "Direct Assignment"} ({row.project?.projectCode || ""})
           </p>
         </div>
       ),
     },
     {
-      header: <span className={headerClass}>Mission Details</span>,
+      header: <span className={headerClass}>Task Title</span>,
+      className: "text-center",
+      cellClassName: "text-center",
       render: (row) => (
-        <div className="flex flex-col py-2">
-          <p className={`font-black text-[11px] uppercase tracking-tight text-slate-800'}`}>
+        <div className="py-2">
+          <p className="text-[11px] font-bold text-slate-800 uppercase tracking-tight truncate max-w-[150px]">
             {row.title}
           </p>
-          <div className="flex items-center gap-2 mt-1">
-            <span className={`text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-tighter ${row.priority === 'High' ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-500'}`}>
-              {row.priority}
-            </span>
-            <span className="text-[8px] font-black px-2 py-0.5 rounded uppercase bg-orange-50 text-orange-600 border border-orange-100">
-              {row.activeStatus}
-            </span>
-          </div>
         </div>
       ),
     },
     {
-      header: <span className={headerClass}>Utilization</span>,
+      header: <span className={headerClass}>Task Details</span>,
+      className: "text-center",
+      cellClassName: "text-center",
       render: (row) => (
-        <div className="flex flex-col min-w-[140px]">
-          <div className="flex justify-between items-center mb-1">
-            <span className="text-[9px] font-black text-slate-400 uppercase">
-              {row.totalConsumedHours || 0}h / {row.allocatedTime}h
-            </span>
-            <span className="text-[10px] font-black text-slate-900">{row.progressPercent}%</span>
-          </div>
-          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-            <div
-              className={`h-full bg-orange-500 transition-all duration-700 ${row.progressPercent > 90 ? 'bg-rose-500' : ''}`}
-              style={{ width: `${row.progressPercent}%` }}
-            />
-          </div>
+        <div className="py-2">
+          <p className="text-[11px] font-bold text-slate-500 capitalize italic truncate max-w-[180px]">
+            {row.description || "No details provided"}
+          </p>
         </div>
-      )
+      ),
+    },
+    {
+      header: <span className={headerClass}>Task Priority</span>,
+      className: "text-center",
+      cellClassName: "text-center",
+      render: (row) => {
+        const colors = {
+          High: "text-red-600",
+          Medium: "text-amber-500",
+          Low: "text-slate-400",
+        };
+        return (
+          <div className="py-2">
+            <p className={`text-[10px] font-black tracking-wider ${colors[row.priority] || "text-slate-500"}`}>
+              • {row.priority}
+            </p>
+          </div>
+        );
+      },
     },
     {
       header: <span className={headerClass}>Live Status</span>,
-      render: (row) => (
-        <span className={`text-[10px] font-black uppercase ${row.liveStatus === "Started" ? "text-blue-500" : row.liveStatus === "In progress" ? "text-emerald-500" : "text-slate-400"}`}>
-          {row.liveStatus}
+      className: "text-center",
+      cellClassName: "text-center",
+      render: (task) => (
+        <span className={`text-[10px] font-black ${getStatusColor(task.liveStatus)}`}>
+          {task.liveStatus || "To Be Started"}
         </span>
       ),
+    },
+    {
+      header: <span className={headerClass}>Initiative Status</span>,
+      className: "text-center",
+      cellClassName: "text-center",
+      render: (task) => renderStatusBadge(task.status),
+    },
+    {
+      header: <span className={headerClass}>Active Status</span>,
+      className: "text-center",
+      cellClassName: "text-center",
+      render: (task) => renderActiveStatus(task.activeStatus),
     },
   ];
 
@@ -109,7 +172,7 @@ export default function MyTasksPage() {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <PageHeader title="My Deployments" subtitle="Individual mission log and real-time operational status." />
+      <PageHeader title="My Tasks" subtitle="Individual mission log and real-time operational status." />
 
       <main className="max-w-[1700px] mx-auto px-8 pb-10 -mt-10">
 
@@ -117,11 +180,11 @@ export default function MyTasksPage() {
         <div className="bg-white/90 backdrop-blur-xl border border-slate-200 p-6 rounded-[2.5rem] shadow-xl shadow-slate-200/50 mb-8 flex flex-col gap-5">
 
           {/* Top Row: Search Grid */}
-          <div className="flex-1 flex item-center gap-4">
+          <div className="lg:col-span-6 relative group">
             <HiOutlineMagnifyingGlass className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors" size={18} />
             <input
               type="text"
-              placeholder="Search by Project Code or Name..."
+              placeholder="Search by Project Name or Task Title..."
               className="w-full pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/5 outline-none font-bold text-xs transition-all shadow-sm"
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
@@ -130,7 +193,7 @@ export default function MyTasksPage() {
 
 
           {/* Bottom Row: Status Dropdowns & Actions */}
-          <div className="flex flex-wrap items-end justify-between gap-6 pt-5 border-t border-slate-100">
+          <div className="flex flex-wrap items-end justify-end gap-6 pt-5 border-t border-slate-100">
             <div className="flex flex-wrap items-center gap-6">
 
               {/* Initiative Status */}

@@ -21,10 +21,10 @@ import { getAdminHolidayColumns } from "../../utils/adminHolidayHelper";
 
 export default function AdminHolidayPage() {
   const holidayInitialState = { id: null, name: "", date: "", description: "" };
-
+  const currentYear = new Date().getFullYear().toString();
   const [holidayModel, setHolidayModel] = useState(holidayInitialState);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [year, setYear] = useState("");
+  const [year, setYear] = useState(currentYear);
   const [search, setSearch] = useState("");
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [holidayToDelete, setHolidayToDelete] = useState(null);
@@ -69,7 +69,7 @@ export default function AdminHolidayPage() {
 
   const clearFilters = () => {
     setSearch("");
-    setYear("");
+    setYear(currentYear);
   };
 
   const dynamicYears = useMemo(() => {
@@ -97,6 +97,8 @@ export default function AdminHolidayPage() {
       toast.error(err?.data?.message || "Operation failed");
     }
   };
+  
+  const hasActiveFilters = search !== "" || year !== currentYear;
 
   if (isLoading) return <Loader message="Accessing Holidays..." />;
 
@@ -146,7 +148,7 @@ export default function AdminHolidayPage() {
             </div>
 
             {/* Clear Button */}
-            {(search || year) && (
+            {hasActiveFilters && (
               <button
                 onClick={clearFilters}
                 className="flex items-center gap-2 px-6 py-3 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-2xl transition-all font-bold text-xs cursor-pointer"

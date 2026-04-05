@@ -106,7 +106,7 @@ export default function EmployeeHolidayPage() {
   return (
     <div className="min-h-screen bg-[#f8fafc]">
       <PageHeader
-        title="Holiday Registry"
+        title="Upcoming Holidays"
         subtitle="Chronological log of upcoming public observances and system downtime."
       />
 

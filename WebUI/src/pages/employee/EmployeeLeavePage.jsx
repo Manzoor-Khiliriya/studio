@@ -30,8 +30,8 @@ export default function EmployeeLeavePage() {
   const limit = 8;
 
   // --- DATA FETCHING ---
-  const { data, isLoading, isFetching } = useGetMyLeavesQuery({ 
-    page, 
+  const { data, isLoading, isFetching } = useGetMyLeavesQuery({
+    page,
     limit,
     type: typeFilter === "All" ? "" : typeFilter,
     status: statusFilter === "All" ? "" : statusFilter
@@ -64,64 +64,83 @@ export default function EmployeeLeavePage() {
   // --- TABLE COLUMNS ---
   const columns = [
     {
-      header: "Category / Context",
+      header: "Leave Type",
+      className: "text-center",
       render: (req) => (
-        <div className="flex flex-col py-3">
-          <p className="font-black text-slate-900 uppercase text-sm tracking-tight">{req.type}</p>
-          <p className="text-[10px] text-slate-400 font-bold uppercase truncate max-w-[280px] italic mt-0.5">
-            {req.reason || "No operational context provided"}
+        <p className="text-[10px] text-center text-slate-700 font-black uppercase tracking-widest">
+          {req.type}
+        </p>
+      ),
+    },
+    {
+      header: "Leave Reason",
+      className: "text-left",
+      render: (req) => (
+        <p className="text-[10px] text-slate-700 font-black uppercase truncate max-w-[280px] italic">
+          {req.reason || "No operational context provided"}
+        </p>
+      )
+    },
+    {
+      header: "Requested On",
+      className: "text-center",
+      render: (req) => (
+        <div className="flex items-center justify-center gap-2">
+          <HiOutlineCalendar className="text-orange-500" size={13} />
+          <p className="text-[10px] text-slate-700 font-black tracking-widest uppercase">
+            {new Date(req.createdAt).toLocaleDateString('en-IN')}
           </p>
         </div>
-      )
+      ),
     },
     {
-      header: "Operational Window",
-      render: (req) => (
-        <div className="flex flex-col text-xs font-black text-slate-700">
-          <div className="flex items-center gap-2">
-            <HiOutlineCalendar className="text-orange-500" size={16} />
-            <span className="tabular-nums">
-              {new Date(req.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-              <span className="mx-2 text-slate-300">→</span>
-              {new Date(req.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-            </span>
-          </div>
-          <span className="text-[9px] text-slate-400 mt-1 uppercase tracking-widest pl-6 font-bold">
-            Duration: {req.businessDays} Days
-          </span>
-        </div>
-      )
-    },
-    {
-      header: "Auth Status",
+      header: "Leave Timeline",
       className: "text-center",
-      render: (req) => <StatusBadge status={req.status} />
+      render: (req) => (
+        <div className="flex items-center justify-center gap-2">
+          <HiOutlineCalendar className="text-orange-500" size={13} />
+          <p className="text-[10px] text-slate-700 font-black tracking-widest uppercase">
+            {new Date(req.startDate).toLocaleDateString('en-IN')} — {new Date(req.endDate).toLocaleDateString('en-IN')}
+          </p>
+        </div>
+      ),
     },
     {
-      header: "Action",
-      className: "text-right pr-8",
+      header: "No Of Days",
+      className: "text-center",
+      render: (req) => <p className=" text-center text-slate-700 text-[10px] uppercase font-black">{req.businessDays || 0} days</p>
+    },
+    {
+      header: "Status",
+      className: "text-center",
+      render: (req) => <div className="text-center"><StatusBadge status={req.status} /></div>,
+    },
+    {
+      header: "Actions",
+      className: "text-center",
       render: (req) => (
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-center items-start gap-2">
           {req.status === 'Pending' ? (
             <>
-              <button 
-                onClick={() => openEditModal(req)} 
-                className="p-2.5 bg-slate-50 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition-all border border-slate-100 cursor-pointer hover:border-orange-200"
+              <button
+                onClick={() => openEditModal(req)}
+                className="text-yellow-500 hover:text-yellow-600  transition-all cursor-pointer"
               >
-                <HiOutlinePencilAlt size={16} />
+                <HiOutlinePencilAlt size={18} />
               </button>
-              <button 
-                onClick={() => handleDelete(req._id)} 
-                className="p-2.5 bg-slate-50 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all border border-slate-100 cursor-pointer hover:border-rose-200"
+              <button
+                onClick={() => handleDelete(req._id)}
+                className=" text-rose-500 hover:text-rose-600 transition-all cursor-pointer"
               >
-                <HiOutlineTrash size={16} />
+                <HiOutlineTrash size={18} />
               </button>
             </>
           ) : (
-            <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl opacity-40">
-              <HiOutlineLockClosed size={14} className="text-slate-500" />
-              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Locked</span>
-            </div>
+            <button
+                className="text-slate-500 hover:text-slate-600  transition-all cursor-not-allowed"
+              >
+                <HiOutlineLockClosed size={18} />
+              </button>
           )}
         </div>
       )
@@ -132,22 +151,22 @@ export default function EmployeeLeavePage() {
 
   return (
     <div className="min-h-screen">
-      <PageHeader 
-        title="My Wallet"
+      <PageHeader
+        title="My Leaves"
         subtitle="Operational absence logs and earned credit registry."
         actionLabel="Apply for Leave"
         onAction={() => setIsModalOpen(true)}
       />
 
       <main className="max-w-[1700px] mx-auto px-8 -mt-10 pb-20">
-        
+
         {/* TACTICAL FILTER BAR */}
         <div className="flex flex-wrap items-center gap-4 mb-8 bg-white/90 backdrop-blur-xl p-5 rounded-[2.5rem] border border-slate-200 shadow-xl shadow-slate-200/40">
           <div className="flex items-center gap-3 bg-slate-50 px-5 py-3 rounded-2xl border border-slate-100">
             <HiOutlineFilter className="text-slate-400" size={16} />
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200 pr-4">Type</span>
-            <select 
-              value={typeFilter} 
+            <select
+              value={typeFilter}
               onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
               className="bg-transparent text-[10px] font-black outline-none cursor-pointer text-slate-700 uppercase"
             >
@@ -162,11 +181,10 @@ export default function EmployeeLeavePage() {
               <button
                 key={s}
                 onClick={() => { setStatusFilter(s); setPage(1); }}
-                className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                  statusFilter === s 
-                    ? "bg-white text-orange-600 shadow-md ring-1 ring-slate-200" 
-                    : "text-slate-500 hover:text-slate-800 cursor-pointer"
-                }`}
+                className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === s
+                  ? "bg-white text-orange-600 shadow-md ring-1 ring-slate-200"
+                  : "text-slate-500 hover:text-slate-800 cursor-pointer"
+                  }`}
               >
                 {s === 'Pending' ? 'Review' : s === 'Approved' ? 'Authorized' : s}
               </button>
@@ -184,29 +202,29 @@ export default function EmployeeLeavePage() {
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
           {/* STATS SECTION */}
           <div className="xl:col-span-3 space-y-6">
-            <StatBox 
-              label="Earned Credits" 
-              value={`${data?.stats?.earned?.toFixed(1) || 0}`} 
+            <StatBox
+              label="Earned Credits"
+              value={`${data?.stats?.earned?.toFixed(1) || 0}`}
               unit="Days"
-              color="orange" 
-              icon={<HiOutlineSparkles />} 
+              color="orange"
+              icon={<HiOutlineSparkles />}
             />
-            <StatBox 
-              label="Remaining" 
-              value={`${data?.stats?.remaining || 0}`} 
+            <StatBox
+              label="Remaining"
+              value={`${data?.stats?.remaining || 0}`}
               unit="Days"
-              color="slate" 
-              icon={<HiOutlineShieldCheck />} 
+              color="slate"
+              icon={<HiOutlineShieldCheck />}
             />
           </div>
 
           {/* TABLE SECTION */}
           <div className="xl:col-span-9 flex flex-col">
             <div className={`bg-white rounded-[3.5rem] border border-slate-200 shadow-2xl shadow-slate-200/50 overflow-hidden transition-all duration-300 ${isFetching ? 'opacity-50' : 'opacity-100'}`}>
-              <Table 
-                columns={columns} 
-                data={data?.history || []} 
-                emptyMessage="No registry entries found for selected criteria." 
+              <Table
+                columns={columns}
+                data={data?.history || []}
+                emptyMessage="No registry entries found for selected criteria."
               />
 
               <div className="bg-slate-50/50 p-6 border-t border-slate-100">
@@ -227,16 +245,15 @@ export default function EmployeeLeavePage() {
         </div>
       </main>
 
-      <LeaveModal 
-        isOpen={isModalOpen} 
-        onClose={closeModal} 
-        initialData={selectedLeave} 
+      <LeaveModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        initialData={selectedLeave}
       />
     </div>
   );
 }
 
-// --- SUB-COMPONENTS ---
 
 const StatBox = ({ label, value, unit, color, icon }) => (
   <div className="p-10 rounded-[3rem] bg-white border border-slate-200 shadow-xl shadow-slate-200/30 relative overflow-hidden group hover:border-orange-500/30 transition-all duration-500">
@@ -253,16 +270,22 @@ const StatBox = ({ label, value, unit, color, icon }) => (
   </div>
 );
 
-const StatusBadge = ({ status }) => {
+export const StatusBadge = ({ status }) => {
   const styles = {
-    Pending: "bg-orange-50 text-orange-600 border-orange-100",
-    Approved: "bg-emerald-50 text-emerald-600 border-emerald-100",
-    Rejected: "bg-rose-50 text-rose-600 border-rose-100"
+    Pending: "text-orange-600 border-orange-100",
+    Approved: "text-emerald-600 border-emerald-100",
+    Rejected: "text-rose-600 border-rose-100",
+  };
+
+  const label = {
+    Pending: "Under Review",
+    Approved: "Approved",
+    Rejected: "Declined",
   };
 
   return (
-    <span className={`px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] border-2 shadow-sm ${styles[status]}`}>
-      {status === 'Approved' ? 'Authorized' : status === 'Rejected' ? 'Declined' : 'Review'}
-    </span>
+    <p className={`text-[9px] font-black uppercase tracking-[0.2em] ${styles[status]}`}>
+      {label[status]}
+    </p>
   );
 };

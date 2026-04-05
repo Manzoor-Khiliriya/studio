@@ -1,17 +1,19 @@
 @import "tailwindcss";
 
+/* --- Base Styles --- */
 body {
-  @apply bg-gray-100 text-gray-800;
+  @apply bg-slate-100 text-slate-800;
   margin: 0;
+  -webkit-font-smoothing: antialiased;
 }
 
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
-/* --- Form Inputs --- */
+/* --- Form Inputs (Reusable for Search Bars) --- */
 .form-input {
   width: 100%;
   padding: 0.85rem 1rem 0.85rem 2.75rem;
@@ -45,112 +47,132 @@ body {
   color: #f97316;
 }
 
-/* --- Scrollbar --- */
+/* --- Custom Scrollbar (Your Tailwind Preference) --- */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: rgba(238, 101, 22, 0.959);
   border-radius: 10px;
 }
 
-/* --- Core FullCalendar Overrides --- */
+/* --- CORE FULLCALENDAR WRAPPER --- */
+.modern-calendar-wrapper {
+  @apply bg-white/90 backdrop-blur-xl border border-slate-200 p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/50;
+}
+
 .modern-calendar-wrapper .fc {
   --fc-border-color: #f1f5f9;
-  --fc-today-bg-color: transparent !important; /* Managed by custom class below */
+  --fc-today-bg-color: transparent ;
   --fc-button-bg-color: #ffffff;
   --fc-button-border-color: #e2e8f0;
   --fc-button-text-color: #475569;
   --fc-button-hover-bg-color: #f8fafc;
-  --fc-button-active-bg-color: #f97316; 
+  --fc-button-active-bg-color: #f97316;
   --fc-button-active-border-color: #f97316;
-  font-family: 'Inter', system-ui, sans-serif;
 }
 
-/* --- Today's Date Highlight --- */
+/* --- Header & Navigation Fixes (The "Weird Border" Killer) --- */
+
+/* 1. Remove the default blue/black focus ring and box-shadow on click */
+.fc .fc-button:focus, 
+.fc .fc-button:active,
+.fc .fc-button-primary:focus,
+.fc .fc-button-primary:active {
+  box-shadow: none ;
+  outline: none ;
+}
+
+/* 2. Global Button Styling */
+.fc .fc-button-primary {
+  @apply bg-white text-slate-600 font-black text-[10px] uppercase tracking-widest transition-all duration-200 ;
+  border: 1px solid #e2e8f0 ;
+  padding: 8px 16px ;
+  height: auto ;
+}
+
+/* 3. Force Rounded Corners on Button Groups (Prev/Next and View Switchers) */
+.fc .fc-button-group {
+  @apply gap-2 ; /* Space between buttons */
+}
+
+.fc .fc-button-group > .fc-button {
+  @apply rounded-xl ; /* Force rounded edges on all sides */
+  margin-left: 0 ; /* Remove the "joined" overlap */
+}
+
+/* 4. Hover State */
+.fc .fc-button-primary:hover {
+  @apply bg-slate-50 border-orange-500 text-orange-600 ;
+}
+
+/* 5. Active/Selected State (e.g., current View button) */
+.fc .fc-button-primary:not(:disabled).fc-button-active {
+  @apply bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-200 ;
+}
+
+/* 6. Calendar Title Styling */
+.fc .fc-toolbar-title {
+  @apply text-sm font-black uppercase tracking-widest text-slate-900 ;
+}
+
+/* --- Calendar Grid Styling --- */
+
+/* Today's Date Highlight */
 .modern-calendar-wrapper .fc-day-today {
-  background-color: #fff3ed !important; /* Very light orange bg */
-  position: relative;
+  background-color: #fff7ed ; /* Light orange-50 */
 }
 
-/* Adding an orange ring around the date number for today */
 .modern-calendar-wrapper .fc-day-today .fc-daygrid-day-number {
-  background-color: #f97316;
-  color: white !important;
-  border-radius: 8px;
-  min-width: 24px;
+  @apply bg-orange-500 text-white rounded-lg px-2 py-1 shadow-md shadow-orange-200 ;
+  min-width: 28px;
   text-align: center;
-  box-shadow: 0 4px 6px -1px rgba(249, 115, 22, 0.3);
 }
 
-/* --- Holiday Highlight --- */
-
-/* Target the wrapper FullCalendar creates for background events */
-.fc-daygrid-bg-harness:has(.holiday-bg-highlight) {
-  background-color: rgba(216, 39, 39, 0.589) !important; /* Soft red tint */
-  z-index: 1; 
+/* Weekday Headers */
+.modern-calendar-wrapper .fc-col-header-cell-cushion {
+  @apply text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] py-4 ;
+  text-decoration: none ;
 }
 
-/* The actual element you assigned the class to */
-.holiday-bg-highlight {
-  background-color: rgba(216, 39, 39, 0.589) !important; /* Soft red tint */
-  border-top: 4px solid #dc2626 !important;
-  opacity: 1 !important;
-  display: block !important;
-  height: 100%;
+/* Day Numbers */
+.fc-daygrid-day-number {
+  @apply p-4 font-bold text-slate-400 text-[11px] ;
+  text-decoration: none ;
 }
 
-/* Priority: Ensure it shows over weekends */
-.fc-day-sat .fc-daygrid-bg-harness:has(.holiday-bg-highlight), 
-.fc-day-sun .fc-daygrid-bg-harness:has(.holiday-bg-highlight) {
-  background-color: rgba(220, 38, 38, 0.25) !important;
+/* Cell Frames */
+.fc-daygrid-day-frame {
+  min-height: 140px ;
+  transition: background 0.2s;
 }
 
+.fc-daygrid-day:hover {
+  background-color: #f8fafc;
+}
+
+/* --- Weekend Tinting --- */
 .fc-day-sat, .fc-day-sun {
   background-color: #bfd7f0 !important; /* Keeping weekends slightly grey-blue */
 }
 
-/* Priority: If a holiday falls on a weekend */
-.fc-day-sat.holiday-bg-highlight, 
-.fc-day-sun.holiday-bg-highlight {
-  background-color: rgba(220, 38, 38, 0.35) !important;
+/* --- Holiday Background Highlight --- */
+.holiday-bg-highlight {
+  @apply bg-rose-50 border-t-4 border-rose-500;
+  opacity: 1 ;
 }
 
-/* --- Layout Details --- */
-.fc-daygrid-day-frame { 
-  overflow: visible !important; 
-  min-height: 120px !important; 
+/* --- Event UI Fixes --- */
+.fc-event {
+  @apply bg-transparent border-none p-0 m-0 shadow-none ;
 }
 
-.fc-daygrid-event-harness { 
-  z-index: 10 !important; 
-  margin-bottom: 6px !important; 
-}
-
-.fc-event { 
-  background: transparent !important; 
-  border: none !important; 
-}
-
-.fc-daygrid-day-number {
-  padding: 8px !important;
-  font-weight: 700;
-  color: #94a3b8;
-  font-size: 0.8rem;
-}
-
-.modern-calendar-wrapper .fc-col-header-cell-cushion {
-  color: #64748b;
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-
-.fc-daygrid-day:hover {
-  background-color: rgba(241, 245, 249, 0.6);
+.fc-daygrid-event-harness {
+  @apply mb-1.5 px-1 ;
 }

@@ -266,10 +266,7 @@ export default function AttendanceManagement() {
                               }`}
                             >
                               <span className="text-[9px] font-black uppercase truncate leading-none">
-                                {leave.name}
-                              </span>
-                              <span className="text-[7px] font-bold opacity-70 uppercase tracking-tighter">
-                                {leave.type}
+                                {leave.name}{leave?.employeeCode ? ` (${leave.employeeCode})` : ''} - {leave.type}
                               </span>
                             </div>
                           ))}

@@ -156,48 +156,76 @@ exports.getAllLeaves = async (req, res) => {
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // --- 1. CONSTRUCT DATE FILTER BASED ON START DATE ---
-    // --- 1. CONSTRUCT DATE FILTER (STRICT BOUNDARIES) ---
-    let dateFilter = {};
+    // --- 1. CALCULATE DATE BOUNDARIES ---
+    let filterStart = null;
+    let filterEnd = null;
+
     if (dateRange && dateRange !== "all") {
       const now = new Date();
-      let filterStart = new Date();
-      let filterEnd = new Date();
+      // Reset helpers
+      const start = new Date();
+      const end = new Date();
 
       if (dateRange === "today") {
-        filterStart.setHours(0, 0, 0, 0);
-        filterEnd.setHours(23, 59, 59, 999);
-      } else if (dateRange === "week") {
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+      }
+      else if (dateRange === "upcoming") {
+        // From tomorrow 00:00:00 onwards
+        start.setDate(start.getDate() + 1);
+        start.setHours(0, 0, 0, 0);
+        end.setFullYear(now.getFullYear() + 2); // Look 2 years ahead
+      }
+      else if (dateRange === "current-week") {
+        // Logic: Monday to Sunday
         const day = now.getDay();
         const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-        filterStart = new Date(now.setDate(diff));
-        filterStart.setHours(0, 0, 0, 0);
-        filterEnd = new Date(); // Or set to end of week if preferred
-        filterEnd.setHours(23, 59, 59, 999);
-      } else if (dateRange === "month") {
-        filterStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        filterEnd.setHours(23, 59, 59, 999);
-      } else if (dateRange === "lastMonth") {
-        filterStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        filterEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-        filterEnd.setHours(23, 59, 59, 999);
-      } else if (dateRange === "custom" && customStart && customEnd) {
-        filterStart = new Date(customStart);
-        filterStart.setHours(0, 0, 0, 0);
-        filterEnd = new Date(customEnd);
-        filterEnd.setHours(23, 59, 59, 999);
+        start.setDate(diff);
+        start.setHours(0, 0, 0, 0);
+
+        end.setDate(start.getDate() + 6);
+        end.setHours(23, 59, 59, 999);
+      }
+      else if (dateRange === "last-week") {
+        // Previous Monday to Previous Sunday
+        const day = now.getDay();
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1) - 7;
+        start.setDate(diff);
+        start.setHours(0, 0, 0, 0);
+
+        end.setDate(start.getDate() + 6);
+        end.setHours(23, 59, 59, 999);
+      }
+      else if (dateRange === "current-month") {
+        start.setDate(1); // First of this month
+        start.setHours(0, 0, 0, 0);
+        end.setMonth(now.getMonth() + 1, 0); // Last day of this month
+        end.setHours(23, 59, 59, 999);
+      }
+      else if (dateRange === "last-month") {
+        start.setMonth(now.getMonth() - 1, 1); // First of last month
+        start.setHours(0, 0, 0, 0);
+        end.setMonth(now.getMonth(), 0); // Last day of last month
+        end.setHours(23, 59, 59, 999);
+      }
+      else if (dateRange === "custom" && customStart && customEnd) {
+        start.setTime(new Date(customStart).getTime());
+        start.setHours(0, 0, 0, 0);
+        end.setTime(new Date(customEnd).getTime());
+        end.setHours(23, 59, 59, 999);
       }
 
-      // STRICT LOGIC: 
-      // Leave must START after filterStart AND END before filterEnd
-      dateFilter.startDate = { $gte: filterStart };
-      dateFilter.endDate = { $lte: filterEnd };
+      filterStart = start;
+      filterEnd = end;
     }
 
-    // --- VIEW 1: REQUESTS ---
+    // --- VIEW 1: REQUESTS (Filtered & Sorted by CREATED date) ---
     if (view === "requests") {
-      // Merge dateFilter (startDate) with other request filters
-      let query = { ...dateFilter };
+      let query = {};
+      if (filterStart && filterEnd) {
+        query.createdAt = { $gte: filterStart, $lte: filterEnd };
+      }
+
       if (status && status !== "All") query.status = status;
       if (search) {
         const users = await User.find({ name: { $regex: search, $options: "i" } }).select("_id");
@@ -211,20 +239,34 @@ exports.getAllLeaves = async (req, res) => {
           select: "name email",
           populate: { path: "employee", select: "employeeCode designation" }
         })
-        .sort({ startDate: -1 }) // Sort by the actual leave date
+        .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit))
         .lean();
 
+      const processedLeaves = await Promise.all(leaves.map(async (l) => ({
+        ...l,
+        duration: await calculateLeaveDays(l.startDate, l.endDate)
+      })));
+
+
       return res.json({
-        leaves,
+        leaves: processedLeaves,
         pagination: { totalLeaves, totalPages: Math.ceil(totalLeaves / parseInt(limit)), currentPage: parseInt(page) }
       });
     }
 
-    // --- VIEW 2: CASUAL & LOP ---
+    // --- VIEW 2: CASUAL & LOP (Filtered & Sorted by START date) ---
     if (view === "casual-lop") {
-      let query = { type: { $in: ["Casual Leave", "LOP"] }, ...dateFilter };
+      let query = { type: { $in: ["Casual Leave", "LOP"] }, status: "Approved" };
+
+      if (filterStart && filterEnd) {
+        query.startDate = { $gte: filterStart, $lte: filterEnd };
+      }
+
+      if (status && status !== "All") {
+        query.status = status;
+      }
 
       if (search) {
         const users = await User.find({ name: { $regex: search, $options: "i" } }).select("_id");
@@ -238,7 +280,7 @@ exports.getAllLeaves = async (req, res) => {
           select: "name email",
           populate: { path: "employee", select: "employeeCode designation" }
         })
-        .sort({ startDate: -1 })
+        .sort({ startDate: -1 }) // Sort by when the leave actually happens
         .skip(skip)
         .limit(parseInt(limit))
         .lean();
@@ -254,7 +296,7 @@ exports.getAllLeaves = async (req, res) => {
       });
     }
 
-   // --- VIEW 3: QUOTA ---
+    // --- VIEW 3: QUOTA ---
     if (view === "quota") {
       // UPDATED: Added { role: "employee" } to the query
       const userQuery = { role: "Employee" };
@@ -263,7 +305,7 @@ exports.getAllLeaves = async (req, res) => {
       }
 
       const users = await User.find(userQuery).populate("employee").lean();
-      
+
       const settings = await LeaveSetting.find();
       const leaveTypes = ["Annual Leave", "Sick Leave", "Bereavement Leave", "Paternity Leave", "Maternity Leave"];
 
@@ -287,22 +329,23 @@ exports.getAllLeaves = async (req, res) => {
         }
         return {
           _id: user._id,
-          employee: { 
-            user: { name: user.name }, 
-            designation: user.employee?.designation || "Staff" 
+          employee: {
+            user: { name: user.name },
+            employeeCode: user.employee?.employeeCode || "N/A",
+            designation: user.employee?.designation || "Staff"
           },
           balances: userBalances
         };
       }));
 
       const paginatedResults = quotaData.slice(skip, skip + parseInt(limit));
-      
+
       return res.json({
         leaves: paginatedResults,
-        pagination: { 
-          totalLeaves: quotaData.length, 
-          totalPages: Math.ceil(quotaData.length / parseInt(limit)), 
-          currentPage: parseInt(page) 
+        pagination: {
+          totalLeaves: quotaData.length,
+          totalPages: Math.ceil(quotaData.length / parseInt(limit)),
+          currentPage: parseInt(page)
         }
       });
     }

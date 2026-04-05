@@ -12,23 +12,32 @@ export default function ClockInOut({ todaySeconds: dashboardDailySecs, taskList 
   const [selectedTaskId, setSelectedTaskId] = useState("");
   const [isPipActive, setIsPipActive] = useState(false);
 
-  // Poll logs for ticker synchronization
   const { data: logsData } = useGetMyTodayLogsQuery(undefined, { pollingInterval: 30000 });
-
   const [startTimer, { isLoading: isStarting }] = useStartTimerMutation();
   const [togglePause, { isLoading: isToggling }] = useTogglePauseMutation();
   const [stopTimer, { isLoading: isStopping }] = useStopTimerMutation();
 
-  // A helper to check if ANY action is pending
-  const isSyncing = isStarting || isToggling || isStopping;
   const activeLog = logsData?.logs?.find(log => log.isRunning);
   const isPaused = activeLog?.logType === "break";
+  const isSyncing = isStarting || isToggling || isStopping;
   const status = activeLog ? (isPaused ? "On Break" : "Mission Active") : "Not Started";
 
-  // SYNC DROPDOWN WITH ACTIVE LOG
+  // SYNC DROPDOWN
   useEffect(() => {
     if (activeLog?.task?._id) setSelectedTaskId(activeLog.task._id);
   }, [activeLog]);
+
+  // AUTO-POP HUD ON START OR REFRESH
+  useEffect(() => {
+    // Only attempt if there's an active log and PiP isn't already open
+    if (activeLog && !isPipActive && !pipWindowRef.current) {
+      // Small delay to ensure browser allows the pop-up after a refresh/action
+      const timeout = setTimeout(() => {
+        handlePopOut();
+      }, 1000);
+      return () => clearTimeout(timeout);
+    }
+  }, [activeLog, isPipActive]);
 
   // TICKER LOGIC
   useEffect(() => {
@@ -41,7 +50,6 @@ export default function ClockInOut({ todaySeconds: dashboardDailySecs, taskList 
 
       const allTaskLogs = logsData.logs.filter(l => (l.task?._id === currentId || l.task === currentId) && l.logType === "work");
       const finishedTaskSecs = allTaskLogs.filter(l => !l.isRunning).reduce((sum, l) => sum + (l.durationSeconds || 0), 0);
-
       const dailyLogs = logsData.logs.filter(l => l.logType === "work" && new Date(l.startTime).toLocaleDateString('en-CA') === localToday);
       const finishedDailySecs = dailyLogs.filter(l => !l.isRunning).reduce((sum, l) => sum + (l.durationSeconds || 0), 0);
 
@@ -64,45 +72,65 @@ export default function ClockInOut({ todaySeconds: dashboardDailySecs, taskList 
     return () => clearInterval(timerRef.current);
   }, [logsData, activeLog, selectedTaskId, isPaused]);
 
-  // PiP Update Bridge
+  // HUD Update Bridge
   useEffect(() => {
     if (pipWindowRef.current) {
       const pipDoc = pipWindowRef.current.document;
-      const tEl = pipDoc.getElementById('task-timer');
       const dEl = pipDoc.getElementById('daily-timer');
       const sEl = pipDoc.getElementById('status');
-      if (tEl) tEl.innerText = formatTime(taskSeconds);
-      if (dEl) dEl.innerText = `DAILY: ${formatTime(dailySeconds)}`;
-      if (sEl) {
-        const activeT = taskList.find(t => t._id === (activeLog?.task?._id || selectedTaskId));
-        sEl.innerText = isPaused ? "SHIFT PAUSED" : (activeT ? `${activeT.projectNumber}` : "MISSION ACTIVE");
+
+      if (dEl) {
+        dEl.innerText = formatTime(dailySeconds);
+        dEl.style.color = isPaused ? "#ef4444" : "#22c55e";
       }
-      pipDoc.body.style.backgroundColor = isPaused ? "#1e1b4b" : "#020617";
+
+      if (sEl) {
+        sEl.innerText = isPaused ? "ON BREAK" : "TOTAL WORK TIME";
+        sEl.style.color = isPaused ? "#94a3b8" : "#22c55e";
+      }
+      pipDoc.body.style.backgroundColor = isPaused ? "#0f172a" : "#020617";
     }
-  }, [taskSeconds, dailySeconds, isPaused, activeLog, selectedTaskId, taskList]);
+  }, [dailySeconds, isPaused]);
 
   const handlePopOut = async () => {
-    if (!('documentPictureInPicture' in window)) return toast.error("PiP unsupported");
+    if (!('documentPictureInPicture' in window)) return; // Silently fail for auto-pop
+    if (pipWindowRef.current) return;
+
     try {
-      const pipWindow = await window.documentPictureInPicture.requestWindow({ width: 250, height: 90 });
+      const pipWindow = await window.documentPictureInPicture.requestWindow({
+        width: 220,
+        height: 100
+      });
+
       pipWindowRef.current = pipWindow;
       setIsPipActive(true);
+
       const style = pipWindow.document.createElement('style');
-      style.textContent = `body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: ui-monospace, monospace; color: white; background: #020617; } #status { font-size: 8px; font-weight: 800; color: #64748b; margin-bottom: 2px; } #task-timer { font-size: 38px; font-weight: 900; color: #f97316; } #daily-timer { font-size: 10px; color: #475569; margin-top: 5px; border-top: 1px solid #1e293b; width: 80%; text-align: center; }`;
+      style.textContent = `
+        body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: ui-monospace, monospace; background: #020617; overflow: hidden; } 
+        #status { font-size: 10px; font-weight: 800; letter-spacing: 0.1em; margin-bottom: 4px; text-transform: uppercase; } 
+        #daily-timer { font-size: 42px; font-weight: 900; line-height: 1; transition: color 0.3s ease; }
+      `;
       pipWindow.document.head.appendChild(style);
+
       const s = pipWindow.document.createElement('div'); s.id = 'status';
-      const t = pipWindow.document.createElement('div'); t.id = 'task-timer';
       const d = pipWindow.document.createElement('div'); d.id = 'daily-timer';
-      pipWindow.document.body.append(s, t, d);
-      pipWindow.addEventListener("pagehide", () => setIsPipActive(false));
-    } catch (err) { console.error(err); }
+      pipWindow.document.body.append(s, d);
+
+      pipWindow.addEventListener("pagehide", () => {
+        setIsPipActive(false);
+        pipWindowRef.current = null;
+      });
+    } catch (err) {
+      console.error("PiP Auto-launch blocked:", err);
+    }
   };
 
   const handleStart = async () => {
     if (!selectedTaskId) return toast.error("Target required");
     try {
       await startTimer(selectedTaskId).unwrap();
-      handlePopOut();
+      // HUD is now handled by useEffect auto-pop
     } catch (err) { toast.error(err?.data?.error || "Startup Failed"); }
   };
 
@@ -130,7 +158,7 @@ export default function ClockInOut({ todaySeconds: dashboardDailySecs, taskList 
           <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">{status}</span>
         </div>
         {activeLog && !isPipActive && (
-          <button onClick={handlePopOut} className="text-[10px] font-black text-orange-500 hover:text-orange-400 flex items-center gap-2 uppercase tracking-widest">
+          <button onClick={handlePopOut} className="cursor-pointer text-[10px] font-black text-orange-500 hover:text-orange-400 flex items-center gap-2 uppercase tracking-widest">
             <FiExternalLink size={12} /> HUD View
           </button>
         )}
@@ -146,7 +174,7 @@ export default function ClockInOut({ todaySeconds: dashboardDailySecs, taskList 
         >
           <option value="" className="bg-slate-900">Select Task...</option>
           {taskList.map(task => (
-            <option key={task._id} value={task.id} className="bg-slate-900">
+            <option key={task._id} value={task._id} className="bg-slate-900">
               ({task.projectCode}) - {task.title}
             </option>
           ))}
@@ -163,35 +191,34 @@ export default function ClockInOut({ todaySeconds: dashboardDailySecs, taskList 
         </div>
       </div>
 
-      {!activeLog ? (
-        <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4">
+        {!activeLog ? (
           <button
             onClick={handleStart}
-            disabled={!selectedTaskId || isSyncing} // Disable if syncing
-            className="cursor-pointer flex-1 py-5 rounded-[1.5rem] bg-orange-600 hover:bg-orange-700 text-white text-[11px] font-black uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            disabled={!selectedTaskId || isSyncing}
+            className="cursor-pointer flex-1 py-5 rounded-[1.5rem] bg-orange-600 hover:bg-orange-700 text-white text-[11px] font-black uppercase tracking-widest disabled:opacity-50 transition-all"
           >
             {isStarting ? "Initializing..." : "Start Task"}
           </button>
-        </div>
-      ) : (
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => togglePause()}
-            disabled={isSyncing} // Disable during any sync
-            className={`cursor-pointer flex-1 py-5 rounded-[1.5rem] flex items-center justify-center gap-3 font-black text-[11px] uppercase tracking-widest text-white transition-all disabled:opacity-50 ${isPaused ? "bg-green-500 text-slate-950 hover:bg-green-600" : "bg-slate-500 hover:bg-slate-600"}`}
-          >
-            {isToggling ? "Processing..." : (isPaused ? <><FiPlay size={18} /> Resume</> : <><FiCoffee size={18} /> Break</>)}
-          </button>
-
-          <button
-            onClick={handleStop}
-            disabled={isSyncing} // Disable during any sync
-            className="cursor-pointer flex-1 py-5 rounded-[1.5rem] bg-red-500 text-white  text-[11px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isStopping ? "Stopping..." : "Stop Task"}
-          </button>
-        </div>
-      )}
+        ) : (
+          <>
+            <button
+              onClick={() => togglePause()}
+              disabled={isSyncing}
+              className={`cursor-pointer flex-1 py-5 rounded-[1.5rem] flex items-center justify-center gap-3 font-black text-[11px] uppercase tracking-widest transition-all disabled:opacity-50 ${isPaused ? "bg-green-500 text-slate-950 hover:bg-green-600" : "bg-slate-500 hover:bg-slate-600 text-white"}`}
+            >
+              {isToggling ? "Processing..." : (isPaused ? <><FiPlay size={18} /> Resume</> : <><FiCoffee size={18} /> Break</>)}
+            </button>
+            <button
+              onClick={handleStop}
+              disabled={isSyncing}
+              className="cursor-pointer flex-1 py-5 rounded-[1.5rem] bg-red-500 text-white text-[11px] font-black uppercase tracking-widest hover:bg-red-600 transition-all disabled:opacity-50"
+            >
+              {isStopping ? "Stopping..." : "Stop Task"}
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

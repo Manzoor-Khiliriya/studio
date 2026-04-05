@@ -25,24 +25,36 @@ export const StatusBadge = ({ status }) => {
   };
 
   return (
-    <span className={`px-2 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] inline-flex items-center gap-2 ${styles[status]}`}>
-      <div className={`w-1.5 h-1.5 rounded-full bg-current`} />
+    <p className={`text-[9px] font-black uppercase tracking-[0.2em] ${styles[status]}`}>
       {label[status]}
-    </span>
+    </p>
   );
 };
 
 const renderQuotaCell = (balance, colorClass = "text-slate-900", isAccrual = false) => {
-  if (!balance) return <span className="text-[10px] text-slate-300 italic">N/A</span>;
+  if (!balance) return <span className="text-[10px] text-slate-300 italic tracking-widest">—</span>;
+
+  const total = isAccrual ? balance.earned : balance.quota;
+  
   return (
-    <div className="flex flex-col gap-1 min-w-[80px]">
-      <div className="flex items-center justify-between border-b border-slate-50 pb-0.5">
-        <span className="text-[8px] font-black text-slate-400 uppercase">Rem</span>
-        <span className={`text-xs font-black ${colorClass}`}>{balance.remaining}d</span>
+    <div className="flex flex-col py-1 group">
+      {/* Primary Info: Remaining Days */}
+      <div className="flex items-baseline gap-1">
+        <span className={`text-[11px] font-black tracking-tighter ${colorClass}`}>
+          {balance.remaining}
+        </span>
+        <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Days Remaining</span>
       </div>
-      <div className="flex flex-col text-[8px] font-bold text-slate-500 uppercase">
-        <span>Used: {balance.taken}d</span>
-        <span>Total: {isAccrual ? balance.earned : balance.quota}d</span>
+
+      {/* Secondary Info: Tiny high-density metadata */}
+      <div className="flex items-center gap-2 mt-0.5 border-t border-slate-100 pt-0.5 opacity-80 group-hover:opacity-100 transition-opacity">
+        <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tight">
+          Used: <span className="text-slate-900 font-black">{balance.taken}</span>
+        </span>
+        <span className="text-slate-200 text-[8px]">|</span>
+        <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tight">
+          Total: <span className="text-slate-900 font-black">{total}</span>
+        </span>
       </div>
     </div>
   );
@@ -55,64 +67,79 @@ export const getAdminLeaveColumns = (onAction, onEdit, onDelete) => [
   {
     header: "Employee",
     render: (req) => (
-      <div className="flex flex-col">
-        <p className="font-black text-slate-800 text-[11px] uppercase tracking-tight">
-          {req.user?.name || "Unknown"}
-        </p>
-        <span className="text-[9px] text-slate-400 font-bold lowercase italic">
-          {req?.user?.employee?.employeeCode || "no-code"}
-        </span>
-      </div>
+      <p className="font-black text-slate-900 text-[11px] uppercase">{req.user?.name} {`(${req.user?.employee?.employeeCode ? req.user?.employee?.employeeCode : ''})`}</p>
     ),
   },
   {
-    header: "Type",
+    header: "Leave Type",
+    className: "text-center",
     render: (req) => (
-      <span className="text-[10px] text-slate-700 font-black uppercase tracking-widest">
+      <p className="text-[10px] text-center text-slate-700 font-black uppercase tracking-widest">
         {req.type}
-      </span>
+      </p>
     ),
   },
   {
-    header: "Timeline",
+    header: "Leave Reason",
+    className: "text-left",
     render: (req) => (
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2">
-          <HiOutlineCalendar className="text-orange-500" size={13} />
-          <p className="text-[10px] text-slate-900 font-black tracking-widest tabular-nums uppercase">
-            {new Date(req.startDate).toLocaleDateString('en-IN')} — {new Date(req.endDate).toLocaleDateString('en-IN')}
-          </p>
-        </div>
-        <div className="flex items-center gap-1.5">
-           <span className="text-[8px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase italic">
-             {req.businessDays || 0} Working Days
-           </span>
-        </div>
+      <p className="text-[10px] text-slate-700 font-black uppercase truncate max-w-[280px] italic">
+        {req.reason || "No operational context provided"}
+      </p>
+    )
+  },
+  {
+    header: "Requested On",
+    className: "text-center",
+    render: (req) => (
+      <div className="flex items-center justify-center gap-2">
+        <HiOutlineCalendar className="text-orange-500" size={13} />
+        <p className="text-[10px] text-slate-700 font-black tracking-widest uppercase">
+          {new Date(req.createdAt).toLocaleDateString('en-IN')}
+        </p>
       </div>
     ),
+  },
+  {
+    header: "Leave Timeline",
+    className: "text-center",
+    render: (req) => (
+      <div className="flex items-center justify-center gap-2">
+        <HiOutlineCalendar className="text-orange-500" size={13} />
+        <p className="text-[10px] text-slate-700 font-black tracking-widest uppercase">
+          {new Date(req.startDate).toLocaleDateString('en-IN')} — {new Date(req.endDate).toLocaleDateString('en-IN')}
+        </p>
+      </div>
+    ),
+  },
+  {
+    header: "No Of Days",
+    className: "text-center",
+    render: (req) => <p className=" text-center text-slate-700 text-[10px] uppercase font-black">{req.duration || 0} days</p>
   },
   {
     header: "Status",
-    render: (req) => <StatusBadge status={req.status} />,
+    className: "text-center",
+    render: (req) => <div className="text-center"><StatusBadge status={req.status} /></div>,
   },
   {
     header: "Actions",
     render: (req) => (
-      <div className="flex items-center gap-3">
+      <div className="flex items-start gap-2">
         {req.status === "Pending" && (
           <>
-            <button onClick={() => onAction(req._id, "Approved", req)} className="text-emerald-500 hover:scale-110 transition-transform cursor-pointer" title="Approve">
+            <button onClick={() => onAction(req._id, "Approved", req)} className="text-emerald-500 hover:scale-110 transition-transform cursor-pointer" title="Approve Leave">
               <HiOutlineCheckCircle size={20} />
             </button>
-            <button onClick={() => onAction(req._id, "Rejected", req)} className="text-rose-500 hover:scale-110 transition-transform cursor-pointer" title="Reject">
+            <button onClick={() => onAction(req._id, "Rejected", req)} className="text-rose-500 hover:scale-110 transition-transform cursor-pointer" title="Reject Leave">
               <HiOutlineXCircle size={20} />
             </button>
           </>
         )}
-        <button onClick={() => onEdit(req)} className="text-blue-500 hover:scale-110 transition-transform cursor-pointer" title="Edit Details">
+        <button onClick={() => onEdit(req)} className="text-yellow-500 hover:text-yellow-600 hover:scale-110 transition-transform cursor-pointer" title="Update Leave Details">
           <HiOutlinePencilSquare size={18} />
         </button>
-        <button onClick={() => onDelete(req._id)} className="text-slate-300 hover:text-red-600 hover:scale-110 transition-transform cursor-pointer" title="Delete Permanent">
+        <button onClick={() => onDelete(req._id)} className="text-red-500 hover:text-red-600 hover:scale-110 transition-transform cursor-pointer" title="Delete Permanent">
           <HiOutlineTrash size={18} />
         </button>
       </div>
@@ -127,10 +154,7 @@ export const getQuotaColumns = () => [
   {
     header: "Employee",
     render: (r) => (
-      <div className="flex flex-col">
-        <span className="font-black text-slate-900 text-sm uppercase">{r.employee?.user?.name || r.user?.name}</span>
-        <span className="text-[9px] font-bold text-slate-400 uppercase italic">{r.employee?.designation || "Staff"}</span>
-      </div>
+      <span className="font-black text-slate-900 text-[11px] uppercase">{r?.employee?.user?.name} {`(${r?.employee?.employeeCode ? r?.employee?.employeeCode : ''})`}</span>
     ),
   },
   { header: "Annual Leave", render: (r) => renderQuotaCell(r.balances?.["Annual Leave"], "text-emerald-600", true) },
@@ -147,36 +171,59 @@ export const getCasualLopColumns = (onEdit, onDelete) => [
   {
     header: "Employee",
     render: (r) => (
-      <div className="flex flex-col">
-        <span className="font-black text-slate-900 text-[11px] uppercase">{r.user?.name} {`(${r.user?.employee?.employeeCode ? r.user?.employee?.employeeCode : ''})`}</span>
-        <span className="text-[8px] font-bold text-slate-400 uppercase italic">{r.user?.employee?.designation}</span>
-      </div>
+      <span className="font-black text-slate-900 text-[11px] uppercase">{r.user?.name} {`(${r.user?.employee?.employeeCode ? r.user?.employee?.employeeCode : ''})`}</span>
     ),
   },
   {
-    header: "Type",
-    render: (r) => (
-      <span className={`text-[9px] font-black py-0.5 rounded uppercase ${r.type === 'LOP' ? 'text-red-600' : 'text-orange-600'}`}>
-        {r.type}
-      </span>
+    header: "Leave Type",
+    className: "text-center",
+    render: (req) => (
+      <p className="text-[10px] text-center text-slate-700 font-black uppercase tracking-widest">
+        {req.type}
+      </p>
     ),
   },
   {
-    header: "Dates",
-    render: (r) => (
-      <div className="text-[10px] font-bold text-slate-700 uppercase tabular-nums">
-        {new Date(r.startDate).toLocaleDateString()} - {new Date(r.endDate).toLocaleDateString()}
-      </div>
-    ),
-  },
-  { header: "Days", render: (r) => <b className="text-slate-900 text-[10px] uppercase font-black">{r.duration}d</b> },
-  { 
-    header: "Actions", 
-    render: (r) => (
-      <div className="flex items-center gap-3">
-        <button onClick={() => onEdit(r)} className="text-blue-500 hover:scale-110 cursor-pointer"><HiOutlinePencilSquare size={16} /></button>
-        <button onClick={() => onDelete(r._id)} className="text-slate-300 hover:text-red-600 cursor-pointer"><HiOutlineTrash size={16} /></button>
-      </div>
+    header: "Leave Reason",
+    className: "text-left",
+    render: (req) => (
+      <p className="text-[10px] text-slate-700 font-black uppercase truncate max-w-[280px] italic">
+        {req.reason || "No operational context provided"}
+      </p>
     )
-  }
+  },
+  {
+    header: "Requested On",
+    className: "text-center",
+    render: (req) => (
+      <div className="flex items-center justify-center gap-2">
+        <HiOutlineCalendar className="text-orange-500" size={13} />
+        <p className="text-[10px] text-slate-700 font-black tracking-widest uppercase">
+          {new Date(req.createdAt).toLocaleDateString('en-IN')}
+        </p>
+      </div>
+    ),
+  },
+  {
+    header: "Leave Timeline",
+    className: "text-center",
+    render: (req) => (
+      <div className="flex items-center justify-center gap-2">
+        <HiOutlineCalendar className="text-orange-500" size={13} />
+        <p className="text-[10px] text-slate-700 font-black tracking-widest uppercase">
+          {new Date(req.startDate).toLocaleDateString('en-IN')} — {new Date(req.endDate).toLocaleDateString('en-IN')}
+        </p>
+      </div>
+    ),
+  },
+  {
+    header: "No Of Days",
+    className: "text-center",
+    render: (req) => <p className=" text-center text-slate-700 text-[10px] uppercase font-black">{req.duration || 0} days</p>
+  },
+  {
+    header: "Status",
+    className: "text-center",
+    render: (req) => <div className="text-center"><StatusBadge status={req.status} /></div>,
+  },
 ];

@@ -57,7 +57,7 @@ export default function LoginPage() {
         <img
           src={logo}
           alt="logo"
-          className="h-auto w-full cursor-pointer transition-opacity"
+          className="h-[550px] w-full cursor-pointer transition-opacity"
         />
       </div>
 
