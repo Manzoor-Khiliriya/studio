@@ -35,13 +35,13 @@ export default function EmployeeHolidayPage() {
           <div className="flex items-center gap-4 py-3">
             <div className="flex flex-col items-center justify-center bg-slate-900 text-white min-w-[3rem] h-12 rounded-xl shadow-lg shadow-slate-200">
               <span className="text-[10px] font-black leading-none uppercase text-orange-400">
-                {d.toLocaleDateString("en-US", { month: "short" })}
+                {d.toLocaleDateString("en-IN", { month: "short" })}
               </span>
               <span className="text-lg font-black leading-none">{d.getDate()}</span>
             </div>
             <div>
               <p className="font-black text-slate-900 text-sm uppercase tracking-tight">
-                {d.toLocaleDateString("en-US", { weekday: "long" })}
+                {d.toLocaleDateString("en-IN", { weekday: "long" })}
               </p>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                 {d.getFullYear()} Cycle
@@ -104,7 +104,7 @@ export default function EmployeeHolidayPage() {
   if (isLoading) return <Loader message="Synchronizing Calendar..." />;
 
   return (
-    <div className="min-h-screen bg-[#f8fafc]">
+    <div className="max-w-[1700px] mx-auto  min-h-screen bg-slate-100">
       <PageHeader
         title="Upcoming Holidays"
         subtitle="Chronological log of upcoming public observances and system downtime."

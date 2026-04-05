@@ -8,38 +8,23 @@ const employeeSchema = new mongoose.Schema({
     unique: true,
     index: true,
   },
-  employeeCode: { 
-    type: String, 
-    trim: true,
-    unique: true,
-  },
+  employeeCode: { type: String, trim: true, unique: true },
   designation: { type: String, trim: true },
-
-  mobileNumber: { 
-    type: String, 
-    trim: true, 
-    default: "" 
-  },
-  dateOfBirth: { 
-    type: Date 
-  },
-
+  mobileNumber: { type: String, trim: true, default: "" },
+  dateOfBirth: { type: Date },
   dailyWorkLimit: {
     type: Number,
     default: 9,
     min: 0,
     max: 24,
   },
-
   proficiency: {
     type: Number,
     default: 100,
     min: 1,
     max: 100,
   },
-
   skills: [{ type: String, trim: true }],
-
   joinedDate: { type: Date, default: Date.now },
   leaves: [{
     date: { type: Date, required: true },

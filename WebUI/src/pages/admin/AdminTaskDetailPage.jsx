@@ -92,7 +92,7 @@ export default function AdminTaskDetailPage() {
   const isOver = (task.totalConsumedHours || 0) > (task.allocatedTime || 0);
 
   return (
-    <div className="min-h-screen bg-slate-50/30 pb-20">
+    <div className="max-w-[1700px] mx-auto  min-h-screen bg-slate-50/30 pb-20">
       <header className="bg-white border-b border-slate-200 pt-8 pb-10">
         <div className="max-w-[1600px] mx-auto px-8">
           <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 hover:text-orange-600 font-bold uppercase text-[10px] tracking-widest mb-6 border-none bg-transparent cursor-pointer transition-all group">
@@ -123,7 +123,7 @@ export default function AdminTaskDetailPage() {
         </div>
       </header>
 
-      <main className="max-w-[1600px] mx-auto px-8 -mt-6">
+      <main className=" mx-auto px-8 -mt-6">
         <div className="grid lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8 space-y-8">
             {/* KPI Section */}
@@ -149,7 +149,7 @@ export default function AdminTaskDetailPage() {
                         nameKey="name"
                         innerRadius={80}
                         outerRadius={120}
-                        paddingAngle={2}
+                        paddingAngle={1}
                         stroke="none"
                         // Add a slight animation for better UX
                         animationBegin={0}
@@ -189,7 +189,7 @@ export default function AdminTaskDetailPage() {
                   {employeePieData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
-                        <Pie data={employeePieData} dataKey="value" nameKey="name" innerRadius={80} outerRadius={120} paddingAngle={2} stroke="none">
+                        <Pie data={employeePieData} dataKey="value" nameKey="name" innerRadius={80} outerRadius={120} paddingAngle={1} stroke="none">
                           {employeePieData.map((op, i) => (
                             <Cell key={i} fill={getOperatorColor(i)} />
                           ))}
@@ -294,9 +294,9 @@ export default function AdminTaskDetailPage() {
             <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-xl">
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Mission Timeline</h3>
               <div className="space-y-4">
-                <MetaItem label="Created On" value={new Date(task.createdAt).toLocaleDateString()} />
-                <MetaItem label="Project Start" value={task?.project?.startDate ? new Date(task.project.startDate).toLocaleDateString() : "TBD"} />
-                <MetaItem label="Project End" value={task?.project?.endDate ? new Date(task.project.endDate).toLocaleDateString() : "TBD"} />
+                <MetaItem label="Created On" value={new Date(task.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })} />
+                <MetaItem label="Project Start" value={task?.project?.startDate ? new Date(task.project.startDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "TBD"} />
+                <MetaItem label="Project End" value={task?.project?.endDate ? new Date(task.project.endDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "TBD"} />
               </div>
             </div>
           </div>

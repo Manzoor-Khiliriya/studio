@@ -4,7 +4,7 @@ const Project = require("../models/Project");
 const TimeLog = require("../models/TimeLog");
 const Employee = require("../models/Employee");
 const sendTaskNotification = require("../utils/notifier");
-const { calculateEstimatedHours } = require("../utils/taskHelpers");
+const { calculateEstimatedHours, getLiveStatus } = require("../utils/taskHelpers");
 
 exports.createTask = async (req, res) => {
   try {
@@ -69,10 +69,6 @@ exports.updateTask = async (req, res) => {
 
     if (assignedTo) {
       task.assignedTo = assignedTo;
-
-      if (assignedTo.length === 0) {
-        task.liveStatus = "Started";
-      }
     }
 
     if (allocatedTime !== undefined) {
@@ -202,9 +198,16 @@ exports.getAllTasks = async (req, res) => {
       .populate("timeLogs")
       .sort({ createdAt: -1 });
 
+    const today = new Date().toISOString().split("T")[0];
+
+    const tasksWithStatus = tasks.map(task => ({
+      ...task.toObject(),
+      liveStatus: getLiveStatus(task, today)
+    }));
+
     return res.status(200).json({
       success: true,
-      tasks, // Only tasks for the projects on this page
+      tasks: tasksWithStatus, // Only tasks for the projects on this page
       allProjects: paginatedProjects, // The projects for this page
       pagination: {
         totalProjects: totalProjects,
@@ -316,18 +319,25 @@ exports.getTasksByEmployee = async (req, res) => {
       query.liveStatus = { $in: liveStatus.split(",") };
     }
 
+    const today = new Date().toISOString().split("T")[0];
+
     const allRelatedTasks = await Task.find(query)
       .populate("project", "projectCode")
       .populate("timeLogs")
       .sort({ createdAt: -1 })
       .lean({ virtuals: true });
 
+    const tasksWithStatus = allRelatedTasks.map(task => ({
+      ...task,
+      liveStatus: getLiveStatus(task, today)
+    }));
+
     const response = {
       success: true,
-      currentlyAssigned: allRelatedTasks.filter(task =>
+      currentlyAssigned: tasksWithStatus.filter(task =>
         task.assignedTo?.toString() === employee._id.toString()
       ),
-      workedAndAssigned: allRelatedTasks
+      workedAndAssigned: tasksWithStatus
     };
 
     return res.status(200).json(response);
@@ -344,10 +354,10 @@ exports.getMyTasks = async (req, res) => {
     // 1. Find the Employee profile
     const employee = await Employee.findOne({ user: req.user._id });
     if (!employee) {
-      return res.status(200).json({ 
-        success: true, 
-        tasks: [], 
-        pagination: { current: 1, totalPages: 0, totalTasks: 0 } 
+      return res.status(200).json({
+        success: true,
+        tasks: [],
+        pagination: { current: 1, totalPages: 0, totalTasks: 0 }
       });
     }
 
@@ -356,7 +366,7 @@ exports.getMyTasks = async (req, res) => {
 
     // 3. Project Filter (Only show tasks from projects that AREN'T deleted/archived)
     // You can add { isDeleted: false } or { status: "Active" } here
-    const activeProjectFilter = { status: "Active" }; 
+    const activeProjectFilter = { status: "Active" };
 
     if (search) {
       const matchingProjects = await Project.find({
@@ -375,14 +385,14 @@ exports.getMyTasks = async (req, res) => {
 
     // 4. Status Filters
     if (status && status !== "All") {
-      query.status = status.startsWith("!") 
-        ? { $ne: status.substring(1) } 
+      query.status = status.startsWith("!")
+        ? { $ne: status.substring(1) }
         : status;
     }
 
     if (activeStatus && activeStatus !== "All") {
-      query.activeStatus = activeStatus.startsWith("!") 
-        ? { $ne: activeStatus.substring(1) } 
+      query.activeStatus = activeStatus.startsWith("!")
+        ? { $ne: activeStatus.substring(1) }
         : activeStatus;
     }
 
@@ -392,7 +402,7 @@ exports.getMyTasks = async (req, res) => {
 
     // 5. Execution with Population
     const skip = (Number(page) - 1) * Number(limit);
-    
+
     // We use .find(query) but also ensure the project itself exists and is valid
     const tasks = await Task.find(query)
       .populate({
@@ -400,9 +410,9 @@ exports.getMyTasks = async (req, res) => {
         match: activeProjectFilter, // Only populates if project is active
         select: "projectCode title startDate endDate createdAt"
       })
-      .populate({ 
-        path: "assignedTo", 
-        populate: { path: "user", select: "name" } 
+      .populate({
+        path: "assignedTo",
+        populate: { path: "user", select: "name" }
       })
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -414,12 +424,15 @@ exports.getMyTasks = async (req, res) => {
 
     // 7. Calculate Seconds for Utilization Bar
     // If your Task model doesn't have a virtual for totalSeconds, calculate it here:
+    // const today = new Date().toISOString().split("T")[0];
     const finalTasks = filteredTasks.map(task => {
-      const totalSeconds = task.timeLogs?.reduce((acc, log) => acc + (log.duration || 0), 0) || 0;
+      const totalSeconds = task.timeLogs?.reduce((acc, log) => acc + (log.durationSeconds || 0), 0) || 0;
+
       return {
         ...task,
         totalLoggedSeconds: totalSeconds,
-        totalConsumedHours: totalSeconds / 3600
+        totalConsumedHours: totalSeconds / 3600,
+        // liveStatus: getLiveStatus(task, today) // 🔥 IMPORTANT
       };
     });
 
@@ -427,7 +440,7 @@ exports.getMyTasks = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      tasks: finalTasks,
+      tasks: tasks,
       pagination: {
         current: Number(page),
         totalPages: Math.ceil(total / Number(limit)),

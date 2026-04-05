@@ -26,7 +26,11 @@ import { useDeleteUserMutation } from "../../services/userApi";
 const formatToHrMin = (totalSeconds) => {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
-  return `${hours.toString().padStart(2, "0")} Hrs ${minutes.toString().padStart(2, "0")} Mins`;
+  const seconds = totalSeconds % 60;
+
+  return `${hours.toString().padStart(2, "0")} Hrs ${minutes
+    .toString()
+    .padStart(2, "0")} Mins ${seconds.toString().padStart(2, "0")} Secs`;
 };
 
 // --- UTILITY: DYNAMIC COLOR MAPPING BASED ON TASK ---
@@ -60,7 +64,7 @@ const TaskGridView = ({ tasks, userId }) => {
   });
 
   const formatDateDisplay = (dateStr) => {
-    return new Date(dateStr).toLocaleDateString("en-US", {
+    return new Date(dateStr).toLocaleDateString("en-IN", {
       month: "long",
       day: "2-digit",
       year: "numeric",
@@ -200,7 +204,7 @@ export default function EmployeeDetailPage() {
         .filter((log) => (log.user?._id || log.user) === userId && log.logType === "work")
         .forEach((log) => {
           const dateObj = new Date(log.startTime);
-          const dateKey = dateObj.toLocaleDateString("en-GB", {
+          const dateKey = dateObj.toLocaleDateString("en-IN", {
             day: "2-digit",
             month: "short",
             year: "numeric",
@@ -244,7 +248,7 @@ export default function EmployeeDetailPage() {
     };
   }, [workedAndAssigned, userId]);
 
-  const activeTasks = currentlyAssigned.filter((t) => ["In progress", "To be started"].includes(t.liveStatus));
+  const activeTasks = currentlyAssigned.filter((t) => ["In progress"].includes(t.liveStatus));
   const paginatedAllTasks = workedAndAssigned.slice(taskPage * itemsPerPage, (taskPage + 1) * itemsPerPage);
   const effectiveHours = employee ? ((540 * (employee.proficiency || 100)) / 6000).toFixed(1) : 0;
 
@@ -262,7 +266,7 @@ export default function EmployeeDetailPage() {
   if (userLoading || tasksLoading) return <Loader message="Accessing Personnel Files..." />;
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-20 font-sans text-slate-900">
+    <div className="max-w-[1700px] mx-auto  min-h-screen bg-slate-50/50 pb-20 font-sans text-slate-900">
       <header className="bg-white border-b border-slate-200 pt-8 pb-12 shadow-sm">
         <div className="mx-auto px-8">
           <button
@@ -311,7 +315,7 @@ export default function EmployeeDetailPage() {
         </div>
       </header>
 
-      <main className="mx-auto px-8 -mt-8">
+      <main className="px-8 -mt-8">
         <div className="grid lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8 space-y-10">
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
@@ -325,7 +329,7 @@ export default function EmployeeDetailPage() {
               {/* Dynamic Header based on date */}
               <SectionHeader
                 title={
-                  lastActiveDay?.date === new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+                  lastActiveDay?.date === new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
                     ? "Today's Performance Output"
                     : "Latest Recorded Activity"
                 }
@@ -341,7 +345,7 @@ export default function EmployeeDetailPage() {
                           {lastActiveDay.date}
                         </span>
                         <span className="text-[8px] font-bold text-slate-400 uppercase">
-                          {lastActiveDay.date === new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) ? "Current Session" : "Last Active Session"}
+                          {lastActiveDay.date === new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) ? "Current Session" : "Last Active Session"}
                         </span>
                       </div>
                     </div>
@@ -423,6 +427,18 @@ export default function EmployeeDetailPage() {
                   value={
                     employee?.dateOfBirth &&
                     new Date(employee.dateOfBirth).toLocaleDateString("en-IN", {
+                      day: "2-digit",
+                      month: "long",
+                      year: "numeric",
+                    })
+                  }
+                />
+                <ContactItem
+                  icon={<HiOutlineCalendarDays />}
+                  label="Date of Joining"
+                  value={
+                    employee?.joinedDate &&
+                    new Date(employee.joinedDate).toLocaleDateString("en-IN", {
                       day: "2-digit",
                       month: "long",
                       year: "numeric",

@@ -6,6 +6,7 @@ const timeLogSchema = new mongoose.Schema({
   startTime: { type: Date, required: true },
   endTime: { type: Date },
   durationSeconds: { type: Number, default: 0 },
+  rawDurationSeconds: { type: Number, default: 0 },
   logType: { type: String, enum: ["work", "break"], default: "work" },
   action: {
     type: String,
@@ -37,8 +38,18 @@ timeLogSchema.pre("validate", function () {
   }
 
   if (this.endTime && this.startTime) {
-    const diff = (new Date(this.endTime) - new Date(this.startTime)) / 1000;
-    this.durationSeconds = Math.max(0, Math.round(diff));
+    const diff = Math.max(0, Math.round((new Date(this.endTime) - new Date(this.startTime)) / 1000));
+
+    // Always store raw
+    if (!this.rawDurationSeconds) {
+      this.rawDurationSeconds = diff;
+    }
+
+    // Only set duration if not manually set (proficiency case)
+    if (!this.durationSeconds) {
+      this.durationSeconds = diff;
+    }
+
     this.isRunning = false;
   }
 });

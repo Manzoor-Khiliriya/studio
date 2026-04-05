@@ -41,5 +41,20 @@ const calculateEstimatedHours = async (start, end) => {
   return days * 9;
 };
 
+const getLiveStatus = (task, todayStr) => {
+  const logs = task.timeLogs || [];
 
-module.exports = { calculateEstimatedHours };
+  const hasTodayLog = logs.some(
+    (log) => log.dateString === todayStr && log.logType === "work"
+  );
+
+  if (hasTodayLog) return "In progress";
+
+  const hasAnyLog = logs.some((log) => log.logType === "work");
+
+  if (hasAnyLog) return "Started";
+
+  return "To be started";
+};
+
+module.exports = { calculateEstimatedHours, getLiveStatus };

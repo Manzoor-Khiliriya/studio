@@ -1,3 +1,5 @@
+const Employee = require("../models/Employee");
+
 /**
  * Remove sensitive fields before sending user object
  */
@@ -10,7 +12,7 @@ exports.sanitizeUser = (user) => {
   delete userObj.__v;
 
   if (userObj.employee) {
-    delete userObj.employee.user;   
+    delete userObj.employee.user;
     delete userObj.employee.__v;
   }
 
@@ -38,3 +40,12 @@ exports.isActiveAdmin = (user) =>
 
 exports.isActiveEmployee = (user) =>
   user?.role === "Employee" && user?.status === "Enable";
+
+// utils/applyProficiency.js
+
+exports.applyProficiency = async (userId, rawSeconds) => {
+  const employee = await Employee.findOne({ user: userId });
+  const proficiency = employee?.proficiency ?? 100;
+  const adjustedSeconds = Math.round(rawSeconds * (proficiency / 100));
+  return { rawSeconds, adjustedSeconds };
+};

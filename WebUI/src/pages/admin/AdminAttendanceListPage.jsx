@@ -108,7 +108,7 @@ export default function AttendanceManagement() {
   if (isLoading) return <Loader message="Accessing Attendance Records..." />;
 
   return (
-    <div className="p-8 bg-white min-h-screen">
+    <div className="max-w-[1700px] mx-auto p-8 bg-white min-h-screen">
       {/* HEADER SECTION */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
         <div>

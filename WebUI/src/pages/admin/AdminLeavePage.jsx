@@ -197,7 +197,7 @@ export default function AdminLeavePage() {
   const paginationData = data?.pagination || { totalLeaves: 0, totalPages: 1 };
 
   return (
-    <div className="p-8 bg-slate-100 min-h-screen">
+    <div className="max-w-[1700px] mx-auto  p-8 bg-slate-100 min-h-screen">
       {/* HEADER */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
         <div>

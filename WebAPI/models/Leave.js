@@ -11,7 +11,6 @@ const leaveSchema = new mongoose.Schema({
   endDate: { type: Date, required: true },
   reason: { type: String, required: true, trim: true },
   status: { type: String, enum: ["Pending", "Approved", "Rejected"], default: "Pending" },
-  processedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   adminComment: { type: String, trim: true }
 }, { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } });
 

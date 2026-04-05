@@ -49,9 +49,9 @@ export default function ClockInOut({ todaySeconds: dashboardDailySecs, taskList 
       if (!currentId) return;
 
       const allTaskLogs = logsData.logs.filter(l => (l.task?._id === currentId || l.task === currentId) && l.logType === "work");
-      const finishedTaskSecs = allTaskLogs.filter(l => !l.isRunning).reduce((sum, l) => sum + (l.durationSeconds || 0), 0);
+      const finishedTaskSecs = allTaskLogs.filter(l => !l.isRunning).reduce((sum, l) => sum + (l.rawDurationSeconds || 0), 0);
       const dailyLogs = logsData.logs.filter(l => l.logType === "work" && new Date(l.startTime).toLocaleDateString('en-IN') === localToday);
-      const finishedDailySecs = dailyLogs.filter(l => !l.isRunning).reduce((sum, l) => sum + (l.durationSeconds || 0), 0);
+      const finishedDailySecs = dailyLogs.filter(l => !l.isRunning).reduce((sum, l) => sum + (l.rawDurationSeconds || 0), 0);
 
       if (activeLog && activeLog.logType === "work" && !isPaused) {
         const sessionSecs = Math.max(0, Math.floor((now - new Date(activeLog.startTime).getTime()) / 1000));

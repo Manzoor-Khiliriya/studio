@@ -165,6 +165,7 @@ exports.getSummary = async (req, res) => {
     });
 
   } catch (err) {
+    console.error("Error in getSummary:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 };

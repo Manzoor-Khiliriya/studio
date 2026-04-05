@@ -155,7 +155,7 @@ export default function AdminTasksPage() {
 
   const formatDate = (date) => {
     if (!date) return "TBD";
-    return new Date(date).toLocaleDateString('en-GB', {
+    return new Date(date).toLocaleDateString('en-IN', {
       day: '2-digit', month: 'short', year: '2-digit'
     });
   };
@@ -163,7 +163,7 @@ export default function AdminTasksPage() {
   if (isLoading) return <Loader message="Synchronizing Project Data..." />;
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="max-w-[1700px] mx-auto  min-h-screen bg-slate-100">
       <PageHeader
         title="Project Management"
         subtitle="Manage operational projects and nested task objectives."

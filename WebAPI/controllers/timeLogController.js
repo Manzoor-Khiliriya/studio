@@ -3,6 +3,7 @@ const Task = require("../models/Task");
 const Employee = require("../models/Employee");
 const Project = require("../models/Project");
 const mongoose = require("mongoose");
+const { applyProficiency } = require("../utils/userHelpers");
 
 exports.startTimer = async (req, res) => {
   const session = await mongoose.startSession();
@@ -28,12 +29,22 @@ exports.startTimer = async (req, res) => {
 
     // 2. Stop existing timers (Auto-switch)
     const activeLog = await TimeLog.findOne({ user: userId, isRunning: true });
+    // Replace the activeLog block in startTimer:
     if (activeLog) {
       const now = new Date();
+      const rawSeconds = Math.max(0, Math.floor((now - new Date(activeLog.startTime)) / 1000));
+
+      // ✅ Apply proficiency for work logs on auto-switch
+      if (activeLog.logType === "work") {
+        const { adjustedSeconds } = await applyProficiency(userId, rawSeconds);
+        activeLog.rawDurationSeconds = rawSeconds;
+        activeLog.durationSeconds = adjustedSeconds;
+      } else {
+        activeLog.durationSeconds = rawSeconds;
+      }
+
       activeLog.endTime = now;
       activeLog.isRunning = false;
-      activeLog.durationSeconds = Math.max(0, Math.floor((now - new Date(activeLog.startTime)) / 1000));
-      // We don't mark auto-switches as "Stop" to keep the log clean
       await activeLog.save({ session });
     }
 
@@ -71,10 +82,18 @@ exports.togglePause = async (req, res) => {
     if (!active) return res.status(404).json({ message: "No active timer." });
 
     const now = new Date();
+    const rawSeconds = Math.max(0, Math.floor((now - new Date(active.startTime)) / 1000));
+
+    if (active.logType === "work") {
+      const { adjustedSeconds } = await applyProficiency(userId, rawSeconds);
+      active.rawDurationSeconds = rawSeconds;
+      active.durationSeconds = adjustedSeconds;
+    } else {
+      active.durationSeconds = rawSeconds; // breaks are recorded as-is
+    }
+
     active.endTime = now;
     active.isRunning = false;
-    active.durationSeconds = Math.max(0, Math.floor((now - new Date(active.startTime)) / 1000));
-    // Notice: We do NOT set an action here so it stays out of the Admin Activity Feed
     await active.save();
 
     const newType = active.logType === "work" ? "break" : "work";
@@ -85,25 +104,28 @@ exports.togglePause = async (req, res) => {
       logType: newType,
       isRunning: true,
       dateString: active.dateString
-      // action is undefined here intentionally
     });
 
     res.json({ status: newType, log: newLog });
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
-
 exports.stopTimer = async (req, res) => {
   try {
     const log = await TimeLog.findOne({ user: req.user._id, isRunning: true });
     if (!log) return res.status(400).json({ message: "No active timer found." });
 
     const now = new Date();
+    const rawSeconds = Math.max(0, Math.floor((now - new Date(log.startTime)) / 1000));
+
+    const { adjustedSeconds } = await applyProficiency(req.user._id, rawSeconds);
+
     log.endTime = now;
     log.isRunning = false;
-    log.durationSeconds = Math.max(0, Math.floor((now - new Date(log.startTime)) / 1000));
-    log.action = "Stop"; // <--- Key for Admin Log
-    await log.save();
+    log.rawDurationSeconds = rawSeconds;       // actual clock time
+    log.durationSeconds = adjustedSeconds;     // proficiency-adjusted
+    log.action = "Stop";
 
+    await log.save();
     res.json({ message: "Session Terminated", log });
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
@@ -143,23 +165,29 @@ exports.stopAllLiveSessions = async (req, res) => {
     const now = new Date();
     const activeLogs = await TimeLog.find({ isRunning: true });
 
-    const updatePromises = activeLogs.map(log => {
-      const duration = Math.floor((now - new Date(log.startTime)) / 1000);
+    const updatePromises = activeLogs.map(async (log) => {
+      const rawSeconds = Math.max(0, Math.floor((now - new Date(log.startTime)) / 1000));
+
+      // ✅ Apply proficiency for work logs
+      if (log.logType === "work") {
+        const { adjustedSeconds } = await applyProficiency(log.user, rawSeconds);
+        log.rawDurationSeconds = rawSeconds;
+        log.durationSeconds = adjustedSeconds;
+      } else {
+        log.durationSeconds = rawSeconds;
+      }
+
       log.endTime = now;
       log.isRunning = false;
-      log.durationSeconds = Math.max(0, duration);
       return log.save();
     });
 
     await Promise.all(updatePromises);
-
     res.json({
       message: `Global shutdown complete. ${activeLogs.length} sessions recorded.`,
       stoppedCount: activeLogs.length
     });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
 exports.clearLogs = async (req, res) => {

@@ -44,7 +44,7 @@ export default function EmployeeReportsPage() {
 
       totalSec += dayTotalSec;
       return { 
-        date: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }), 
+        date: new Date(date).toLocaleDateString('en-IN', { weekday: 'short' }), 
         hours: parseFloat((dayTotalSec / 3600).toFixed(2)) 
       };
     });

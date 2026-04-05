@@ -18,7 +18,7 @@ const PageHeader = ({
 
   return (
     <header className="bg-white border-b border-slate-200 pt-10 pb-12">
-      <div className="max-w-[1700px] mx-auto px-8">
+      <div className="mx-auto px-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           
           {/* LEFT — Icon + Title + Subtitle */}

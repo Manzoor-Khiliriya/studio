@@ -62,7 +62,7 @@ export default function EmployeeDashboard() {
             const diffSec = Math.floor((Date.now() - new Date(log.startTime).getTime()) / 1000);
             totalWorkSeconds += Math.max(0, diffSec);
           } else {
-            totalWorkSeconds += (log.durationSeconds || 0);
+            totalWorkSeconds += (log.rawDurationSeconds || 0);
           }
         }
       });
@@ -126,7 +126,7 @@ export default function EmployeeDashboard() {
   if (attendanceLoading || summaryLoading) return <Loader message="Syncing Systems..." />;
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9]">
+    <div className="max-w-[1700px] mx-auto  min-h-screen bg-[#f1f5f9]">
       <div className="max-w-[1600px] mx-auto px-6 py-10">
         <PageHeader title="Dashboard" />
 
@@ -160,7 +160,7 @@ export default function EmployeeDashboard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.4 }}
-            className={`p-6 rounded-[2.5rem] border-2 flex flex-col justify-between transition-all duration-500 bg-white shadow-sm hover:border-orange-100 ${
+            className={`p-6 rounded-[2.5rem] border-2 flex flex-col gap-1 justify-between transition-all duration-500 bg-white shadow-sm hover:border-orange-100 ${
               isOnShift ? "border-orange-200 shadow-orange-600/5 shadow-xl" : "border-slate-50"
             }`}
           >

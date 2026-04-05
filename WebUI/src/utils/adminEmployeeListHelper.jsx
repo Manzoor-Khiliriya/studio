@@ -56,7 +56,7 @@ export const getEmployeeColumns = ({ onEdit, onDelete, onToggle }) => [
     render: (emp) => (
       <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500">
         <HiOutlineCalendarDays size={15} className="text-slate-400" />
-        <span>{emp.joinedDate ? new Date(emp.joinedDate).toLocaleDateString('en-GB') : "---"}</span>
+        <span>{emp.joinedDate ? new Date(emp.joinedDate).toLocaleDateString('en-IN') : "---"}</span>
       </div>
     )
   },

@@ -83,7 +83,7 @@ const AdminDashboard = () => {
         subtitle="Manage operational objectives and real-time resource utilization."
       />
 
-      <div className=" mx-auto px-8 pb-10">
+      <div className="mx-auto px-8 pb-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-12 mt-10">
           <StatCard label="Total Projects" value={stats.totalProjects || 0} icon={<HiOutlineClipboardList size={22} />} delay={0.1} />
           <StatCard label="Total Employees" value={stats.totalActiveEmployees || 0} icon={<HiOutlineUserGroup size={22} />} delay={0.2} />
