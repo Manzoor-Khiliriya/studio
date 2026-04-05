@@ -4,7 +4,6 @@ const Employee = require("../models/Employee");
 const LeaveSetting = require("../models/LeaveSetting");
 const { calculateLeaveDays, hasLeaveOverlap } = require("../utils/leaveHelpers");
 
-
 const getLeaveSetting = async (type) => {
   try {
     const settings = await LeaveSetting.findOne({ leaveType: type });
@@ -45,37 +44,22 @@ exports.getMyLeaves = async (req, res) => {
     const now = new Date();
 
     const settings = await LeaveSetting.find();
-    const leaveTypes = ["Annual Leave", "Sick Leave", "Bereavement Leave", "Paternity Leave", "Maternity Leave", "Casual Leave", "LOP"];
 
-    const balances = {};
+    const t = "Annual Leave";
+    const setting = settings.find(s => s.leaveType === t);
 
-    for (const t of leaveTypes) {
-      const setting = settings.find(s => s.leaveType === t);
+    const months = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth());
+    const earned = setting ? (months * setting.accrualRate) : 0;
+    const taken = await getTakenDays(userId, t, false);
 
-      if (t === "Annual Leave") {
-        const months = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth());
-        const earned = setting ? (months * setting.accrualRate) : 0;
-        const taken = await getTakenDays(userId, t, false);
-        balances[t] = {
-          earned: +earned.toFixed(1),
-          taken,
-          remaining: +(earned - taken).toFixed(1),
-          type: "accrual"
-        };
-      } else if (t === "LOP" || t === "Casual Leave") {
-        const taken = await getTakenDays(userId, t, true);
-        balances[t] = { taken, quota: "Unlimited", remaining: "N/A", type: "unrestricted" };
-      } else {
-        const quota = setting ? setting.yearlyQuota : 10;
-        const taken = await getTakenDays(userId, t, true);
-        balances[t] = {
-          quota,
-          taken,
-          remaining: Math.max(0, quota - taken),
-          type: "quota"
-        };
+    const balances = {
+      "Annual Leave": {
+        earned: +earned.toFixed(1),
+        taken,
+        remaining: +(earned - taken).toFixed(1),
+        type: "accrual"
       }
-    }
+    };
 
     let query = { user: userId };
     if (type && type !== "All") query.type = type;
@@ -93,7 +77,9 @@ exports.getMyLeaves = async (req, res) => {
 
     res.json({
       history,
-      balances,
+      balances: {
+        "annualLeave": balances["Annual Leave"]
+      },
       pagination: {
         totalLeaves,
         totalPages: Math.ceil(totalLeaves / parseInt(limit)),
@@ -156,13 +142,12 @@ exports.getAllLeaves = async (req, res) => {
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // --- 1. CALCULATE DATE BOUNDARIES ---
     let filterStart = null;
     let filterEnd = null;
 
     if (dateRange && dateRange !== "all") {
       const now = new Date();
-      // Reset helpers
+      // Reset 
       const start = new Date();
       const end = new Date();
 
@@ -171,10 +156,9 @@ exports.getAllLeaves = async (req, res) => {
         end.setHours(23, 59, 59, 999);
       }
       else if (dateRange === "upcoming") {
-        // From tomorrow 00:00:00 onwards
         start.setDate(start.getDate() + 1);
         start.setHours(0, 0, 0, 0);
-        end.setFullYear(now.getFullYear() + 2); // Look 2 years ahead
+        end.setFullYear(now.getFullYear() + 2);
       }
       else if (dateRange === "current-week") {
         // Logic: Monday to Sunday

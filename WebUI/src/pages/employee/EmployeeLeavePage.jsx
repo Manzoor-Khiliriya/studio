@@ -203,7 +203,7 @@ export default function EmployeeLeavePage() {
           <div className="xl:col-span-3 space-y-6">
             <StatBox
               label="Earned Credits"
-              value={`${data?.stats?.earned?.toFixed(1) || 0}`}
+              value={`${data?.balances?.annualLeave?.earned?.toFixed(1) || 0}`}
               unit="Days"
               color="orange"
               icon={<HiOutlineSparkles />}

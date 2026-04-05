@@ -22,16 +22,17 @@ export default function ClockInOut({ todaySeconds: dashboardDailySecs, taskList 
   const isSyncing = isStarting || isToggling || isStopping;
   const status = activeLog ? (isPaused ? "On Break" : "Mission Active") : "Not Started";
 
-  // SYNC DROPDOWN
+  // SYNC DROPDOWN — resolve activeLog._id against taskList which uses .id
   useEffect(() => {
-    if (activeLog?.task?._id) setSelectedTaskId(activeLog.task._id);
-  }, [activeLog]);
+    if (activeLog?.task?._id) {
+      const match = taskList.find(t => t.id === activeLog.task._id.toString());
+      setSelectedTaskId(match ? match.id : activeLog.task._id);
+    }
+  }, [activeLog, taskList]);
 
   // AUTO-POP HUD ON START OR REFRESH
   useEffect(() => {
-    // Only attempt if there's an active log and PiP isn't already open
     if (activeLog && !isPipActive && !pipWindowRef.current) {
-      // Small delay to ensure browser allows the pop-up after a refresh/action
       const timeout = setTimeout(() => {
         handlePopOut();
       }, 1000);
@@ -39,18 +40,17 @@ export default function ClockInOut({ todaySeconds: dashboardDailySecs, taskList 
     }
   }, [activeLog, isPipActive]);
 
-  // TICKER LOGIC
   useEffect(() => {
     const calculateTimers = () => {
       if (!logsData?.logs) return;
       const now = Date.now();
-      const localToday = new Date().toLocaleDateString('en-CA');
+      const localToday = new Date().toLocaleDateString('en-IN');
       const currentId = activeLog?.task?._id || selectedTaskId;
       if (!currentId) return;
 
       const allTaskLogs = logsData.logs.filter(l => (l.task?._id === currentId || l.task === currentId) && l.logType === "work");
       const finishedTaskSecs = allTaskLogs.filter(l => !l.isRunning).reduce((sum, l) => sum + (l.durationSeconds || 0), 0);
-      const dailyLogs = logsData.logs.filter(l => l.logType === "work" && new Date(l.startTime).toLocaleDateString('en-CA') === localToday);
+      const dailyLogs = logsData.logs.filter(l => l.logType === "work" && new Date(l.startTime).toLocaleDateString('en-IN') === localToday);
       const finishedDailySecs = dailyLogs.filter(l => !l.isRunning).reduce((sum, l) => sum + (l.durationSeconds || 0), 0);
 
       if (activeLog && activeLog.logType === "work" && !isPaused) {
@@ -72,7 +72,6 @@ export default function ClockInOut({ todaySeconds: dashboardDailySecs, taskList 
     return () => clearInterval(timerRef.current);
   }, [logsData, activeLog, selectedTaskId, isPaused]);
 
-  // HUD Update Bridge
   useEffect(() => {
     if (pipWindowRef.current) {
       const pipDoc = pipWindowRef.current.document;
@@ -93,13 +92,13 @@ export default function ClockInOut({ todaySeconds: dashboardDailySecs, taskList 
   }, [dailySeconds, isPaused]);
 
   const handlePopOut = async () => {
-    if (!('documentPictureInPicture' in window)) return; // Silently fail for auto-pop
+    if (!('documentPictureInPicture' in window)) return;
     if (pipWindowRef.current) return;
 
     try {
       const pipWindow = await window.documentPictureInPicture.requestWindow({
-        width: 220,
-        height: 100
+        width: 200,
+        height: 70
       });
 
       pipWindowRef.current = pipWindow;
@@ -130,7 +129,6 @@ export default function ClockInOut({ todaySeconds: dashboardDailySecs, taskList 
     if (!selectedTaskId) return toast.error("Target required");
     try {
       await startTimer(selectedTaskId).unwrap();
-      // HUD is now handled by useEffect auto-pop
     } catch (err) { toast.error(err?.data?.error || "Startup Failed"); }
   };
 
@@ -174,7 +172,7 @@ export default function ClockInOut({ todaySeconds: dashboardDailySecs, taskList 
         >
           <option value="" className="bg-slate-900">Select Task...</option>
           {taskList.map(task => (
-            <option key={task._id} value={task._id} className="bg-slate-900">
+            <option key={task.id} value={task.id} className="bg-slate-900">
               ({task.projectCode}) - {task.title}
             </option>
           ))}
@@ -182,13 +180,8 @@ export default function ClockInOut({ todaySeconds: dashboardDailySecs, taskList 
       </div>
 
       <div className={`py-10 rounded-[2rem] text-center border transition-all ${isPaused ? 'bg-slate-900/40 border-white/5' : 'bg-orange-600/[0.01] border-orange-600/20'}`}>
-        <p className="text-[9px] font-black uppercase tracking-[0.5em] text-orange-500/40 mb-3">Project Chronometer</p>
-        <h3 className="text-6xl font-black italic tracking-tighter text-white tabular-nums">{formatTime(taskSeconds)}</h3>
-        <div className="mt-4 pt-4 border-t border-white/5 mx-10">
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-            Today Session: <span className="text-slate-300 ml-2">{formatTime(dailySeconds)}</span>
-          </p>
-        </div>
+        <p className="text-[9px] font-black uppercase tracking-[0.5em] text-orange-500/40 mb-3">Project Timer</p>
+        <h3 className="text-6xl font-black italic tracking-tighter text-white tabular-nums">{formatTime(dailySeconds)}</h3>
       </div>
 
       <div className="flex items-center gap-4">

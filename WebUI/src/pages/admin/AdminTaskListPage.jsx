@@ -31,8 +31,8 @@ import toast from "react-hot-toast";
 
 export default function AdminTasksPage() {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("live");
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
   const [taskSearch, setTaskSearch] = useState("");
   const [liveStatusFilter, setLiveStatusFilter] = useState("All");
   const [taskStatusFilter, setTaskStatusFilter] = useState("All");
@@ -45,9 +45,7 @@ export default function AdminTasksPage() {
     endDate: "",
   });
 
-  // Selection State
   const [selectedProjects, setSelectedProjects] = useState([]);
-
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -66,7 +64,7 @@ export default function AdminTasksPage() {
     page: currentPage,
     limit: limit,
     search: searchTerm,
-    status: statusFilter,
+    activeTab,
     createdAt: dateFilters.createdAt,
     startDate: dateFilters.startDate,
     endDate: dateFilters.endDate,
@@ -142,7 +140,6 @@ export default function AdminTasksPage() {
 
   const clearFilters = () => {
     setSearchTerm("");
-    setStatusFilter("All");
     setTaskSearch("");
     setLiveStatusFilter("All");
     setTaskStatusFilter("All");
@@ -174,6 +171,15 @@ export default function AdminTasksPage() {
         onSecondaryAction={() => {
           setEditingProject(null);
           setShowProjectModal(true);
+        }}
+        tabs={[
+          { id: "live", label: "Live Projects" },
+          { id: "all", label: "All Projects" },
+        ]}
+        activeTab={activeTab}
+        onTabChange={(tabId) => {
+          setActiveTab(tabId);
+          setCurrentPage(1);
         }}
       />
 
@@ -278,7 +284,7 @@ export default function AdminTasksPage() {
                 </button>
               )}
 
-              {(searchTerm || taskSearch || statusFilter !== "All" || liveStatusFilter !== "All" || taskStatusFilter !== "All" || dateFilters.createdAt || dateFilters.startDate || dateFilters.endDate) && (
+              {(searchTerm || taskSearch || liveStatusFilter !== "All" || taskStatusFilter !== "All" || dateFilters.createdAt || dateFilters.startDate || dateFilters.endDate) && (
                 <button onClick={clearFilters} className="flex items-center gap-2 px-6 py-3 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-2xl transition-all font-black text-[10px] tracking-widest cursor-pointer">
                   <HiOutlineXMark size={18} strokeWidth={2.5} />
                   <span>RESET FILTERS</span>
@@ -443,7 +449,7 @@ export default function AdminTasksPage() {
             </div>
             {data?.pagination?.totalProjects && (
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight ml-2">
-                Total {data?.pagination?.totalProjects} projects
+                Total {data?.pagination?.totalProjects ?? 0} projects
               </span>
             )}
           </div>

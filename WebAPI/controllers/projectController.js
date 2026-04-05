@@ -39,6 +39,7 @@ exports.getAllProjects = async (req, res) => {
       page = 1,
       limit = 5,
       search,
+      activeTab,
       createdAt,
       startDate,
       endDate,
@@ -48,7 +49,11 @@ exports.getAllProjects = async (req, res) => {
     } = req.query;
 
     const skip = (Number(page) - 1) * Number(limit);
-    let query = { };
+    let query = {};
+
+    if (activeTab === "live") {
+      query.status = { $ne: "Inactive" };
+    }
 
     if (search) {
       query.$or = [
@@ -154,8 +159,8 @@ exports.updateProject = async (req, res) => {
     }
 
     const project = await Project.findByIdAndUpdate(
-      id, 
-      { $set: updateData }, 
+      id,
+      { $set: updateData },
       { new: true, runValidators: true }
     );
 
@@ -163,10 +168,10 @@ exports.updateProject = async (req, res) => {
       return res.status(404).json({ success: false, message: "Project not found" });
     }
 
-    return res.status(200).json({ 
-      success: true, 
-      message: "Project updated successfully", 
-      project 
+    return res.status(200).json({
+      success: true,
+      message: "Project updated successfully",
+      project
     });
   } catch (error) {
     if (error.code === 11000) {
