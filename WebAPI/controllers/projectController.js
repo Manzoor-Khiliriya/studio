@@ -1,5 +1,6 @@
 const Project = require("../models/Project");
 const Task = require("../models/Task");
+const TimeLog = require("../models/TimeLog");
 const { calculateEstimatedHours } = require("../utils/taskHelpers");
 
 exports.createProject = async (req, res) => {
@@ -45,16 +46,25 @@ exports.getAllProjects = async (req, res) => {
       endDate,
       taskSearch, // New
       liveStatus, // New
-      taskStatus  // New
+      taskStatus, // New
+      projectType, // New
+      status
     } = req.query;
 
     const skip = (Number(page) - 1) * Number(limit);
     let query = {};
 
     if (activeTab === "live") {
-      query.status = { $ne: "Inactive" };
+      query.deleteStatus = { $ne: "Enable" };
     }
 
+    if (projectType && projectType !== "All") {
+      query.projectType = projectType;
+    }
+    if (status && status !== "All") {
+      query.status = status;
+    }
+    
     if (search) {
       query.$or = [
         { projectCode: { $regex: search, $options: "i" } },
@@ -131,7 +141,6 @@ exports.getAllProjects = async (req, res) => {
       pagination: { totalProjects: total, totalPages: Math.ceil(total / limit), currentPage: Number(page) }
     });
   } catch (error) {
-    console.error("Project Fetch Error:", error);
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
@@ -156,6 +165,10 @@ exports.updateProject = async (req, res) => {
 
     if (updateData.projectCode) {
       updateData.projectCode = updateData.projectCode.toUpperCase();
+    }
+
+    if (updateData.status) {
+      updateData.statusChangedAt = new Date();
     }
 
     const project = await Project.findByIdAndUpdate(
@@ -184,20 +197,27 @@ exports.updateProject = async (req, res) => {
 
 exports.deleteProject = async (req, res) => {
   try {
-    const project = await Project.findById(req.params.id);
-
+    const projectId = req.params.id;
+    const project = await Project.findById(projectId);
     if (!project) {
       return res.status(404).json({ success: false, message: "Project not found" });
     }
-
-    await Project.deleteOne({ _id: project._id });
-    return res.status(204).send();
+    const tasks = await Task.find({ project: projectId }).select("_id");
+    const taskIds = tasks.map(task => task._id);
+    if (taskIds.length > 0) {
+      await TimeLog.deleteMany({ task: { $in: taskIds } });
+    }
+    await Task.deleteMany({ project: projectId });
+    await Project.deleteOne({ _id: projectId });
+    return res.status(200).json({ 
+      success: true, 
+      message: "Project and all related tasks/timelogs deleted successfully." 
+    });
   } catch (error) {
+    console.error(error)
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
-
-// project.controller.js
 
 exports.getTaskPerformanceReport = async (req, res) => {
   try {

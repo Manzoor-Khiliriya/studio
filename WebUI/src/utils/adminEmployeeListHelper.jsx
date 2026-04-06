@@ -43,7 +43,7 @@ export const getEmployeeColumns = ({ onEdit, onDelete, onToggle }) => [
     render: (emp) => (
       <div className="flex items-center gap-2 group cursor-pointer">
         <div className="p-1.5 rounded-md bg-blue-50 text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-colors">
-          <HiOutlineEnvelope size={12} />
+          <HiOutlineEnvelope size={14} />
         </div>
         <span className="text-[12px] font-medium text-slate-500 lowercase">
           {emp.user?.email}
@@ -85,7 +85,7 @@ export const getEmployeeColumns = ({ onEdit, onDelete, onToggle }) => [
     render: (emp) => {
       const isActive = emp.user?.status === "Enable";
       return (
-        <span className={`inline-flex items-center gap-1.5 text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-tighter border ${isActive ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-700 border-rose-200"
+        <span className={`inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-tighter  ${isActive ? " text-emerald-700" : "text-rose-700 "
           }`}>
           <span className={`w-1 h-1 rounded-full ${isActive ? "bg-emerald-600" : "bg-rose-600"}`} />
           {isActive ? "Active" : "Disabled"}

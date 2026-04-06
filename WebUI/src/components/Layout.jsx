@@ -23,24 +23,19 @@ export default function Layout({ children }) {
   return (
     <div className="h-screen flex flex-col bg-[#fdfdfd] text-slate-900 font-sans selection:bg-orange-100 selection:text-orange-900 overflow-hidden">
       
-      {/* 1. TOP NAVIGATION - Increased z-index to stay on top of Sidebar */}
       <div className="z-50">
         <Navbar />
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* 2. PERSISTENT SIDEBAR - Fixed height to fill remaining screen */}
         <aside className="h-[calc(100vh-7vh)] overflow-y-auto border-r border-orange-100 z-30 bg-white">
           <Sidebar />
         </aside>
 
-        {/* 3. MAIN CONTENT AREA - Added overflow-y-auto for independent scrolling */}
         <div className="flex-1 flex flex-col min-w-0 bg-orange-50/20 relative overflow-y-auto custom-scrollbar">
           
-          {/* Subtle Background Accent */}
           <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none opacity-40" />
 
-          {/* Reduced padding-top because we are now using a scrollable container instead of a fixed header gap */}
           <main className="flex-1  z-10">
             <AnimatePresence mode="wait">
               <motion.div

@@ -266,7 +266,7 @@ export default function EmployeeDetailPage() {
   if (userLoading || tasksLoading) return <Loader message="Accessing Personnel Files..." />;
 
   return (
-    <div className="max-w-[1700px] mx-auto  min-h-screen bg-slate-50/50 pb-20 font-sans text-slate-900">
+    <div className="max-w-[1750px] mx-auto  min-h-screen bg-slate-100 pb-10 font-sans text-slate-900">
       <header className="bg-white border-b border-slate-200 pt-8 pb-12 shadow-sm">
         <div className="mx-auto px-8">
           <button

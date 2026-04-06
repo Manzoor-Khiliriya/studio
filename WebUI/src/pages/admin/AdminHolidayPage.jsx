@@ -103,7 +103,7 @@ export default function AdminHolidayPage() {
   if (isLoading) return <Loader message="Accessing Holidays..." />;
 
   return (
-    <div className=" max-w-[1700px] mx-auto min-h-screen bg-slate-100">
+    <div className=" max-w-[1750px] mx-auto min-h-screen bg-slate-100">
       <PageHeader
         title="Holiday Management"
         subtitle="Manage public and private holidays."

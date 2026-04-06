@@ -101,7 +101,7 @@ export default function EmployeeListPage() {
   if (isLoading) return <Loader message="Accessing Workforce Database..." />;
 
   return (
-    <div className="max-w-[1700px] mx-auto  min-h-screen bg-slate-100">
+    <div className="max-w-[1750px] mx-auto  min-h-screen bg-slate-100">
       <PageHeader
         title="Employee Management"
         subtitle="Manage employee credentials, performance metrics, and tactical access."
@@ -110,7 +110,7 @@ export default function EmployeeListPage() {
         onAction={() => { setSelectedEmp(null); setIsEmployeeModalOpen(true); }}
       />
 
-      <main className="max-w-[1700px] mx-auto px-8 pb-10 -mt-10">
+      <main className="max-w-[1750px] mx-auto px-8 pb-10 -mt-10">
         {/* SEARCH & FILTER BAR */}
         <div className="bg-white/90 backdrop-blur-xl border border-slate-200 p-5 rounded-[2.5rem] shadow-xl shadow-slate-200/50 mb-8 flex flex-col gap-6">
           <div className="flex flex-wrap items-center gap-4">

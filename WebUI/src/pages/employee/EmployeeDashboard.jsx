@@ -126,7 +126,7 @@ export default function EmployeeDashboard() {
   if (attendanceLoading || summaryLoading) return <Loader message="Syncing Systems..." />;
 
   return (
-    <div className="max-w-[1700px] mx-auto  min-h-screen bg-[#f1f5f9]">
+    <div className="max-w-[1750px] mx-auto  min-h-screen bg-[#f1f5f9]">
       <div className="max-w-[1600px] mx-auto px-6 py-10">
         <PageHeader title="Dashboard" />
 

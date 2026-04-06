@@ -86,13 +86,42 @@ export default function AdminLeavePage() {
     let fileName = `leave_report_${activeTab}_${new Date().toISOString().split('T')[0]}.csv`;
 
     if (activeTab === "quota") {
-      const headers = ["Employee", "Employee Code", "Annual (Rem/Used/Total)", "Sick (Rem/Used/Total)", "Casual (Rem/Used/Total)"];
-      const rows = data.leaves.map(r => [
-        r.employee?.user?.name,
-        r.employee?.employeeCode,
-        `${r.balances?.["Annual Leave"]?.remaining || 0}/${r.balances?.["Annual Leave"]?.taken || 0}/${r.balances?.["Annual Leave"]?.earned || 0}`,
-        `${r.balances?.["Sick Leave"]?.remaining || 0}/${r.balances?.["Sick Leave"]?.taken || 0}/${r.balances?.["Sick Leave"]?.quota || 0}`,
-      ]);
+      // 1. Define detailed headers
+      const headers = [
+        "Employee",
+        "Code",
+        "Annual (Earned)", "Annual (Used)", "Annual (Bal)",
+        "Sick (Quota)", "Sick (Used)", "Sick (Bal)",
+        "Bereavement (Quota)", "Bereavement (Used)", "Bereavement (Bal)",
+        "Paternity (Quota)", "Paternity (Used)", "Paternity (Bal)",
+        "Maternity (Quota)", "Maternity (Used)", "Maternity (Bal)"
+      ];
+
+      const rows = data.leaves.map(r => {
+        const b = r.balances || {};
+
+        return [
+          r.employee?.user?.name || "N/A",
+          r.employee?.employeeCode || "N/A",
+          b["Annual Leave"]?.earned || 0,
+          b["Annual Leave"]?.taken || 0,
+          b["Annual Leave"]?.remaining || 0,
+          b["Sick Leave"]?.quota || 0,
+          b["Sick Leave"]?.taken || 0,
+          b["Sick Leave"]?.remaining || 0,
+          b["Bereavement Leave"]?.quota || 0,
+          b["Bereavement Leave"]?.taken || 0,
+          b["Bereavement Leave"]?.remaining || 0,
+          b["Paternity Leave"]?.quota || 0,
+          b["Paternity Leave"]?.taken || 0,
+          b["Paternity Leave"]?.remaining || 0,
+          b["Maternity Leave"]?.quota || 0,
+          b["Maternity Leave"]?.taken || 0,
+          b["Maternity Leave"]?.remaining || 0,
+        ];
+      });
+
+      // 2. Generate CSV Content
       csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
     } else {
       const headers = ["Employee", "Employee Code", "Type", "Requested On", "Start Date", "End Date", "Duration", "Status"];
@@ -197,11 +226,11 @@ export default function AdminLeavePage() {
   const paginationData = data?.pagination || { totalLeaves: 0, totalPages: 1 };
 
   return (
-    <div className="max-w-[1700px] mx-auto  p-8 bg-slate-100 min-h-screen">
+    <div className="max-w-[1750px] mx-auto  p-8 bg-slate-100 min-h-screen">
       {/* HEADER */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">Leave Management</h1>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase mb-2">Leave Management</h1>
           <p className="text-slate-500 text-sm font-medium">Monitoring personnel availability and policy compliance</p>
         </div>
 
@@ -387,30 +416,60 @@ export default function AdminLeavePage() {
         }
       />
 
-      <CommonModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} title="Policy Configuration" subtitle="Update Quotas" maxWidth="max-w-md">
+      <CommonModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        title="Policy Configuration"
+        subtitle="Update Leave Quotas"
+        maxWidth="max-w-md"
+      >
         <form onSubmit={handleUpdateSettings} className="space-y-6">
-          <InputGroup label="Policy Type">
+          <InputGroup label="Leave Type">
             <select
-              className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none text-[11px] uppercase"
+              className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none text-[11px] uppercase focus:border-orange-500 transition-all"
               value={configForm.leaveType}
               onChange={(e) => setConfigForm({ ...configForm, leaveType: e.target.value })}
             >
+              {/* Filtered List: No Casual or LOP */}
               <option value="Annual Leave">Annual Leave</option>
               <option value="Sick Leave">Sick Leave</option>
-              <option value="Casual Leave">Casual Leave</option>
+              <option value="Bereavement Leave">Bereavement Leave</option>
+              <option value="Paternity Leave">Paternity Leave</option>
+              <option value="Maternity Leave">Maternity Leave</option>
             </select>
           </InputGroup>
-          <InputGroup label="Value (Days)">
-            <input
-              type="number" step="0.5" required
-              className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-black outline-none text-slate-900 text-lg"
-              value={configForm.value}
-              onChange={(e) => setConfigForm({ ...configForm, value: e.target.value })}
-            />
+
+          <InputGroup label={configForm.leaveType === "Annual Leave" ? "Days Per Month" : "Days Per Year"}>
+            <div className="relative">
+              <input
+                type="number"
+                step="0.5"
+                required
+                placeholder="e.g. 1.5"
+                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-black outline-none text-slate-900 text-lg focus:border-orange-500"
+                value={configForm.value}
+                onChange={(e) => setConfigForm({ ...configForm, value: e.target.value })}
+              />
+              <span className="absolute right-10 top-1/2 -translate-y-1/2 text-[12px] font-black text-slate-400 uppercase">
+                Days
+              </span>
+            </div>
           </InputGroup>
+
           <div className="flex gap-4 pt-4">
-            <button type="submit" className="flex-1 py-4 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase hover:bg-orange-600 cursor-pointer transition-colors">Save</button>
-            <button type="button" onClick={() => setIsSettingsOpen(false)} className="flex-1 py-4 text-[11px] font-black uppercase text-slate-400 cursor-pointer transition-colors">Cancel</button>
+            <button
+              type="submit"
+              className="flex-1 py-4 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase hover:bg-orange-600 cursor-pointer transition-all shadow-lg hover:shadow-orange-200"
+            >
+              Save Policy
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsSettingsOpen(false)}
+              className="flex-1 py-4 text-[11px] font-black uppercase text-slate-400 cursor-pointer hover:text-slate-600 transition-colors"
+            >
+              Cancel
+            </button>
           </div>
         </form>
       </CommonModal>

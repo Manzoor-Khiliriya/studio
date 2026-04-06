@@ -108,7 +108,7 @@ export default function AttendanceManagement() {
   if (isLoading) return <Loader message="Accessing Attendance Records..." />;
 
   return (
-    <div className="max-w-[1700px] mx-auto p-8 bg-white min-h-screen">
+    <div className="max-w-[1750px] mx-auto p-8 bg-slate-100 min-h-screen">
       {/* HEADER SECTION */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
         <div>
@@ -117,27 +117,25 @@ export default function AttendanceManagement() {
               Attendance Management
             </h1>
           </div>
-          <p className="text-slate-500 text-sm font-medium ml-1">
+          <p className="text-slate-500 text-sm font-medium">
             {activeTab === 'logs' ? "Detailed operational logs and metrics" : "Global leave and absence overview"}
           </p>
         </div>
 
         {/* TAB SWITCHER */}
-        <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+        <div className="flex bg-white p-1 rounded-2xl border border-slate-200 shadow-sm">
           <button
             onClick={() => setActiveTab('logs')}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all  cursor-pointer ${
-              activeTab === 'logs' ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'
-            }`}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all  cursor-pointer ${activeTab === 'logs' ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'
+              }`}
           >
             <HiOutlineListBullet size={16} />
             Daily Attendance
           </button>
           <button
             onClick={() => setActiveTab('calendar')}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${
-              activeTab === 'calendar' ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'
-            }`}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${activeTab === 'calendar' ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'
+              }`}
           >
             <HiOutlineCalendarDays size={16} />
             Leave Calendar
@@ -146,7 +144,7 @@ export default function AttendanceManagement() {
       </div>
 
       {/* FILTER BAR */}
-      <div className="bg-slate-50/50 border border-slate-100 p-5 rounded-[2rem] mb-8 flex flex-wrap items-center gap-4">
+      <div className="bg-slate-50/50 border border-slate-100 rounded-[2rem] mb-8 flex flex-wrap items-center gap-4">
         <div className="relative flex-1 min-w-[300px] group">
           <HiOutlineMagnifyingGlass className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input
@@ -237,16 +235,13 @@ export default function AttendanceManagement() {
                   {calendarDays.map((day, idx) => {
                     const dateStr = format(day, "yyyy-MM-dd");
                     const isCurrentMonth = isSameMonth(day, currentMonth);
-
-                    // Filter ALL leaves for this specific day across all employees
                     const dayLeaves = leaveCalendar?.filter((l) => l.date === dateStr) || [];
 
                     return (
                       <div
                         key={idx}
-                        className={`min-h-[140px] p-3 transition-colors flex flex-col ${
-                          isCurrentMonth ? "bg-white" : "bg-slate-50/30 opacity-40"
-                        }`}
+                        className={`min-h-[140px] p-3 transition-colors flex flex-col ${isCurrentMonth ? "bg-white" : "bg-slate-50/30 opacity-40"
+                          }`}
                       >
                         <span className={`text-xs font-black mb-2 ${isCurrentMonth ? "text-slate-900" : "text-slate-300"}`}>
                           {format(day, "d")}
@@ -257,13 +252,12 @@ export default function AttendanceManagement() {
                             <div
                               key={i}
                               title={`${leave.name} - ${leave.type}`}
-                              className={`px-2 py-1.5 rounded-lg border flex flex-col gap-0.5 shadow-sm ${
-                                leave.type === "Sick Leave"
+                              className={`px-2 py-1.5 rounded-lg border flex flex-col gap-0.5 shadow-sm ${leave.type === "Sick Leave"
                                   ? "bg-rose-50 border-rose-100 text-rose-700"
                                   : leave.type === "Annual Leave"
-                                  ? "bg-emerald-50 border-emerald-100 text-emerald-700"
-                                  : "bg-blue-50 border-blue-100 text-blue-700"
-                              }`}
+                                    ? "bg-emerald-50 border-emerald-100 text-emerald-700"
+                                    : "bg-blue-50 border-blue-100 text-blue-700"
+                                }`}
                             >
                               <span className="text-[9px] font-black uppercase truncate leading-none">
                                 {leave.name}{leave?.employeeCode ? ` (${leave.employeeCode})` : ''} - {leave.type}

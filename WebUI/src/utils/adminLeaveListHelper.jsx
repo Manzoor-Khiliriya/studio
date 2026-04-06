@@ -171,7 +171,7 @@ export const getCasualLopColumns = (onEdit, onDelete) => [
   {
     header: "Employee",
     render: (r) => (
-      <span className="font-black text-slate-900 text-[11px] uppercase">{r.user?.name} {`(${r.user?.employee?.employeeCode ? r.user?.employee?.employeeCode : ''})`}</span>
+      <p className="font-black text-slate-900 text-[11px] uppercase">{r.user?.name} {`(${r.user?.employee?.employeeCode ? r.user?.employee?.employeeCode : ''})`}</p>
     ),
   },
   {

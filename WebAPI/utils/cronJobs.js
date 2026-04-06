@@ -17,7 +17,7 @@ cron.schedule("0 0 * * *", async () => {
 
   try {
     const expiredProjects = await Project.find({
-      status: "Inactive",
+      deleteStatus: "Disable",
       updatedAt: { $lt: cutoff }
     }).select("_id");
 

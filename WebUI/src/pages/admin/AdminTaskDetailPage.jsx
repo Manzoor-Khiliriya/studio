@@ -92,9 +92,9 @@ export default function AdminTaskDetailPage() {
   const isOver = (task.totalConsumedHours || 0) > (task.allocatedTime || 0);
 
   return (
-    <div className="max-w-[1700px] mx-auto  min-h-screen bg-slate-50/30 pb-20">
+    <div className="max-w-[1750px] mx-auto  min-h-screen bg-slate-100 pb-10">
       <header className="bg-white border-b border-slate-200 pt-8 pb-10">
-        <div className="max-w-[1600px] mx-auto px-8">
+        <div className="max-w-[1750px] mx-auto px-8">
           <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 hover:text-orange-600 font-bold uppercase text-[10px] tracking-widest mb-6 border-none bg-transparent cursor-pointer transition-all group">
             <HiOutlineArrowLeft className="group-hover:-translate-x-1 transition-transform" /> Back to Dashboard
           </button>
@@ -322,7 +322,7 @@ function HeaderButton({ onClick, icon, text, variant = "primary" }) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 text-white px-5 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-sm active:scale-95 cursor-pointer ${styles}`}
+      className={`flex items-center gap-2 text-white px-7.5 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-sm active:scale-95 cursor-pointer ${styles}`}
     >
       {icon} {text}
     </button>

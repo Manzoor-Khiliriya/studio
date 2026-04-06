@@ -27,6 +27,8 @@ export default function ProjectModal({ isOpen, onClose, editProject = null }) {
     clientName: "",
     startDate: "",
     endDate: "",
+    invoiceNumber: "",
+    invoiceDate: "",
     status: "Active",
   });
 
@@ -39,6 +41,8 @@ export default function ProjectModal({ isOpen, onClose, editProject = null }) {
         clientName: editProject.clientName || "",
         startDate: editProject.startDate ? new Date(editProject.startDate).toISOString().split('T')[0] : "",
         endDate: editProject.endDate ? new Date(editProject.endDate).toISOString().split('T')[0] : "",
+        invoiceNumber: editProject.invoiceNumber || "",
+        invoiceDate: editProject.invoiceDate ? new Date(editProject.invoiceDate).toISOString().split('T')[0] : "",
         status: editProject.status || "Active",
       });
     } else if (isOpen) {
@@ -49,6 +53,8 @@ export default function ProjectModal({ isOpen, onClose, editProject = null }) {
         clientName: "",
         startDate: "",
         endDate: "",
+        invoiceNumber: "",
+        invoiceDate: "",
         status: "Active",
       });
     }
@@ -168,6 +174,31 @@ export default function ProjectModal({ isOpen, onClose, editProject = null }) {
           </InputGroup>
         </div>
 
+        {isEditing && (
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 grid grid-cols-2 gap-4">
+            <InputGroup label="Invoice Number">
+              <HiOutlineUser className="input-icon" />
+              <input
+                className="form-input text-xs font-bold uppercase"
+                placeholder="Enter Invoice Number"
+                value={formData.invoiceNumber}
+                onChange={(e) => setFormData({ ...formData, invoiceNumber: e.target.value })}
+              />
+            </InputGroup>
+
+            <InputGroup label="Inoice Date">
+              <HiOutlineCalendarDays className="input-icon" />
+              <input
+                type="date"
+                required
+                className="form-input text-[11px] font-bold"
+                value={formData.invoiceDate}
+                onChange={(e) => setFormData({ ...formData, invoiceDate: e.target.value })}
+              />
+            </InputGroup>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 gap-4">
           <InputGroup label="Project Type">
             <HiOutlineFlag className={`input-icon`} />
@@ -175,7 +206,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null }) {
               className="form-input font-bold text-[11px]"
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                
+
             >
               <option value="Active">Active</option>
               <option value="On hold">On Hold</option>

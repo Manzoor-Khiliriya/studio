@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useGetProjectsQuery, useUpdateProjectMutation } from "../../services/projectApi";
+import { useDeleteProjectMutation, useGetProjectsQuery, useUpdateProjectMutation } from "../../services/projectApi";
 
 import {
   HiOutlineMagnifyingGlass,
@@ -44,7 +44,8 @@ export default function AdminTasksPage() {
     startDate: "",
     endDate: "",
   });
-
+  const [projectTypeFilter, setProjectTypeFilter] = useState("All");
+  const [projectStatusFilter, setProjectStatusFilter] = useState("All");
   const [selectedProjects, setSelectedProjects] = useState([]);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
@@ -58,6 +59,7 @@ export default function AdminTasksPage() {
 
   const [deleteTask, { isLoading: isDeletingTask }] = useDeleteTaskMutation();
   const [updateProject, { isLoading: isDeactivating }] = useUpdateProjectMutation();
+  const [deleteProject, { isLoading: isDeletingProject }] = useDeleteProjectMutation();
 
   // --- DATA FETCHING ---
   const { data, isLoading, isFetching } = useGetProjectsQuery({
@@ -71,6 +73,8 @@ export default function AdminTasksPage() {
     taskSearch,
     liveStatus: liveStatusFilter,
     taskStatus: taskStatusFilter,
+    projectType: projectTypeFilter, // New
+    status: projectStatusFilter,
   });
 
   const projectGroups = data?.projects || [];
@@ -100,23 +104,30 @@ export default function AdminTasksPage() {
     }
   };
 
-  const handleConfirmDeactivate = async () => {
+  const handleConfirmDeleteAction = async () => {
+    if (!projectToDeactivate) return;
+
     try {
-      if (projectToDeactivate?._id === "bulk") {
+      const isBulk = projectToDeactivate._id === "bulk";
+      const targetIds = isBulk ? selectedProjects : [projectToDeactivate._id];
+
+      if (activeTab === "live") {
+        // TAB 1 LOGIC: Soft delete / Deactivate
         await Promise.all(
-          selectedProjects.map(id => updateProject({ id, status: "Inactive" }).unwrap())
+          targetIds.map(id => updateProject({ id, deleteStatus: "Enable" }).unwrap())
         );
-        toast.success(`${selectedProjects.length} projects deleted successfully.`);
-        setSelectedProjects([]);
+        toast.success(isBulk ? "Projects deactivated." : "Project deactivated.");
       } else {
-        await updateProject({
-          id: projectToDeactivate._id,
-          status: "Inactive"
-        }).unwrap();
-        toast.success("Project deleted successfully.");
+        // TAB 2 LOGIC: Permanent delete from DB
+        await Promise.all(
+          targetIds.map(id => deleteProject(id).unwrap())
+        );
+        toast.success(isBulk ? "Projects permanently removed." : "Project permanently removed.");
       }
+
+      if (isBulk) setSelectedProjects([]);
     } catch (err) {
-      toast.error(err?.data?.message || "Failed to process request.");
+      toast.error(err?.data?.message || "Action failed.");
     } finally {
       setProjectToDeactivate(null);
     }
@@ -143,6 +154,8 @@ export default function AdminTasksPage() {
     setTaskSearch("");
     setLiveStatusFilter("All");
     setTaskStatusFilter("All");
+    setProjectTypeFilter("All"); // New
+    setProjectStatusFilter("All");
     setDateFilters({ createdAt: "", startDate: "", endDate: "" });
     setCurrentPage(1);
     setSelectedProjects([]);
@@ -160,10 +173,11 @@ export default function AdminTasksPage() {
     });
   };
 
+  const isProcessing = isDeactivating || isDeletingProject;
   if (isLoading) return <Loader message="Synchronizing Project Data..." />;
 
   return (
-    <div className="max-w-[1700px] mx-auto  min-h-screen bg-slate-100">
+    <div className="max-w-[1750px] mx-auto min-h-screen bg-slate-100">
       <PageHeader
         title="Project Management"
         subtitle="Manage operational projects and nested task objectives."
@@ -183,7 +197,7 @@ export default function AdminTasksPage() {
         }}
       />
 
-      <main className="max-w-[1700px] mx-auto px-8 pb-10 -mt-10">
+      <main className="max-w-[1750px] mx-auto px-8 pb-10 -mt-10">
         <div className="bg-white/90 backdrop-blur-xl border border-slate-200 p-6 rounded-[2.5rem] shadow-xl shadow-slate-200/50 mb-8 flex flex-col gap-5">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             <div className="lg:col-span-6 relative group">
@@ -258,6 +272,37 @@ export default function AdminTasksPage() {
                   </div>
                 </div>
               ))}
+
+              {/* Add these inside the same div containing your other <select> filters */}
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Project Type</label>
+                <select
+                  value={projectTypeFilter}
+                  onChange={(e) => { setProjectTypeFilter(e.target.value); setCurrentPage(1); }}
+                  className="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 outline-none focus:border-orange-500 transition-all appearance-none cursor-pointer min-w-[140px]"
+                >
+                  <option value="All">All Types</option>
+                  <option value="Standard">Standard</option>
+                  <option value="Revision">Revision</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Project Status</label>
+                <select
+                  value={projectStatusFilter}
+                  onChange={(e) => { setProjectStatusFilter(e.target.value); setCurrentPage(1); }}
+                  className="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 outline-none focus:border-orange-500 transition-all appearance-none cursor-pointer min-w-[140px]"
+                >
+                  <option value="All">All Status</option>
+                  <option value="Active">Active</option>
+                  <option value="Submitted">Submitted</option>
+                  <option value="On hold">On Hold</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+
               <div className="flex flex-col gap-1.5">
                 <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Selection for Delete</label>
                 <div className="flex items-center gap-3 bg-slate-100/50 px-4 py-2 rounded-xl border border-slate-200">
@@ -378,6 +423,11 @@ export default function AdminTasksPage() {
                           <span className="text-[11px] font-bold text-slate-800 font-mono">{project.status}</span>
                         </div>
 
+                        <div className="flex flex-col gap-1 items-center">
+                          <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">Date of Status</span>
+                          <span className="text-[11px] font-bold text-slate-800 font-mono">{project?.statusChangedAt ? formatDate(project?.statusChangedAt) : "dd-mmm-yy"}</span>
+                        </div>
+
                         {activeTab === "all" && (
                           <>
                             <div className="flex flex-col gap-1 items-center">
@@ -428,7 +478,7 @@ export default function AdminTasksPage() {
 
                       {/* SELECTION CHECKBOX (Right Aligned) */}
                       <div
-                        className={`p-2.5 flex items-center rounded-xl border hover:border-orange-500  transition-all ${isSelected ? 'bg-orange-500 border-orange-500' : 'bg-white border-slate-200'}`}
+                        className={`px-3 py-2.5 flex items-center rounded-xl border hover:border-orange-500  transition-all ${isSelected ? 'bg-orange-500 border-orange-500' : 'bg-white border-slate-200'}`}
                         onClick={(e) => e.stopPropagation()}
                       >
                         <input
@@ -523,12 +573,13 @@ export default function AdminTasksPage() {
       <ConfirmModal
         isOpen={!!projectToDeactivate}
         onClose={() => setProjectToDeactivate(null)}
-        onConfirm={handleConfirmDeactivate}
-        isLoading={isDeactivating}
-        title={projectToDeactivate?._id === "bulk" ? "Deactivate Multiple Projects" : "Deactivate Project"}
-        message={projectToDeactivate?._id === "bulk"
-          ? `Are you sure you want to mark ${selectedProjects.length} selected projects as inactive?`
-          : `Are you sure you want to mark "${projectToDeactivate?.title}" as inactive?`
+        onConfirm={handleConfirmDeleteAction}
+        isLoading={isProcessing}
+        title={activeTab === "live" ? "Deactivate Project" : "PERMANENT Delete"}
+        message={
+          activeTab === "live"
+            ? `Moving "${projectToDeactivate?.title}" to the inactive list...`
+            : `WARNING: This will permanently erase "${projectToDeactivate?.title}" from the database. This cannot be undone.`
         }
         variant="danger"
       />

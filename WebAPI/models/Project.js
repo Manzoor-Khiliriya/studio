@@ -7,11 +7,25 @@ const projectSchema = new mongoose.Schema({
   clientName: { type: String },
   startDate: { type: Date, required: true },
   endDate: { type: Date, required: true },
-  status: { type: String, enum: ["Active", "On hold", "Submitted", "Inactive"], default: "Active" }
+  status: { 
+    type: String, 
+    enum: ["Active", "On hold", "Submitted", "Inactive"], 
+    default: "Active" 
+  },
+  statusChangedAt: { type: Date }, 
+  deleteStatus: { type: String, enum: ["Enable", "Disable"], default: "Disable" },
+  invoiceNumber: { type: String },
+  invoiceDate: { type: Date }, 
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
+});
+
+projectSchema.pre('save', async function() {
+  if (this.isModified('status')) {
+    this.statusChangedAt = new Date();
+  }
 });
 
 projectSchema.virtual('tasks', {

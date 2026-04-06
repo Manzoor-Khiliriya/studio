@@ -149,7 +149,7 @@ export default function EmployeeLeavePage() {
   if (isLoading) return <Loader message="Accessing Personal Ledger..." />;
 
   return (
-    <div className="max-w-[1700px] mx-auto min-h-screen bg-slate-100">
+    <div className="max-w-[1750px] mx-auto min-h-screen bg-slate-100">
       <PageHeader
         title="My Leaves"
         subtitle="Operational absence logs and earned credit registry."
@@ -157,7 +157,7 @@ export default function EmployeeLeavePage() {
         onAction={() => setIsModalOpen(true)}
       />
 
-      <main className="max-w-[1700px] mx-auto px-8 -mt-10 pb-20">
+      <main className="max-w-[1750px] mx-auto px-8 -mt-10 pb-20">
 
         {/* TACTICAL FILTER BAR */}
         <div className="flex flex-wrap items-center gap-4 mb-8 bg-white/90 backdrop-blur-xl p-5 rounded-[2.5rem] border border-slate-200 shadow-xl shadow-slate-200/40">
