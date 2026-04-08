@@ -29,8 +29,8 @@ exports.getSummary = async (req, res) => {
         User.countDocuments({ status: "Enable", role: "Employee" }),
         Attendance.countDocuments({ date: todayStr, clockOut: null }),
         Leave.countDocuments({ status: "Pending" }),
-        Task.find().populate("timeLogs"),   // ✅ IMPORTANT
-        Project.countDocuments({ status: "Active" }),
+        Task.find().populate("timeLogs"),
+        Project.countDocuments({ deleteStatus: "Disable" }),
         TimeLog.find({ isRunning: true, logType: "work" })
           .populate({ path: "user", select: "name", populate: { path: "employee", select: "employeeCode" } })
           .populate({
@@ -149,7 +149,7 @@ exports.getSummary = async (req, res) => {
       } : null,
 
       taskSnapshot: assignedTasks.map(t => {
-        const task = t.toObject(); 
+        const task = t.toObject();
 
         return {
           id: task._id,

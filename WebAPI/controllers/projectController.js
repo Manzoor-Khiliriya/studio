@@ -368,6 +368,8 @@ exports.getProjectCalendarStacks = async (req, res) => {
           }
           : {}
       },
+
+      // ✅ get tasks
       {
         $lookup: {
           from: "tasks",
@@ -376,15 +378,106 @@ exports.getProjectCalendarStacks = async (req, res) => {
           as: "taskList"
         }
       },
+
+      // ✅ get logs
+      {
+        $lookup: {
+          from: "timelogs",
+          localField: "taskList._id",
+          foreignField: "task",
+          as: "timeLogs"
+        }
+      },
+
       {
         $project: {
           id: { $toString: "$_id" },
           title: "$title",
           start: { $dateToString: { format: "%Y-%m-%d", date: "$startDate" } },
           end: { $dateToString: { format: "%Y-%m-%d", date: "$endDate" } },
+
           extendedProps: {
             projectCode: "$projectCode",
-            tasks: "$taskList",
+
+            tasks: {
+              $map: {
+                input: "$taskList",
+                as: "task",
+                in: {
+                  _id: "$$task._id",
+                  title: "$$task.title",
+
+                  liveStatus: {
+                    $let: {
+                      vars: {
+                        taskLogs: {
+                          $filter: {
+                            input: "$timeLogs",
+                            as: "log",
+                            cond: { $eq: ["$$log.task", "$$task._id"] }
+                          }
+                        }
+                      },
+                      in: {
+                        $cond: [
+                          // 🔥 IN PROGRESS
+                          {
+                            $gt: [
+                              {
+                                $size: {
+                                  $filter: {
+                                    input: "$$taskLogs",
+                                    as: "log",
+                                    cond: {
+                                      $and: [
+                                        { $eq: ["$$log.isRunning", true] },
+                                        { $eq: ["$$log.logType", "work"] }
+                                      ]
+                                    }
+                                  }
+                                }
+                              },
+                              0
+                            ]
+                          },
+                          "In progress",
+
+                          // 🔥 STARTED
+                          {
+                            $cond: [
+                              {
+                                $gt: [
+                                  {
+                                    $size: {
+                                      $filter: {
+                                        input: "$$taskLogs",
+                                        as: "log",
+                                        cond: {
+                                          $and: [
+                                            { $eq: ["$$log.logType", "work"] },
+                                            { $gt: ["$$log.durationSeconds", 0] }
+                                          ]
+                                        }
+                                      }
+                                    }
+                                  },
+                                  0
+                                ]
+                              },
+                              "Started",
+
+                              // 🔥 TO BE STARTED
+                              "To be started"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+
             taskCount: { $size: "$taskList" }
           }
         }

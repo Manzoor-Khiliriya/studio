@@ -106,10 +106,22 @@ const AdminProjectCalendar = () => {
                   className="group flex flex-col p-2 bg-slate-50 rounded-lg border border-transparent hover:border-indigo-200 hover:bg-white cursor-pointer transition-all"
                 >
                   <div className="flex items-center gap-2 mb-0.5">
-                    <div className={`w-1.5 h-1.5 rounded-full ${task.liveStatus === 'In progress' ? 'bg-orange-500' : 'bg-slate-300'}`} />
+                    <div className={`w-1.5 h-1.5 rounded-full ${task.liveStatus === 'In progress'
+                      ? 'bg-orange-500'
+                      : task.liveStatus === 'Started'
+                        ? 'bg-blue-500'
+                        : 'bg-slate-300'
+                      }`} />
                     <span className="text-[9px] font-bold text-slate-700 group-hover:text-indigo-600 truncate">{task.title}</span>
                   </div>
-                  <span className="text-[7px] font-black text-slate-400 uppercase ml-3.5">{task.liveStatus}</span>
+                  <span className={`text-[7px] font-black uppercase ml-3.5 ${task.liveStatus === 'In progress'
+                      ? 'text-orange-500'
+                      : task.liveStatus === 'Started'
+                        ? 'text-blue-500'
+                        : 'text-slate-400'
+                    }`}>
+                    {task.liveStatus}
+                  </span>
                 </div>
               ))}
             </div>

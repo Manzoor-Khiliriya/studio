@@ -80,7 +80,7 @@ const AdminDashboard = () => {
 
       <div className="mx-auto px-8 pb-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-12 mt-10">
-          <StatCard label="Total Projects" value={stats.totalProjects || 0} icon={<HiOutlineClipboardList size={22} />} delay={0.1} />
+          <StatCard label="Live Projects" value={stats.totalProjects || 0} icon={<HiOutlineClipboardList size={22} />} delay={0.1} />
           <StatCard label="Total Employees" value={stats.totalActiveEmployees || 0} icon={<HiOutlineUserGroup size={22} />} delay={0.2} />
           <StatCard label="On Duty" value={stats.attendanceLive || 0} variant={stats.attendanceLive > 0 ? "active" : "default"} icon={<HiOutlineFingerPrint size={22} />} delay={0.3} />
           <StatCard label="Task In Progress" value={stats.tasksInProgress || 0} icon={<HiOutlineArrowTrendingUp size={22} />} delay={0.4} />
