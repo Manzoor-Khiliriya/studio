@@ -135,7 +135,7 @@ const AdminProjectCalendar = () => {
   const iconText = pageTitle.charAt(0).toUpperCase();
 
   return (
-    <div className="max-w-[1750px] mx-auto  p-8 bg-white min-h-screen">
+    <div className="max-w-[1750px] mx-auto  p-8 bg-slate-100 min-h-screen">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
         <div>
           <div className="flex items-center gap-3 mb-2">
