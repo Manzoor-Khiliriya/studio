@@ -102,7 +102,7 @@ const AdminProjectCalendar = () => {
               {tasks?.map((task) => (
                 <div
                   key={task._id}
-                  onClick={(e) => { e.stopPropagation(); navigate(`/tasks/${task._id}`); }}
+                  onClick={(e) => { e.stopPropagation(); navigate(`/projects/${task._id}`); }}
                   className="group flex flex-col p-2 bg-slate-50 rounded-lg border border-transparent hover:border-indigo-200 hover:bg-white cursor-pointer transition-all"
                 >
                   <div className="flex items-center gap-2 mb-0.5">

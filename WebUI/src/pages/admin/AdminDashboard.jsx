@@ -4,7 +4,6 @@ import {
   useClearLogsMutation,
   useStopAllSessionsMutation
 } from '../../services/dashboardApi';
-import { useStopTimerMutation } from '../../services/timeLogApi';
 import { HiOutlineArrowTrendingUp, HiOutlineBolt, HiOutlineUserGroup, HiOutlineFingerPrint, HiOutlineCalendarDays } from 'react-icons/hi2';
 import { BiTask, BiTimeFive, BiTrash } from 'react-icons/bi';
 import { FiStopCircle, FiAlertTriangle } from 'react-icons/fi';
@@ -21,7 +20,6 @@ const AdminDashboard = () => {
     refetchOnFocus: true
   });
 
-  const [stopUserTimer] = useStopTimerMutation();
   const [stopAllSessions, { isLoading: isStoppingAll }] = useStopAllSessionsMutation();
   const [clearLogs, { isLoading: isClearing }] = useClearLogsMutation();
 
@@ -31,7 +29,6 @@ const AdminDashboard = () => {
   const liveTracking = data?.liveTracking || [];
   const recentActivity = data?.recentActivity || [];
 
-  // --- GROUPING LOGIC ---
   const groupedLogs = recentActivity.reduce((groups, log) => {
     const date = log.dateString;
     if (!groups[date]) groups[date] = [];
@@ -59,7 +56,6 @@ const AdminDashboard = () => {
     }
   };
 
-  // Improved date labels: Today, Yesterday, or the Actual Date
   const getFriendlyDate = (dateStr) => {
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
@@ -67,7 +63,6 @@ const AdminDashboard = () => {
     if (dateStr === today) return "Today's Operations";
     if (dateStr === yesterday) return "Yesterday";
 
-    // Return formatted date for everything else (e.g., "28 MAR 2026")
     return new Date(dateStr).toLocaleDateString('en-GB', {
       day: '2-digit',
       month: 'short',

@@ -1,7 +1,6 @@
 const TimeLog = require("../models/TimeLog");
 const Task = require("../models/Task");
 const Employee = require("../models/Employee");
-const Project = require("../models/Project");
 const mongoose = require("mongoose");
 const { applyProficiency } = require("../utils/userHelpers");
 
@@ -27,14 +26,13 @@ exports.startTimer = async (req, res) => {
       throw new Error(`Daily limit reached (${employee.dailyWorkLimit} hrs).`);
     }
 
-    // 2. Stop existing timers (Auto-switch)
+    // 2. Stop existing timers
     const activeLog = await TimeLog.findOne({ user: userId, isRunning: true });
-    // Replace the activeLog block in startTimer:
+
     if (activeLog) {
       const now = new Date();
       const rawSeconds = Math.max(0, Math.floor((now - new Date(activeLog.startTime)) / 1000));
 
-      // ✅ Apply proficiency for work logs on auto-switch
       if (activeLog.logType === "work") {
         const { adjustedSeconds } = await applyProficiency(userId, rawSeconds);
         activeLog.rawDurationSeconds = rawSeconds;
@@ -48,27 +46,23 @@ exports.startTimer = async (req, res) => {
       await activeLog.save({ session });
     }
 
-    // 3. Create Start Log
+    // 3. Create new log
     const log = await TimeLog.create([{
       user: userId,
       task: taskId,
       startTime: new Date(),
       isRunning: true,
       logType: "work",
-      action: "Start", // <--- Key for Admin Log
+      action: "Start",
       dateString: today
     }], { session });
 
-    if (task.liveStatus === "To be started" || task.liveStatus === "Started") {
-      task.liveStatus = "In progress";
-      await task.save({ session });
-    }
-
     await session.commitTransaction();
     res.status(201).json(log[0]);
+
   } catch (err) {
     await session.abortTransaction();
-    console.error(err)
+    console.error(err);
     res.status(400).json({ error: err.message });
   } finally {
     session.endSession();
@@ -89,7 +83,7 @@ exports.togglePause = async (req, res) => {
       active.rawDurationSeconds = rawSeconds;
       active.durationSeconds = adjustedSeconds;
     } else {
-      active.durationSeconds = rawSeconds; // breaks are recorded as-is
+      active.durationSeconds = rawSeconds;
     }
 
     active.endTime = now;
@@ -97,6 +91,7 @@ exports.togglePause = async (req, res) => {
     await active.save();
 
     const newType = active.logType === "work" ? "break" : "work";
+
     const newLog = await TimeLog.create({
       user: userId,
       task: active.task,
@@ -107,8 +102,12 @@ exports.togglePause = async (req, res) => {
     });
 
     res.json({ status: newType, log: newLog });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
+
 exports.stopTimer = async (req, res) => {
   try {
     const log = await TimeLog.findOne({ user: req.user._id, isRunning: true });
@@ -121,13 +120,18 @@ exports.stopTimer = async (req, res) => {
 
     log.endTime = now;
     log.isRunning = false;
-    log.rawDurationSeconds = rawSeconds;       // actual clock time
-    log.durationSeconds = adjustedSeconds;     // proficiency-adjusted
+    log.rawDurationSeconds = rawSeconds;
+    log.durationSeconds = adjustedSeconds;
     log.action = "Stop";
 
     await log.save();
+
     res.json({ message: "Session Terminated", log });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
 };
 
 exports.getMyLogs = async (req, res) => {
@@ -155,6 +159,7 @@ exports.getMyLogs = async (req, res) => {
       hoursWorkedToday,
       logs
     });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -168,7 +173,6 @@ exports.stopAllLiveSessions = async (req, res) => {
     const updatePromises = activeLogs.map(async (log) => {
       const rawSeconds = Math.max(0, Math.floor((now - new Date(log.startTime)) / 1000));
 
-      // ✅ Apply proficiency for work logs
       if (log.logType === "work") {
         const { adjustedSeconds } = await applyProficiency(log.user, rawSeconds);
         log.rawDurationSeconds = rawSeconds;
@@ -179,27 +183,30 @@ exports.stopAllLiveSessions = async (req, res) => {
 
       log.endTime = now;
       log.isRunning = false;
+
       return log.save();
     });
 
     await Promise.all(updatePromises);
+
     res.json({
       message: `Global shutdown complete. ${activeLogs.length} sessions recorded.`,
       stoppedCount: activeLogs.length
     });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
 exports.clearLogs = async (req, res) => {
   try {
-    const { date } = req.body; // e.g., "2024-03-29"
+    const { date } = req.body;
 
     if (!date) {
-      return res.status(400).json({ error: "Date is required to clear specific logs." });
+      return res.status(400).json({ error: "Date is required." });
     }
 
-    // Update only logs that match the specific date string
-    // and are not currently running.
     const result = await TimeLog.updateMany(
       {
         dateString: date,
@@ -210,9 +217,10 @@ exports.clearLogs = async (req, res) => {
     );
 
     res.json({
-      message: `Logs for ${date} have been cleared.`,
+      message: `Logs for ${date} cleared.`,
       clearedCount: result.modifiedCount
     });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

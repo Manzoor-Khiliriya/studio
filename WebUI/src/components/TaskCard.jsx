@@ -3,19 +3,28 @@ import { FiRefreshCcw, FiAlertCircle, FiHash, FiClock, FiMinusCircle, FiCheckCir
 import { formatDistanceToNow } from "date-fns";
 
 export default function TaskCard({ task, isTracking }) {
-  // HELPER: Status Visual Styles
-  const getStatusStyles = (currentStatus) => {
-    switch (currentStatus) {
-      case "To be started": return "bg-emerald-50 text-emerald-600 border-emerald-100";
-      default: return "bg-blue-50 text-blue-600 border-blue-100";
+
+
+  // ✅ LIVE STATUS STYLES
+  const getStatusStyles = (status) => {
+    switch (status) {
+      case "In progress":
+        return "bg-orange-50 text-orange-600 border-orange-100";
+      case "Started":
+        return "bg-yellow-50 text-yellow-600 border-yellow-100";
+      case "To be started":
+        return "bg-slate-50 text-slate-500 border-slate-100";
+      default:
+        return "bg-blue-50 text-blue-600 border-blue-100";
     }
   };
 
-  // HELPER: Side Bar Colors
+  // ✅ SIDE BAR COLOR BASED ON LIVE STATUS
   const getSideBarColor = () => {
     if (isTracking) return 'bg-orange-500';
-    if (task.status === "To be Started") return 'bg-emerald-500';
-    return 'bg-blue-400';
+    if (task.status === "To be started") return 'bg-slate-400';
+    if (task.status === "Started") return 'bg-yellow-500';
+    return 'bg-orange-400';
   };
 
   const lastUpdated = task.updatedAt
@@ -26,31 +35,35 @@ export default function TaskCard({ task, isTracking }) {
     <motion.div
       initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
-      className={`bg-white border rounded-[1.5rem] transition-all relative group flex flex-col md:flex-row overflow-hidden ${isTracking
+      className={`bg-white border rounded-[1.5rem] transition-all relative group flex flex-col md:flex-row overflow-hidden ${
+        isTracking
           ? 'border-orange-500 shadow-lg shadow-orange-500/5 ring-1 ring-orange-500/20'
-          : task.status === "Overdue"
-            ? 'border-red-200 shadow-sm bg-red-50/5'
-            : 'border-slate-100'
-        }`}
+          : 'border-slate-100'
+      }`}
     >
-      {/* Visual Status Indicator */}
-      <div className={`w-1.5 transition-colors duration-500 ${getSideBarColor()}`} />
+      {/* LEFT BAR */}
+      <div className={`w-1.5 ${getSideBarColor()}`} />
 
       <div className="flex flex-col lg:flex-row flex-1 p-5 gap-6 items-center">
 
-        {/* LEFT: CONTENT SECTION */}
+        {/* LEFT CONTENT */}
         <div className="flex-1 space-y-3 w-full">
+
           <div className="flex items-center flex-wrap gap-2">
-            <span className={`text-[8px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md border ${getStatusStyles(task.status)}`}>
+
+            {/* OPTIONAL: SHOW WORKFLOW STATUS */}
+            <span className="text-[8px] font-bold px-2 py-1 bg-blue-100 text-blue-600 rounded-md">
               {task.status}
             </span>
+
             <div className="flex items-center gap-1.5 text-slate-400 text-[9px] font-bold uppercase bg-slate-50 px-2 py-1 rounded-md">
               <FiRefreshCcw size={10} />
               {lastUpdated}
             </div>
+
             {isTracking && (
               <span className="flex items-center gap-1 text-orange-600 text-[8px] font-black uppercase px-2 py-1 bg-orange-100 rounded-md animate-pulse">
-                <FiActivity size={10} /> Live Telemetry
+                <FiActivity size={10} /> Live
               </span>
             )}
           </div>
@@ -60,38 +73,33 @@ export default function TaskCard({ task, isTracking }) {
               <span className="text-slate-400 font-bold">
                 {task.projectCode && task.projectCode !== "N/A" ? `(${task.projectCode})` : "(GEN)"}
               </span>
-              <h3 className={`font-black tracking-tight ${isTracking ? 'text-orange-600' : task.status === "Overdue" ? 'text-red-700' : 'text-slate-800'
-                }`}>
+              <h3 className={`font-black tracking-tight ${isTracking ? 'text-orange-600' : 'text-slate-800'}`}>
                 {task.title}
               </h3>
             </div>
+
             <p className="text-slate-500 text-xs font-medium leading-relaxed line-clamp-1 italic">
-              {task?.description || "Mission details encrypted. Contact supervisor for brief."}
+              {task?.description || "Mission details encrypted."}
             </p>
           </div>
         </div>
 
-        {/* RIGHT: READ-ONLY STATUS DISPLAY */}
-        <div className={`lg:w-48 w-full flex items-center justify-center p-4 rounded-2xl border ${task.status === "Completed" ? 'bg-emerald-50 border-emerald-100' :
-            task.status === "Overdue" ? 'bg-red-50 border-red-100' :
-              isTracking ? 'bg-orange-50 border-orange-100' : 'bg-slate-50 border-slate-100'
-          }`}>
+        {/* RIGHT PANEL */}
+        <div className="lg:w-48 w-full flex items-center justify-center p-4 rounded-2xl border bg-slate-50 border-slate-100">
           <div className="flex flex-col items-center gap-1">
-            {task.status === "Completed" ? (
-              <FiCheckCircle className="text-emerald-500" size={20} />
-            ) : task.status === "Overdue" ? (
-              <FiAlertCircle className="text-red-500" size={20} />
-            ) : task.status === "Pending" ? (
-              <FiMinusCircle className="text-slate-400" size={20} />
+
+            {task.status === "In progress" ? (
+              <FiActivity className="text-orange-500" size={20} />
+            ) : task.status === "Started" ? (
+              <FiClock className="text-yellow-500" size={20} />
             ) : (
-              <FiClock className="text-orange-500" size={20} />
+              <FiMinusCircle className="text-slate-400" size={20} />
             )}
-            <span className={`text-[10px] font-black uppercase tracking-tighter ${task.status === "Completed" ? 'text-emerald-600' :
-                task.status === "Overdue" ? 'text-red-600' :
-                  task.status === "Pending" ? 'text-slate-500' : 'text-orange-600'
-              }`}>
-              {task.status === "In Progress" ? "System Active" : task.status}
+
+            <span className="text-[10px] font-black uppercase text-slate-600">
+              {task?.status}
             </span>
+
           </div>
         </div>
 

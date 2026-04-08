@@ -256,7 +256,7 @@ export default function AdminTaskDetailPage() {
             <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                  Active Employees
+                  Currently Assigned Employees
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 </h3>
                 <button
@@ -276,7 +276,7 @@ export default function AdminTaskDetailPage() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-[10px] font-black text-slate-300 uppercase italic text-center py-4">No active personnel assigned.</p>
+                  <p className="text-[10px] font-black text-slate-300 uppercase italic text-center py-4">No active employee assigned.</p>
                 )}
               </div>
             </div>

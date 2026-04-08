@@ -81,6 +81,7 @@ export default function MyTasksPage() {
     const statusMap = {
       "in progress": "text-green-600",
       "started": "text-blue-600",
+      "to be started": "text-slate-400",
     };
 
     return statusMap[status?.toLowerCase()] || "text-yellow-600";
@@ -148,7 +149,7 @@ export default function MyTasksPage() {
       cellClassName: "text-center",
       render: (task) => (
         <span className={`text-[10px] font-black ${getStatusColor(task.liveStatus)}`}>
-          {task.liveStatus || "To Be Started"}
+          {task.liveStatus || "To be started"}
         </span>
       ),
     },

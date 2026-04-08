@@ -553,7 +553,7 @@ export default function AdminTasksPage() {
         </div>
       </main>
 
-      <ProjectModal isOpen={showProjectModal} onClose={() => { setShowProjectModal(false); setEditingProject(null); }} editProject={editingProject} />
+      <ProjectModal isOpen={showProjectModal} onClose={() => { setShowProjectModal(false); setEditingProject(null); }} editProject={editingProject} activeTab={activeTab} />
       <TaskModal
         isOpen={showTaskModal || !!editingTask}
         onClose={() => {

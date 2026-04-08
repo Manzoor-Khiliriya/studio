@@ -22,7 +22,6 @@ export default function ClockInOut({ todaySeconds: dashboardDailySecs, taskList 
   const isSyncing = isStarting || isToggling || isStopping;
   const status = activeLog ? (isPaused ? "On Break" : "Mission Active") : "Not Started";
 
-  // SYNC DROPDOWN — resolve activeLog._id against taskList which uses .id
   useEffect(() => {
     if (activeLog?.task?._id) {
       const match = taskList.find(t => t.id === activeLog.task._id.toString());
@@ -30,7 +29,6 @@ export default function ClockInOut({ todaySeconds: dashboardDailySecs, taskList 
     }
   }, [activeLog, taskList]);
 
-  // AUTO-POP HUD ON START OR REFRESH
   useEffect(() => {
     if (activeLog && !isPipActive && !pipWindowRef.current) {
       const timeout = setTimeout(() => {

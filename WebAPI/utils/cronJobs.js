@@ -23,30 +23,46 @@ cron.schedule("0 0 * * *", async () => {
 
     if (expiredProjects.length > 0) {
       const pIds = expiredProjects.map(p => p._id);
-
       const tasks = await Task.find({ project: { $in: pIds } }).select("_id");
       const tIds = tasks.map(t => t._id);
-
       await TimeLog.deleteMany({ task: { $in: tIds } });
       await Task.deleteMany({ project: { $in: pIds } });
       await Project.deleteMany({ _id: { $in: pIds } });
-      
       console.log(`Successfully purged ${pIds.length} expired projects.`);
     }
-
     const attendancePurge = await Attendance.deleteMany({
       clockIn: { $lt: cutoff }
     });
     console.log(`Purged ${attendancePurge.deletedCount} old attendance records.`);
-
-    // const leavePurge = await Leave.deleteMany({
-    //   endDate: { $lt: cutoff },
-    //   status: { $ne: "Pending" }
-    // });
-    // console.log(`Purged ${leavePurge.deletedCount} old leave records.`);
-
     console.log("--- CLEANUP COMPLETED SUCCESSFULLY ---");
   } catch (error) {
     console.error("CRON ERROR:", error);
+  }
+});
+
+cron.schedule("5 0 * * *", async () => {
+  console.log("--- STARTING DAILY TASK STATUS RESET ---");
+  try {
+    const inProgressTasks = await Task.find({ liveStatus: "In progress" });
+
+    let resetCount = 0;
+
+    for (const task of inProgressTasks) {
+      const isActuallyRunning = await TimeLog.findOne({ 
+        task: task._id, 
+        isRunning: true 
+      });
+
+      if (!isActuallyRunning) {
+        task.liveStatus = "Started";
+        await task.save();
+        resetCount++;
+      }
+    }
+    
+    console.log(`Successfully reset ${resetCount} tasks to 'Started'.`);
+    console.log("--- STATUS RESET COMPLETED ---");
+  } catch (error) {
+    console.error("STATUS RESET CRON ERROR:", error);
   }
 });

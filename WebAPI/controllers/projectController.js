@@ -28,8 +28,6 @@ exports.createProject = async (req, res) => {
 
     return res.status(201).json({ success: true, message: "Project created successfully", project });
   } catch (error) {
-    console.error(error);
-
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
@@ -44,10 +42,10 @@ exports.getAllProjects = async (req, res) => {
       createdAt,
       startDate,
       endDate,
-      taskSearch, // New
-      liveStatus, // New
-      taskStatus, // New
-      projectType, // New
+      taskSearch,
+      liveStatus,
+      taskStatus,
+      projectType,
       status
     } = req.query;
 
@@ -61,30 +59,16 @@ exports.getAllProjects = async (req, res) => {
     if (projectType && projectType !== "All") {
       query.projectType = projectType;
     }
+
     if (status && status !== "All") {
       query.status = status;
     }
-    
+
     if (search) {
       query.$or = [
         { projectCode: { $regex: search, $options: "i" } },
         { title: { $regex: search, $options: "i" } }
       ];
-    }
-
-    const isTaskSearching = (taskSearch && taskSearch.trim() !== "");
-    const isLiveStatusFiltering = (liveStatus && liveStatus !== "All" && liveStatus !== "");
-    const isTaskStatusFiltering = (taskStatus && taskStatus !== "All" && taskStatus !== "");
-
-    if (isTaskSearching || isLiveStatusFiltering || isTaskStatusFiltering) {
-      const taskFilter = {};
-      if (isTaskSearching) taskFilter.title = { $regex: taskSearch, $options: "i" };
-      if (isLiveStatusFiltering) taskFilter.liveStatus = liveStatus;
-      if (isTaskStatusFiltering) taskFilter.status = taskStatus;
-
-      const matchingTaskProjects = await Task.find(taskFilter).distinct("project");
-
-      query._id = { $in: matchingTaskProjects };
     }
 
     if (createdAt) {
@@ -95,39 +79,30 @@ exports.getAllProjects = async (req, res) => {
     }
 
     if (startDate || endDate) {
-      query.startDate = {};
-
       if (startDate && endDate) {
         query.startDate = {
           $gte: new Date(startDate),
           $lte: new Date(endDate)
         };
       } else if (startDate) {
-        const start = new Date(startDate);
-        const end = new Date(startDate);
-        end.setHours(23, 59, 59, 999);
-        query.startDate = { $gte: start, $lte: end };
+        const s = new Date(startDate);
+        const e = new Date(startDate);
+        e.setHours(23, 59, 59, 999);
+        query.startDate = { $gte: s, $lte: e };
       } else if (endDate) {
-        const start = new Date(endDate);
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        query.endDate = { $gte: start, $lte: end };
-        delete query.startDate;
+        const s = new Date(endDate);
+        const e = new Date(endDate);
+        e.setHours(23, 59, 59, 999);
+        query.endDate = { $gte: s, $lte: e };
       }
     }
-
-    const total = await Project.countDocuments(query);
-
     const projects = await Project.find(query)
       .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(Number(limit))
       .populate({
         path: "tasks",
         match: {
           ...(taskSearch && { title: { $regex: taskSearch, $options: "i" } }),
-          ...(liveStatus && liveStatus !== "All" && { liveStatus }),
-          ...(taskStatus && taskStatus !== "All" && { status: taskStatus }),
+          ...(taskStatus && taskStatus !== "All" && { status: taskStatus })
         },
         populate: [
           { path: "assignedTo", populate: { path: "user", select: "name" } },
@@ -135,13 +110,50 @@ exports.getAllProjects = async (req, res) => {
         ]
       });
 
+    let projectsWithStatus = projects.map(project => ({
+      ...project.toObject(),
+      tasks: (project.tasks || []).map(task => ({
+        ...task.toObject(),
+        liveStatus: task.liveStatus
+      }))
+    }));
+
+    if (liveStatus && liveStatus !== "All") {
+      projectsWithStatus = projectsWithStatus.map(project => ({
+        ...project,
+        tasks: project.tasks.filter(t => t.liveStatus === liveStatus)
+      }));
+    }
+
+    const isTaskFilterApplied =
+      (taskSearch && taskSearch.trim() !== "") ||
+      (taskStatus && taskStatus !== "All") ||
+      (liveStatus && liveStatus !== "All");
+
+    if (isTaskFilterApplied) {
+      projectsWithStatus = projectsWithStatus.filter(
+        project => project.tasks && project.tasks.length > 0
+      );
+    }
+
+    const total = projectsWithStatus.length;
+    const paginatedProjects = projectsWithStatus.slice(skip, skip + Number(limit));
+
     return res.status(200).json({
       success: true,
-      projects,
-      pagination: { totalProjects: total, totalPages: Math.ceil(total / limit), currentPage: Number(page) }
+      projects: paginatedProjects,
+      pagination: {
+        totalProjects: total,
+        totalPages: Math.ceil(total / limit),
+        currentPage: Number(page)
+      }
     });
+
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Internal server error" });
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
   }
 };
 
@@ -209,12 +221,11 @@ exports.deleteProject = async (req, res) => {
     }
     await Task.deleteMany({ project: projectId });
     await Project.deleteOne({ _id: projectId });
-    return res.status(200).json({ 
-      success: true, 
-      message: "Project and all related tasks/timelogs deleted successfully." 
+    return res.status(200).json({
+      success: true,
+      message: "Project and all related tasks/timelogs deleted successfully."
     });
   } catch (error) {
-    console.error(error)
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
@@ -224,7 +235,6 @@ exports.getTaskPerformanceReport = async (req, res) => {
     const { page = 1, limit = 5, search = "" } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Filter projects first - This is why it's faster here
     const projectQuery = {};
     if (search) {
       projectQuery.$or = [
@@ -239,7 +249,6 @@ exports.getTaskPerformanceReport = async (req, res) => {
       { $skip: skip },
       { $limit: parseInt(limit) },
 
-      // Join Tasks
       {
         $lookup: {
           from: "tasks",
@@ -249,13 +258,12 @@ exports.getTaskPerformanceReport = async (req, res) => {
         }
       },
 
-      // Join Timelogs only for the tasks found above
       {
         $lookup: {
           from: "timelogs",
           localField: "taskList._id",
           foreignField: "task",
-          pipeline: [{ $match: { logType: "work" } }], // Filter logs early in the join
+          pipeline: [{ $match: { logType: "work" } }],
           as: "workLogs"
         }
       },
@@ -276,7 +284,6 @@ exports.getTaskPerformanceReport = async (req, res) => {
                 title: "$$t.title",
                 status: "$$t.status",
                 allocatedTime: { $ifNull: ["$$t.allocatedTime", 0] },
-                // Calculate hours for this specific task from the joined workLogs
                 consumedHours: {
                   $round: [
                     {
@@ -294,7 +301,7 @@ exports.getTaskPerformanceReport = async (req, res) => {
                             in: { $add: ["$$value", { $ifNull: ["$$this.durationSeconds", 0] }] }
                           }
                         },
-                        3600 // Convert seconds to hours
+                        3600
                       ]
                     },
                     2
@@ -306,7 +313,6 @@ exports.getTaskPerformanceReport = async (req, res) => {
         }
       },
 
-      // Final Totals for the Project Card
       {
         $addFields: {
           totalBudget: { $sum: "$taskList.allocatedTime" },
@@ -373,12 +379,12 @@ exports.getProjectCalendarStacks = async (req, res) => {
       {
         $project: {
           id: { $toString: "$_id" },
-          title: "$title", // Project Title
+          title: "$title",
           start: { $dateToString: { format: "%Y-%m-%d", date: "$startDate" } },
           end: { $dateToString: { format: "%Y-%m-%d", date: "$endDate" } },
           extendedProps: {
             projectCode: "$projectCode",
-            tasks: "$taskList", // Send the whole array of tasks
+            tasks: "$taskList",
             taskCount: { $size: "$taskList" }
           }
         }

@@ -4,7 +4,7 @@ const Project = require("../models/Project");
 const TimeLog = require("../models/TimeLog");
 const Employee = require("../models/Employee");
 const sendTaskNotification = require("../utils/notifier");
-const { calculateEstimatedHours, getLiveStatus } = require("../utils/taskHelpers");
+const { calculateEstimatedHours } = require("../utils/taskHelpers");
 
 exports.createTask = async (req, res) => {
   try {
@@ -139,10 +139,7 @@ exports.updateTaskStatus = async (req, res) => {
 exports.getAllTasks = async (req, res) => {
   try {
     const { search, status, page = 1, limit = 5, createdAt, startDate, endDate } = req.query;
-
-    // 1. BUILD PROJECT QUERY
     const projectQuery = { status: 'Active' };
-
     if (search) {
       projectQuery.$or = [
         { projectCode: { $regex: search, $options: "i" } },
@@ -173,7 +170,6 @@ exports.getAllTasks = async (req, res) => {
       projectQuery.startDate = dateFilter;
     }
 
-    // 2. PAGINATE PROJECTS (These will be your "Cards")
     const skip = (Number(page) - 1) * Number(limit);
 
     const totalProjects = await Project.countDocuments(projectQuery);
@@ -184,10 +180,8 @@ exports.getAllTasks = async (req, res) => {
 
     const projectIds = paginatedProjects.map(p => p._id);
 
-    // 3. FETCH TASKS ONLY FOR THESE PAGINATED PROJECTS
     const taskQuery = { project: { $in: projectIds } };
 
-    // Apply status filter to tasks if provided
     if (status && status !== "All") {
       taskQuery.status = status;
     }
@@ -198,17 +192,14 @@ exports.getAllTasks = async (req, res) => {
       .populate("timeLogs")
       .sort({ createdAt: -1 });
 
-    const today = new Date().toISOString().split("T")[0];
-
     const tasksWithStatus = tasks.map(task => ({
       ...task.toObject(),
-      liveStatus: getLiveStatus(task, today)
     }));
 
     return res.status(200).json({
       success: true,
-      tasks: tasksWithStatus, // Only tasks for the projects on this page
-      allProjects: paginatedProjects, // The projects for this page
+      tasks: tasksWithStatus,
+      allProjects: paginatedProjects,
       pagination: {
         totalProjects: totalProjects,
         totalPages: Math.ceil(totalProjects / limit),
@@ -217,7 +208,6 @@ exports.getAllTasks = async (req, res) => {
       }
     });
   } catch (err) {
-    console.error(err);
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
@@ -227,7 +217,8 @@ exports.getTaskDetail = async (req, res) => {
     const task = await Task.findById(req.params.id)
       .populate("project", "projectCode title clientName startDate endDate createdAt")
       .populate({
-        path: "assignedTo", populate: {
+        path: "assignedTo",
+        populate: {
           path: "user",
           select: "name",
           populate: {
@@ -246,45 +237,60 @@ exports.getTaskDetail = async (req, res) => {
             select: "employeeCode"
           }
         }
-      });
+      })
 
     if (!task) {
-      return res.status(404).json({ success: false, message: "Task not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Task not found"
+      });
     }
 
-    // --- CUSTOM CALCULATIONS ---
     const totalAllocatedSeconds = (task.allocatedTime || 0) * 3600;
     const contributorMap = new Map();
 
-    // Loop through logs to find every unique person who ever worked
-    task.timeLogs.forEach((log) => {
+    (task.timeLogs || []).forEach((log) => {
       if (log.logType !== "work") return;
 
       const user = log.user;
-      const userId = user?._id.toString();
+      if (!user?._id) return;
+
+      const userId = user._id.toString();
 
       if (!contributorMap.has(userId)) {
         contributorMap.set(userId, {
           id: userId,
-          name: user?.name || "Unknown",
+          name: user.name || "Unknown",
           code: user?.employee?.employeeCode || "N/A",
           seconds: 0,
-          isCurrentlyAssigned: task.assignedTo.some(a => a.user?._id.toString() === userId)
+          isCurrentlyAssigned: (task.assignedTo || []).some(
+            a => a?.user?._id?.toString() === userId
+          )
         });
       }
 
-      const current = contributorMap.get(userId);
-      current.seconds += (log.durationSeconds || 0);
+      contributorMap.get(userId).seconds += (log.durationSeconds || 0);
     });
 
     const historicalContributors = Array.from(contributorMap.values()).map(c => ({
       ...c,
-      percentage: totalAllocatedSeconds > 0 ? ((c.seconds / totalAllocatedSeconds) * 100).toFixed(1) : 0
+      percentage:
+        totalAllocatedSeconds > 0
+          ? ((c.seconds / totalAllocatedSeconds) * 100).toFixed(1)
+          : 0
     }));
 
-    // Construct the final response object
+    const totalConsumedSeconds = (task.timeLogs || [])
+      .filter(log => log.logType === "work")
+      .reduce((sum, log) => sum + (log.durationSeconds || 0), 0);
+
+    const totalConsumedHours = totalConsumedSeconds / 3600;
+
     const taskData = {
       ...task.toObject(),
+      liveStatus: task.liveStatus,
+      totalConsumedSeconds,
+      totalConsumedHours,
       stats: {
         totalAssigned: task.assignedTo?.length || 0,
         totalHistoricalContributors: historicalContributors.length,
@@ -292,98 +298,129 @@ exports.getTaskDetail = async (req, res) => {
       }
     };
 
-    return res.status(200).json({ success: true, task: taskData });
+    return res.status(200).json({
+      success: true,
+      task: taskData
+    });
+
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false, message: "Internal server error" });
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
   }
 };
 
 exports.getTasksByEmployee = async (req, res) => {
   try {
     const employee = await Employee.findOne({ user: req.params.userId });
+
     if (!employee) {
-      return res.status(404).json({ success: false, message: "Employee not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Employee not found",
+      });
     }
-    const tasksWithLogs = await TimeLog.distinct("task", { user: req.params.userId });
+
+    // Tasks where user worked (via timelogs)
+    const tasksWithLogs = await TimeLog.distinct("task", {
+      user: req.params.userId,
+    });
 
     const { liveStatus } = req.query;
+
     const query = {
       $or: [
         { assignedTo: employee._id },
-        { _id: { $in: tasksWithLogs } }
-      ]
+        { _id: { $in: tasksWithLogs } },
+      ],
     };
-
-    if (liveStatus && liveStatus !== "All") {
-      query.liveStatus = { $in: liveStatus.split(",") };
-    }
-
-    const today = new Date().toISOString().split("T")[0];
 
     const allRelatedTasks = await Task.find(query)
       .populate("project", "projectCode")
       .populate("timeLogs")
-      .sort({ createdAt: -1 })
-      .lean({ virtuals: true });
+      .sort({ createdAt: -1 });
 
-    const tasksWithStatus = allRelatedTasks.map(task => ({
-      ...task,
-      liveStatus: getLiveStatus(task, today)
+    const tasksWithVirtuals = allRelatedTasks.map(task => ({
+      ...task.toObject(),
+      liveStatus: task.liveStatus
     }));
+
+    let finalTasks = tasksWithVirtuals;
+
+    if (liveStatus && liveStatus !== "All") {
+      const allowed = liveStatus.split(",");
+      finalTasks = tasksWithVirtuals.filter(task =>
+        allowed.includes(task.liveStatus)
+      );
+    }
+
+    const currentlyAssigned = finalTasks.filter(task =>
+      task.assignedTo?.some(id => id.toString() === employee._id.toString())
+    );
 
     const response = {
       success: true,
-      currentlyAssigned: tasksWithStatus.filter(task =>
-        task.assignedTo?.toString() === employee._id.toString()
-      ),
-      workedAndAssigned: tasksWithStatus
+      currentlyAssigned,
+      workedAndAssigned: finalTasks,
     };
 
     return res.status(200).json(response);
-
   } catch (err) {
-    return res.status(500).json({ success: false, message: "Internal server error" });
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };
 
 exports.getMyTasks = async (req, res) => {
   try {
-    const { search, status, liveStatus, activeStatus, page = 1, limit = 6 } = req.query;
+    const {
+      search,
+      status,
+      liveStatus,
+      activeStatus,
+      page = 1,
+      limit = 6,
+    } = req.query;
 
-    // 1. Find the Employee profile
     const employee = await Employee.findOne({ user: req.user._id });
+
     if (!employee) {
       return res.status(200).json({
         success: true,
         tasks: [],
-        pagination: { current: 1, totalPages: 0, totalTasks: 0 }
+        pagination: { current: 1, totalPages: 0, totalTasks: 0 },
       });
     }
 
-    // 2. Build Query Base
-    const query = { assignedTo: employee._id };
+    const activeProjects = await Project.find({
+      status: "Active",
+      deleteStatus: "Disable",
+    }).select("_id");
 
-    // 3. Project Filter (Only show tasks from projects that AREN'T deleted/archived)
-    // You can add { isDeleted: false } or { status: "Active" } here
-    const activeProjectFilter = { status: "Active" };
+    const query = {
+      assignedTo: employee._id,
+      project: { $in: activeProjects.map((p) => p._id) },
+    };
 
     if (search) {
       const matchingProjects = await Project.find({
-        ...activeProjectFilter,
+        status: "Active",
+        deleteStatus: "Disable",
         $or: [
           { projectCode: { $regex: search, $options: "i" } },
-          { title: { $regex: search, $options: "i" } }
-        ]
+          { title: { $regex: search, $options: "i" } },
+        ],
       }).select("_id");
 
       query.$or = [
         { title: { $regex: search, $options: "i" } },
-        { project: { $in: matchingProjects.map(p => p._id) } }
+        { project: { $in: matchingProjects.map((p) => p._id) } },
       ];
     }
 
-    // 4. Status Filters
     if (status && status !== "All") {
       query.status = status.startsWith("!")
         ? { $ne: status.substring(1) }
@@ -396,60 +433,63 @@ exports.getMyTasks = async (req, res) => {
         : activeStatus;
     }
 
-    if (liveStatus && liveStatus !== "All") {
-      query.liveStatus = { $in: liveStatus.split(",") };
-    }
-
-    // 5. Execution with Population
     const skip = (Number(page) - 1) * Number(limit);
 
-    // We use .find(query) but also ensure the project itself exists and is valid
     const tasks = await Task.find(query)
-      .populate({
-        path: "project",
-        match: activeProjectFilter, // Only populates if project is active
-        select: "projectCode title startDate endDate createdAt"
-      })
-      .populate({
-        path: "assignedTo",
-        populate: { path: "user", select: "name" }
-      })
+      .populate("project", "projectCode title")
+      .populate("timeLogs")
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(Number(limit))
-      .lean(); // Use lean for faster processing and to allow manual property editing
+      .limit(Number(limit));
 
-    // 6. Filter out tasks where project became null due to the 'match' filter
-    const filteredTasks = tasks.filter(task => task.project !== null);
+    if (!tasks.length) {
+      return res.status(200).json({
+        success: true,
+        tasks: [],
+        pagination: {
+          current: Number(page),
+          totalPages: 0,
+          totalTasks: 0,
+        },
+      });
+    }
 
-    // 7. Calculate Seconds for Utilization Bar
-    // If your Task model doesn't have a virtual for totalSeconds, calculate it here:
-    // const today = new Date().toISOString().split("T")[0];
-    const finalTasks = filteredTasks.map(task => {
-      const totalSeconds = task.timeLogs?.reduce((acc, log) => acc + (log.durationSeconds || 0), 0) || 0;
+    let finalTasks = tasks.map((task) => {
+      const totalSeconds = (task.timeLogs || []).reduce(
+        (acc, log) => acc + (log.durationSeconds || 0),
+        0
+      );
 
       return {
-        ...task,
+        ...task.toObject(),
+        liveStatus: task.liveStatus,
         totalLoggedSeconds: totalSeconds,
         totalConsumedHours: totalSeconds / 3600,
-        // liveStatus: getLiveStatus(task, today) // 🔥 IMPORTANT
       };
     });
+
+    if (liveStatus && liveStatus !== "All") {
+      const allowed = liveStatus.split(",");
+      finalTasks = finalTasks.filter((t) =>
+        allowed.includes(t.liveStatus)
+      );
+    }
 
     const total = await Task.countDocuments(query);
 
     return res.status(200).json({
       success: true,
-      tasks: tasks,
+      tasks: finalTasks,
       pagination: {
         current: Number(page),
         totalPages: Math.ceil(total / Number(limit)),
-        totalTasks: total
-      }
+        totalTasks: total,
+      },
     });
   } catch (err) {
-    console.error("GetMyTasks Error:", err);
-    return res.status(500).json({ success: false, message: "Internal server error" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
   }
 };
 

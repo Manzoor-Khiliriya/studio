@@ -248,7 +248,8 @@ export default function EmployeeDetailPage() {
     };
   }, [workedAndAssigned, userId]);
 
-  const activeTasks = currentlyAssigned.filter((t) => ["In progress"].includes(t.liveStatus));
+  const activeTasks = currentlyAssigned;
+  const liveTasks = currentlyAssigned.filter((t) => ["In progress"].includes(t.liveStatus));
   const paginatedAllTasks = workedAndAssigned.slice(taskPage * itemsPerPage, (taskPage + 1) * itemsPerPage);
   const effectiveHours = employee ? ((540 * (employee.proficiency || 100)) / 6000).toFixed(1) : 0;
 
@@ -392,13 +393,13 @@ export default function EmployeeDetailPage() {
             <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl">
               <div className="flex items-center gap-2 mb-8">
                 <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Live Mission Queue</h3>
+                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Live Tasks</h3>
               </div>
               <div className="space-y-3">
-                {activeTasks.length > 0 ? (
-                  activeTasks.map((t) => <TaskSmallCard key={t._id} task={t} active />)
+                {liveTasks.length > 0 ? (
+                  liveTasks.map((t) => <TaskSmallCard key={t._id} task={t} active />)
                 ) : (
-                  <p className="text-[10px] font-bold text-slate-500 uppercase italic py-4">No Current Assignments</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase italic py-4">No Live Tasks Found</p>
                 )}
               </div>
             </div>
@@ -486,7 +487,7 @@ function TaskSmallCard({ task, active, historical }) {
       className={`p-3 rounded-2xl border transition-all ${active
         ? "bg-white/5 border-white/10 hover:bg-white/10"
         : historical
-          ? "bg-slate-50 border-slate-100 opacity-60 grayscale-[0.5]"
+          ? "bg-slate-50 border-slate-100 opacity-60"
           : "bg-slate-50 border-slate-100 hover:border-slate-200"
         }`}
     >
@@ -501,7 +502,13 @@ function TaskSmallCard({ task, active, historical }) {
           className={`text-[8px] font-black px-2 py-1 rounded uppercase tracking-widest ${active ? "bg-orange-500/20 text-orange-400" : "bg-slate-200 text-slate-500"
             }`}
         >
-          {task.status}
+          {task.liveStatus}
+        </span>
+        <span
+          className={`text-[8px] font-black px-2 py-1 rounded uppercase tracking-widest ${active ? "bg-orange-500/20 text-orange-400" : "bg-slate-200 text-slate-500"
+            }`}
+        >
+           {task.status}
         </span>
         <span className={`text-[10px] font-black ${active ? "text-white/40" : "text-slate-300"}`}>
           {task.allocatedTime || 0}H ALLOC

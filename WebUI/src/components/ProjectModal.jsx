@@ -14,7 +14,7 @@ import {
   useUpdateProjectMutation
 } from "../services/projectApi";
 
-export default function ProjectModal({ isOpen, onClose, editProject = null }) {
+export default function ProjectModal({ isOpen, onClose, editProject = null, activeTab }) {
   const isEditing = !!editProject;
 
   const [createProject, { isLoading: isCreating }] = useCreateProjectMutation();
@@ -174,7 +174,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null }) {
           </InputGroup>
         </div>
 
-        {isEditing && (
+        {isEditing && activeTab === "all" && (
           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 grid grid-cols-2 gap-4">
             <InputGroup label="Invoice Number">
               <HiOutlineUser className="input-icon" />
@@ -190,7 +190,6 @@ export default function ProjectModal({ isOpen, onClose, editProject = null }) {
               <HiOutlineCalendarDays className="input-icon" />
               <input
                 type="date"
-                required
                 className="form-input text-[11px] font-bold"
                 value={formData.invoiceDate}
                 onChange={(e) => setFormData({ ...formData, invoiceDate: e.target.value })}
