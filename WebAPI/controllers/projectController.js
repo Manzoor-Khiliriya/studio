@@ -136,19 +136,24 @@ exports.getAllProjects = async (req, res) => {
       );
     }
 
-    const total = projectsWithStatus.length;
+    const totalTasksAcrossAllFilteredProjects = projectsWithStatus.reduce(
+      (acc, project) => acc + (project.tasks?.length || 0),
+      0
+    );
+
+    const totalProjects = projectsWithStatus.length;
     const paginatedProjects = projectsWithStatus.slice(skip, skip + Number(limit));
 
     return res.status(200).json({
       success: true,
       projects: paginatedProjects,
       pagination: {
-        totalProjects: total,
-        totalPages: Math.ceil(total / limit),
+        totalProjects: totalProjects,
+        totalTasks: totalTasksAcrossAllFilteredProjects,
+        totalPages: Math.ceil(totalProjects / limit),
         currentPage: Number(page)
       }
     });
-
   } catch (error) {
     return res.status(500).json({
       success: false,
@@ -177,10 +182,6 @@ exports.updateProject = async (req, res) => {
 
     if (updateData.projectCode) {
       updateData.projectCode = updateData.projectCode.toUpperCase();
-    }
-
-    if (updateData.status) {
-      updateData.statusChangedAt = new Date();
     }
 
     const project = await Project.findByIdAndUpdate(

@@ -37,7 +37,6 @@ const sendNotification = async (recipient, data, io) => {
     let finalHtml = htmlContent;
     let finalSubject = subject || "System Notification";
 
-    // --- Added Template for Password Reset ---
     if (type === "reset" && otp) {
       finalSubject = "🔐 Password Reset Verification Code";
       finalHtml = `
@@ -49,9 +48,7 @@ const sendNotification = async (recipient, data, io) => {
           </div>
           <p style="font-size: 12px; color: #94a3b8;">This code will expire in 15 minutes. If you did not request this, please ignore this email.</p>
         </div>`;
-    } 
-    // --- Existing Template for Credentials ---
-    else if (type === "system" && password) {
+    } else if (type === "system" && password) {
       finalSubject = "🚀 Your Account Credentials";
       finalHtml = `<div style="font-family: sans-serif; border: 1px solid #f97316; padding: 20px; border-radius: 15px;">
           <h2>Welcome, ${recipient.name}!</h2>
@@ -59,6 +56,20 @@ const sendNotification = async (recipient, data, io) => {
         </div>`;
     } else if (!htmlContent) {
       finalHtml = `<p>${message}</p>`;
+    } else if (type === "leave") {
+      const isApproved = message.includes("Approved");
+      finalSubject = isApproved ? "✅ Leave Request Approved" : "❌ Leave Request Rejected";
+      finalHtml = `
+    <div style="font-family: sans-serif; border: 1px solid #e2e8f0; padding: 30px; border-radius: 20px; max-width: 500px;">
+      <h2 style="color: ${isApproved ? '#22c55e' : '#ef4444'}; margin-bottom: 20px;">
+        Leave ${isApproved ? 'Approved' : 'Rejected'}
+      </h2>
+      <p style="color: #475569;">Hi ${recipient.name},</p>
+      <p style="color: #475569;">${message}</p>
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 20px;">
+        Please log in to view your leave details.
+      </p>
+    </div>`;
     }
 
     // 4. Send Email

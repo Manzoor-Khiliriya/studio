@@ -30,6 +30,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
     invoiceNumber: "",
     invoiceDate: "",
     status: "Active",
+    statusChangedAt: ""
   });
 
   useEffect(() => {
@@ -44,6 +45,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
         invoiceNumber: editProject.invoiceNumber || "",
         invoiceDate: editProject.invoiceDate ? new Date(editProject.invoiceDate).toISOString().split('T')[0] : "",
         status: editProject.status || "Active",
+        statusChangedAt: editProject.statusChangedAt ? new Date(editProject.statusChangedAt).toISOString().split('T')[0] : "",
       });
     } else if (isOpen) {
       setFormData({
@@ -56,6 +58,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
         invoiceNumber: "",
         invoiceDate: "",
         status: "Active",
+        statusChangedAt: ""
       });
     }
   }, [editProject, isOpen]);
@@ -94,7 +97,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
       onClose={onClose}
       title={isEditing ? "Update Master Project" : "Create Master Project"}
       subtitle={isEditing ? "Modifying high-level project parameters" : "Defining new top-level project objective"}
-      maxWidth="max-w-md"
+      maxWidth="max-w-lg"
     >
       <form onSubmit={handleSubmit} className="space-y-5">
 
@@ -104,19 +107,19 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
             <HiOutlineHashtag className="input-icon" />
             <input
               required
-              className="form-input uppercase font-black text-orange-600 disabled:bg-slate-50 disabled:text-slate-400"
-              placeholder="E.G. PRJ-2024-001"
+              className="form-input uppercase placeholder:capitalize font-black text-orange-600 disabled:bg-slate-50 disabled:text-slate-400"
+              placeholder="Enter project id/code"
               value={formData.projectCode}
               onChange={(e) => setFormData({ ...formData, projectCode: e.target.value })}
             />
           </InputGroup>
 
-          <InputGroup label="Official Project Title">
+          <InputGroup label="Project Title">
             <HiOutlineBriefcase className="input-icon" />
             <input
               required
-              className="form-input font-bold"
-              placeholder="E.G. Cinematic Branding"
+              className="form-input font-bold capitalize"
+              placeholder="Enter Project Title"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             />
@@ -131,19 +134,19 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
                 onChange={(e) => setFormData({ ...formData, projectType: e.target.value })}
                 required
               >
-                <option value="Low">Standard</option>
-                <option value="Medium">Revision</option>
+                <option value="Standard">Standard</option>
+                <option value="Revision">Revision</option>
               </select>
             </InputGroup>
           </div>
         </div>
 
         {/* Client & Status Row */}
-        <InputGroup label="Client Entity">
+        <InputGroup label="Client Name">
           <HiOutlineUser className="input-icon" />
           <input
-            className="form-input text-xs font-bold uppercase"
-            placeholder="Acme Corp"
+            className="form-input text-xs font-bold capitalize"
+            placeholder="Enter Client Name"
             value={formData.clientName}
             onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
           />
@@ -151,7 +154,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
 
         {/* Timeline Row */}
         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 grid grid-cols-2 gap-4">
-          <InputGroup label="Start Protocol">
+          <InputGroup label="Start Date">
             <HiOutlineCalendarDays className="input-icon" />
             <input
               type="date"
@@ -162,7 +165,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
             />
           </InputGroup>
 
-          <InputGroup label="Deadline">
+          <InputGroup label="End Date">
             <HiOutlineCalendarDays className="input-icon" />
             <input
               type="date"
@@ -175,7 +178,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
         </div>
 
         {isEditing && activeTab === "all" && (
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 grid grid-cols-2 gap-4">
+          <div className="bg-slate-50 rounded-2xl border border-slate-100 grid grid-cols-2 gap-4">
             <InputGroup label="Invoice Number">
               <HiOutlineUser className="input-icon" />
               <input
@@ -186,7 +189,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
               />
             </InputGroup>
 
-            <InputGroup label="Inoice Date">
+            <InputGroup label="Invoice Date">
               <HiOutlineCalendarDays className="input-icon" />
               <input
                 type="date"
@@ -198,8 +201,8 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-4">
-          <InputGroup label="Project Type">
+        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 grid grid-cols-2 gap-4">
+          <InputGroup label="Status">
             <HiOutlineFlag className={`input-icon`} />
             <select
               className="form-input font-bold text-[11px]"
@@ -212,6 +215,17 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
               <option value="Submitted">Submitted</option>
               <option value="Inactive">Inactive</option>
             </select>
+          </InputGroup>
+
+
+          <InputGroup label="Status Date">
+            <HiOutlineCalendarDays className="input-icon" />
+            <input
+              type="date"
+              className="form-input text-[11px] font-bold"
+              value={formData.statusChangedAt}
+              onChange={(e) => setFormData({ ...formData, statusChangedAt: e.target.value })}
+            />
           </InputGroup>
         </div>
 

@@ -3,6 +3,7 @@ const User = require("../models/User");
 const Employee = require("../models/Employee");
 const LeaveSetting = require("../models/LeaveSetting");
 const { calculateLeaveDays, hasLeaveOverlap } = require("../utils/leaveHelpers");
+const sendNotification = require("../utils/notifier");
 
 const getLeaveSetting = async (type) => {
   try {
@@ -360,13 +361,45 @@ exports.updateLeaveSettings = async (req, res) => {
 exports.processLeave = async (req, res) => {
   try {
     const leave = await Leave.findById(req.params.id);
-    if (!leave || leave.status !== "Pending") return res.status(400).json({ message: "Invalid request" });
+    if (!leave || leave.status !== "Pending")
+      return res.status(400).json({ message: "Invalid request" });
+
     leave.status = req.body.status;
     leave.adminComment = req.body.adminComment;
     leave.processedBy = req.user._id;
     await leave.save();
+
+    try {
+      const io = req.app.get('socketio');
+      const recipient = await User.findById(leave.user);
+
+      if (recipient) {
+        const statusEmoji = leave.status === "Approved" ? "✅" : "❌";
+        const adminNote = leave.adminComment
+          ? `\nAdmin Note: "${leave.adminComment}"`
+          : "";
+        const formatDate = (date) =>
+          new Date(date).toLocaleDateString("en-IN", {
+            timeZone: "Asia/Kolkata",
+            day: "2-digit",
+            month: "short",
+            year: "numeric"
+          });
+
+
+        await sendNotification(recipient, {
+          type: "leave",
+          message: `${statusEmoji} Your ${leave.type} request from ${formatDate(leave.startDate)} to ${formatDate(leave.endDate)} has been ${leave.status}.${adminNote}`,
+        }, io);
+      }
+    } catch (notifErr) {
+      console.error("Leave notification failed:", notifErr.message);
+    }
+
     res.json(leave);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
 exports.updateLeave = async (req, res) => {

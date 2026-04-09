@@ -181,11 +181,6 @@ export default function AdminTasksPage() {
       <PageHeader
         title="Project Management"
         subtitle="Manage operational projects and nested task objectives."
-        secondaryActionLabel="Add Project"
-        onSecondaryAction={() => {
-          setEditingProject(null);
-          setShowProjectModal(true);
-        }}
         tabs={[
           { id: "live", label: "Live Projects" },
           { id: "all", label: "All Projects" },
@@ -200,7 +195,7 @@ export default function AdminTasksPage() {
       <main className="max-w-[1750px] mx-auto px-8 pb-10 -mt-10">
         <div className="bg-white/90 backdrop-blur-xl border border-slate-200 p-6 rounded-[2.5rem] shadow-xl shadow-slate-200/50 mb-8 flex flex-col gap-5">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-            <div className="lg:col-span-6 relative group">
+            <div className={`relative group ${activeTab !== "live" ? "lg:col-span-12" : "lg:col-span-6"}`}>
               <HiOutlineMagnifyingGlass className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors" size={18} />
               <input
                 type="text"
@@ -211,67 +206,81 @@ export default function AdminTasksPage() {
               />
             </div>
 
-            <div className="lg:col-span-6 relative group">
-              <HiOutlineCommandLine className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
-              <input
-                type="text"
-                placeholder="Filter by specific Task Name..."
-                className="w-full pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none font-bold text-xs transition-all shadow-sm"
-                value={taskSearch}
-                onChange={(e) => { setTaskSearch(e.target.value); setCurrentPage(1); }}
-              />
-            </div>
+            {activeTab === "live" && (
+              <div className="lg:col-span-6 relative group">
+                <HiOutlineCommandLine className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
+                <input
+                  type="text"
+                  placeholder="Filter by specific Task Name..."
+                  className="w-full pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none font-bold text-xs transition-all shadow-sm"
+                  value={taskSearch}
+                  onChange={(e) => { setTaskSearch(e.target.value); setCurrentPage(1); }}
+                />
+              </div>
+            )}
           </div>
+
 
           <div className="flex flex-wrap items-end justify-between gap-6 pt-5 border-t border-slate-100">
             <div className="flex flex-wrap items-center gap-6">
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Live Status</label>
-                <select
-                  value={liveStatusFilter}
-                  onChange={(e) => { setLiveStatusFilter(e.target.value); setCurrentPage(1); }}
-                  className="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 outline-none focus:border-orange-500 transition-all appearance-none cursor-pointer min-w-[140px]"
-                >
-                  <option value="All">All Status</option>
-                  <option value="To be started">To be started</option>
-                  <option value="In progress">In progress</option>
-                  <option value="Started">Started</option>
-                </select>
-              </div>
+              {activeTab === "live" && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Live Status</label>
+                  <select
+                    value={liveStatusFilter}
+                    onChange={(e) => { setLiveStatusFilter(e.target.value); setCurrentPage(1); }}
+                    className="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 outline-none focus:border-orange-500 transition-all appearance-none cursor-pointer min-w-[140px]"
+                  >
+                    <option value="All">All Status</option>
+                    <option value="To be started">To be started</option>
+                    <option value="In progress">In progress</option>
+                    <option value="Started">Started</option>
+                  </select>
+                </div>
+              )}
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Initiative Status</label>
-                <select
-                  value={taskStatusFilter}
-                  onChange={(e) => { setTaskStatusFilter(e.target.value); setCurrentPage(1); }}
-                  className="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 outline-none focus:border-orange-500 transition-all appearance-none cursor-pointer min-w-[180px]"
-                >
-                  <option value="All">All Initiative Status</option>
-                  {["On hold", "Modeling", "Lighting and Texturing", "Feedback pending", "Final rendering", "Postproduction", "Completed"].map(s => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              </div>
+              {activeTab === "live" && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Initiative Status</label>
+                  <select
+                    value={taskStatusFilter}
+                    onChange={(e) => { setTaskStatusFilter(e.target.value); setCurrentPage(1); }}
+                    className="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 outline-none focus:border-orange-500 transition-all appearance-none cursor-pointer min-w-[180px]"
+                  >
+                    <option value="All">All Initiative Status</option>
+                    {["On hold", "Modeling", "Lighting and Texturing", "Feedback pending", "Final rendering", "Postproduction", "Completed"].map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {[
                 { label: "Created", key: "createdAt" },
-                { label: "Start Date", key: "startDate" },
-                { label: "End Date", key: "endDate" },
-              ].map((filter) => (
-                <div key={filter.key} className="flex flex-col gap-1.5">
-                  <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">{filter.label}</label>
-                  <div className="relative group">
-                    <HiOutlineCalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                    <input
-                      type="date"
-                      className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 outline-none focus:border-orange-500 focus:bg-white transition-all"
-                      value={dateFilters[filter.key]}
-                      onChange={(e) => handleDateChange(filter.key, e.target.value)}
-                    />
+                activeTab === "live" && { label: "Start Date", key: "startDate" },
+                activeTab === "live" && { label: "End Date", key: "endDate" },
+              ]
+                .filter(Boolean)
+                .map((filter) => (
+                  <div key={filter.key} className="flex flex-col gap-1.5">
+                    <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">
+                      {filter.label}
+                    </label>
+                    <div className="relative group">
+                      <HiOutlineCalendarDays
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                        size={16}
+                      />
+                      <input
+                        type="date"
+                        className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 outline-none focus:border-orange-500 focus:bg-white transition-all"
+                        value={dateFilters[filter.key]}
+                        onChange={(e) => handleDateChange(filter.key, e.target.value)}
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
 
               {/* Add these inside the same div containing your other <select> filters */}
 
@@ -308,13 +317,24 @@ export default function AdminTasksPage() {
                 <div className="flex items-center gap-3 bg-slate-100/50 px-4 py-2 rounded-xl border border-slate-200">
                   <input
                     type="checkbox"
-                    className="w-4 h-4 accent-orange-500 cursor-pointer"
+                    className="w-4 h-5 accent-orange-500 cursor-pointer"
                     checked={projectGroups.length > 0 && selectedProjects.length === projectGroups.length}
                     onChange={handleSelectAll}
                   />
                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Select All</span>
                 </div>
               </div>
+
+              <button
+                onClick={() => {
+                  setEditingProject(null);
+                  setShowProjectModal(true);
+                }}
+                className="block flex items-center gap-2 px-5 py-4 bg-black hover:bg-orange-600 text-white rounded-xl transition-all font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-200 cursor-pointer active:scale-95"
+              >
+                <HiOutlinePlusCircle size={18} />
+                <span>Add Project</span>
+              </button>
             </div>
 
 
@@ -537,6 +557,16 @@ export default function AdminTasksPage() {
                 Total {data?.pagination?.totalProjects ?? 0} projects
               </span>
             )}
+
+            {data?.pagination?.totalTasks !== undefined && (
+              <>
+                <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                <span className="text-[10px] font-black text-orange-500 uppercase tracking-tight">
+                  {data.pagination.totalTasks} Total Tasks
+                </span>
+              </>
+            )}
+
           </div>
 
           <Pagination

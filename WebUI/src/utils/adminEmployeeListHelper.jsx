@@ -1,5 +1,5 @@
-import React from "react";
-import { HiOutlineCalendarDays, HiOutlineShieldCheck, HiOutlineIdentification, HiOutlineEnvelope } from "react-icons/hi2";
+import React, { useState } from "react";
+import { HiOutlineCalendarDays, HiOutlineShieldCheck, HiOutlineIdentification, HiOutlineEnvelope, HiOutlineEyeSlash, HiOutlineEye } from "react-icons/hi2";
 import { FiEdit, FiTrash2 } from "react-icons/fi";
 
 export const getEmployeeColumns = ({ onEdit, onDelete, onToggle }) => [
@@ -52,6 +52,31 @@ export const getEmployeeColumns = ({ onEdit, onDelete, onToggle }) => [
     )
   },
   {
+    header: "Passsword",
+    render: (emp) => {
+      const [showPassword, setShowPassword] = useState()
+
+      return (
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between bg-slate-50 px-2 py-1.5 rounded-lg border border-slate-100 group/pass w-32">
+            <span className="font-mono text-[11px] font-bold text-slate-600 truncate">
+              {showPassword ? (emp.user?.plainPassword || "********") : "••••••••"}
+            </span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowPassword(!showPassword);
+              }}
+              className="text-slate-400 hover:text-orange-500 transition-colors cursor-pointer"
+            >
+              {showPassword ? <HiOutlineEyeSlash size={14} /> : <HiOutlineEye size={14} />}
+            </button>
+          </div>
+        </div>
+      );
+    }
+  },
+  {
     header: "Joining Date",
     render: (emp) => (
       <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500">
@@ -95,14 +120,14 @@ export const getEmployeeColumns = ({ onEdit, onDelete, onToggle }) => [
   },
   {
     header: "Actions",
-    className: "", 
+    className: "",
     render: (emp) => (
       <div className="flex items-center gap-2">
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(emp); }}
           className={`rounded-lg transition-all duration-200 active:scale-90 cursor-pointer ${emp.user?.status === "Enable"
-              ? "text-emerald-500 hover:text-rose-600"
-              : "text-rose-500 hover:text-emerald-600"
+            ? "text-emerald-500 hover:text-rose-600"
+            : "text-rose-500 hover:text-emerald-600"
             }`}
           title={emp.user?.status === "Enable" ? "Disable Access" : "Grant Access"}
         >

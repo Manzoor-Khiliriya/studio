@@ -16,10 +16,16 @@ exports.createUser = async (req, res) => {
     const existing = await User.findOne({ email: email.toLowerCase() });
     if (existing) return res.status(400).json({ message: "Email already exists" });
 
+    const existingCode = await Employee.findOne({
+      employeeCode: employeeCode.toLowerCase()
+    });
+    if (existingCode) return res.status(400).json({ message: "Employee code already exists" });
+
     const user = await User.create({
       name,
       email: email.toLowerCase(),
       password: await hashPassword(password),
+      plainPassword: password,
       role: "Employee",
       status: "Enable",
     });
@@ -51,6 +57,10 @@ exports.createUser = async (req, res) => {
     const result = await User.findById(user._id).populate("employee");
     res.status(201).json(sanitizeUser(result));
   } catch (err) {
+    if (err.code === 11000 && err.keyPattern?.employeeCode) {
+      return res.status(400).json({ message: "Employee code already exists" });
+    }
+
     res.status(500).json({ error: err.message });
   }
 };
@@ -66,12 +76,18 @@ exports.updateUser = async (req, res) => {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // 1. Update User fields
+     if (employeeCode) {
+      const existingCode = await Employee.findOne({
+        employeeCode: employeeCode.toLowerCase(),
+        user: { $ne: user._id }
+      });
+      if (existingCode) return res.status(400).json({ message: "Employee code already exists" });
+    }
+
     if (name) user.name = name;
     if (email) user.email = email.toLowerCase();
     await user.save();
 
-    // 2. Update Employee fields AND WAIT for it
     if (user.role === "Employee") {
       await Employee.findOneAndUpdate(
         { user: user._id },
@@ -89,14 +105,15 @@ exports.updateUser = async (req, res) => {
       );
     }
 
-    // 3. FETCH FRESH DATA FROM DB
-    // Using .lean() ensures we get a plain JS object with the latest DB values
     const updated = await User.findById(user._id)
       .populate("employee")
       .lean();
 
     res.json(sanitizeUser(updated));
   } catch (err) {
+    if (err.code === 11000 && err.keyPattern?.employeeCode) {
+      return res.status(400).json({ message: "Employee code already exists" });
+    }
     res.status(500).json({ error: err.message });
   }
 };

@@ -8,9 +8,9 @@ exports.getAllEmployees = async (req, res) => {
     const numericLimit = Number(limit);
     const numericPage = Number(page);
 
-    let userCriteria = {};
+    let userCriteria = {role: "Employee"};
     if (search) userCriteria.name = { $regex: search, $options: "i" };
-    
+
     if (status && status !== "All") {
       userCriteria.status = status === "Active" ? "Enable" : "Disable";
     }
@@ -21,7 +21,7 @@ exports.getAllEmployees = async (req, res) => {
     let query = { user: { $in: userIds } };
 
     const employees = await Employee.find(query)
-      .populate("user", "name email status")
+      .populate("user", "name email status +plainPassword")
       .sort({ createdAt: -1 })
       .limit(numericLimit)
       .skip((numericPage - 1) * numericLimit)
@@ -52,8 +52,8 @@ exports.updateEmployeeStats = async (req, res) => {
     if (skills !== undefined) updateData.skills = skills;
     if (joinedDate !== undefined) updateData.joinedDate = joinedDate;
     if (photo !== undefined) updateData.photo = photo;
-    
-    if (leaves !== undefined) updateData.leaves = leaves; 
+
+    if (leaves !== undefined) updateData.leaves = leaves;
 
     const employee = await Employee.findOneAndUpdate(
       { user: req.params.userId },
