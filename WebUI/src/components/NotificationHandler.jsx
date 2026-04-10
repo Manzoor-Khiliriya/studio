@@ -1,40 +1,31 @@
-import { useEffect } from 'react';
-import { io } from 'socket.io-client';
-import { toast } from 'react-hot-toast'; // or your preferred toast library
+import { useEffect } from "react";
+import { getSocket } from "../socket";
+import { toast } from "react-hot-toast";
+import { useDispatch } from "react-redux";
+import { apiSlice } from "../services/apiSlice";
 
 const NotificationHandler = ({ userId }) => {
+  const dispatch = useDispatch();
+
   useEffect(() => {
     if (!userId) return;
 
-    // Connect to your backend
-    const socket = io("http://localhost:5000", {
-      query: { userId } 
-    });
+    const socket = getSocket();
+    if (!socket) return;
 
-    // Join a private room based on User ID
-    socket.emit("join", userId);
+    const handleNotification = (data) => {
+      console.log("🔔 Notification:", data);
 
-    // Listen for the "notification" event we defined in the backend
-    socket.on("notification", (data) => {
-      console.log("New notification received:", data);
-      
-      // Show a real-time toast
-      toast(data.message, {
-        icon: data.type === 'task' ? '🚀' : '⚠️',
-        duration: 5000,
-        style: {
-          border: data.type === 'system' ? '1px solid #ef4444' : '1px solid #f97316',
-          padding: '16px',
-          color: '#1f2937',
-        },
-      });
+      toast(data.message);
 
-      // Optional: If you have a Redux/Context state for notifications, update it here
-      // dispatch(addNewNotification(data));
-    });
+      // 🔥 auto refresh notification list
+      dispatch(apiSlice.util.invalidateTags(["Notification"]));
+    };
 
-    return () => socket.disconnect();
-  }, [userId]);
+    socket.on("notification", handleNotification);
+
+    return () => socket.off("notification", handleNotification);
+  }, [userId, dispatch]);
 
   return null;
 };

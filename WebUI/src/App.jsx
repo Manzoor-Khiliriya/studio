@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { Provider } from "react-redux";
+import { Provider, useSelector } from "react-redux";
 import { store } from "./config/store";
 import { Toaster } from "react-hot-toast";
 
@@ -28,33 +28,33 @@ import AdminAttendanceListPage from "./pages/admin/AdminAttendanceListPage";
 // Employee Pages
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
 import MyTasksPage from "./pages/employee/EmployeeTasksPage";
-import EmployeeReportsPage from "./pages/employee/EmployeeReportPage";
 import EmployeeLeavePage from "./pages/employee/EmployeeLeavePage";
 import EmployeeHolidayPage from "./pages/employee/EmployeeHolidayPage";
+import { useEffect } from "react";
+import { connectSocket } from "./socket";
 
-function App() {
+function AppContent() {
+  const user = useSelector((state) => state.auth.user);
+  useEffect(() => {
+    if (user?._id) {
+      connectSocket(user._id);
+    }
+  }, [user]);
   return (
-    <Provider store={store}>
-      <NotificationHandler />
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 4000
-        }}
-      />
+    <>
+      {user && <NotificationHandler userId={user._id} />}
+
+      <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
+
       <BrowserRouter>
         <div className="min-h-screen bg-slate-50">
           <Routes>
-            {/* PUBLIC ROUTES */}
             <Route path="/login" element={<LoginPage />} />
-            {/* STEP 1: Request Code */}
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            {/* STEP 2: Verify & Reset */}
             <Route path="/reset-password" element={<ResetPasswordPage />} />
 
             <Route path="/home" element={<Navigate to="/login" replace />} />
 
-            {/* ADMIN SECTION */}
             <Route element={<ProtectedRoute allowedRoles={["Admin"]} />}>
               <Route element={<Layout />}>
                 <Route path="/admin" element={<AdminDashboard />} />
@@ -70,22 +70,27 @@ function App() {
               </Route>
             </Route>
 
-            {/* EMPLOYEE SECTION */}
             <Route element={<ProtectedRoute allowedRoles={["Employee"]} />}>
               <Route element={<Layout />}>
                 <Route path="/employee" element={<EmployeeDashboard />} />
                 <Route path="/my-tasks" element={<MyTasksPage />} />
-                <Route path="/my-reports" element={<EmployeeReportsPage />} />
                 <Route path="/my-leaves" element={<EmployeeLeavePage />} />
                 <Route path="/public-holidays" element={<EmployeeHolidayPage />} />
               </Route>
             </Route>
 
-            {/* FALLBACK */}
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </div>
       </BrowserRouter>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <Provider store={store}>
+      <AppContent />
     </Provider>
   );
 }

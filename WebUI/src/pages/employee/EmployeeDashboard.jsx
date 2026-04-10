@@ -12,6 +12,7 @@ import Loader from "../../components/Loader";
 import Pagination from "../../components/Pagination";
 import PageHeader from "../../components/PageHeader";
 import StatCard from "../../components/StatCard";
+import { getSocket } from "../../socket";
 
 export default function EmployeeDashboard() {
   const timerRef = useRef(null);
@@ -23,13 +24,31 @@ export default function EmployeeDashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  const { data: summaryData, isLoading: summaryLoading } = useGetDashboardSummaryQuery();
+  const {
+    data: summaryData,
+    isLoading: summaryLoading,
+    refetch: refetchSummary
+  } = useGetDashboardSummaryQuery();
   const { data: attendanceStatus, isLoading: attendanceLoading, refetch } = useGetTodayStatusQuery();
   const [clockIn, { isLoading: isClockingIn }] = useClockInMutation();
   const [clockOut, { isLoading: isClockingOut }] = useClockOutMutation();
   const { data: logsData, isSuccess: logsLoaded } = useGetMyTodayLogsQuery();
 
   const isSyncingAttendance = isClockingIn || isClockingOut;
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleUpdate = () => {
+      refetch();          // attendance
+      refetchSummary();   // 🔥 dashboard
+    };
+
+    socket.on("dashboardUpdated", handleUpdate);
+
+    return () => socket.off("dashboardUpdated", handleUpdate);
+  }, [refetch, refetchSummary]);
 
   const allActiveTasks = useMemo(() => {
     return summaryData?.taskSnapshot || [];
@@ -160,9 +179,8 @@ export default function EmployeeDashboard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.4 }}
-            className={`p-6 rounded-[2.5rem] border-2 flex flex-col gap-1 justify-between transition-all duration-500 bg-white shadow-sm hover:border-orange-100 ${
-              isOnShift ? "border-orange-200 shadow-orange-600/5 shadow-xl" : "border-slate-50"
-            }`}
+            className={`p-6 rounded-[2.5rem] border-2 flex flex-col gap-1 justify-between transition-all duration-500 bg-white shadow-sm hover:border-orange-100 ${isOnShift ? "border-orange-200 shadow-orange-600/5 shadow-xl" : "border-slate-50"
+              }`}
           >
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mb-1">
               Daily Attendance
@@ -171,11 +189,10 @@ export default function EmployeeDashboard() {
             <button
               onClick={handleAttendanceToggle}
               disabled={isSyncingAttendance}
-              className={`cursor-pointer disabled:cursor-not-allowed w-full py-3 rounded-[1.25rem] font-black text-[11px] uppercase tracking-widest transition-all shadow-md active:scale-95 ${
-                isOnShift
-                  ? "bg-slate-900 text-white hover:bg-rose-600"
-                  : "bg-slate-900 text-white hover:bg-orange-600"
-              }`}
+              className={`cursor-pointer disabled:cursor-not-allowed w-full py-3 rounded-[1.25rem] font-black text-[11px] uppercase tracking-widest transition-all shadow-md active:scale-95 ${isOnShift
+                ? "bg-slate-900 text-white hover:bg-rose-600"
+                : "bg-slate-900 text-white hover:bg-orange-600"
+                }`}
             >
               {isSyncingAttendance ? "Syncing..." : (isOnShift ? "Clock Out" : "Clock In")}
             </button>
@@ -193,9 +210,9 @@ export default function EmployeeDashboard() {
           {!isOnShift ? (
             /* LOCKED STATE OVERLAY */
             <div className="col-span-12 py-20 flex items-center justify-center text-center">
-              <motion.div 
-                initial={{ scale: 0.9, opacity: 0 }} 
-                animate={{ scale: 1, opacity: 1 }} 
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
                 className="bg-white p-12 rounded-[3rem] border-2 border-slate-50 shadow-2xl shadow-slate-200/50 max-w-md w-full"
               >
                 <div className="w-24 h-24 bg-orange-50 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
@@ -203,9 +220,9 @@ export default function EmployeeDashboard() {
                 </div>
                 <h4 className="text-3xl font-black text-slate-800 mb-3 tracking-tighter">Missions Locked</h4>
                 <p className="text-slate-500 text-sm mb-10 leading-relaxed">
-                 Please clock in using the attendance card above to access your live objectives and tracking systems.
+                  Please clock in using the attendance card above to access your live objectives and tracking systems.
                 </p>
-                
+
               </motion.div>
             </div>
           ) : (
@@ -213,10 +230,10 @@ export default function EmployeeDashboard() {
             <>
               {/* SIDEBAR: PROJECT CHRONOMETER */}
               <div className="lg:col-span-4">
-                <motion.div 
-                   initial={{ opacity: 0, x: -20 }}
-                   animate={{ opacity: 1, x: 0 }}
-                   className="bg-[#0f1115] p-8 rounded-[3rem] shadow-2xl relative overflow-hidden group"
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="bg-[#0f1115] p-8 rounded-[3rem] shadow-2xl relative overflow-hidden group"
                 >
                   <ClockInOut taskList={allActiveTasks} />
                   <FiZap className="absolute -right-10 -bottom-10 text-white/[0.03]" size={200} />
@@ -225,7 +242,7 @@ export default function EmployeeDashboard() {
 
               {/* MAIN: ACTIVE OBJECTIVES */}
               <div className="lg:col-span-8">
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   className="space-y-4"

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   useGetDashboardSummaryQuery,
   useClearLogsMutation,
@@ -13,15 +13,26 @@ import Loader from '../../components/Loader';
 import StatCard from '../../components/StatCard';
 import { HiOutlineClipboardList } from 'react-icons/hi';
 import PageHeader from '../../components/PageHeader';
+import { getSocket } from '../../socket';
 
 const AdminDashboard = () => {
-  const { data, isLoading } = useGetDashboardSummaryQuery(undefined, {
-    pollingInterval: 10000,
-    refetchOnFocus: true
-  });
-
+  const { data, isLoading, refetch } = useGetDashboardSummaryQuery();
   const [stopAllSessions, { isLoading: isStoppingAll }] = useStopAllSessionsMutation();
   const [clearLogs, { isLoading: isClearing }] = useClearLogsMutation();
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleUpdate = () => {
+      console.log("📊 Dashboard updating...");
+      refetch();
+    };
+
+    socket.on("dashboardUpdated", handleUpdate);
+
+    return () => socket.off("dashboardUpdated", handleUpdate);
+  }, [refetch]);
 
   if (isLoading) return <Loader message="Decrypting Operational Data..." />;
 

@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 export const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_API_BASE_URL,
+    baseUrl: import.meta.env.VITE_API_BASE_URL + "/api",
     prepareHeaders: (headers, { getState }) => {
       const token = getState().auth.token;
       if (token) {
@@ -13,6 +13,6 @@ export const apiSlice = createApi({
     }
 
   }),
-  tagTypes: ['Task', 'Project','Attendance', 'User', 'Employee', 'TimeLog', 'Leave', 'Dashboard', 'Holiday', 'Notification'],
-  endpoints: () => ({}), 
+  tagTypes: ['Task', 'Project', 'Attendance', 'User', 'Employee', 'TimeLog', 'Leave', 'Dashboard', 'Holiday', 'Notification'],
+  endpoints: () => ({}),
 });

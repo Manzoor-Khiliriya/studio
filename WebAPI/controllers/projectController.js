@@ -1,22 +1,25 @@
 const Project = require("../models/Project");
 const Task = require("../models/Task");
 const TimeLog = require("../models/TimeLog");
+const { emitDashboardUpdate } = require("../utils/socket");
 const { calculateEstimatedHours } = require("../utils/taskHelpers");
+
+const emitEvent = (req, event, data) => {
+  const io = req.app.get("socketio");
+  if (!io) return;
+  io.emit(event, data);
+};
 
 exports.createProject = async (req, res) => {
   try {
     const { projectCode, projectType, title, clientName, startDate, endDate } = req.body;
-
     if (!projectCode || !projectType || !title || !startDate || !endDate) {
       return res.status(400).json({ success: false, message: "Missing required fields" });
     }
-
     const existingProject = await Project.findOne({ projectCode: projectCode.toUpperCase() });
-
     if (existingProject) {
       return res.status(409).json({ success: false, message: "Project Code already exists" });
     }
-
     const project = await Project.create({
       projectCode: projectCode.toUpperCase(),
       projectType,
@@ -25,7 +28,8 @@ exports.createProject = async (req, res) => {
       startDate,
       endDate
     });
-
+    emitEvent(req, "projectCreated", project);
+    emitDashboardUpdate(req);
     return res.status(201).json({ success: true, message: "Project created successfully", project });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Internal server error" });
@@ -96,6 +100,7 @@ exports.getAllProjects = async (req, res) => {
         query.endDate = { $gte: s, $lte: e };
       }
     }
+
     const projects = await Project.find(query)
       .sort({ createdAt: -1 })
       .populate({
@@ -194,6 +199,8 @@ exports.updateProject = async (req, res) => {
       return res.status(404).json({ success: false, message: "Project not found" });
     }
 
+    emitEvent(req, "projectUpdated", project);
+    emitDashboardUpdate(req);
     return res.status(200).json({
       success: true,
       message: "Project updated successfully",
@@ -203,7 +210,6 @@ exports.updateProject = async (req, res) => {
     if (error.code === 11000) {
       return res.status(400).json({ success: false, message: "Project Code already exists" });
     }
-    console.error(error);
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
@@ -212,16 +218,23 @@ exports.deleteProject = async (req, res) => {
   try {
     const projectId = req.params.id;
     const project = await Project.findById(projectId);
+
     if (!project) {
       return res.status(404).json({ success: false, message: "Project not found" });
     }
+
     const tasks = await Task.find({ project: projectId }).select("_id");
     const taskIds = tasks.map(task => task._id);
+
     if (taskIds.length > 0) {
       await TimeLog.deleteMany({ task: { $in: taskIds } });
     }
+
     await Task.deleteMany({ project: projectId });
     await Project.deleteOne({ _id: projectId });
+
+    emitEvent(req, "projectDeleted", projectId);
+    emitDashboardUpdate(req);
     return res.status(200).json({
       success: true,
       message: "Project and all related tasks/timelogs deleted successfully."
@@ -249,7 +262,6 @@ exports.getTaskPerformanceReport = async (req, res) => {
       { $sort: { createdAt: -1 } },
       { $skip: skip },
       { $limit: parseInt(limit) },
-
       {
         $lookup: {
           from: "tasks",
@@ -258,7 +270,6 @@ exports.getTaskPerformanceReport = async (req, res) => {
           as: "taskList"
         }
       },
-
       {
         $lookup: {
           from: "timelogs",
@@ -266,75 +277,6 @@ exports.getTaskPerformanceReport = async (req, res) => {
           foreignField: "task",
           pipeline: [{ $match: { logType: "work" } }],
           as: "workLogs"
-        }
-      },
-
-      {
-        $project: {
-          projectCode: 1,
-          title: 1,
-          clientName: 1,
-          startDate: 1,
-          endDate: 1,
-          taskList: {
-            $map: {
-              input: "$taskList",
-              as: "t",
-              in: {
-                _id: "$$t._id",
-                title: "$$t.title",
-                status: "$$t.status",
-                allocatedTime: { $ifNull: ["$$t.allocatedTime", 0] },
-                consumedHours: {
-                  $round: [
-                    {
-                      $divide: [
-                        {
-                          $reduce: {
-                            input: {
-                              $filter: {
-                                input: "$workLogs",
-                                as: "log",
-                                cond: { $eq: ["$$log.task", "$$t._id"] }
-                              }
-                            },
-                            initialValue: 0,
-                            in: { $add: ["$$value", { $ifNull: ["$$this.durationSeconds", 0] }] }
-                          }
-                        },
-                        3600
-                      ]
-                    },
-                    2
-                  ]
-                }
-              }
-            }
-          }
-        }
-      },
-
-      {
-        $addFields: {
-          totalBudget: { $sum: "$taskList.allocatedTime" },
-          totalConsumed: { $sum: "$taskList.consumedHours" },
-          progressPercent: {
-            $cond: [
-              { $gt: [{ $sum: "$taskList.allocatedTime" }, 0] },
-              {
-                $round: [
-                  {
-                    $multiply: [
-                      { $divide: [{ $sum: "$taskList.consumedHours" }, { $sum: "$taskList.allocatedTime" }] },
-                      100
-                    ]
-                  },
-                  0
-                ]
-              },
-              0
-            ]
-          }
         }
       }
     ]);
@@ -368,120 +310,6 @@ exports.getProjectCalendarStacks = async (req, res) => {
             ]
           }
           : {}
-      },
-
-      // ✅ get tasks
-      {
-        $lookup: {
-          from: "tasks",
-          localField: "_id",
-          foreignField: "project",
-          as: "taskList"
-        }
-      },
-
-      // ✅ get logs
-      {
-        $lookup: {
-          from: "timelogs",
-          localField: "taskList._id",
-          foreignField: "task",
-          as: "timeLogs"
-        }
-      },
-
-      {
-        $project: {
-          id: { $toString: "$_id" },
-          title: "$title",
-          start: { $dateToString: { format: "%Y-%m-%d", date: "$startDate" } },
-          end: { $dateToString: { format: "%Y-%m-%d", date: "$endDate" } },
-
-          extendedProps: {
-            projectCode: "$projectCode",
-
-            tasks: {
-              $map: {
-                input: "$taskList",
-                as: "task",
-                in: {
-                  _id: "$$task._id",
-                  title: "$$task.title",
-
-                  liveStatus: {
-                    $let: {
-                      vars: {
-                        taskLogs: {
-                          $filter: {
-                            input: "$timeLogs",
-                            as: "log",
-                            cond: { $eq: ["$$log.task", "$$task._id"] }
-                          }
-                        }
-                      },
-                      in: {
-                        $cond: [
-                          // 🔥 IN PROGRESS
-                          {
-                            $gt: [
-                              {
-                                $size: {
-                                  $filter: {
-                                    input: "$$taskLogs",
-                                    as: "log",
-                                    cond: {
-                                      $and: [
-                                        { $eq: ["$$log.isRunning", true] },
-                                        { $eq: ["$$log.logType", "work"] }
-                                      ]
-                                    }
-                                  }
-                                }
-                              },
-                              0
-                            ]
-                          },
-                          "In progress",
-
-                          // 🔥 STARTED
-                          {
-                            $cond: [
-                              {
-                                $gt: [
-                                  {
-                                    $size: {
-                                      $filter: {
-                                        input: "$$taskLogs",
-                                        as: "log",
-                                        cond: {
-                                          $and: [
-                                            { $eq: ["$$log.logType", "work"] },
-                                            { $gt: ["$$log.durationSeconds", 0] }
-                                          ]
-                                        }
-                                      }
-                                    }
-                                  },
-                                  0
-                                ]
-                              },
-                              "Started",
-
-                              // 🔥 TO BE STARTED
-                              "To be started"
-                            ]
-                          }
-                        ]
-                      }
-                    }
-                  }
-                }
-              }
-            },
-
-            taskCount: { $size: "$taskList" }
-          }
-        }
       }
     ]);
 

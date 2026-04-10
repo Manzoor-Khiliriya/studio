@@ -4,32 +4,42 @@ const Employee = require("../models/Employee");
 const LeaveSetting = require("../models/LeaveSetting");
 const { calculateLeaveDays, hasLeaveOverlap } = require("../utils/leaveHelpers");
 const sendNotification = require("../utils/notifier");
+const { emitDashboardUpdate } = require("../utils/socket");
 
-const getLeaveSetting = async (type) => {
-  try {
-    const settings = await LeaveSetting.findOne({ leaveType: type });
-    return settings;
-  } catch (err) {
-    throw new Error(err.message);
+const emitEvent = (req, event, data, userId = null) => {
+  const io = req.app.get("socketio");
+  if (!io) return;
+
+  if (userId) {
+    io.to(userId.toString()).emit(event, data);
+  } else {
+    io.emit(event, data);
   }
 };
 
+const getLeaveSetting = async (type) => {
+  const settings = await LeaveSetting.findOne({ leaveType: type });
+  return settings;
+};
+
 const getTakenDays = async (userId, type, currentYearOnly = true) => {
-  let query = { user: userId, status: "Approved", type: type };
+  let query = { user: userId, status: "Approved", type };
 
   if (currentYearOnly) {
-    const currentYear = new Date().getFullYear();
+    const year = new Date().getFullYear();
     query.startDate = {
-      $gte: new Date(`${currentYear}-01-01`),
-      $lte: new Date(`${currentYear}-12-31`)
+      $gte: new Date(`${year}-01-01`),
+      $lte: new Date(`${year}-12-31`)
     };
   }
 
   const leaves = await Leave.find(query);
   let total = 0;
+
   for (const l of leaves) {
     total += await calculateLeaveDays(l.startDate, l.endDate);
   }
+
   return total;
 };
 
@@ -98,31 +108,55 @@ exports.applyLeave = async (req, res) => {
     const userId = req.user._id;
 
     const requestedDays = await calculateLeaveDays(startDate, endDate);
-    if (!requestedDays || requestedDays <= 0) return res.status(400).json({ message: "Invalid date range." });
+    if (!requestedDays || requestedDays <= 0) {
+      return res.status(400).json({ message: "Invalid date range." });
+    }
 
     const existing = await Leave.find({ user: userId, status: { $ne: "Rejected" } });
-    if (hasLeaveOverlap(existing, startDate, endDate)) return res.status(400).json({ message: "Overlap with existing leave." });
+    if (hasLeaveOverlap(existing, startDate, endDate)) {
+      return res.status(400).json({ message: "Overlap with existing leave." });
+    }
 
     const setting = await getLeaveSetting(type);
 
     if (type === "Annual Leave") {
       const employee = await Employee.findOne({ user: userId });
       const joinDate = employee?.joinedDate || req.user.createdAt;
-      const months = (new Date().getFullYear() - joinDate.getFullYear()) * 12 + (new Date().getMonth() - joinDate.getMonth());
+
+      const months =
+        (new Date().getFullYear() - joinDate.getFullYear()) * 12 +
+        (new Date().getMonth() - joinDate.getMonth());
+
       const earned = setting ? months * setting.accrualRate : 0;
       const taken = await getTakenDays(userId, "Annual Leave", false);
-      if (requestedDays > (earned - taken)) return res.status(400).json({ message: "Insufficient Annual Leave balance." });
+
+      if (requestedDays > (earned - taken)) {
+        return res.status(400).json({ message: "Insufficient Annual Leave balance." });
+      }
 
     } else if (!["LOP", "Casual Leave"].includes(type)) {
       const taken = await getTakenDays(userId, type, true);
       const quota = setting ? setting.yearlyQuota : 10;
+
       if (taken + requestedDays > quota) {
-        return res.status(400).json({ message: `${type} quota (${quota} days) exceeded. You have ${quota - taken} days left.` });
+        return res.status(400).json({
+          message: `${type} quota exceeded`
+        });
       }
     }
 
-    const leave = await Leave.create({ user: userId, type, startDate, endDate, reason });
+    const leave = await Leave.create({
+      user: userId,
+      type,
+      startDate,
+      endDate,
+      reason
+    });
+
+    emitEvent(req, "leaveCreated", leave, userId);
+    emitDashboardUpdate(req);
     res.status(201).json(leave);
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -335,6 +369,15 @@ exports.getAllLeaves = async (req, res) => {
   }
 };
 
+exports.getLeaveSettings = async (req, res) => {
+  try {
+    const settings = await LeaveSetting.find().lean();
+    res.json(settings);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 exports.updateLeaveSettings = async (req, res) => {
   try {
     const { leaveType, value } = req.body;
@@ -352,109 +395,11 @@ exports.updateLeaveSettings = async (req, res) => {
       { upsert: true, new: true }
     );
 
+    emitDashboardUpdate(req);
     res.json({ message: `Settings for ${leaveType} updated.`, setting });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-};
-
-exports.processLeave = async (req, res) => {
-  try {
-    const leave = await Leave.findById(req.params.id);
-    if (!leave || leave.status !== "Pending")
-      return res.status(400).json({ message: "Invalid request" });
-
-    leave.status = req.body.status;
-    leave.adminComment = req.body.adminComment;
-    leave.processedBy = req.user._id;
-    await leave.save();
-
-    try {
-      const io = req.app.get('socketio');
-      const recipient = await User.findById(leave.user);
-
-      if (recipient) {
-        const statusEmoji = leave.status === "Approved" ? "✅" : "❌";
-        const adminNote = leave.adminComment
-          ? `\nAdmin Note: "${leave.adminComment}"`
-          : "";
-        const formatDate = (date) =>
-          new Date(date).toLocaleDateString("en-IN", {
-            timeZone: "Asia/Kolkata",
-            day: "2-digit",
-            month: "short",
-            year: "numeric"
-          });
-
-
-        await sendNotification(recipient, {
-          type: "leave",
-          message: `${statusEmoji} Your ${leave.type} request from ${formatDate(leave.startDate)} to ${formatDate(leave.endDate)} has been ${leave.status}.${adminNote}`,
-        }, io);
-      }
-    } catch (notifErr) {
-      console.error("Leave notification failed:", notifErr.message);
-    }
-
-    res.json(leave);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-exports.updateLeave = async (req, res) => {
-  try {
-    const leave = await Leave.findById(req.params.id);
-    if (!leave) return res.status(404).json({ message: "Not found" });
-
-    // NEW LOGIC: Allow if owner OR if Admin. 
-    // Also: Admins can update even if status is not 'Pending'.
-    const isOwner = leave.user.toString() === req.user._id.toString();
-    const isAdmin = req.user.role === "Admin";
-
-    if (!isOwner && !isAdmin) {
-      return res.status(403).json({ message: "Unauthorized" });
-    }
-
-    // Users can only update 'Pending' leaves, but Admins can update 'Approved/Rejected' too
-    if (!isAdmin && leave.status !== "Pending") {
-      return res.status(400).json({ message: "Cannot update processed leaves" });
-    }
-
-    Object.assign(leave, req.body);
-
-    // Check for overlap (excluding this leave itself)
-    const existing = await Leave.find({
-      user: leave.user,
-      status: { $ne: "Rejected" },
-      _id: { $ne: leave._id }
-    });
-
-    if (hasLeaveOverlap(existing, leave.startDate, leave.endDate)) {
-      return res.status(400).json({ message: "Overlap detected" });
-    }
-
-    await leave.save();
-    res.json(leave);
-  } catch (err) { res.status(500).json({ error: err.message }); }
-};
-
-exports.deleteLeave = async (req, res) => {
-  try {
-    const leave = await Leave.findById(req.params.id);
-    if (!leave) return res.status(404).json({ message: "Not found" });
-
-    // NEW LOGIC: Allow Owner (if pending) OR Admin (anytime)
-    const isOwner = leave.user.toString() === req.user._id.toString();
-    const isAdmin = req.user.role === "Admin";
-
-    if (isAdmin || (isOwner && leave.status === "Pending")) {
-      await Leave.findByIdAndDelete(req.params.id);
-      return res.json({ message: "Deleted successfully" });
-    }
-
-    res.status(403).json({ message: "Unauthorized to delete" });
-  } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
 exports.getLeaveCalendar = async (req, res) => {
@@ -484,10 +429,109 @@ exports.getLeaveCalendar = async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-exports.getLeaveSettings = async (req, res) => {
+exports.processLeave = async (req, res) => {
   try {
-    const settings = await LeaveSetting.find();
-    res.json(settings);
+    const leave = await Leave.findById(req.params.id);
+
+    if (!leave || leave.status !== "Pending") {
+      return res.status(400).json({ message: "Invalid request" });
+    }
+
+    leave.status = req.body.status;
+    leave.adminComment = req.body.adminComment;
+    leave.processedBy = req.user._id;
+
+    await leave.save();
+
+    const io = req.app.get("socketio");
+    const recipient = await User.findById(leave.user);
+
+    if (recipient) {
+      const statusEmoji = leave.status === "Approved" ? "✅" : "❌";
+      const adminNote = leave.adminComment
+        ? `\nAdmin Note: "${leave.adminComment}"`
+        : "";
+      const formatDate = (date) =>
+        new Date(date).toLocaleDateString("en-IN", {
+          timeZone: "Asia/Kolkata",
+          day: "2-digit",
+          month: "short",
+          year: "numeric"
+        });
+
+
+      await sendNotification(recipient, {
+        type: "leave",
+        message: `${statusEmoji} Your ${leave.type} request from ${formatDate(leave.startDate)} to ${formatDate(leave.endDate)} has been ${leave.status}.${adminNote}`,
+      }, io);
+    }
+
+    emitEvent(req, "leaveUpdated", leave, leave.user);
+    emitDashboardUpdate(req);
+    res.json(leave);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.updateLeave = async (req, res) => {
+  try {
+    const leave = await Leave.findById(req.params.id);
+    if (!leave) return res.status(404).json({ message: "Not found" });
+
+    const isOwner = leave.user.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === "Admin";
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    if (!isAdmin && leave.status !== "Pending") {
+      return res.status(400).json({ message: "Cannot update processed leaves" });
+    }
+
+    Object.assign(leave, req.body);
+
+    const existing = await Leave.find({
+      user: leave.user,
+      status: { $ne: "Rejected" },
+      _id: { $ne: leave._id }
+    });
+
+    if (hasLeaveOverlap(existing, leave.startDate, leave.endDate)) {
+      return res.status(400).json({ message: "Overlap detected" });
+    }
+
+    await leave.save();
+
+    emitEvent(req, "leaveUpdated", leave, leave.user);
+    emitDashboardUpdate(req);
+    res.json(leave);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.deleteLeave = async (req, res) => {
+  try {
+    const leave = await Leave.findById(req.params.id);
+    if (!leave) return res.status(404).json({ message: "Not found" });
+
+    const isOwner = leave.user.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === "Admin";
+
+    if (isAdmin || (isOwner && leave.status === "Pending")) {
+      await Leave.findByIdAndDelete(req.params.id);
+
+      emitEvent(req, "leaveDeleted", leave._id, leave.user);
+      emitDashboardUpdate(req);
+      return res.json({ message: "Deleted successfully" });
+    }
+
+    res.status(403).json({ message: "Unauthorized to delete" });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

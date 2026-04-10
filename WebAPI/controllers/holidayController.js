@@ -1,5 +1,11 @@
 const Holiday = require("../models/Holiday");
 
+const emitEvent = (req, event, data) => {
+  const io = req.app.get("socketio");
+  if (!io) return;
+  io.emit(event, data);
+};
+
 exports.getHolidays = async (req, res) => {
   try {
     const { year, search } = req.query;
@@ -14,7 +20,7 @@ exports.getHolidays = async (req, res) => {
 
     if (search) {
       query.$or = [
-        { name: { $regex: search, $options: "i" } }, 
+        { name: { $regex: search, $options: "i" } },
         { description: { $regex: search, $options: "i" } }
       ];
     }
@@ -29,11 +35,14 @@ exports.getHolidays = async (req, res) => {
 exports.addHoliday = async (req, res) => {
   try {
     const holiday = await Holiday.create(req.body);
+
+    emitEvent(req, "holidayCreated", holiday);
+
     res.status(201).json(holiday);
   } catch (err) {
-    if (err.code === 11000)
+    if (err.code === 11000) {
       return res.status(400).json({ message: "Holiday already exists for this date." });
-
+    }
     res.status(500).json({ error: err.message });
   }
 };
@@ -46,13 +55,17 @@ exports.updateHoliday = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    if (!holiday) return res.status(404).json({ message: "Holiday not found." });
+    if (!holiday) {
+      return res.status(404).json({ message: "Holiday not found." });
+    }
+
+    emitEvent(req, "holidayUpdated", holiday);
 
     res.json(holiday);
   } catch (err) {
-    if (err.code === 11000)
+    if (err.code === 11000) {
       return res.status(400).json({ message: "Date conflict with another holiday." });
-
+    }
     res.status(500).json({ error: err.message });
   }
 };
@@ -60,6 +73,9 @@ exports.updateHoliday = async (req, res) => {
 exports.bulkAddHolidays = async (req, res) => {
   try {
     const result = await Holiday.insertMany(req.body.holidays, { ordered: false });
+
+    emitEvent(req, "holidayBulkCreated", result);
+
     res.status(201).json({ message: `${result.length} holidays added.` });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -69,7 +85,12 @@ exports.bulkAddHolidays = async (req, res) => {
 exports.deleteHoliday = async (req, res) => {
   try {
     const holiday = await Holiday.findByIdAndDelete(req.params.id);
-    if (!holiday) return res.status(404).json({ message: "Holiday not found." });
+
+    if (!holiday) {
+      return res.status(404).json({ message: "Holiday not found." });
+    }
+
+    emitEvent(req, "holidayDeleted", holiday._id);
 
     res.json({ message: "Holiday removed." });
   } catch (err) {

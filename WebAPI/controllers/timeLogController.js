@@ -3,6 +3,18 @@ const Task = require("../models/Task");
 const Employee = require("../models/Employee");
 const mongoose = require("mongoose");
 const { applyProficiency } = require("../utils/userHelpers");
+const { emitDashboardUpdate } = require("../utils/socket");
+
+const emitEvent = (req, event, data, userId = null) => {
+  const io = req.app.get("socketio");
+  if (!io) return;
+
+  if (userId) {
+    io.to(userId.toString()).emit(event, data);
+  } else {
+    io.emit(event, data);
+  }
+};
 
 exports.startTimer = async (req, res) => {
   const session = await mongoose.startSession();
@@ -19,14 +31,13 @@ exports.startTimer = async (req, res) => {
     const task = await Task.findOne({ _id: taskId, assignedTo: employee._id });
     if (!task) throw new Error("Task not found or not assigned to you.");
 
-    // 1. Daily Limit Check
     const logs = await TimeLog.find({ user: userId, dateString: today, logType: "work" });
     const hoursToday = logs.reduce((sum, l) => sum + (l.durationSeconds / 3600 || 0), 0);
+
     if (hoursToday >= employee.dailyWorkLimit) {
       throw new Error(`Daily limit reached (${employee.dailyWorkLimit} hrs).`);
     }
 
-    // 2. Stop existing timers
     const activeLog = await TimeLog.findOne({ user: userId, isRunning: true });
 
     if (activeLog) {
@@ -46,7 +57,6 @@ exports.startTimer = async (req, res) => {
       await activeLog.save({ session });
     }
 
-    // 3. Create new log
     const log = await TimeLog.create([{
       user: userId,
       task: taskId,
@@ -58,11 +68,13 @@ exports.startTimer = async (req, res) => {
     }], { session });
 
     await session.commitTransaction();
+
+    emitEvent(req, "timerStarted", log[0], userId);
+    emitDashboardUpdate(req);
     res.status(201).json(log[0]);
 
   } catch (err) {
     await session.abortTransaction();
-    console.error(err);
     res.status(400).json({ error: err.message });
   } finally {
     session.endSession();
@@ -72,6 +84,7 @@ exports.startTimer = async (req, res) => {
 exports.togglePause = async (req, res) => {
   try {
     const userId = req.user._id;
+
     const active = await TimeLog.findOne({ user: userId, isRunning: true });
     if (!active) return res.status(404).json({ message: "No active timer." });
 
@@ -101,6 +114,8 @@ exports.togglePause = async (req, res) => {
       dateString: active.dateString
     });
 
+    emitEvent(req, "timerToggled", { status: newType, log: newLog }, userId);
+    emitDashboardUpdate(req);
     res.json({ status: newType, log: newLog });
 
   } catch (err) {
@@ -126,10 +141,11 @@ exports.stopTimer = async (req, res) => {
 
     await log.save();
 
+    emitEvent(req, "timerStopped", log, req.user._id);
+    emitDashboardUpdate(req);
     res.json({ message: "Session Terminated", log });
 
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -189,6 +205,8 @@ exports.stopAllLiveSessions = async (req, res) => {
 
     await Promise.all(updatePromises);
 
+    emitEvent(req, "allTimersStopped", { count: activeLogs.length });
+    emitDashboardUpdate(req);
     res.json({
       message: `Global shutdown complete. ${activeLogs.length} sessions recorded.`,
       stoppedCount: activeLogs.length
@@ -216,6 +234,8 @@ exports.clearLogs = async (req, res) => {
       { $set: { clearedByAdmin: true } }
     );
 
+    emitEvent(req, "logsCleared", { date });
+    emitDashboardUpdate(req);
     res.json({
       message: `Logs for ${date} cleared.`,
       clearedCount: result.modifiedCount

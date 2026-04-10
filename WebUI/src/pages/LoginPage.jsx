@@ -13,6 +13,7 @@ import {
 } from "react-icons/hi";
 import { toast } from "react-hot-toast";
 import logo from "../assets/Sandd Studio - PNG-05.png";
+import { connectSocket } from "../socket";
 
 
 export default function LoginPage() {
@@ -43,6 +44,7 @@ export default function LoginPage() {
     try {
       const userData = await loginPromise;
       dispatch(setCredentials({ ...userData }));
+      connectSocket(userData.user._id);
       navigate(userData.user.role === "Admin" ? "/admin" : "/employee");
     } catch (err) {
       console.error("Login Error:", err);
@@ -137,8 +139,8 @@ export default function LoginPage() {
             <button
               disabled={isLoading}
               className={`w-full py-4 rounded-xl font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg ${isLoading
-                  ? "bg-slate-300 cursor-not-allowed"
-                  : "bg-orange-500 hover:bg-orange-600 active:scale-[0.98] shadow-slate-200  cursor-pointer"
+                ? "bg-slate-300 cursor-not-allowed"
+                : "bg-orange-500 hover:bg-orange-600 active:scale-[0.98] shadow-slate-200  cursor-pointer"
                 }`}
             >
               {isLoading ? (
