@@ -1,20 +1,20 @@
 import React from "react";
 import {
-  HiOutlineCalendar,
-  HiOutlineSparkles,
-  HiOutlineArrowRight,
   HiOutlineFire,
   HiOutlineClock,
 } from "react-icons/hi2";
-import { useNavigate } from "react-router-dom";
 import { useGetHolidaysQuery } from "../../services/holidayApi";
 import Loader from "../../components/Loader";
 import Table from "../../components/Table";
 import PageHeader from "../../components/PageHeader";
+import { useSocketEvents } from "../../hooks/useSocketEvents";
 
 export default function EmployeeHolidayPage() {
-  const navigate = useNavigate();
-  const { data: holidays = [], isLoading, isFetching } = useGetHolidaysQuery();
+  const { data: holidays = [], isLoading, isFetching, refetch } = useGetHolidaysQuery();
+
+  useSocketEvents({
+    onHolidayChange: refetch,
+  });
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -32,21 +32,16 @@ export default function EmployeeHolidayPage() {
       render: (h) => {
         const d = new Date(h.date);
         return (
-          <div className="flex items-center gap-4 py-3">
+          <div className="flex items-center gap-4">
             <div className="flex flex-col items-center justify-center bg-slate-900 text-white min-w-[3rem] h-12 rounded-xl shadow-lg shadow-slate-200">
               <span className="text-[10px] font-black leading-none uppercase text-orange-400">
                 {d.toLocaleDateString("en-IN", { month: "short" })}
               </span>
               <span className="text-lg font-black leading-none">{d.getDate()}</span>
             </div>
-            <div>
-              <p className="font-black text-slate-900 text-sm uppercase tracking-tight">
-                {d.toLocaleDateString("en-IN", { weekday: "long" })}
-              </p>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                {d.getFullYear()} Cycle
-              </p>
-            </div>
+            <p className="font-black text-slate-900 text-sm uppercase tracking-tight">
+              {d.toLocaleDateString("en-IN", { weekday: "long" })}
+            </p>
           </div>
         );
       },
@@ -58,22 +53,6 @@ export default function EmployeeHolidayPage() {
           {h.name}
         </span>
       ),
-    },
-    {
-      header: "Strategy",
-      className: "text-center",
-      cellClassName: "text-center",
-      render: (h) => {
-        const day = new Date(h.date).getDay();
-        const isLongWeekend = [1, 5].includes(day); // Monday or Friday
-        return isLongWeekend ? (
-          <span className="inline-flex items-center gap-1.5 bg-orange-50 text-orange-600 px-3 py-1.5 rounded-full text-[9px] font-black uppercase border border-orange-100 animate-pulse">
-            <HiOutlineFire size={12} /> Long Weekend
-          </span>
-        ) : (
-          <span className="text-slate-300 text-[10px] font-bold">—</span>
-        );
-      },
     },
     {
       header: "Countdown",
@@ -135,11 +114,6 @@ export default function EmployeeHolidayPage() {
             data={upcomingHolidays}
             emptyMessage="No upcoming holidays detected in current cycle."
           />
-          <div className="bg-slate-50/50 p-6 border-t border-slate-100 flex justify-between items-center">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-              Data Integrity Protocol Active
-            </span>
-          </div>
         </div>
 
       </main>

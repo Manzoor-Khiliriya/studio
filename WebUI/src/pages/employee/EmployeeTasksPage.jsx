@@ -10,6 +10,7 @@ import PageHeader from "../../components/PageHeader";
 import Table from "../../components/Table";
 import Loader from "../../components/Loader";
 import Pagination from "../../components/Pagination";
+import { useSocketEvents } from "../../hooks/useSocketEvents";
 
 export default function MyTasksPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -20,7 +21,7 @@ export default function MyTasksPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const limit = 8;
 
-  const { data, isLoading, isFetching } = useGetMyTasksQuery({
+  const { data, isLoading, isFetching, refetch } = useGetMyTasksQuery({
     page: currentPage,
     limit,
     search: searchTerm,
@@ -29,6 +30,9 @@ export default function MyTasksPage() {
     activeStatus: activeStatusFilter === "All" ? "" : activeStatusFilter,
   });
 
+  useSocketEvents({
+    onTaskChange: refetch,
+  });
 
   const clearFilters = () => {
     setSearchTerm("");
@@ -173,7 +177,7 @@ export default function MyTasksPage() {
 
   return (
     <div className="max-w-[1750px] mx-auto min-h-screen bg-slate-100">
-      <PageHeader title="My Tasks" subtitle="Individual mission log and real-time operational status." />
+      <PageHeader title="My Tasks" subtitle="Individual tasks and real-time operational status." />
 
       <main className="max-w-[1750px] mx-auto px-8 pb-10 -mt-10">
 
@@ -266,10 +270,9 @@ export default function MyTasksPage() {
             />
           </div>
 
-          <div className="p-8 bg-slate-50/50 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-3">
-              <HiOutlineCpuChip className="text-orange-500 shadow-orange-200 shadow-sm" size={20} />
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+          <div className="p-4 bg-slate-50/50 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="px-2">
+              <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em]">
                 Assigned Tasks: {data?.pagination?.totalTasks || 0}
               </span>
             </div>

@@ -152,8 +152,8 @@ exports.applyLeave = async (req, res) => {
       endDate,
       reason
     });
-
-    emitEvent(req, "leaveCreated", leave, userId);
+    emitEvent(req, "leaveChanged");
+    emitEvent(req, "leaveChanged", leave, userId);
     emitDashboardUpdate(req);
     res.status(201).json(leave);
 
@@ -394,7 +394,7 @@ exports.updateLeaveSettings = async (req, res) => {
       updateFields,
       { upsert: true, new: true }
     );
-
+    emitEvent(req, "leaveChanged");
     emitDashboardUpdate(req);
     res.json({ message: `Settings for ${leaveType} updated.`, setting });
   } catch (err) {
@@ -465,8 +465,8 @@ exports.processLeave = async (req, res) => {
         message: `${statusEmoji} Your ${leave.type} request from ${formatDate(leave.startDate)} to ${formatDate(leave.endDate)} has been ${leave.status}.${adminNote}`,
       }, io);
     }
-
-    emitEvent(req, "leaveUpdated", leave, leave.user);
+    emitEvent(req, "leaveChanged");
+    emitEvent(req, "leaveChanged", leave, leave.user);
     emitDashboardUpdate(req);
     res.json(leave);
 
@@ -504,8 +504,8 @@ exports.updateLeave = async (req, res) => {
     }
 
     await leave.save();
-
-    emitEvent(req, "leaveUpdated", leave, leave.user);
+    emitEvent(req, "leaveChanged");
+    emitEvent(req, "leaveChanged", leave, leave.user);
     emitDashboardUpdate(req);
     res.json(leave);
 
@@ -524,8 +524,8 @@ exports.deleteLeave = async (req, res) => {
 
     if (isAdmin || (isOwner && leave.status === "Pending")) {
       await Leave.findByIdAndDelete(req.params.id);
-
-      emitEvent(req, "leaveDeleted", leave._id, leave.user);
+      emitEvent(req, "leaveChanged");
+      emitEvent(req, "leaveChanged", leave._id, leave.user);
       emitDashboardUpdate(req);
       return res.json({ message: "Deleted successfully" });
     }

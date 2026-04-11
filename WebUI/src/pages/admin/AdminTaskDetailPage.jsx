@@ -22,6 +22,7 @@ import ConfirmModal from "../../components/ConfirmModal";
 import EmployeeAssignModal from "../../components/EmployeeAssignModal";
 import StatusUpdateModal from "../../components/StatusUpdateModal";
 import TaskModal from "../../components/TaskModal";
+import { useSocketEvents } from "../../hooks/useSocketEvents";
 
 // --- UTILITY: FORMAT SECONDS TO HH:MM:SS ---
 const formatToHMS = (totalSeconds) => {
@@ -47,8 +48,12 @@ export default function AdminTaskDetailPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // API Hooks
-  const { data: task, isLoading, isError } = useGetTaskDetailQuery(id);
+  const { data: task, isLoading, isError, refetch } = useGetTaskDetailQuery(id);
   const [deleteTask, { isLoading: isDeleting }] = useDeleteTaskMutation();
+
+  useSocketEvents({
+    onTaskChange: refetch,
+  });
 
   // Derived Values (Memoized for performance)
   const { consumedSec, allocatedSec, timeData, employeePieData } = useMemo(() => {

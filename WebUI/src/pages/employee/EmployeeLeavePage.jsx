@@ -18,6 +18,7 @@ import Loader from "../../components/Loader";
 import LeaveModal from "../../components/LeaveModal";
 import Pagination from "../../components/Pagination";
 import PageHeader from "../../components/PageHeader";
+import { useSocketEvents } from '../../hooks/useSocketEvents';
 
 export default function EmployeeLeavePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -27,14 +28,18 @@ export default function EmployeeLeavePage() {
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
-  const limit = 8;
+  const [limit, setLimit] = useState(5);
 
   // --- DATA FETCHING ---
-  const { data, isLoading, isFetching } = useGetMyLeavesQuery({
+  const { data, isLoading, isFetching, refetch } = useGetMyLeavesQuery({
     page,
-    limit,
+    limit: limit,
     type: typeFilter === "All" ? "" : typeFilter,
     status: statusFilter === "All" ? "" : statusFilter
+  });
+
+  useSocketEvents({
+    onLeaveChange: refetch,
   });
 
   const [deleteLeave] = useDeleteLeaveMutation();
@@ -136,10 +141,10 @@ export default function EmployeeLeavePage() {
             </>
           ) : (
             <button
-                className="text-slate-500 hover:text-slate-600  transition-all cursor-not-allowed"
-              >
-                <HiOutlineLockClosed size={18} />
-              </button>
+              className="text-slate-500 hover:text-slate-600  transition-all cursor-not-allowed"
+            >
+              <HiOutlineLockClosed size={18} />
+            </button>
           )}
         </div>
       )
@@ -169,8 +174,8 @@ export default function EmployeeLeavePage() {
               onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
               className="bg-transparent text-[10px] font-black outline-none cursor-pointer text-slate-700 uppercase"
             >
-              {["All", "Sick Leave", "Personal Leave", "Annual Leave", "Maternity Leave", "Unpaid Leave", "Other Leave"].map(t => (
-                <option key={t} value={t}>{t}</option>
+              {["All", "Annual Leave", "Sick Leave", "Bereavement Leave", "Paternity Leave", "Maternity Leave", "Casual Leave", "LOP"].map(t => (
+              <option key={t} value={t}>{t}</option>
               ))}
             </select>
           </div>
@@ -185,7 +190,7 @@ export default function EmployeeLeavePage() {
                   : "text-slate-500 hover:text-slate-800 cursor-pointer"
                   }`}
               >
-                {s === 'Pending' ? 'Review' : s === 'Approved' ? 'Authorized' : s}
+                {s === 'Pending' ? 'Under Review' : s === 'Approved' ? 'Approved' : s}
               </button>
             ))}
           </div>
@@ -202,15 +207,15 @@ export default function EmployeeLeavePage() {
           {/* STATS SECTION */}
           <div className="xl:col-span-3 space-y-6">
             <StatBox
-              label="Earned Credits"
+              label="Annual Leaves"
               value={`${data?.balances?.annualLeave?.earned?.toFixed(1) || 0}`}
               unit="Days"
               color="orange"
               icon={<HiOutlineSparkles />}
             />
             <StatBox
-              label="Remaining"
-              value={`${data?.stats?.remaining || 0}`}
+              label="Remaining Leaves"
+              value={`${data?.stats?.remaining?.toFixed(1) || 0}`}
               unit="Days"
               color="slate"
               icon={<HiOutlineShieldCheck />}
@@ -223,21 +228,43 @@ export default function EmployeeLeavePage() {
               <Table
                 columns={columns}
                 data={data?.history || []}
-                emptyMessage="No registry entries found for selected criteria."
+                emptyMessage="No leave request records found."
               />
 
-              <div className="bg-slate-50/50 p-6 border-t border-slate-100">
-                <Pagination
-                  pagination={{
-                    current: page,
-                    total: data?.pagination?.totalPages || 1,
-                    count: data?.pagination?.totalLeaves || 0,
-                    limit: limit
-                  }}
-                  onPageChange={setPage}
-                  loading={isFetching}
-                  label="Records"
-                />
+              <div className="bg-slate-50/50 p-6 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-sm">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-100 pr-3">
+                      Page Limit
+                    </span>
+                    <select
+                      value={limit}
+                      onChange={(e) => { setLimit(Number(e.target.value)); setCurrentPage(1); }}
+                      className="bg-transparent text-[9px] font-black outline-none focus:ring-0 cursor-pointer text-slate-700"
+                    >
+                      {[5, 10, 25, 50].map((v) => <option key={v} value={v}>{v}</option>)}
+                    </select>
+                  </div>
+
+                  {data?.pagination?.totalLeaves && (
+                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight ml-2">
+                      Total {data?.pagination?.totalLeaves} Leave Requests
+                    </span>
+                  )}
+                </div>
+                <div className="bg-slate-50/50 p-6 border-t border-slate-100">
+                  <Pagination
+                    pagination={{
+                      current: page,
+                      total: data?.pagination?.totalPages || 1,
+                      count: data?.pagination?.totalLeaves || 0,
+                      limit: limit
+                    }}
+                    onPageChange={setPage}
+                    loading={isFetching}
+                    label="Records"
+                  />
+                </div>
               </div>
             </div>
           </div>

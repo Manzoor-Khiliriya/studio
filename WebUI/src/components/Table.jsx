@@ -10,7 +10,7 @@ export default function Table({ columns, data, onRowClick, emptyMessage = "No re
             {columns.map((col, idx) => (
               <th 
                 key={idx} 
-                className={`px-6 py-7 text-[10px] font-black text-slate-400 uppercase tracking-widest ${col.className || ''}`}
+                className={`px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest ${col.className || ''}`}
               >
                 {col.header}
               </th>

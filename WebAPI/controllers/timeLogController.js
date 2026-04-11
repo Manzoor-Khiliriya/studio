@@ -69,7 +69,7 @@ exports.startTimer = async (req, res) => {
 
     await session.commitTransaction();
 
-    emitEvent(req, "timerStarted", log[0], userId);
+    emitEvent(req, "timeLogChanged", log[0], userId);
     emitDashboardUpdate(req);
     res.status(201).json(log[0]);
 
@@ -114,7 +114,7 @@ exports.togglePause = async (req, res) => {
       dateString: active.dateString
     });
 
-    emitEvent(req, "timerToggled", { status: newType, log: newLog }, userId);
+    emitEvent(req, "timeLogChanged", { status: newType, log: newLog }, userId);
     emitDashboardUpdate(req);
     res.json({ status: newType, log: newLog });
 
@@ -141,7 +141,7 @@ exports.stopTimer = async (req, res) => {
 
     await log.save();
 
-    emitEvent(req, "timerStopped", log, req.user._id);
+    emitEvent(req, "timeLogChanged", log, req.user._id);
     emitDashboardUpdate(req);
     res.json({ message: "Session Terminated", log });
 
@@ -205,7 +205,11 @@ exports.stopAllLiveSessions = async (req, res) => {
 
     await Promise.all(updatePromises);
 
-    emitEvent(req, "allTimersStopped", { count: activeLogs.length });
+    emitEvent(req, "timeLogChanged");
+    activeLogs.forEach(log => {
+      emitEvent(req, "timeLogChanged", null, log.user);
+    });
+    emitEvent(req, "taskChanged");
     emitDashboardUpdate(req);
     res.json({
       message: `Global shutdown complete. ${activeLogs.length} sessions recorded.`,
@@ -234,7 +238,7 @@ exports.clearLogs = async (req, res) => {
       { $set: { clearedByAdmin: true } }
     );
 
-    emitEvent(req, "logsCleared", { date });
+    emitEvent(req, "timeLogChanged", { date });
     emitDashboardUpdate(req);
     res.json({
       message: `Logs for ${date} cleared.`,

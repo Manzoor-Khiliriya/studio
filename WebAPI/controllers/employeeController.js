@@ -1,17 +1,5 @@
 const Employee = require("../models/Employee");
 const User = require("../models/User");
-const { emitDashboardUpdate } = require("../utils/socket");
-
-const emitEvent = (req, event, data, userId = null) => {
-  const io = req.app.get("socketio");
-  if (!io) return;
-
-  if (userId) {
-    io.to(userId.toString()).emit(event, data);
-  } else {
-    io.emit(event, data);
-  }
-};
 
 exports.getAllEmployees = async (req, res) => {
   try {
@@ -26,14 +14,17 @@ exports.getAllEmployees = async (req, res) => {
       userCriteria.status = status === "Active" ? "Enable" : "Disable";
     }
     const users = await User.find(userCriteria).select("_id");
+    console.log(users)
     const userIds = users.map(u => u._id);
     const query = { user: { $in: userIds } };
+    console.log(userIds)
     const employees = await Employee.find(query)
       .populate("user", "name email status +plainPassword")
       .sort({ createdAt: -1 })
       .limit(numericLimit)
       .skip((numericPage - 1) * numericLimit)
       .lean();
+    console.log(employees)
     const total = await Employee.countDocuments(query);
     res.json({
       employees,
@@ -41,41 +32,6 @@ exports.getAllEmployees = async (req, res) => {
       currentPage: numericPage,
       totalEmployees: total,
     });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-exports.updateEmployeeStats = async (req, res) => {
-  try {
-    const {
-      designation,
-      dailyWorkLimit,
-      proficiency,
-      skills,
-      joinedDate,
-      photo,
-      leaves,
-    } = req.body;
-    const updateData = {};
-    if (designation !== undefined) updateData.designation = designation;
-    if (dailyWorkLimit !== undefined) updateData.dailyWorkLimit = dailyWorkLimit;
-    if (proficiency !== undefined) updateData.proficiency = proficiency;
-    if (skills !== undefined) updateData.skills = skills;
-    if (joinedDate !== undefined) updateData.joinedDate = joinedDate;
-    if (photo !== undefined) updateData.photo = photo;
-    if (leaves !== undefined) updateData.leaves = leaves;
-    const employee = await Employee.findOneAndUpdate(
-      { user: req.params.userId },
-      updateData,
-      { new: true, runValidators: true }
-    ).populate("user", "name email status role");
-    if (!employee) {
-      return res.status(404).json({ message: "Employee profile not found" });
-    }
-    emitEvent(req, "employeeUpdated", employee, req.params.userId);
-    emitDashboardUpdate(req);
-    res.json(employee);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

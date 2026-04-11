@@ -38,8 +38,7 @@ export default function Navbar() {
   if (!user) return null;
 
   const unreadCount = notifications.filter(n => !n.read).length;
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
+  const greeting = "Welcome"
 
   return (
     <header className="h-[7vh] flex items-center justify-between px-6 md:px-12 bg-orange-600 text-gray-200 font-primary backdrop-blur-md sticky top-0 z-40">
@@ -101,7 +100,7 @@ export default function Navbar() {
                           key={n._id || n.id}
                           onClick={() => {
                             setIsOpen(false);
-                            if (n.taskId) navigate(`/tasks/${n.taskId}`);
+                            if (n.taskId) navigate(`/my-tasks/`);
                           }}
                           className={`p-5 flex gap-4 hover:bg-orange-50/50 transition-colors cursor-pointer border-b border-orange-50/50 ${!n.read ? 'bg-orange-50/10' : ''}`}
                         >

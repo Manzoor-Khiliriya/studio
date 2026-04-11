@@ -16,8 +16,8 @@ import Table from "../../components/Table";
 import Loader from "../../components/Loader";
 import HolidayModal from "../../components/HolidayModal";
 import ConfirmModal from "../../components/ConfirmModal";
-
 import { getAdminHolidayColumns } from "../../utils/adminHolidayHelper";
+import { useSocketEvents } from "../../hooks/useSocketEvents";
 
 export default function AdminHolidayPage() {
   const holidayInitialState = { id: null, name: "", date: "", description: "" };
@@ -29,10 +29,14 @@ export default function AdminHolidayPage() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [holidayToDelete, setHolidayToDelete] = useState(null);
 
-  const { data: holidays = [], isLoading, isFetching } = useGetHolidaysQuery({ year, search });
+  const { data: holidays = [], isLoading, isFetching, refetch } = useGetHolidaysQuery({ year, search });
   const [addHoliday, { isLoading: isSaving }] = useAddHolidayMutation();
   const [updateHoliday] = useUpdateHolidayMutation();
   const [deleteHoliday, { isLoading: isDeleting }] = useDeleteHolidayMutation();
+
+  useSocketEvents({
+    onHolidayChange: refetch,
+  });
 
   const openCreateModal = () => {
     setHolidayModel(holidayInitialState);
@@ -97,13 +101,13 @@ export default function AdminHolidayPage() {
       toast.error(err?.data?.message || "Operation failed");
     }
   };
-  
+
   const hasActiveFilters = search !== "" || year !== currentYear;
 
   if (isLoading) return <Loader message="Accessing Holidays..." />;
 
   return (
-    <div className=" max-w-[1750px] mx-auto min-h-screen bg-slate-100">
+    <div className="max-w-[1750px] mx-auto min-h-screen bg-slate-100">
       <PageHeader
         title="Holiday Management"
         subtitle="Manage public and private holidays."
@@ -170,7 +174,7 @@ export default function AdminHolidayPage() {
             />
           </div>
           <div className="bg-slate-50/50 p-6 border-t border-slate-100 flex justify-between items-center">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
               Total Holidays: {holidays.length}
             </span>
           </div>

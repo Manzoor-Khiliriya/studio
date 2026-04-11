@@ -64,7 +64,7 @@ exports.createUser = async (req, res) => {
     } catch (notifErr) {
       console.error("Notification failed:", notifErr.message);
     }
-    emitEvent(req, "userCreated", sanitizeUser(result));
+    emitEvent(req, "employeeChanged", sanitizeUser(result));
     emitDashboardUpdate(req);
     res.status(201).json(sanitizeUser(result));
   } catch (err) {
@@ -113,7 +113,7 @@ exports.updateUser = async (req, res) => {
     const updated = await User.findById(user._id)
       .populate("employee")
       .lean();
-    emitEvent(req, "userUpdated", sanitizeUser(updated));
+    emitEvent(req, "employeeChanged", sanitizeUser(updated));
     emitDashboardUpdate(req);
     res.json(sanitizeUser(updated));
   } catch (err) {
@@ -157,7 +157,7 @@ exports.changeUserStatus = async (req, res) => {
       { new: true }
     );
     if (!user) return res.status(404).json({ message: "User not found" });
-    emitEvent(req, "userStatusChanged", {
+    emitEvent(req, "employeeChanged", {
       userId: user._id,
       status: user.status
     });
@@ -174,7 +174,7 @@ exports.deleteUser = async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
 
     await Employee.findOneAndDelete({ user: user._id });
-    emitEvent(req, "userDeleted", user._id);
+    emitEvent(req, "employeeChanged", user._id);
     emitDashboardUpdate(req);
     res.json({ message: "User and employee profile deleted successfully." });
 

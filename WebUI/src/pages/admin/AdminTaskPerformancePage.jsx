@@ -12,6 +12,7 @@ import {
   HiOutlineExclamationTriangle,
   HiOutlineCalendarDays
 } from 'react-icons/hi2';
+import { useSocketEvents } from '../../hooks/useSocketEvents';
 
 // --- SUB-COMPONENT: COMPACT PROGRESS BAR WITH BREAKPOINTS ---
 const CustomProgressBar = ({ percentage, isOver }) => {
@@ -72,10 +73,15 @@ const AdminTaskPerformancePage = () => {
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  const { data, isLoading, isFetching } = useGetTaskPerformanceReportQuery({
+  const { data, isLoading, isFetching, refetch } = useGetTaskPerformanceReportQuery({
     page: currentPage,
     limit: limit,
     search: debouncedSearch
+  });
+
+  useSocketEvents({
+    onTaskChange: refetch,
+    onProjectChange: refetch,
   });
 
   const projectGroups = data?.projects || [];

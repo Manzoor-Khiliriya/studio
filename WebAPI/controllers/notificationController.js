@@ -30,7 +30,7 @@ exports.markAllAsRead = async (req, res) => {
       { $set: { read: true } }
     );
 
-    emitEvent(req, "notificationsRead", { userId: req.user._id }, req.user._id);
+    emitEvent(req, "notificationChanged", { userId: req.user._id }, req.user._id);
 
     res.json({ message: "All notifications marked as read" });
   } catch (err) {
@@ -45,7 +45,7 @@ exports.deleteNotification = async (req, res) => {
       recipient: req.user._id
     });
 
-    emitEvent(req, "notificationDeleted", req.params.id, req.user._id);
+    emitEvent(req, "notificationChanged", req.params.id, req.user._id);
 
     res.json({ message: "Notification deleted" });
   } catch (err) {

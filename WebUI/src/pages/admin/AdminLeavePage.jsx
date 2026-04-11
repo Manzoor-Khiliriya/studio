@@ -32,6 +32,7 @@ import {
   getQuotaColumns,
   getCasualLopColumns
 } from "../../utils/adminLeaveListHelper";
+import { useSocketEvents } from "../../hooks/useSocketEvents";
 
 export default function AdminLeavePage() {
   const [activeTab, setActiveTab] = useState("requests");
@@ -61,7 +62,7 @@ export default function AdminLeavePage() {
   const [configForm, setConfigForm] = useState({ leaveType: "Sick Leave", value: 10 });
 
   // RTK Query
-  const { data, isLoading, isFetching } = useGetAllLeavesQuery({
+  const { data, isLoading, isFetching, refetch } = useGetAllLeavesQuery({
     search: searchQuery,
     page,
     limit,
@@ -76,6 +77,10 @@ export default function AdminLeavePage() {
   const [updateSettings] = useUpdateLeaveSettingsMutation();
   const [deleteLeave, { isLoading: isDeleting }] = useDeleteLeaveMutation();
 
+
+  useSocketEvents({
+    onLeaveChange: refetch,
+  });
   // --- CSV EXPORT LOGIC ---
   const handleExportCSV = () => {
     if (!data?.leaves || data.leaves.length === 0) {

@@ -125,7 +125,7 @@ exports.getSummary = async (req, res) => {
     const [assignedTasks, approvedLeavesCount, runningTimer] = await Promise.all([
       Task.find({ assignedTo: employeeProfile._id, status: { $ne: "Completed" } })
         .sort({ priority: -1, endDate: 1 })
-        .populate("project", "projectCode")
+        .populate("project", "title projectCode")
         .populate("timeLogs"),
 
       Leave.countDocuments({ user: userId, status: "Approved" }),
@@ -153,8 +153,9 @@ exports.getSummary = async (req, res) => {
 
         return {
           id: task._id,
-          title: task.title,
+          projectTitle: task?.project?.title,
           projectCode: task?.project?.projectCode || "N/A",
+          title: task?.title,
           deadline: task.endDate,
           priority: task.priority,
           status: task.liveStatus,

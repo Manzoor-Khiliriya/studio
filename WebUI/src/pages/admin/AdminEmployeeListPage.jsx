@@ -19,6 +19,7 @@ import ConfirmModal from "../../components/ConfirmModal";
 
 // Helpers
 import { getEmployeeColumns } from "../../utils/adminEmployeeListHelper";
+import { useSocketEvents } from "../../hooks/useSocketEvents";
 
 export default function EmployeeListPage() {
   const navigate = useNavigate();
@@ -40,7 +41,7 @@ export default function EmployeeListPage() {
   });
 
   // --- API HOOKS ---
-  const { data, isLoading, isFetching } = useGetAllEmployeesQuery({
+  const { data, isLoading, isFetching, refetch } = useGetAllEmployeesQuery({
     page: currentPage,
     limit: limit,
     status: statusFilter === "All" ? undefined : statusFilter,
@@ -49,6 +50,10 @@ export default function EmployeeListPage() {
 
   const [changeUserStatus, { isLoading: isUpdatingStatus }] = useChangeUserStatusMutation();
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
+
+  useSocketEvents({
+    onEmployeeChange: refetch,
+  });
 
   // --- CONSOLIDATED HANDLERS ---
 
@@ -179,8 +184,8 @@ export default function EmployeeListPage() {
               </div>
 
               {data?.totalEmployees && (
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight ml-2">
-                  Total {data?.totalEmployees} results
+                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight ml-2">
+                  Total {data?.totalEmployees} Employees
                 </span>
               )}
             </div>

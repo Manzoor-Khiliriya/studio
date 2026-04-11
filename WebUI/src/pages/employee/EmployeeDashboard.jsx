@@ -12,7 +12,7 @@ import Loader from "../../components/Loader";
 import Pagination from "../../components/Pagination";
 import PageHeader from "../../components/PageHeader";
 import StatCard from "../../components/StatCard";
-import { getSocket } from "../../socket";
+import { useSocketEvents } from "../../hooks/useSocketEvents";
 
 export default function EmployeeDashboard() {
   const timerRef = useRef(null);
@@ -32,23 +32,24 @@ export default function EmployeeDashboard() {
   const { data: attendanceStatus, isLoading: attendanceLoading, refetch } = useGetTodayStatusQuery();
   const [clockIn, { isLoading: isClockingIn }] = useClockInMutation();
   const [clockOut, { isLoading: isClockingOut }] = useClockOutMutation();
-  const { data: logsData, isSuccess: logsLoaded } = useGetMyTodayLogsQuery();
+  const { data: logsData, isSuccess: logsLoaded, refetch: refetchLogs } = useGetMyTodayLogsQuery();
 
   const isSyncingAttendance = isClockingIn || isClockingOut;
 
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
 
-    const handleUpdate = () => {
-      refetch();          // attendance
-      refetchSummary();   // 🔥 dashboard
-    };
-
-    socket.on("dashboardUpdated", handleUpdate);
-
-    return () => socket.off("dashboardUpdated", handleUpdate);
-  }, [refetch, refetchSummary]);
+  useSocketEvents({
+    onDashboardUpdate: () => {
+      refetch();
+      refetchSummary();
+    },
+    onTimeLogChange: () => {
+      refetchSummary();
+      refetchLogs();
+    },
+    onTaskChange: () => {
+      refetchSummary();
+    },
+  });
 
   const allActiveTasks = useMemo(() => {
     return summaryData?.taskSnapshot || [];
@@ -145,11 +146,12 @@ export default function EmployeeDashboard() {
   if (attendanceLoading || summaryLoading) return <Loader message="Syncing Systems..." />;
 
   return (
-    <div className="max-w-[1750px] mx-auto  min-h-screen bg-[#f1f5f9]">
-      <div className="max-w-[1600px] mx-auto px-6 py-10">
-        <PageHeader title="Dashboard" />
+    <div className="min-h-screen bg-[#f1f5f9]">
+      <PageHeader title="Dashboard" />
 
-        {/* --- STATS GRID (5 COLUMNS) --- */}
+      {/* --- STATS GRID (5 COLUMNS) --- */}
+      <div className="mx-auto px-8 pb-10">
+
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6 my-8">
           <StatCard
             label="Task Timer"

@@ -170,8 +170,8 @@ export default function ClockInOut({ todaySeconds: dashboardDailySecs, taskList 
         >
           <option value="" className="bg-slate-900">Select Task...</option>
           {taskList.map(task => (
-            <option key={task.id} value={task.id} className="bg-slate-900">
-              ({task.projectCode}) - {task.title}
+            <option key={task.id} value={task.id} className="bg-slate-900 uppercase">
+              {task.projectTitle} ({task?.projectCode}) - {task.title}
             </option>
           ))}
         </select>

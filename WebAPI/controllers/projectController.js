@@ -28,7 +28,7 @@ exports.createProject = async (req, res) => {
       startDate,
       endDate
     });
-    emitEvent(req, "projectCreated", project);
+    emitEvent(req, "projectChanged", project);
     emitDashboardUpdate(req);
     return res.status(201).json({ success: true, message: "Project created successfully", project });
   } catch (error) {
@@ -46,6 +46,8 @@ exports.getAllProjects = async (req, res) => {
       createdAt,
       startDate,
       endDate,
+      createdFrom,
+      createdTo,
       taskSearch,
       liveStatus,
       taskStatus,
@@ -68,18 +70,59 @@ exports.getAllProjects = async (req, res) => {
       query.status = status;
     }
 
-    if (search) {
-      query.$or = [
-        { projectCode: { $regex: search, $options: "i" } },
-        { title: { $regex: search, $options: "i" } }
-      ];
+    if (activeTab === "live") {
+      if (search) {
+        query.$or = [
+          { projectCode: { $regex: search, $options: "i" } },
+          { title: { $regex: search, $options: "i" } }
+        ];
+      }
+    } else {
+      if (search) {
+        query.$or = [
+          { projectCode: { $regex: search, $options: "i" } },
+          { title: { $regex: search, $options: "i" } },
+          { clientName: { $regex: search, $options: "i" } },
+          { projectType: { $regex: search, $options: "i" } },
+          { status: { $regex: search, $options: "i" } },
+          { invoiceNumber: { $regex: search, $options: "i" } }
+        ];
+      }
     }
 
-    if (createdAt) {
+    if (activeTab === "live" && createdAt) {
       const start = new Date(createdAt);
       const end = new Date(createdAt);
       end.setHours(23, 59, 59, 999);
+
       query.createdAt = { $gte: start, $lte: end };
+    }
+
+    if (activeTab !== "live" && (createdFrom || createdTo)) {
+
+      if (createdFrom && !createdTo) {
+        const start = new Date(createdFrom);
+        const end = new Date(createdFrom);
+        end.setHours(23, 59, 59, 999);
+
+        query.createdAt = { $gte: start, $lte: end };
+      }
+
+      else if (!createdFrom && createdTo) {
+        const start = new Date(createdTo);
+        const end = new Date(createdTo);
+        end.setHours(23, 59, 59, 999);
+
+        query.createdAt = { $gte: start, $lte: end };
+      }
+
+      else {
+        const start = new Date(createdFrom);
+        const end = new Date(createdTo);
+        end.setHours(23, 59, 59, 999);
+
+        query.createdAt = { $gte: start, $lte: end };
+      }
     }
 
     if (startDate || endDate) {
@@ -199,7 +242,7 @@ exports.updateProject = async (req, res) => {
       return res.status(404).json({ success: false, message: "Project not found" });
     }
 
-    emitEvent(req, "projectUpdated", project);
+    emitEvent(req, "projectChanged", project);
     emitDashboardUpdate(req);
     return res.status(200).json({
       success: true,
@@ -233,7 +276,7 @@ exports.deleteProject = async (req, res) => {
     await Task.deleteMany({ project: projectId });
     await Project.deleteOne({ _id: projectId });
 
-    emitEvent(req, "projectDeleted", projectId);
+    emitEvent(req, "projectChanged", projectId);
     emitDashboardUpdate(req);
     return res.status(200).json({
       success: true,
@@ -302,14 +345,130 @@ exports.getProjectCalendarStacks = async (req, res) => {
 
     const projectStacks = await Project.aggregate([
       {
-        $match: search
-          ? {
+        $match: {
+          deleteStatus: "Disable",
+
+          ...(search && {
             $or: [
               { projectCode: { $regex: search, $options: "i" } },
               { title: { $regex: search, $options: "i" } }
             ]
+          })
+        }
+      },
+
+      // ✅ get tasks
+      {
+        $lookup: {
+          from: "tasks",
+          localField: "_id",
+          foreignField: "project",
+          as: "taskList"
+        }
+      },
+
+      // ✅ get logs
+      {
+        $lookup: {
+          from: "timelogs",
+          localField: "taskList._id",
+          foreignField: "task",
+          as: "timeLogs"
+        }
+      },
+
+      {
+        $project: {
+          id: { $toString: "$_id" },
+          title: "$title",
+          start: { $dateToString: { format: "%Y-%m-%d", date: "$startDate" } },
+          end: { $dateToString: { format: "%Y-%m-%d", date: "$endDate" } },
+
+          extendedProps: {
+            projectCode: "$projectCode",
+
+            tasks: {
+              $map: {
+                input: "$taskList",
+                as: "task",
+                in: {
+                  _id: "$$task._id",
+                  title: "$$task.title",
+
+                  liveStatus: {
+                    $let: {
+                      vars: {
+                        taskLogs: {
+                          $filter: {
+                            input: "$timeLogs",
+                            as: "log",
+                            cond: { $eq: ["$$log.task", "$$task._id"] }
+                          }
+                        }
+                      },
+                      in: {
+                        $cond: [
+                          // 🔥 IN PROGRESS
+                          {
+                            $gt: [
+                              {
+                                $size: {
+                                  $filter: {
+                                    input: "$$taskLogs",
+                                    as: "log",
+                                    cond: {
+                                      $and: [
+                                        { $eq: ["$$log.isRunning", true] },
+                                        { $eq: ["$$log.logType", "work"] }
+                                      ]
+                                    }
+                                  }
+                                }
+                              },
+                              0
+                            ]
+                          },
+                          "In progress",
+
+                          // 🔥 STARTED
+                          {
+                            $cond: [
+                              {
+                                $gt: [
+                                  {
+                                    $size: {
+                                      $filter: {
+                                        input: "$$taskLogs",
+                                        as: "log",
+                                        cond: {
+                                          $and: [
+                                            { $eq: ["$$log.logType", "work"] },
+                                            { $gt: ["$$log.durationSeconds", 0] }
+                                          ]
+                                        }
+                                      }
+                                    }
+                                  },
+                                  0
+                                ]
+                              },
+                              "Started",
+
+                              // 🔥 TO BE STARTED
+                              "To be started"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+
+            taskCount: { $size: "$taskList" }
           }
-          : {}
+        }
       }
     ]);
 

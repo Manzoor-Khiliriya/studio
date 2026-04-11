@@ -6,33 +6,25 @@ import {
 } from '../../services/dashboardApi';
 import { HiOutlineArrowTrendingUp, HiOutlineBolt, HiOutlineUserGroup, HiOutlineFingerPrint, HiOutlineCalendarDays } from 'react-icons/hi2';
 import { BiTask, BiTimeFive, BiTrash } from 'react-icons/bi';
-import { FiStopCircle, FiAlertTriangle } from 'react-icons/fi';
+import { FiAlertTriangle } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import Loader from '../../components/Loader';
 import StatCard from '../../components/StatCard';
 import { HiOutlineClipboardList } from 'react-icons/hi';
 import PageHeader from '../../components/PageHeader';
-import { getSocket } from '../../socket';
+import { useSocketEvents } from '../../hooks/useSocketEvents';
 
 const AdminDashboard = () => {
-  const { data, isLoading, refetch } = useGetDashboardSummaryQuery();
+  const { data, isLoading, refetch } = useGetDashboardSummaryQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
   const [stopAllSessions, { isLoading: isStoppingAll }] = useStopAllSessionsMutation();
   const [clearLogs, { isLoading: isClearing }] = useClearLogsMutation();
 
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
-
-    const handleUpdate = () => {
-      console.log("📊 Dashboard updating...");
-      refetch();
-    };
-
-    socket.on("dashboardUpdated", handleUpdate);
-
-    return () => socket.off("dashboardUpdated", handleUpdate);
-  }, [refetch]);
+  useSocketEvents({
+    onDashboardUpdate: refetch,
+  });
 
   if (isLoading) return <Loader message="Decrypting Operational Data..." />;
 

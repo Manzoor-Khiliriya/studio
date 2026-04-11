@@ -6,17 +6,22 @@ import { useGetProjectCalendarQuery } from '../../services/projectApi';
 import { useGetHolidaysQuery } from '../../services/holidayApi';
 import { useNavigate } from 'react-router-dom';
 import { HiChevronDown, HiChevronUp, HiOutlineQueueList, HiOutlineFlag } from 'react-icons/hi2';
+import { useSocketEvents } from '../../hooks/useSocketEvents';
 
 const AdminProjectCalendar = () => {
   const navigate = useNavigate();
   const [expandedProjects, setExpandedProjects] = useState(new Set());
   const [activeTab, setActiveTab] = useState('all');
-
-  // NEW: State to track which project ID is being hovered across all calendar segments
   const [hoveredProjectId, setHoveredProjectId] = useState(null);
 
-  const { data: projectStacks } = useGetProjectCalendarQuery("");
-  const { data: holidaysData } = useGetHolidaysQuery();
+  const { data: projectStacks, refetch: refetchProjects } = useGetProjectCalendarQuery("");
+  const { data: holidaysData, refetch: refetchHolidays } = useGetHolidaysQuery();
+
+  useSocketEvents({
+    onProjectChange: refetchProjects,
+    onTaskChange: refetchProjects,
+    onHolidayChange: refetchHolidays,
+  });
 
   const toggleProject = (projectId, e) => {
     e.stopPropagation();
@@ -115,10 +120,10 @@ const AdminProjectCalendar = () => {
                     <span className="text-[9px] font-bold text-slate-700 group-hover:text-indigo-600 truncate">{task.title}</span>
                   </div>
                   <span className={`text-[7px] font-black uppercase ml-3.5 ${task.liveStatus === 'In progress'
-                      ? 'text-orange-500'
-                      : task.liveStatus === 'Started'
-                        ? 'text-blue-500'
-                        : 'text-slate-400'
+                    ? 'text-orange-500'
+                    : task.liveStatus === 'Started'
+                      ? 'text-blue-500'
+                      : 'text-slate-400'
                     }`}>
                     {task.liveStatus}
                   </span>

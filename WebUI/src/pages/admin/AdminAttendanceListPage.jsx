@@ -21,6 +21,7 @@ import Table from "../../components/Table";
 import Loader from "../../components/Loader";
 import Pagination from "../../components/Pagination";
 import { useGetLeaveCalendarQuery } from "../../services/leaveApi";
+import { useSocketEvents } from "../../hooks/useSocketEvents";
 
 export default function AttendanceManagement() {
   const [activeTab, setActiveTab] = useState("logs");
@@ -43,7 +44,7 @@ export default function AttendanceManagement() {
     return () => clearTimeout(handler);
   }, [search]);
 
-  const { data, isLoading, isFetching } = useGetAllAttendanceQuery({
+  const { data, isLoading, isFetching, refetch } = useGetAllAttendanceQuery({
     startDate: activeTab === "logs" ? dateFilter.startDate : format(startOfMonth(currentMonth), "yyyy-MM-dd"),
     endDate: activeTab === "logs" ? dateFilter.endDate : format(endOfMonth(currentMonth), "yyyy-MM-dd"),
     page: page,
@@ -51,9 +52,16 @@ export default function AttendanceManagement() {
     search: debouncedSearch,
   });
 
-  const { data: leaveCalendar, isLoading: isLeaveLoading } = useGetLeaveCalendarQuery({
+  const { data: leaveCalendar, isLoading: isLeaveLoading, refetch: refetchLeave  } = useGetLeaveCalendarQuery({
     startDate: format(startOfMonth(currentMonth), "yyyy-MM-dd"),
     endDate: format(endOfMonth(currentMonth), "yyyy-MM-dd"),
+  }, {
+    refetchOnMountOrArgChange: true,
+  });
+
+  useSocketEvents({
+    onAttendanceChange: refetch,
+    onLeaveChange: refetch,
   });
 
   const attendanceData = data?.records || [];
@@ -253,10 +261,10 @@ export default function AttendanceManagement() {
                               key={i}
                               title={`${leave.name} - ${leave.type}`}
                               className={`px-2 py-1.5 rounded-lg border flex flex-col gap-0.5 shadow-sm ${leave.type === "Sick Leave"
-                                  ? "bg-rose-50 border-rose-100 text-rose-700"
-                                  : leave.type === "Annual Leave"
-                                    ? "bg-emerald-50 border-emerald-100 text-emerald-700"
-                                    : "bg-blue-50 border-blue-100 text-blue-700"
+                                ? "bg-rose-50 border-rose-100 text-rose-700"
+                                : leave.type === "Annual Leave"
+                                  ? "bg-emerald-50 border-emerald-100 text-emerald-700"
+                                  : "bg-blue-50 border-blue-100 text-blue-700"
                                 }`}
                             >
                               <span className="text-[9px] font-black uppercase truncate leading-none">

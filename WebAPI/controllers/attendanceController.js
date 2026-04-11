@@ -24,7 +24,7 @@ exports.clockIn = async (req, res) => {
       attendance.lastResumeTime = new Date();
       await attendance.save();
 
-      emitEvent(req, "attendanceUpdated", attendance, req.user.id);
+      emitEvent(req, "attendanceChanged");
       emitDashboardUpdate(req);
       return res.status(200).json(attendance);
     }
@@ -39,7 +39,7 @@ exports.clockIn = async (req, res) => {
       totalSecondsWorked: 0
     });
 
-    emitEvent(req, "attendanceCreated", attendance, req.user.id);
+    emitEvent(req, "attendanceChanged");
     emitDashboardUpdate(req);
     res.status(201).json(attendance);
   } catch (err) {
@@ -69,7 +69,7 @@ exports.clockOut = async (req, res) => {
 
     await record.save();
 
-    emitEvent(req, "attendanceUpdated", record, req.user.id);
+    emitEvent(req, "attendanceChanged");
     emitDashboardUpdate(req);
     res.json(record);
   } catch (err) {

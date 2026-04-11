@@ -8,7 +8,7 @@ import { FiEdit, FiTrash2 } from "react-icons/fi";
  */
 export const getAdminHolidayColumns = (onEdit, onDelete) => [
   {
-    header: "Registry Date",
+    header: "Holiday Date",
     render: (r) => {
       const d = new Date(r.date);
       return (
@@ -32,7 +32,7 @@ export const getAdminHolidayColumns = (onEdit, onDelete) => [
     },
   },
   {
-    header: "Holiday Title",
+    header: "Holiday Name",
     render: (r) => (
       <span className="font-black text-slate-900 text-sm uppercase tracking-tight group-hover:text-orange-600 transition-colors">
         {r.name}
@@ -40,7 +40,7 @@ export const getAdminHolidayColumns = (onEdit, onDelete) => [
     ),
   },
   {
-    header: "Protocol Notes",
+    header: "Description",
     className: "hidden md:table-cell",
     render: (r) => (
       <span className="text-xs font-bold text-slate-400 italic max-w-xs truncate block">

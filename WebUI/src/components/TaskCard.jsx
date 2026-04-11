@@ -1,11 +1,8 @@
 import { motion } from "framer-motion";
-import { FiRefreshCcw, FiAlertCircle, FiHash, FiClock, FiMinusCircle, FiCheckCircle, FiActivity } from "react-icons/fi";
-import { formatDistanceToNow } from "date-fns";
+import {  FiClock, FiMinusCircle, FiActivity } from "react-icons/fi";
 
 export default function TaskCard({ task, isTracking }) {
 
-
-  // ✅ LIVE STATUS STYLES
   const getStatusStyles = (status) => {
     switch (status) {
       case "In progress":
@@ -19,17 +16,12 @@ export default function TaskCard({ task, isTracking }) {
     }
   };
 
-  // ✅ SIDE BAR COLOR BASED ON LIVE STATUS
   const getSideBarColor = () => {
     if (isTracking) return 'bg-orange-500';
     if (task.status === "To be started") return 'bg-slate-400';
     if (task.status === "Started") return 'bg-yellow-500';
     return 'bg-orange-400';
   };
-
-  const lastUpdated = task.updatedAt
-    ? formatDistanceToNow(new Date(task.updatedAt), { addSuffix: true })
-    : "Recently Assigned";
 
   return (
     <motion.div
@@ -56,10 +48,6 @@ export default function TaskCard({ task, isTracking }) {
               {task.status}
             </span>
 
-            <div className="flex items-center gap-1.5 text-slate-400 text-[9px] font-bold uppercase bg-slate-50 px-2 py-1 rounded-md">
-              <FiRefreshCcw size={10} />
-              {lastUpdated}
-            </div>
 
             {isTracking && (
               <span className="flex items-center gap-1 text-orange-600 text-[8px] font-black uppercase px-2 py-1 bg-orange-100 rounded-md animate-pulse">
@@ -70,10 +58,10 @@ export default function TaskCard({ task, isTracking }) {
 
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-slate-400 font-bold">
-                {task.projectCode && task.projectCode !== "N/A" ? `(${task.projectCode})` : "(GEN)"}
+              <span className="text-slate-600 font-bold">
+                {task.projectTitle} {task.projectCode && task.projectCode !== "N/A" ? `(${task.projectCode})` : "(GEN)"}
               </span>
-              <h3 className={`font-black tracking-tight ${isTracking ? 'text-orange-600' : 'text-slate-800'}`}>
+              <h3 className={`font-black capitalize tracking-tight ${isTracking ? 'text-orange-600' : 'text-slate-800'}`}>
                 {task.title}
               </h3>
             </div>

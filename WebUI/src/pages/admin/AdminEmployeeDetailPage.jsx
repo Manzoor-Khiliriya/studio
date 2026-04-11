@@ -21,6 +21,7 @@ import { HiOutlineLightningBolt } from "react-icons/hi";
 import EmployeeModal from "../../components/EmployeeModal";
 import ConfirmModal from "../../components/ConfirmModal";
 import { useDeleteUserMutation } from "../../services/userApi";
+import { useSocketEvents } from "../../hooks/useSocketEvents";
 
 // --- UTILITY: FORMAT SECONDS TO HR/MIN ---
 const formatToHrMin = (totalSeconds) => {
@@ -184,14 +185,21 @@ export default function EmployeeDetailPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, type: null });
 
-  const { data: employee, isLoading: userLoading } = useGetEmployeeProfileQuery(id);
-  const { data: taskData, isLoading: tasksLoading } = useGetTasksByEmployeeQuery(id);
+  const { data: employee, isLoading: userLoading, refetch: refetchEmployee } = useGetEmployeeProfileQuery(id);
+  const { data: taskData, isLoading: tasksLoading, refetch: refetchTasks } = useGetTasksByEmployeeQuery(id);
 
   const currentlyAssigned = taskData?.currentlyAssigned || [];
   const workedAndAssigned = taskData?.workedAndAssigned || [];
 
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
   const userId = employee?.user?._id;
+
+  useSocketEvents({
+    onEmployeeChange: () => {
+      refetchEmployee();
+      refetchTasks();
+    },
+  });
 
   const { lastActiveDay } = useMemo(() => {
     if (!userId || !workedAndAssigned.length) return { lastActiveDay: null };
@@ -508,7 +516,7 @@ function TaskSmallCard({ task, active, historical }) {
           className={`text-[8px] font-black px-2 py-1 rounded uppercase tracking-widest ${active ? "bg-orange-500/20 text-orange-400" : "bg-slate-200 text-slate-500"
             }`}
         >
-           {task.status}
+          {task.status}
         </span>
         <span className={`text-[10px] font-black ${active ? "text-white/40" : "text-slate-300"}`}>
           {task.allocatedTime || 0}H ALLOC

@@ -28,25 +28,34 @@ import ConfirmModal from "../../components/ConfirmModal";
 import EmployeeAssignModal from "../../components/EmployeeAssignModal";
 import { useDeleteTaskMutation } from "../../services/taskApi";
 import toast from "react-hot-toast";
+import { useSocketEvents } from "../../hooks/useSocketEvents";
 
 export default function AdminTasksPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("live");
-  const [searchTerm, setSearchTerm] = useState("");
   const [taskSearch, setTaskSearch] = useState("");
   const [liveStatusFilter, setLiveStatusFilter] = useState("All");
   const [taskStatusFilter, setTaskStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(5);
   const [expandedProject, setExpandedProject] = useState(null);
-  const [dateFilters, setDateFilters] = useState({
+  const [liveSearch, setLiveSearch] = useState("");
+  const [allSearch, setAllSearch] = useState("");
+  const [liveDateFilters, setLiveDateFilters] = useState({
     createdAt: "",
     startDate: "",
     endDate: "",
   });
-  const [projectTypeFilter, setProjectTypeFilter] = useState("All");
-  const [projectStatusFilter, setProjectStatusFilter] = useState("All");
-  const [selectedProjects, setSelectedProjects] = useState([]);
+  const [liveProjectType, setLiveProjectType] = useState("All");
+  const [liveProjectStatus, setLiveProjectStatus] = useState("All");
+  const [allDateFilters, setAllDateFilters] = useState({
+    createdFrom: "",
+    createdTo: "",
+  });
+  const [allProjectType, setAllProjectType] = useState("All");
+  const [allProjectStatus, setAllProjectStatus] = useState("All");
+  const [liveSelectedProjects, setLiveSelectedProjects] = useState([]);
+  const [allSelectedProjects, setAllSelectedProjects] = useState([]);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -61,23 +70,37 @@ export default function AdminTasksPage() {
   const [updateProject, { isLoading: isDeactivating }] = useUpdateProjectMutation();
   const [deleteProject, { isLoading: isDeletingProject }] = useDeleteProjectMutation();
 
-  // --- DATA FETCHING ---
-  const { data, isLoading, isFetching } = useGetProjectsQuery({
+  const { data, isLoading, isFetching, refetch } = useGetProjectsQuery({
     page: currentPage,
-    limit: limit,
-    search: searchTerm,
+    limit,
     activeTab,
-    createdAt: dateFilters.createdAt,
-    startDate: dateFilters.startDate,
-    endDate: dateFilters.endDate,
-    taskSearch,
-    liveStatus: liveStatusFilter,
-    taskStatus: taskStatusFilter,
-    projectType: projectTypeFilter, // New
-    status: projectStatusFilter,
+    search: activeTab === "live" ? liveSearch : allSearch,
+
+    ...(activeTab === "live" && {
+      createdAt: liveDateFilters.createdAt,
+      startDate: liveDateFilters.startDate,
+      endDate: liveDateFilters.endDate,
+      taskSearch,
+      liveStatus: liveStatusFilter,
+      taskStatus: taskStatusFilter,
+      projectType: liveProjectType,
+      status: liveProjectStatus,
+    }),
+
+    ...(activeTab !== "live" && {
+      createdFrom: allDateFilters.createdFrom,
+      createdTo: allDateFilters.createdTo,
+      projectType: allProjectType,
+      status: allProjectStatus,
+    }),
   });
 
   const projectGroups = data?.projects || [];
+
+  useSocketEvents({
+    onProjectChange: refetch,
+    onTaskChange: refetch,
+  });
 
   const columns = useMemo(
     () => getAdminTaskColumns(
@@ -89,10 +112,18 @@ export default function AdminTasksPage() {
     [setEditingTask, setStatusUpdateTask, setAssigningTeamTask, setTaskToDelete]
   );
 
+  const selectedProjects =
+    activeTab === "live" ? liveSelectedProjects : allSelectedProjects;
+
+  const setSelectedProjects =
+    activeTab === "live" ? setLiveSelectedProjects : setAllSelectedProjects;
+
   // --- BULK HANDLERS ---
   const toggleProjectSelection = (projectId) => {
     setSelectedProjects(prev =>
-      prev.includes(projectId) ? prev.filter(id => id !== projectId) : [...prev, projectId]
+      prev.includes(projectId)
+        ? prev.filter(id => id !== projectId)
+        : [...prev, projectId]
     );
   };
 
@@ -144,21 +175,34 @@ export default function AdminTasksPage() {
     }
   };
 
-  const handleDateChange = (key, value) => {
-    setDateFilters((prev) => ({ ...prev, [key]: value }));
-    setCurrentPage(1);
-  };
-
   const clearFilters = () => {
-    setSearchTerm("");
+    setLiveSearch("");
+    setAllSearch("");
     setTaskSearch("");
+
     setLiveStatusFilter("All");
     setTaskStatusFilter("All");
-    setProjectTypeFilter("All"); // New
-    setProjectStatusFilter("All");
-    setDateFilters({ createdAt: "", startDate: "", endDate: "" });
+
+    setLiveDateFilters({
+      createdAt: "",
+      startDate: "",
+      endDate: "",
+    });
+
+    setAllDateFilters({
+      createdFrom: "",
+      createdTo: "",
+    });
+
+    setLiveProjectType("All");
+    setLiveProjectStatus("All");
+
+    setAllProjectType("All");
+    setAllProjectStatus("All");
+
     setCurrentPage(1);
-    setSelectedProjects([]);
+    setLiveSelectedProjects([]);
+    setAllSelectedProjects([]);
   };
 
   const openTaskModalForProject = (project) => {
@@ -201,8 +245,15 @@ export default function AdminTasksPage() {
                 type="text"
                 placeholder="Search projects by code or title..."
                 className="w-full pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/5 outline-none font-bold text-xs transition-all shadow-sm"
-                value={searchTerm}
-                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                value={activeTab === "live" ? liveSearch : allSearch}
+                onChange={(e) => {
+                  if (activeTab === "live") {
+                    setLiveSearch(e.target.value);
+                  } else {
+                    setAllSearch(e.target.value);
+                  }
+                  setCurrentPage(1);
+                }}
               />
             </div>
 
@@ -257,38 +308,72 @@ export default function AdminTasksPage() {
               )}
 
               {[
-                { label: "Created", key: "createdAt" },
-                activeTab === "live" && { label: "Start Date", key: "startDate" },
-                activeTab === "live" && { label: "End Date", key: "endDate" },
-              ]
-                .filter(Boolean)
-                .map((filter) => (
-                  <div key={filter.key} className="flex flex-col gap-1.5">
-                    <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">
-                      {filter.label}
-                    </label>
-                    <div className="relative group">
-                      <HiOutlineCalendarDays
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                        size={16}
-                      />
-                      <input
-                        type="date"
-                        className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 outline-none focus:border-orange-500 focus:bg-white transition-all"
-                        value={dateFilters[filter.key]}
-                        onChange={(e) => handleDateChange(filter.key, e.target.value)}
-                      />
-                    </div>
+                ...(activeTab === "live"
+                  ? [
+                    { label: "Created", key: "createdAt" },
+                    { label: "Start Date", key: "startDate" },
+                    { label: "End Date", key: "endDate" },
+                  ]
+                  : [
+                    { label: "Created From", key: "createdFrom" },
+                    { label: "Created To", key: "createdTo" },
+                  ]),
+              ].map((filter) => (
+                <div key={filter.key} className="flex flex-col gap-1.5">
+                  <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">
+                    {filter.label}
+                  </label>
+
+                  <div className="relative group">
+                    <HiOutlineCalendarDays
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                      size={16}
+                    />
+
+                    <input
+                      type="date"
+                      className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 outline-none focus:border-orange-500 focus:bg-white transition-all"
+                      value={
+                        activeTab === "live"
+                          ? liveDateFilters[filter.key]
+                          : allDateFilters[filter.key]
+                      }
+                      onChange={(e) => {
+                        const value = e.target.value;
+
+                        if (activeTab === "live") {
+                          setLiveDateFilters((prev) => ({
+                            ...prev,
+                            [filter.key]: value,
+                          }));
+                        } else {
+                          setAllDateFilters((prev) => ({
+                            ...prev,
+                            [filter.key]: value,
+                          }));
+                        }
+
+                        setCurrentPage(1);
+                      }}
+                    />
                   </div>
-                ))}
+                </div>
+              ))}
 
               {/* Add these inside the same div containing your other <select> filters */}
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Project Type</label>
                 <select
-                  value={projectTypeFilter}
-                  onChange={(e) => { setProjectTypeFilter(e.target.value); setCurrentPage(1); }}
+                  value={activeTab === "live" ? liveProjectType : allProjectType}
+                  onChange={(e) => {
+                    if (activeTab === "live") {
+                      setLiveProjectType(e.target.value);
+                    } else {
+                      setAllProjectType(e.target.value);
+                    }
+                    setCurrentPage(1);
+                  }}
                   className="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 outline-none focus:border-orange-500 transition-all appearance-none cursor-pointer min-w-[140px]"
                 >
                   <option value="All">All Types</option>
@@ -300,8 +385,15 @@ export default function AdminTasksPage() {
               <div className="flex flex-col gap-1.5">
                 <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Project Status</label>
                 <select
-                  value={projectStatusFilter}
-                  onChange={(e) => { setProjectStatusFilter(e.target.value); setCurrentPage(1); }}
+                  value={activeTab === "live" ? liveProjectStatus : allProjectStatus}
+                  onChange={(e) => {
+                    if (activeTab === "live") {
+                      setLiveProjectStatus(e.target.value);
+                    } else {
+                      setAllProjectStatus(e.target.value);
+                    }
+                    setCurrentPage(1);
+                  }}
                   className="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 outline-none focus:border-orange-500 transition-all appearance-none cursor-pointer min-w-[140px]"
                 >
                   <option value="All">All Status</option>
@@ -325,37 +417,102 @@ export default function AdminTasksPage() {
                 </div>
               </div>
 
-              <button
-                onClick={() => {
-                  setEditingProject(null);
-                  setShowProjectModal(true);
-                }}
-                className="block flex items-center gap-2 px-5 py-4 bg-black hover:bg-orange-600 text-white rounded-xl transition-all font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-200 cursor-pointer active:scale-95"
-              >
-                <HiOutlinePlusCircle size={18} />
-                <span>Add Project</span>
-              </button>
-            </div>
-
-
-            <div className="flex items-center gap-3">
-              {selectedProjects.length > 0 && (
+              {activeTab === "live" && (
                 <button
-                  onClick={() => setProjectToDeactivate({ _id: "bulk", title: `${selectedProjects.length} selected projects` })}
-                  className="flex items-center gap-2 px-6 py-3 text-white bg-rose-600 hover:bg-rose-700 rounded-2xl transition-all font-black text-[10px] tracking-widest cursor-pointer shadow-lg shadow-rose-100"
+                  onClick={() => {
+                    setEditingProject(null);
+                    setShowProjectModal(true);
+                  }}
+                  className="block flex items-center gap-2 px-5 py-4 bg-black hover:bg-orange-600 text-white rounded-xl transition-all font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-200 cursor-pointer active:scale-95"
                 >
-                  <HiOutlineTrash size={18} />
-                  <span>DELETE SELECTED ({selectedProjects.length})</span>
+                  <HiOutlinePlusCircle size={18} />
+                  <span>Add Project</span>
                 </button>
               )}
 
-              {(searchTerm || taskSearch || liveStatusFilter !== "All" || taskStatusFilter !== "All" || dateFilters.createdAt || dateFilters.startDate || dateFilters.endDate) && (
-                <button onClick={clearFilters} className="flex items-center gap-2 px-6 py-3 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-2xl transition-all font-black text-[10px] tracking-widest cursor-pointer">
-                  <HiOutlineXMark size={18} strokeWidth={2.5} />
-                  <span>RESET FILTERS</span>
-                </button>
-              )}
+              <div className="flex items-center gap-3">
+                {selectedProjects.length > 0 && (
+                  <button
+                    onClick={() => setProjectToDeactivate({ _id: "bulk", title: `${selectedProjects.length} selected projects` })}
+                    className="flex items-center gap-2 px-6 py-3 text-white bg-rose-600 hover:bg-rose-700 rounded-2xl transition-all font-black text-[10px] tracking-widest cursor-pointer shadow-lg shadow-rose-100"
+                  >
+                    <HiOutlineTrash size={18} />
+                    <span>DELETE SELECTED ({selectedProjects.length})</span>
+                  </button>
+                )}
+
+                {(
+                  (activeTab === "live"
+                    ? liveSearch
+                    : allSearch) ||
+
+                  (activeTab === "live" && taskSearch) ||
+
+                  (activeTab === "live" && liveStatusFilter !== "All") ||
+
+                  (activeTab === "live" && taskStatusFilter !== "All") ||
+
+                  (activeTab === "live" &&
+                    (liveDateFilters.createdAt ||
+                      liveDateFilters.startDate ||
+                      liveDateFilters.endDate)) ||
+
+                  (activeTab !== "live" &&
+                    (allDateFilters.createdFrom || allDateFilters.createdTo)) ||
+
+                  (
+                    activeTab === "live"
+                      ? (
+                        liveSearch ||
+                        taskSearch ||
+                        liveStatusFilter !== "All" ||
+                        taskStatusFilter !== "All" ||
+                        liveDateFilters.createdAt ||
+                        liveDateFilters.startDate ||
+                        liveDateFilters.endDate ||
+                        liveProjectType !== "All" ||
+                        liveProjectStatus !== "All"
+                      )
+                      : (
+                        allSearch ||
+                        allDateFilters.createdFrom ||
+                        allDateFilters.createdTo ||
+                        allProjectType !== "All" ||
+                        allProjectStatus !== "All"
+                      )
+                  )
+                ) && (
+                    <button
+                      onClick={clearFilters}
+                      className="flex items-center gap-2 px-6 py-3 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-2xl transition-all font-black text-[10px] tracking-widest cursor-pointer"
+                    >
+                      <HiOutlineXMark size={18} strokeWidth={2.5} />
+                      <span>RESET FILTERS</span>
+                    </button>
+                  )}
+              </div>
             </div>
+
+
+
+            {activeTab !== "live" && (
+              <div className="flex items-center gap-2">
+                {data?.pagination?.totalProjects && (
+                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight ml-2">
+                    Total {data?.pagination?.totalProjects ?? 0} projects
+                  </span>
+                )}
+
+                {data?.pagination?.totalTasks !== undefined && (
+                  <>
+                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight">
+                      {data.pagination.totalTasks} Total Tasks
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -541,7 +698,7 @@ export default function AdminTasksPage() {
         </div>
 
         <div className="bg-white p-6 rounded-2xl border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100 shadow-sm">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200 pr-3">Page Limit</span>
               <select
@@ -553,7 +710,7 @@ export default function AdminTasksPage() {
               </select>
             </div>
             {data?.pagination?.totalProjects && (
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight ml-2">
+              <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight ml-2">
                 Total {data?.pagination?.totalProjects ?? 0} projects
               </span>
             )}
@@ -561,7 +718,7 @@ export default function AdminTasksPage() {
             {data?.pagination?.totalTasks !== undefined && (
               <>
                 <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                <span className="text-[10px] font-black text-orange-500 uppercase tracking-tight">
+                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight">
                   {data.pagination.totalTasks} Total Tasks
                 </span>
               </>

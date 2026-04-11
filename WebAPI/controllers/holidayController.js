@@ -36,7 +36,7 @@ exports.addHoliday = async (req, res) => {
   try {
     const holiday = await Holiday.create(req.body);
 
-    emitEvent(req, "holidayCreated", holiday);
+    emitEvent(req, "holidayChanged", holiday);
 
     res.status(201).json(holiday);
   } catch (err) {
@@ -59,7 +59,7 @@ exports.updateHoliday = async (req, res) => {
       return res.status(404).json({ message: "Holiday not found." });
     }
 
-    emitEvent(req, "holidayUpdated", holiday);
+    emitEvent(req, "holidayChanged", holiday);
 
     res.json(holiday);
   } catch (err) {
@@ -74,7 +74,7 @@ exports.bulkAddHolidays = async (req, res) => {
   try {
     const result = await Holiday.insertMany(req.body.holidays, { ordered: false });
 
-    emitEvent(req, "holidayBulkCreated", result);
+    emitEvent(req, "holidayChanged", result);
 
     res.status(201).json({ message: `${result.length} holidays added.` });
   } catch (err) {
@@ -90,7 +90,7 @@ exports.deleteHoliday = async (req, res) => {
       return res.status(404).json({ message: "Holiday not found." });
     }
 
-    emitEvent(req, "holidayDeleted", holiday._id);
+    emitEvent(req, "holidayChanged", holiday._id);
 
     res.json({ message: "Holiday removed." });
   } catch (err) {
