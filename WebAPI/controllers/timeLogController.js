@@ -68,7 +68,7 @@ exports.startTimer = async (req, res) => {
     }], { session });
 
     await session.commitTransaction();
-
+    emitEvent(req, "taskChanged", { taskId });
     emitEvent(req, "timeLogChanged", log[0], userId);
     emitDashboardUpdate(req);
     res.status(201).json(log[0]);
@@ -113,7 +113,6 @@ exports.togglePause = async (req, res) => {
       isRunning: true,
       dateString: active.dateString
     });
-
     emitEvent(req, "timeLogChanged", { status: newType, log: newLog }, userId);
     emitDashboardUpdate(req);
     res.json({ status: newType, log: newLog });
@@ -140,7 +139,7 @@ exports.stopTimer = async (req, res) => {
     log.action = "Stop";
 
     await log.save();
-
+    emitEvent(req, "taskChanged", { taskId: log.task });
     emitEvent(req, "timeLogChanged", log, req.user._id);
     emitDashboardUpdate(req);
     res.json({ message: "Session Terminated", log });
