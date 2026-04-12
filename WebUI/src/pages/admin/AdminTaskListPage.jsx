@@ -29,6 +29,8 @@ import EmployeeAssignModal from "../../components/EmployeeAssignModal";
 import { useDeleteTaskMutation } from "../../services/taskApi";
 import toast from "react-hot-toast";
 import { useSocketEvents } from "../../hooks/useSocketEvents";
+import TruncateText from "../../components/TruncateText";
+import CustomDropdown from "../../components/CustomDropdown";
 
 export default function AdminTasksPage() {
   const navigate = useNavigate();
@@ -278,32 +280,39 @@ export default function AdminTasksPage() {
               {activeTab === "live" && (
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Live Status</label>
-                  <select
+                  <CustomDropdown
                     value={liveStatusFilter}
-                    onChange={(e) => { setLiveStatusFilter(e.target.value); setCurrentPage(1); }}
-                    className="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 outline-none focus:border-orange-500 transition-all appearance-none cursor-pointer min-w-[140px]"
-                  >
-                    <option value="All">All Status</option>
-                    <option value="To be started">To be started</option>
-                    <option value="In progress">In progress</option>
-                    <option value="Started">Started</option>
-                  </select>
+                    onChange={(val) => {
+                      setLiveStatusFilter(val);
+                      setCurrentPage(1);
+                    }}
+                    options={["All", "To be started", "In progress", "Started"]}
+                    className="min-w-35"
+                  />
                 </div>
               )}
 
               {activeTab === "live" && (
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Initiative Status</label>
-                  <select
+                  <CustomDropdown
                     value={taskStatusFilter}
-                    onChange={(e) => { setTaskStatusFilter(e.target.value); setCurrentPage(1); }}
-                    className="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 outline-none focus:border-orange-500 transition-all appearance-none cursor-pointer min-w-[180px]"
-                  >
-                    <option value="All">All Initiative Status</option>
-                    {["On hold", "Modeling", "Lighting and Texturing", "Feedback pending", "Final rendering", "Postproduction", "Completed"].map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => {
+                      setTaskStatusFilter(val);
+                      setCurrentPage(1);
+                    }}
+                    options={[
+                      "All",
+                      "On hold",
+                      "Modeling",
+                      "Lighting and Texturing",
+                      "Feedback pending",
+                      "Final rendering",
+                      "Postproduction",
+                      "Completed"
+                    ]}
+                    className="min-w-45"
+                  />
                 </div>
               )}
 
@@ -364,44 +373,36 @@ export default function AdminTasksPage() {
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Project Type</label>
-                <select
+                <CustomDropdown
                   value={activeTab === "live" ? liveProjectType : allProjectType}
-                  onChange={(e) => {
+                  onChange={(val) => {
                     if (activeTab === "live") {
-                      setLiveProjectType(e.target.value);
+                      setLiveProjectType(val);
                     } else {
-                      setAllProjectType(e.target.value);
+                      setAllProjectType(val);
                     }
                     setCurrentPage(1);
                   }}
-                  className="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 outline-none focus:border-orange-500 transition-all appearance-none cursor-pointer min-w-[140px]"
-                >
-                  <option value="All">All Types</option>
-                  <option value="Standard">Standard</option>
-                  <option value="Revision">Revision</option>
-                </select>
+                  options={["All", "Standard", "Revision"]}
+                  className="min-w-35"
+                />
               </div>
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Project Status</label>
-                <select
+                <CustomDropdown
                   value={activeTab === "live" ? liveProjectStatus : allProjectStatus}
-                  onChange={(e) => {
+                  onChange={(val) => {
                     if (activeTab === "live") {
-                      setLiveProjectStatus(e.target.value);
+                      setLiveProjectStatus(val);
                     } else {
-                      setAllProjectStatus(e.target.value);
+                      setAllProjectStatus(val);
                     }
                     setCurrentPage(1);
                   }}
-                  className="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 outline-none focus:border-orange-500 transition-all appearance-none cursor-pointer min-w-[140px]"
-                >
-                  <option value="All">All Status</option>
-                  <option value="Active">Active</option>
-                  <option value="Submitted">Submitted</option>
-                  <option value="On hold">On Hold</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
+                  options={["All", "Active", "Submitted", "On hold", "Inactive"]}
+                  className="min-w-35"
+                />
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -536,7 +537,7 @@ export default function AdminTasksPage() {
                 >
                   <div className="p-2 px-5 flex items-start justify-between hover:bg-slate-50/80 transition-all group/header border-b border-slate-100 last:border-0">
                     <div className="flex items-start gap-10 cursor-pointer flex-1">
-                      <div className="flex items-start gap-5 min-w-[300px]">
+                      <div className="flex items-start flex-wrap gap-3 min-w-[300px]">
                         <div>
                           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Project Code</p>
                           <h3 className="text-sm font-black uppercase tracking-tight text-slate-900 group-hover/header:text-orange-600 transition-colors">
@@ -545,13 +546,14 @@ export default function AdminTasksPage() {
                         </div>
                         <div>
                           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Project Name</p>
-                          <h3 className="text-sm font-black uppercase tracking-tight text-slate-900 group-hover/header:text-orange-600 transition-colors">
-                            {project.title}
-                          </h3>
+                          <TruncateText maxWidth="max-w-[200px]"
+                            text={project.title}
+                            className="text-sm font-black uppercase tracking-tight text-slate-900 group-hover/header:text-orange-600 transition-colors"
+                          />
                         </div>
                       </div>
 
-                      <div className="flex items-start gap-12">
+                      <div className="flex items-start gap-5">
                         <div className="flex flex-col gap-1 items-center">
                           <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">Project Type</span>
                           <span className="text-[11px] font-bold text-slate-800 font-mono">{project.projectType}</span>
@@ -563,14 +565,15 @@ export default function AdminTasksPage() {
                             <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center">
                               <HiOutlineUser size={10} className="text-orange-500" />
                             </div>
-                            <span className="text-[11px] font-bold font-mono text-slate-800 uppercase tracking-tight">
-                              {project.clientName || "Direct Client"}
-                            </span>
+                            <TruncateText
+                              text={project.clientName || "Direct Client"}
+                              className="text-[11px] font-bold w-15 text-slate-800 font-mono uppercase"
+                            />
                           </div>
                         </div>
 
                         {activeTab === "live" ? (
-                          <div className="flex flex-col gap-1">
+                          <div className="flex flex-col justify-center items-center w-[180px] gap-1">
                             <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">Timeline</span>
                             <div className="flex items-center gap-2">
                               <HiOutlineCalendarDays size={14} className="text-orange-500" />
@@ -579,7 +582,7 @@ export default function AdminTasksPage() {
                               </span>
                             </div>
                           </div>) : (
-                          <div className="flex flex-col gap-1">
+                          <div className="flex flex-col justify-center items-center w-[90px] gap-1">
                             <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">Created Date</span>
                             <div className="flex items-center gap-2">
                               <HiOutlineCalendarDays size={14} className="text-orange-500" />
@@ -590,12 +593,12 @@ export default function AdminTasksPage() {
                           </div>
                         )}
 
-                        <div className="flex flex-col gap-1 items-center">
+                        <div className="flex flex-col justify-center w-[90px] gap-1 items-center">
                           <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">No. Of Tasks</span>
                           <span className="text-[11px] font-bold text-slate-800 font-mono">{totalTasks} Tasks</span>
                         </div>
 
-                        <div className="flex flex-col gap-1 items-center">
+                        <div className="flex flex-col gap-1 justify-center items-center w-[80px]">
                           <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">Status</span>
                           <span className="text-[11px] font-bold text-slate-800 font-mono">{project.status}</span>
                         </div>

@@ -59,7 +59,11 @@ export default function AdminLeavePage() {
     employeeName: ""
   });
 
-  const [configForm, setConfigForm] = useState({ leaveType: "Sick Leave", value: 10 });
+  const [configForm, setConfigForm] = useState({
+    leaveType: "Sick Leave",
+    value: 10,
+    carryForwardLimit: 0
+  });
 
   // RTK Query
   const { data, isLoading, isFetching, refetch } = useGetAllLeavesQuery({
@@ -209,8 +213,11 @@ export default function AdminLeavePage() {
     e.preventDefault();
     const tId = toast.loading(`Updating Policy...`);
     try {
-      await updateSettings({ leaveType: configForm.leaveType, value: Number(configForm.value) }).unwrap();
-      toast.success(`Policy updated`, { id: tId });
+      await updateSettings({
+        leaveType: configForm.leaveType,
+        value: Number(configForm.value),
+        carryForwardLimit: Number(configForm.carryForwardLimit)
+      }).unwrap(); toast.success(`Policy updated`, { id: tId });
       setIsSettingsOpen(false);
     } catch (err) {
       toast.error("Update failed", { id: tId });
@@ -460,6 +467,22 @@ export default function AdminLeavePage() {
               </span>
             </div>
           </InputGroup>
+
+          {configForm.leaveType === "Annual Leave" && (
+            <InputGroup label="Carry Forward Limit">
+              <input
+                type="number"
+                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-black outline-none text-slate-900 text-lg focus:border-orange-500"
+                value={configForm.carryForwardLimit}
+                onChange={(e) =>
+                  setConfigForm({
+                    ...configForm,
+                    carryForwardLimit: e.target.value
+                  })
+                }
+              />
+            </InputGroup>
+          )}
 
           <div className="flex gap-4 pt-4">
             <button

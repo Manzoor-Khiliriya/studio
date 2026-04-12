@@ -11,44 +11,41 @@ import CommonModal, { InputGroup } from "./CommonModal";
 import { useCreateTaskMutation, useUpdateTaskMutation } from "../services/taskApi";
 import { useGetProjectEstimateQuery } from "../services/projectApi";
 
-export default function TaskModal({ 
-  isOpen, 
-  onClose, 
-  editTask = null, 
-  singleProject = null 
+export default function TaskModal({
+  isOpen,
+  onClose,
+  editTask = null,
+  singleProject = null
 }) {
   const isEditing = !!editTask;
-  
+
   const [formData, setFormData] = useState({
     title: "",
     projectId: "",
-    estimatedTime: "8",
-    allocatedTime: "8",
+    estimatedTime: "",
+    allocatedTime: "",
     priority: "Medium",
     description: ""
   });
 
   const [createTask, { isLoading: isCreating }] = useCreateTaskMutation();
   const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation();
-  
-  // Only fetch project-based estimates if we are creating a NEW task
+
   const { data: estimateData, isFetching: isCalculating } = useGetProjectEstimateQuery(
     formData.projectId,
     { skip: !formData.projectId || isEditing || !isOpen }
   );
 
-  // Auto-fill estimate data for new tasks when project estimate is fetched
   useEffect(() => {
-    if (estimateData?.hours && !isEditing) {
+    if (!isEditing && estimateData) {
       setFormData((prev) => ({
         ...prev,
-        estimatedTime: String(estimateData.hours),
-        allocatedTime: String(estimateData.hours),
+        estimatedTime: String(estimateData || 0),
+        allocatedTime: String(estimateData || 0),
       }));
     }
   }, [estimateData, isEditing]);
 
-  // Synchronize form with the specific project or task context
   useEffect(() => {
     if (isOpen) {
       if (editTask) {
@@ -62,31 +59,40 @@ export default function TaskModal({
         });
       } else if (singleProject) {
         setFormData({
-          title: "", 
-          projectId: singleProject._id, 
-          estimatedTime: "8", 
-          allocatedTime: "8",
-          priority: "Medium", 
+          title: "",
+          projectId: singleProject._id,
+          estimatedTime: "",
+          allocatedTime: "",
+          priority: "Medium",
           description: ""
         });
       }
     }
   }, [editTask, isOpen, singleProject]);
 
+  useEffect(() => {
+    if (!formData.projectId) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      estimatedTime: "",
+      allocatedTime: ""
+    }));
+  }, [formData.projectId]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Safety check since we no longer have a dropdown to "select" from
+
     if (!formData.projectId) {
       return toast.error("Missing Project Context. Please try again.");
     }
-    
+
     const loadingToast = toast.loading(isEditing ? "Synchronizing updates..." : "Initializing task...");
-    
+
     try {
       const payload = {
         ...formData,
-        project: formData.projectId, // Map to backend 'project' field
+        project: formData.projectId,
         allocatedTime: Number(formData.allocatedTime),
         estimatedTime: Number(formData.estimatedTime)
       };
@@ -109,7 +115,7 @@ export default function TaskModal({
 
   return (
     <CommonModal
-      isOpen={isOpen} 
+      isOpen={isOpen}
       onClose={onClose}
       title={isEditing ? "Edit Task" : "New Task Objective"}
       subtitle={isEditing ? "Modify existing task parameters" : "Initialize a new task for this project"}
@@ -121,12 +127,9 @@ export default function TaskModal({
           <div className="col-span-12 md:col-span-6">
             <InputGroup label="Target Project">
               <HiOutlineBriefcase className="input-icon" />
-              <div className="form-input bg-slate-50 flex items-center gap-2 border-slate-100 overflow-hidden">
-                <span className="px-2 py-0.5 rounded bg-slate-200 text-[9px] font-black text-slate-600 shrink-0">
-                  {singleProject?.projectCode || 'PROJ'}
-                </span>
-                <span className="font-bold text-slate-500 truncate text-[11px]">
-                  {singleProject?.title || "Active Project"}
+              <div className="form-input bg-slate-50 border-slate-100 overflow-hidden">
+                <span className="font-bold text-slate-900 truncate text-sm">
+                  {singleProject?.title || "Active Project"} {singleProject?.projectCode ? (`(${singleProject.projectCode})`) : ""}
                 </span>
               </div>
             </InputGroup>
@@ -159,7 +162,7 @@ export default function TaskModal({
                 readOnly
                 type="number"
                 className="form-input bg-slate-50 cursor-not-allowed opacity-75 font-mono"
-                placeholder="Auto"
+                placeholder="Calculating..."
                 value={formData.estimatedTime}
                 disabled
               />

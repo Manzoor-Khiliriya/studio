@@ -1,10 +1,10 @@
 const Leave = require("../models/Leave");
 const User = require("../models/User");
-const Employee = require("../models/Employee");
 const LeaveSetting = require("../models/LeaveSetting");
 const { calculateLeaveDays, hasLeaveOverlap } = require("../utils/leaveHelpers");
 const sendNotification = require("../utils/notifier");
 const { emitDashboardUpdate } = require("../utils/socket");
+const LeaveBalance = require("../models/LeaveBalance");
 
 const emitEvent = (req, event, data, userId = null) => {
   const io = req.app.get("socketio");
@@ -15,11 +15,6 @@ const emitEvent = (req, event, data, userId = null) => {
   } else {
     io.emit(event, data);
   }
-};
-
-const getLeaveSetting = async (type) => {
-  const settings = await LeaveSetting.findOne({ leaveType: type });
-  return settings;
 };
 
 const getTakenDays = async (userId, type, currentYearOnly = true) => {
@@ -43,41 +38,71 @@ const getTakenDays = async (userId, type, currentYearOnly = true) => {
   return total;
 };
 
+//
+// ✅ GET MY LEAVES
+//
 exports.getMyLeaves = async (req, res) => {
   try {
     const userId = req.user._id;
     const { page = 1, limit = 5, type, status } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const employee = await Employee.findOne({ user: userId });
-    const user = await User.findById(userId);
-    const joinDate = employee?.joinedDate || user.createdAt;
-    const now = new Date();
-
     const settings = await LeaveSetting.find();
 
+    // 🔥 ANNUAL LEAVE (UPDATED LOGIC)
     const t = "Annual Leave";
     const setting = settings.find(s => s.leaveType === t);
 
-    const months = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth());
-    const earned = setting ? (months * setting.accrualRate) : 0;
+    const currentYear = new Date().getFullYear();
+
+    let balance = await LeaveBalance.findOne({
+      user: userId,
+      year: currentYear,
+      type: "Annual Leave"
+    });
+
+    // ✅ create if not exists
+    if (!balance) {
+      balance = await LeaveBalance.create({
+        user: userId,
+        year: currentYear,
+        type: "Annual Leave"
+      });
+    }
+
+    const earned = balance.earned || 0;
+    const carryForward = balance.carriedForward || 0;
+
+    const carryForwardLimited = Math.min(
+      carryForward,
+      setting?.carryForwardLimit || 0
+    );
+
     const taken = await getTakenDays(userId, t, false);
+
+    const totalAvailable = earned + carryForwardLimited;
 
     const balances = {
       "Annual Leave": {
         earned: +earned.toFixed(1),
         taken,
-        remaining: +(earned - taken).toFixed(1),
+        remaining: +(totalAvailable - taken).toFixed(1),
+        carryForward: carryForwardLimited,
         type: "accrual"
       }
     };
 
+    // 🔍 FILTERS (UNCHANGED)
     let query = { user: userId };
     if (type && type !== "All") query.type = type;
     if (status && status !== "All") query.status = status;
 
     const totalLeaves = await Leave.countDocuments(query);
-    const leaves = await Leave.find(query).sort({ createdAt: -1 }).skip(skip).limit(parseInt(limit));
+
+    const leaves = await Leave.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
 
     const history = await Promise.all(
       leaves.map(async (l) => ({
@@ -86,10 +111,11 @@ exports.getMyLeaves = async (req, res) => {
       }))
     );
 
+    // 📦 RESPONSE (UNCHANGED STRUCTURE)
     res.json({
       history,
       balances: {
-        "annualLeave": balances["Annual Leave"]
+        annualLeave: balances["Annual Leave"]
       },
       pagination: {
         totalLeaves,
@@ -97,50 +123,74 @@ exports.getMyLeaves = async (req, res) => {
         currentPage: parseInt(page)
       }
     });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+//
+// ✅ APPLY LEAVE
+//
 exports.applyLeave = async (req, res) => {
   try {
     const { type, startDate, endDate, reason } = req.body;
     const userId = req.user._id;
 
     const requestedDays = await calculateLeaveDays(startDate, endDate);
-    if (!requestedDays || requestedDays <= 0) {
-      return res.status(400).json({ message: "Invalid date range." });
-    }
 
     const existing = await Leave.find({ user: userId, status: { $ne: "Rejected" } });
     if (hasLeaveOverlap(existing, startDate, endDate)) {
       return res.status(400).json({ message: "Overlap with existing leave." });
     }
 
-    const setting = await getLeaveSetting(type);
+    const setting = await LeaveSetting.findOne({ leaveType: type });
 
+    // 🔥 ANNUAL LEAVE
     if (type === "Annual Leave") {
-      const employee = await Employee.findOne({ user: userId });
-      const joinDate = employee?.joinedDate || req.user.createdAt;
+      const currentYear = new Date().getFullYear();
 
-      const months =
-        (new Date().getFullYear() - joinDate.getFullYear()) * 12 +
-        (new Date().getMonth() - joinDate.getMonth());
+      let balance = await LeaveBalance.findOne({
+        user: userId,
+        year: currentYear,
+        type: "Annual Leave"
+      });
 
-      const earned = setting ? months * setting.accrualRate : 0;
-      const taken = await getTakenDays(userId, "Annual Leave", false);
-
-      if (requestedDays > (earned - taken)) {
-        return res.status(400).json({ message: "Insufficient Annual Leave balance." });
+      if (!balance) {
+        balance = await LeaveBalance.create({
+          user: userId,
+          year: currentYear,
+          type: "Annual Leave"
+        });
       }
 
-    } else if (!["LOP", "Casual Leave"].includes(type)) {
+      const earned = balance.earned || 0;
+      const carryForward = balance.carriedForward || 0;
+
+      const carryForwardLimited = Math.min(
+        carryForward,
+        setting?.carryForwardLimit || 0
+      );
+
+      const taken = await getTakenDays(userId, "Annual Leave", false);
+
+      const totalAvailable = earned + carryForwardLimited;
+
+      if (requestedDays > (totalAvailable - taken)) {
+        return res.status(400).json({
+          message: "Insufficient Annual Leave balance."
+        });
+      }
+    }
+
+    // 🔥 OTHER LEAVES
+    else if (!["LOP", "Casual Leave"].includes(type)) {
       const taken = await getTakenDays(userId, type, true);
-      const quota = setting ? setting.yearlyQuota : 10;
+      const quota = setting?.yearlyQuota || 10;
 
       if (taken + requestedDays > quota) {
         return res.status(400).json({
-          message: `${type} quota exceeded`
+          message: `${type} exceeded. Remaining: ${quota - taken}`
         });
       }
     }
@@ -152,9 +202,10 @@ exports.applyLeave = async (req, res) => {
       endDate,
       reason
     });
+
     emitEvent(req, "leaveChanged");
-    emitEvent(req, "leaveChanged", leave, userId);
     emitDashboardUpdate(req);
+
     res.status(201).json(leave);
 
   } catch (err) {
@@ -182,7 +233,6 @@ exports.getAllLeaves = async (req, res) => {
 
     if (dateRange && dateRange !== "all") {
       const now = new Date();
-      // Reset 
       const start = new Date();
       const end = new Date();
 
@@ -325,17 +375,35 @@ exports.getAllLeaves = async (req, res) => {
       const leaveTypes = ["Annual Leave", "Sick Leave", "Bereavement Leave", "Paternity Leave", "Maternity Leave"];
 
       const quotaData = await Promise.all(users.map(async (user) => {
-        const joinDate = new Date(user.employee?.joinedDate || user.createdAt);
-        const now = new Date();
-        const months = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth());
 
         const userBalances = {};
         for (const t of leaveTypes) {
           const setting = settings.find(s => s.leaveType === t);
           if (t === "Annual Leave") {
-            const earned = setting ? (months * setting.accrualRate) : 0;
+            const balance = await LeaveBalance.findOne({
+              user: user._id,
+              year: new Date().getFullYear(),
+              type: "Annual Leave"
+            });
+
+            const earned = balance?.earned || 0;
+            const carryForward = balance?.carriedForward || 0;
+
+            const carryForwardLimited = Math.min(
+              carryForward,
+              setting?.carryForwardLimit || 0
+            );
+
             const taken = await getTakenDays(user._id, t, false);
-            userBalances[t] = { earned: +earned.toFixed(1), taken, remaining: +(earned - taken).toFixed(1) };
+
+            const totalAvailable = earned + carryForwardLimited;
+
+            userBalances[t] = {
+              earned: +earned.toFixed(1),
+              taken,
+              remaining: +(totalAvailable - taken).toFixed(1),
+              carryForward: carryForwardLimited
+            };
           } else {
             const quota = setting ? setting.yearlyQuota : 10;
             const taken = await getTakenDays(user._id, t, true);
@@ -385,6 +453,7 @@ exports.updateLeaveSettings = async (req, res) => {
 
     if (leaveType === "Annual Leave") {
       updateFields.accrualRate = Number(value);
+      updateFields.carryForwardLimit = Number(req.body.carryForwardLimit || 0);
     } else {
       updateFields.yearlyQuota = Number(value);
     }

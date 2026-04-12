@@ -2,18 +2,41 @@ import React, { useState } from "react";
 import { HiOutlineCalendarDays, HiOutlineShieldCheck, HiOutlineIdentification, HiOutlineEnvelope, HiOutlineEyeSlash, HiOutlineEye } from "react-icons/hi2";
 import { FiEdit, FiTrash2 } from "react-icons/fi";
 
+const PasswordCell = ({ emp }) => {
+  const [showPassword, setShowPassword] = useState(false);
+
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center justify-between bg-slate-50 px-2 rounded border border-slate-100 group/pass w-32">
+        <span className="font-mono text-[11px] font-bold text-slate-600 truncate">
+          {showPassword ? (emp.user?.plainPassword || "********") : "••••••••"}
+        </span>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowPassword(!showPassword);
+          }}
+          className="text-slate-400 hover:text-orange-500 transition-colors cursor-pointer"
+        >
+          {showPassword ? <HiOutlineEyeSlash size={14} /> : <HiOutlineEye size={14} />}
+        </button>
+      </div>
+    </div>
+  );
+};
+
 export const getEmployeeColumns = ({ onEdit, onDelete, onToggle }) => [
   {
     header: "Employee",
     render: (emp) => (
-      <div className="flex items-center gap-3">
+      <div className="flex items-start gap-3">
         <div className="relative">
-          <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-md group-hover:bg-orange-600 transition-all duration-300">
+          <div className="w-6 h-6 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-[10px] shadow-md group-hover:bg-orange-600 transition-all duration-300">
             {emp.user?.name?.charAt(0)?.toUpperCase() || "U"}
           </div>
           <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${emp.user?.status === "Enable" ? "bg-emerald-500" : "bg-rose-500"}`} />
         </div>
-        <p className="font-bold text-slate-800 text-sm uppercase tracking-tight">
+        <p className="font-bold text-slate-800 text-[12px] uppercase tracking-tight">
           {emp.user?.name || "Unknown"}
         </p>
       </div>
@@ -22,17 +45,17 @@ export const getEmployeeColumns = ({ onEdit, onDelete, onToggle }) => [
   {
     header: "Employee Code",
     render: (emp) => (
-      <span className="font-mono text-[11px] font-black bg-slate-100 text-slate-600 px-2 py-1 rounded border border-slate-200 tracking-wider">
+      <p className="text-[11px] font-black text-slate-600 tracking-wider">
         {emp?.employeeCode?.toUpperCase() || "N/A"}
-      </span>
+      </p>
     )
   },
   {
     header: "Designation",
     render: (emp) => (
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-2">
         <HiOutlineIdentification size={14} className="text-orange-500" />
-        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+        <span className="text-[10px] font-bold text-slate-500 capitalize tracking-widest">
           {emp.designation || "Field Staff"}
         </span>
       </div>
@@ -42,39 +65,16 @@ export const getEmployeeColumns = ({ onEdit, onDelete, onToggle }) => [
     header: "Email Address",
     render: (emp) => (
       <div className="flex items-center gap-2 group cursor-pointer">
-        <div className="p-1.5 rounded-md bg-blue-50 text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-colors">
-          <HiOutlineEnvelope size={14} />
-        </div>
-        <span className="text-[12px] font-medium text-slate-500 lowercase">
+        <HiOutlineEnvelope size={14} />
+        <span className="text-[11px] font-bold text-slate-500 lowercase">
           {emp.user?.email}
         </span>
       </div>
     )
   },
   {
-    header: "Passsword",
-    render: (emp) => {
-      const [showPassword, setShowPassword] = useState()
-
-      return (
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center justify-between bg-slate-50 px-2 py-1.5 rounded-lg border border-slate-100 group/pass w-32">
-            <span className="font-mono text-[11px] font-bold text-slate-600 truncate">
-              {showPassword ? (emp.user?.plainPassword || "********") : "••••••••"}
-            </span>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowPassword(!showPassword);
-              }}
-              className="text-slate-400 hover:text-orange-500 transition-colors cursor-pointer"
-            >
-              {showPassword ? <HiOutlineEyeSlash size={14} /> : <HiOutlineEye size={14} />}
-            </button>
-          </div>
-        </div>
-      );
-    }
+    header: "Password",
+    render: (emp) => <PasswordCell emp={emp} />
   },
   {
     header: "Joining Date",
@@ -91,17 +91,9 @@ export const getEmployeeColumns = ({ onEdit, onDelete, onToggle }) => [
     render: (emp) => {
       const score = emp.proficiency || "";
       return (
-        <div className="flex flex-col items-center gap-1">
-          <span className={`text-xs font-black ${score > 80 ? 'text-emerald-600' : 'text-orange-500'}`}>
-            {score}%
-          </span>
-          <div className="w-10 h-1 bg-slate-100 rounded-full overflow-hidden">
-            <div
-              className={`h-full ${score > 80 ? 'bg-emerald-500' : 'bg-orange-500'}`}
-              style={{ width: `${score}%` }}
-            />
-          </div>
-        </div>
+        <p className={`text-xs text-center font-black ${score > 80 ? 'text-emerald-600' : 'text-orange-500'}`}>
+          {score}%
+        </p>
       );
     }
   },
@@ -110,7 +102,7 @@ export const getEmployeeColumns = ({ onEdit, onDelete, onToggle }) => [
     render: (emp) => {
       const isActive = emp.user?.status === "Enable";
       return (
-        <span className={`inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-tighter  ${isActive ? " text-emerald-700" : "text-rose-700 "
+        <span className={`block items-center gap-1.5 text-[9px] font-black uppercase tracking-tighter  ${isActive ? " text-emerald-700" : "text-rose-700 "
           }`}>
           <span className={`w-1 h-1 rounded-full ${isActive ? "bg-emerald-600" : "bg-rose-600"}`} />
           {isActive ? "Active" : "Disabled"}

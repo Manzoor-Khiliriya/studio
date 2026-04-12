@@ -94,7 +94,7 @@ exports.updateTask = async (req, res) => {
         for (const emp of addedEmps) {
           await sendTaskNotification(emp.user, {
             type: "task",
-            message: `New Task "${task.title}" added to Project: ${updated.project?.title}`,
+            message: `A new task "${task.title}" has been assigned to you under project"${updated.project?.title}". Please check it out.`,
             taskId: task._id
           }, io);
         }
