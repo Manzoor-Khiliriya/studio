@@ -189,7 +189,7 @@ const AdminTaskPerformancePage = () => {
                             return (
                               <div key={task._id} className="bg-white p-3 rounded-xl border border-slate-200 flex flex-col md:flex-row md:items-center gap-4">
                                 <div className="md:w-1/4 min-w-0">
-                                  <h4 className="font-black text-slate-900 text-[11px] uppercase truncate">{task.title}</h4>
+                                  <h4 className="font-black text-slate-900 text-[11px] uppercase truncate">{task.title} - {task?.description}</h4>
                                   <div className="flex items-center gap-1.5 mt-0.5">
                                     <span className={`w-1 h-1 rounded-full ${isTaskOver ? 'bg-rose-500' : 'bg-emerald-500'}`} />
                                     <span className="text-[7px] font-black text-slate-400 uppercase">{task.status}</span>

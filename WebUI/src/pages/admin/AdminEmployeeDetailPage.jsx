@@ -507,13 +507,13 @@ function TaskSmallCard({ task, active, historical }) {
       </div>
       <div className="flex justify-between items-end mt-2">
         <span
-          className={`text-[8px] font-black px-2 py-1 rounded uppercase tracking-widest ${active ? "bg-orange-500/20 text-orange-400" : "bg-slate-200 text-slate-500"
+          className={`text-[8px] font-black uppercase tracking-widest ${active ? " text-orange-400" : " text-slate-500"
             }`}
         >
           {task.liveStatus}
         </span>
         <span
-          className={`text-[8px] font-black px-2 py-1 rounded uppercase tracking-widest ${active ? "bg-orange-500/20 text-orange-400" : "bg-slate-200 text-slate-500"
+          className={`text-[8px] font-black  uppercase tracking-widest ${active ? " text-orange-400" : " text-slate-500"
             }`}
         >
           {task.status}

@@ -220,7 +220,7 @@ export default function AdminTasksPage() {
   };
 
   const isProcessing = isDeactivating || isDeletingProject;
-  if (isLoading) return <Loader message="Synchronizing Project Data..." />;
+  if (isLoading || isFetching) return <Loader message="Synchronizing Project Data..." />;
 
   return (
     <div className="max-w-[1750px] mx-auto min-h-screen bg-slate-100">
@@ -275,7 +275,7 @@ export default function AdminTasksPage() {
 
 
           <div className="flex flex-wrap items-end justify-between gap-6 pt-5 border-t border-slate-100">
-            <div className="flex flex-wrap items-center gap-6">
+            <div className="flex flex-wrap items-center gap-8">
 
               {activeTab === "live" && (
                 <div className="flex flex-col gap-1.5">
@@ -405,6 +405,19 @@ export default function AdminTasksPage() {
                 />
               </div>
 
+              {activeTab === "live" && (
+                <button
+                  onClick={() => {
+                    setEditingProject(null);
+                    setShowProjectModal(true);
+                  }}
+                  className="block flex items-center gap-2 px-5 py-4 bg-black hover:bg-orange-600 text-white rounded-xl transition-all font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-200 cursor-pointer active:scale-95"
+                >
+                  <HiOutlinePlusCircle size={18} />
+                  <span>Add Project</span>
+                </button>
+              )}
+
               <div className="flex flex-col gap-1.5">
                 <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Selection for Delete</label>
                 <div className="flex items-center gap-3 bg-slate-100/50 px-4 py-2 rounded-xl border border-slate-200">
@@ -418,18 +431,7 @@ export default function AdminTasksPage() {
                 </div>
               </div>
 
-              {activeTab === "live" && (
-                <button
-                  onClick={() => {
-                    setEditingProject(null);
-                    setShowProjectModal(true);
-                  }}
-                  className="block flex items-center gap-2 px-5 py-4 bg-black hover:bg-orange-600 text-white rounded-xl transition-all font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-200 cursor-pointer active:scale-95"
-                >
-                  <HiOutlinePlusCircle size={18} />
-                  <span>Add Project</span>
-                </button>
-              )}
+
 
               <div className="flex items-center gap-3">
                 {selectedProjects.length > 0 && (
@@ -499,7 +501,7 @@ export default function AdminTasksPage() {
             {activeTab !== "live" && (
               <div className="flex items-center gap-2">
                 {data?.pagination?.totalProjects && (
-                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight ml-2">
+                  <span className="text-[12px] font-bold text-slate-600 uppercase tracking-tight ml-2">
                     Total {data?.pagination?.totalProjects ?? 0} projects
                   </span>
                 )}
@@ -507,7 +509,7 @@ export default function AdminTasksPage() {
                 {data?.pagination?.totalTasks !== undefined && (
                   <>
                     <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight">
+                    <span className="text-[12px] font-bold text-slate-600 uppercase tracking-tight">
                       {data.pagination.totalTasks} Total Tasks
                     </span>
                   </>
@@ -567,7 +569,7 @@ export default function AdminTasksPage() {
                             </div>
                             <TruncateText
                               text={project.clientName || "Direct Client"}
-                              className="text-[11px] font-bold w-15 text-slate-800 font-mono uppercase"
+                              className="text-[11px] font-bold w-30 text-slate-800 font-mono uppercase"
                             />
                           </div>
                         </div>
@@ -630,7 +632,7 @@ export default function AdminTasksPage() {
                       {activeTab === "live" && (
                         <button
                           onClick={(e) => { e.stopPropagation(); openTaskModalForProject(project); }}
-                          className="flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-900 border border-slate-900 hover:bg-orange-500 hover:border-orange-500 text-white transition-all font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 cursor-pointer"
+                          className="flex items-center justify-center gap-2 w-[145px] py-3 rounded-xl bg-slate-900 border border-slate-900 hover:bg-orange-500 hover:border-orange-500 text-white transition-all font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 cursor-pointer"
                         >
                           <HiOutlinePlusCircle size={16} />
                           <span>Add Task</span>
@@ -712,18 +714,22 @@ export default function AdminTasksPage() {
                 {[5, 10, 25, 50].map((v) => <option key={v} value={v}>{v}</option>)}
               </select>
             </div>
-            {data?.pagination?.totalProjects && (
-              <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight ml-2">
-                Total {data?.pagination?.totalProjects ?? 0} projects
-              </span>
-            )}
-
-            {data?.pagination?.totalTasks !== undefined && (
+            {activeTab === "live" && (
               <>
-                <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight">
-                  {data.pagination.totalTasks} Total Tasks
-                </span>
+                {data?.pagination?.totalProjects && (
+                  <span className="text-[12px] font-bold text-slate-600 uppercase tracking-tight ml-2">
+                    Total {data?.pagination?.totalProjects ?? 0} projects
+                  </span>
+                )}
+
+                {data?.pagination?.totalTasks !== undefined && (
+                  <>
+                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                    <span className="text-[12px] font-bold text-slate-600 uppercase tracking-tight">
+                      {data.pagination.totalTasks} Total Tasks
+                    </span>
+                  </>
+                )}
               </>
             )}
 

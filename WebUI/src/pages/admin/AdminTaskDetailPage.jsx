@@ -25,11 +25,14 @@ import TaskModal from "../../components/TaskModal";
 import { useSocketEvents } from "../../hooks/useSocketEvents";
 
 // --- UTILITY: FORMAT SECONDS TO HH:MM:SS ---
-const formatToHMS = (totalSeconds) => {
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = Math.floor(totalSeconds % 60);
-  return `${h.toString().padStart(2, "0")}h ${m.toString().padStart(2, "0")}m ${s.toString().padStart(2, "0")}s`;
+const formatToHrMin = (totalSeconds) => {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${hours.toString().padStart(2, "0")} Hrs ${minutes
+    .toString()
+    .padStart(2, "0")} Mins ${seconds.toString().padStart(2, "0")} Secs`;
 };
 
 const getOperatorColor = (index) => {
@@ -133,7 +136,7 @@ export default function AdminTaskDetailPage() {
           <div className="lg:col-span-8 space-y-8">
             {/* KPI Section */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <MetricBox label="Time Spent" value={formatToHMS(consumedSec)} icon={<HiOutlineClock />} />
+              <MetricBox label="Time Spent" value={formatToHrMin(consumedSec)} icon={<HiOutlineClock />} />
               <MetricBox label="Estimate" value={`${task.estimatedTime || 0}h`} icon={<HiOutlineCalendarDays />} />
               <MetricBox label="Allocated" value={`${task.allocatedTime || 0}h`} icon={<HiOutlineCalendarDays />} />
               <MetricBox label="Efficiency" value={isOver ? "Overload" : "Nominal"} color={isOver ? "text-rose-600" : "text-emerald-600"} />
@@ -169,7 +172,7 @@ export default function AdminTaskDetailPage() {
                       <Tooltip
                         // Customizing tooltip style for better readability
                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '10px', fontWeight: 'bold' }}
-                        formatter={(value) => formatToHMS(value)}
+                        formatter={(value) => formatToHrMin(value)}
                       />
                     </PieChart>
                   </ResponsiveContainer>
@@ -200,7 +203,7 @@ export default function AdminTaskDetailPage() {
                           ))}
                         </Pie>
                         <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '10px', fontWeight: 'bold' }}
-                          formatter={(value) => formatToHMS(value)} />
+                          formatter={(value) => formatToHrMin(value)} />
                       </PieChart>
                     </ResponsiveContainer>
                   ) : (
@@ -238,7 +241,7 @@ export default function AdminTaskDetailPage() {
                           </h4>
                         </div>
                         <div className="text-right">
-                          <span className="text-[10px] font-black text-slate-900 bg-slate-100 px-2 py-1 rounded-md">{formatToHMS(op.seconds)}</span>
+                          <span className="text-[10px] font-black text-slate-900 bg-slate-100 px-2 py-1 rounded-md">{formatToHrMin(op.seconds)}</span>
                         </div>
                       </div>
                       <div className="relative w-full h-3 bg-slate-100 rounded-full overflow-hidden">
@@ -341,7 +344,7 @@ function MetricBox({ label, value, icon, color = "text-slate-900" }) {
         {icon && React.cloneElement(icon, { size: 14 })}
         <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
       </div>
-      <p className={`text-2xl font-black tracking-tight ${color}`}>{value}</p>
+      <p className={`text-md font-black tracking-tight ${color}`}>{value}</p>
     </div>
   );
 }

@@ -41,7 +41,7 @@ export default function Navbar() {
   const greeting = "Welcome"
 
   return (
-    <header className="h-[7vh] flex items-center justify-between px-6 md:px-12 bg-orange-600 text-gray-200 font-primary backdrop-blur-md sticky top-0 z-40">
+    <header className="h-[7vh] flex items-center justify-between px-6 md:px-12 bg-[#ee4123] text-gray-200 font-primary backdrop-blur-md sticky top-0 z-40">
 
       {/* LEFT: LOGO & GREETING */}
       <div className="flex items-center gap-6">

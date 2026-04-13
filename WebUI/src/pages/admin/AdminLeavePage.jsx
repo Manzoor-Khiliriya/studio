@@ -232,7 +232,7 @@ export default function AdminLeavePage() {
     return getCasualLopColumns(handleOpenEdit, handleOpenDelete);
   }, [activeTab]);
 
-  if (isLoading) return <Loader message="Accessing Attendance Matrix..." />;
+  if (isLoading || isFetching) return <Loader message="Accessing Attendance Matrix..." />;
 
   const leaves = data?.leaves || [];
   const paginationData = data?.pagination || { totalLeaves: 0, totalPages: 1 };

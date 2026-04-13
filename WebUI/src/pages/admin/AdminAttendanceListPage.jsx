@@ -52,7 +52,7 @@ export default function AttendanceManagement() {
     search: debouncedSearch,
   });
 
-  const { data: leaveCalendar, isLoading: isLeaveLoading, refetch: refetchLeave  } = useGetLeaveCalendarQuery({
+  const { data: leaveCalendar, isLoading: isLeaveLoading, refetch: refetchLeave } = useGetLeaveCalendarQuery({
     startDate: format(startOfMonth(currentMonth), "yyyy-MM-dd"),
     endDate: format(endOfMonth(currentMonth), "yyyy-MM-dd"),
   }, {
@@ -152,17 +152,21 @@ export default function AttendanceManagement() {
       </div>
 
       {/* FILTER BAR */}
+
       <div className="bg-slate-50/50 border border-slate-100 rounded-[2rem] mb-8 flex flex-wrap items-center gap-4">
-        <div className="relative flex-1 min-w-[300px] group">
-          <HiOutlineMagnifyingGlass className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input
-            type="text"
-            placeholder="Search by employee name..."
-            className="w-full pl-12 pr-6 py-3.5 bg-white border border-slate-200 rounded-2xl focus:border-orange-500 outline-none font-bold text-xs transition-all shadow-sm"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+
+        {activeTab === 'logs' && (
+          <div className="relative flex-1 min-w-[300px] group">
+            <HiOutlineMagnifyingGlass className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input
+              type="text"
+              placeholder="Search by employee name..."
+              className="w-full pl-12 pr-6 py-3.5 bg-white border border-slate-200 rounded-2xl focus:border-orange-500 outline-none font-bold text-xs transition-all shadow-sm"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        )}
 
         {activeTab === "logs" ? (
           <>
@@ -192,7 +196,7 @@ export default function AttendanceManagement() {
             )}
           </>
         ) : (
-          <div className="flex items-center gap-4 bg-white px-5 py-2 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-center gap-4 bg-white px-5 py-2 rounded-2xl border border-slate-200 shadow-sm">
             <button onClick={() => setCurrentMonth(dateFnsSubMonths(currentMonth, 1))} className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-orange-600 transition-colors"><HiOutlineChevronLeft size={18} /></button>
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-900 w-28 text-center">{format(currentMonth, "MMMM yyyy")}</span>
             <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-orange-600 transition-colors"><HiOutlineChevronRight size={18} /></button>

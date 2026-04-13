@@ -95,8 +95,8 @@ export default function ClockInOut({ todaySeconds: dashboardDailySecs, taskList 
 
     try {
       const pipWindow = await window.documentPictureInPicture.requestWindow({
-        width: 200,
-        height: 70
+        width: 50,
+        height: 30
       });
 
       pipWindowRef.current = pipWindow;
@@ -105,8 +105,8 @@ export default function ClockInOut({ todaySeconds: dashboardDailySecs, taskList 
       const style = pipWindow.document.createElement('style');
       style.textContent = `
         body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: ui-monospace, monospace; background: #020617; overflow: hidden; } 
-        #status { font-size: 10px; font-weight: 800; letter-spacing: 0.1em; margin-bottom: 4px; text-transform: uppercase; } 
-        #daily-timer { font-size: 42px; font-weight: 900; line-height: 1; transition: color 0.3s ease; }
+        #status { font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; } 
+        #daily-timer { font-size: 20px; font-weight: 900; line-height: 1; transition: color 0.3s ease; }
       `;
       pipWindow.document.head.appendChild(style);
 

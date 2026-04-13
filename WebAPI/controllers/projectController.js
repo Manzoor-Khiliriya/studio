@@ -292,7 +292,7 @@ exports.getTaskPerformanceReport = async (req, res) => {
     const { page = 1, limit = 5, search = "" } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const projectQuery = {};
+    const projectQuery = { deleteStatus: "Disable" };
     if (search) {
       projectQuery.$or = [
         { projectCode: { $regex: search, $options: "i" } },
