@@ -174,7 +174,7 @@ const AdminDashboard = () => {
                                 </span>
                                 <div className="flex items-center gap-2">
                                   <BiTimeFive className="text-emerald-400" size={14} />
-                                  <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-tighter tabular-nums">
+                                  <span className="text-[11px] font-bold text-emerald-400 tracking-tighter tabular-nums">
                                     Total : {log.totalDailyTime}
                                   </span>
                                 </div>

@@ -199,6 +199,12 @@ export default function EmployeeDetailPage() {
       refetchEmployee();
       refetchTasks();
     },
+    onTaskChange: () => {
+      refetchTasks();
+    },
+    onTimeLogChange: () => {
+      refetchTasks();
+    }
   });
 
   const { lastActiveDay } = useMemo(() => {
@@ -287,7 +293,7 @@ export default function EmployeeDetailPage() {
           </button>
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center gap-6">
+            <div className="flex col-span-8 items-center gap-6">
               <div className="w-20 h-20 bg-slate-900 rounded-[1.8rem] flex items-center justify-center text-orange-500 font-black text-4xl italic shadow-2xl shrink-0">
                 {employee?.user?.name?.charAt(0)}
               </div>
@@ -306,16 +312,15 @@ export default function EmployeeDetailPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="grid grid-cols-2 gap-3 px-1 w-full max-w-[545px]">
               <button
                 onClick={() => setIsEditModalOpen(true)}
-                className="flex items-center gap-2 bg-slate-900 text-white px-11.5 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-orange-600 transition-all shadow-xl shadow-orange-100 active:scale-95 cursor-pointer"
-              >
+                className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest bg-slate-900 text-white hover:bg-orange-600 transition-all shadow-xl shadow-orange-100 active:scale-95 cursor-pointer"              >
                 <HiOutlinePencilSquare size={18} /> Update Employee
               </button>
               <button
                 onClick={() => setConfirmConfig({ isOpen: true, type: "delete" })}
-                className="flex items-center gap-2 bg-slate-900 text-white px-11.5 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-600 transition-all shadow-xl shadow-orange-100 active:scale-95 cursor-pointer"
+                className="flex items-center justify-center gap-2 bg-slate-900 text-white w-full py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-600 transition-all shadow-xl shadow-orange-100 active:scale-95 cursor-pointer"
               >
                 <HiOutlineTrash size={18} /> Delete Employee
               </button>

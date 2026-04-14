@@ -22,8 +22,8 @@ exports.clockIn = async (req, res) => {
     if (attendance) {
       attendance.clockOut = null;
       attendance.lastResumeTime = new Date();
-      await attendance.save();
 
+      await attendance.save();
       emitEvent(req, "attendanceChanged");
       emitDashboardUpdate(req);
       return res.status(200).json(attendance);
@@ -116,7 +116,14 @@ exports.getAllAttendance = async (req, res) => {
     const totalRecords = await Attendance.countDocuments(query);
 
     const records = await Attendance.find(query)
-      .populate("user", "name email")
+      .populate({
+        path: "user",
+        select: "name email",
+        populate: {
+          path: "employee",
+          select: "employeeCode"
+        }
+      })
       .sort({ date: -1, clockIn: -1 })
       .skip(skip)
       .limit(limitNum);

@@ -62,13 +62,15 @@ async function runCleanupSafe() {
     clockIn: { $lt: cutoff }
   });
 
-  const sixMonthsAgo = new Date();
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  const oneMonthAgo = new Date();
+  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
   const notificationResult = await Notification.deleteMany({
-    createdAt: { $lt: sixMonthsAgo },
+    createdAt: { $lt: oneMonthAgo },
     read: true
   });
+
+  console.log(`🗑 Deleted ${notificationResult.deletedCount} old read notifications.`);
 
   await JobTracker.findOneAndUpdate(
     { name: "data-cleanup" },

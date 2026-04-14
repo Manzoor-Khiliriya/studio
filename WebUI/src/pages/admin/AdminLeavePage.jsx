@@ -33,6 +33,7 @@ import {
   getCasualLopColumns
 } from "../../utils/adminLeaveListHelper";
 import { useSocketEvents } from "../../hooks/useSocketEvents";
+import CustomDropdown from "../../components/CustomDropdown";
 
 export default function AdminLeavePage() {
   const [activeTab, setActiveTab] = useState("requests");
@@ -75,6 +76,9 @@ export default function AdminLeavePage() {
     dateRange,
     startDate: customDates.start,
     endDate: customDates.end,
+  }, {
+    refetchOnMountOrArgChange: false,
+    keepUnusedDataFor: 300
   });
 
   const [processLeave, { isLoading: isProcessing }] = useProcessLeaveMutation();
@@ -232,10 +236,13 @@ export default function AdminLeavePage() {
     return getCasualLopColumns(handleOpenEdit, handleOpenDelete);
   }, [activeTab]);
 
-  if (isLoading || isFetching) return <Loader message="Accessing Attendance Matrix..." />;
-
-  const leaves = data?.leaves || [];
+  const leaves =
+    data?.view === activeTab ? data.leaves : null;
   const paginationData = data?.pagination || { totalLeaves: 0, totalPages: 1 };
+  const isTabLoading =
+    isFetching &&
+    data?.view !== activeTab;
+  if (isLoading) return <Loader message="Accessing Attendance Matrix..." />;
 
   return (
     <div className="max-w-[1750px] mx-auto  p-8 bg-slate-100 min-h-screen">
@@ -280,39 +287,43 @@ export default function AdminLeavePage() {
           {activeTab !== "quota" && (
             <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm w-full md:w-auto">
               {activeTab === "requests" && (
-                <select
-                  className="bg-slate-50 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest outline-none rounded-xl cursor-pointer text-slate-700 min-w-[140px] border border-slate-100"
+                <CustomDropdown
                   value={statusFilter}
-                  onChange={(e) => {
-                    setStatusFilter(e.target.value);
+                  onChange={(val) => {
+                    setStatusFilter(val);
                     setPage(1);
                   }}
-                >
-                  <option value="All">All Status</option>
-                  <option value="Pending" className="text-orange-500 font-bold">Pending</option>
-                  <option value="Approved" className="text-emerald-500 font-bold">Approved</option>
-                  <option value="Rejected" className="text-rose-500 font-bold">Declined</option>
-                </select>
+                  options={[
+                    { label: "All Status", value: "All" },
+                    { label: "Pending", value: "Pending" },
+                    { label: "Approved", value: "Approved" },
+                    { label: "Declined", value: "Rejected" }
+                  ]}
+                  className="min-w-[140px]"
+                  buttonClass="bg-slate-50 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl text-slate-700 border border-slate-100"
+                />
               )}
 
-              <select
-                className="bg-slate-50 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest outline-none rounded-xl cursor-pointer text-slate-700 min-w-[160px]  border border-slate-100"
+              <CustomDropdown
                 value={dateRange}
-                onChange={(e) => {
-                  setDateRange(e.target.value);
+                onChange={(val) => {
+                  setDateRange(val);
                   setPage(1);
-                  if (e.target.value !== 'custom') setCustomDates({ start: "", end: "" });
+                  if (val !== "custom") setCustomDates({ start: "", end: "" });
                 }}
-              >
-                <option value="all">All</option>
-                <option value="today">Today</option>
-                <option value="upcoming">Upcoming Leaves</option>
-                <option value="current-week">Current Week</option>
-                <option value="last-week">Last Week</option>
-                <option value="current-month">Current Month</option>
-                <option value="last-month">Last Month</option>
-                <option value="custom">Custom Range</option>
-              </select>
+                options={[
+                  { label: "All", value: "all" },
+                  { label: "Today", value: "today" },
+                  { label: "Upcoming Leaves", value: "upcoming" },
+                  { label: "Current Week", value: "current-week" },
+                  { label: "Last Week", value: "last-week" },
+                  { label: "Current Month", value: "current-month" },
+                  { label: "Last Month", value: "last-month" },
+                  { label: "Custom Range", value: "custom" }
+                ]}
+                className="min-w-[160px]"
+                buttonClass="bg-slate-50 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl text-slate-700 border border-slate-100"
+              />
 
               {/* Reset Button - Modified to reset to "current-week" */}
               <button
@@ -379,7 +390,15 @@ export default function AdminLeavePage() {
       {/* TABLE */}
       <div className="border border-slate-200 rounded-[2rem] overflow-hidden bg-white shadow-xl shadow-slate-200/50">
         <div className={isFetching ? "opacity-50" : "opacity-100"}>
-          <Table columns={columns} data={leaves} emptyMessage="No records matching filters." />
+          {isTabLoading || !leaves ? (
+            <Loader message="Loading data..." />
+          ) : (
+            <Table
+              columns={columns}
+              data={leaves}
+              emptyMessage="No records found."
+            />
+          )}
         </div>
 
         <div className="bg-white p-6 border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">

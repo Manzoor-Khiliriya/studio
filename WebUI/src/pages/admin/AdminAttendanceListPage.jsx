@@ -22,6 +22,7 @@ import Loader from "../../components/Loader";
 import Pagination from "../../components/Pagination";
 import { useGetLeaveCalendarQuery } from "../../services/leaveApi";
 import { useSocketEvents } from "../../hooks/useSocketEvents";
+import CustomDropdown from "../../components/CustomDropdown";
 
 export default function AttendanceManagement() {
   const [activeTab, setActiveTab] = useState("logs");
@@ -73,32 +74,46 @@ export default function AttendanceManagement() {
     return eachDayOfInterval({ start, end });
   }, [currentMonth]);
 
-  const handleRangeChange = (e) => {
-    const value = e.target.value;
+  const handleRangeChange = (value) => {
     setRangeType(value);
     setPage(1);
+
     if (value === "custom") return;
 
     let start = startOfToday();
     let end = endOfToday();
 
     switch (value) {
-      case "yesterday": start = startOfYesterday(); end = endOfYesterday(); break;
-      case "current_week": start = startOfWeek(new Date(), { weekStartsOn: 1 }); end = endOfToday(); break;
+      case "yesterday":
+        start = startOfYesterday();
+        end = endOfYesterday();
+        break;
+      case "current_week":
+        start = startOfWeek(new Date(), { weekStartsOn: 1 });
+        end = endOfToday();
+        break;
       case "last_week":
         const lastW = subWeeks(new Date(), 1);
         start = startOfWeek(lastW, { weekStartsOn: 1 });
         end = endOfWeek(lastW, { weekStartsOn: 1 });
         break;
-      case "current_month": start = startOfMonth(new Date()); end = endOfMonth(new Date()); break;
+      case "current_month":
+        start = startOfMonth(new Date());
+        end = endOfMonth(new Date());
+        break;
       case "last_month":
         const lastM = subMonths(new Date(), 1);
         start = startOfMonth(lastM);
         end = endOfMonth(lastM);
         break;
-      default: break;
+      default:
+        break;
     }
-    setDateFilter({ startDate: format(start, "yyyy-MM-dd"), endDate: format(end, "yyyy-MM-dd") });
+
+    setDateFilter({
+      startDate: format(start, "yyyy-MM-dd"),
+      endDate: format(end, "yyyy-MM-dd"),
+    });
   };
 
   const resetFilters = () => {
@@ -171,20 +186,21 @@ export default function AttendanceManagement() {
         {activeTab === "logs" ? (
           <>
             <div className="relative">
-              <select
+              <CustomDropdown
                 value={rangeType}
                 onChange={handleRangeChange}
-                className="appearance-none pl-6 pr-12 py-3.5 bg-white border border-slate-200 rounded-2xl outline-none font-black text-[10px] uppercase cursor-pointer text-slate-700 shadow-sm"
-              >
-                <option value="today">Today</option>
-                <option value="yesterday">Yesterday</option>
-                <option value="current_week">This Week</option>
-                <option value="last_week">Last Week</option>
-                <option value="current_month">This Month</option>
-                <option value="last_month">Last Month</option>
-                <option value="custom">Custom Range</option>
-              </select>
-              <HiOutlineAdjustmentsHorizontal className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
+                options={[
+                  { label: "Today", value: "today" },
+                  { label: "Yesterday", value: "yesterday" },
+                  { label: "This Week", value: "current_week" },
+                  { label: "Last Week", value: "last_week" },
+                  { label: "This Month", value: "current_month" },
+                  { label: "Last Month", value: "last_month" },
+                  { label: "Custom Range", value: "custom" },
+                ]}
+                className="min-w-[180px]"
+                buttonClass="pl-6 pr-12 py-3.5 bg-white border border-slate-200 rounded-2xl font-black text-[10px] uppercase text-slate-700 shadow-sm"
+              />
             </div>
 
             {rangeType === "custom" && (
@@ -196,7 +212,7 @@ export default function AttendanceManagement() {
             )}
           </>
         ) : (
-          <div className="flex items-center justify-center gap-4 bg-white px-5 py-2 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-center gap-4 mx-auto bg-white px-5 py-2 rounded-2xl border border-slate-200 shadow-sm">
             <button onClick={() => setCurrentMonth(dateFnsSubMonths(currentMonth, 1))} className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-orange-600 transition-colors"><HiOutlineChevronLeft size={18} /></button>
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-900 w-28 text-center">{format(currentMonth, "MMMM yyyy")}</span>
             <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-orange-600 transition-colors"><HiOutlineChevronRight size={18} /></button>
@@ -215,7 +231,7 @@ export default function AttendanceManagement() {
         {activeTab === "logs" ? (
           <>
             <div className={isFetching ? "opacity-50" : ""}>
-              <Table columns={columns} data={attendanceData} emptyMessage="No attendance records found for this period." />
+              <Table columns={columns} data={attendanceData} emptyMessage="No attendance records found." />
             </div>
             <div className="bg-slate-50/50 p-6 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="flex items-center gap-3">

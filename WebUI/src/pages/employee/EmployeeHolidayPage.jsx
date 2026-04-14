@@ -112,7 +112,7 @@ export default function EmployeeHolidayPage() {
           <Table
             columns={columns}
             data={upcomingHolidays}
-            emptyMessage="No upcoming holidays detected in current cycle."
+            emptyMessage="No upcoming holidays found."
           />
         </div>
 

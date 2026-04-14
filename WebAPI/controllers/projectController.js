@@ -194,6 +194,7 @@ exports.getAllProjects = async (req, res) => {
 
     return res.status(200).json({
       success: true,
+      activeTab,
       projects: paginatedProjects,
       pagination: {
         totalProjects: totalProjects,
@@ -305,6 +306,8 @@ exports.getTaskPerformanceReport = async (req, res) => {
       { $sort: { createdAt: -1 } },
       { $skip: skip },
       { $limit: parseInt(limit) },
+
+      // Get tasks
       {
         $lookup: {
           from: "tasks",
@@ -313,17 +316,110 @@ exports.getTaskPerformanceReport = async (req, res) => {
           as: "taskList"
         }
       },
+
+      // Unwind tasks
+      {
+        $unwind: {
+          path: "$taskList",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+
+      // Get timelogs per task
       {
         $lookup: {
           from: "timelogs",
           localField: "taskList._id",
           foreignField: "task",
-          pipeline: [{ $match: { logType: "work" } }],
-          as: "workLogs"
+          pipeline: [
+            { $match: { logType: "work" } }
+          ],
+          as: "taskLogs"
+        }
+      },
+
+      // Calculate consumed time per task
+      {
+        $addFields: {
+          "taskList.consumedHours": {
+            $round: [
+              {
+                $divide: [
+                  { $sum: "$taskLogs.durationSeconds" },
+                  3600
+                ]
+              },
+              2
+            ]
+          }
+        }
+      },
+
+      // Calculate task progress %
+      {
+        $addFields: {
+          "taskList.progressPercent": {
+            $cond: [
+              { $gt: ["$taskList.allocatedTime", 0] },
+              {
+                $multiply: [
+                  {
+                    $divide: [
+                      "$taskList.consumedHours",
+                      "$taskList.allocatedTime"
+                    ]
+                  },
+                  100
+                ]
+              },
+              0
+            ]
+          }
+        }
+      },
+
+      // Group back tasks into project
+      {
+        $group: {
+          _id: "$_id",
+          projectCode: { $first: "$projectCode" },
+          title: { $first: "$title" },
+          endDate: { $first: "$endDate" },
+          createdAt: { $first: "$createdAt" },
+          taskList: { $push: "$taskList" }
+        }
+      },
+
+      // Project-level totals
+      {
+        $addFields: {
+          totalConsumed: {
+            $sum: "$taskList.consumedHours"
+          },
+          totalBudget: {
+            $sum: "$taskList.allocatedTime"
+          }
+        }
+      },
+
+      // Project progress %
+      {
+        $addFields: {
+          progressPercent: {
+            $cond: [
+              { $gt: ["$totalBudget", 0] },
+              {
+                $multiply: [
+                  { $divide: ["$totalConsumed", "$totalBudget"] },
+                  100
+                ]
+              },
+              0
+            ]
+          }
         }
       }
     ]);
-
     const totalProjects = await Project.countDocuments(projectQuery);
 
     res.json({

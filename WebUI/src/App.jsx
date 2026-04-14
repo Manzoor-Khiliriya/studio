@@ -44,7 +44,7 @@ function AppContent() {
     <>
       {user && <NotificationHandler userId={user._id} />}
 
-      <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
+      <Toaster position="bottom-right" toastOptions={{ duration: 4000 }} />
 
       <BrowserRouter>
         <div className="min-h-screen bg-slate-50">

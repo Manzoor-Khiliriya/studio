@@ -322,42 +322,49 @@ exports.getTaskDetail = async (req, res) => {
 exports.getTasksByEmployee = async (req, res) => {
   try {
     const employee = await Employee.findOne({ user: req.params.userId });
-
     if (!employee) {
-      return res.status(404).json({
-        success: false,
-        message: "Employee not found",
-      });
+      return res.status(404).json({ success: false, message: "Employee not found", });
     }
-
-    const tasksWithLogs = await TimeLog.distinct("task", {
-      user: req.params.userId,
-    });
-
-    const { liveStatus } = req.query;
-
+    const tasksWithLogs = await TimeLog.distinct("task", { user: req.params.userId, });
+    const { liveStatus: filterStatus } = req.query;
     const query = {
       $or: [
         { assignedTo: employee._id },
         { _id: { $in: tasksWithLogs } },
       ],
     };
-
     const allRelatedTasks = await Task.find(query)
       .populate("project", "projectCode")
       .populate("timeLogs")
       .sort({ createdAt: -1 });
 
-    const tasksWithVirtuals = allRelatedTasks.map(task => ({
-      ...task.toObject(),
-      liveStatus: task.liveStatus
-    }));
+    const tasksWithStatus = allRelatedTasks.map(task => {
+      const userLogs = (task.timeLogs || []).filter(log =>
+        (log.user?._id || log.user).toString() === req.params.userId
+      );
 
-    let finalTasks = tasksWithVirtuals;
+      const isRunning = userLogs.some(log =>
+        log.isRunning === true && log.logType === "work"
+      );
 
-    if (liveStatus && liveStatus !== "All") {
-      const allowed = liveStatus.split(",");
-      finalTasks = tasksWithVirtuals.filter(task =>
+      const hasWorked = userLogs.some(log =>
+        log.logType === "work" && log.durationSeconds > 0
+      );
+
+      let status = "To be started";
+      if (isRunning) status = "In progress";
+      else if (hasWorked) status = "Started";
+      return {
+        ...task.toObject(),
+        liveStatus: status
+      };
+    });
+
+    let finalTasks = tasksWithStatus;
+
+    if (filterStatus && filterStatus !== "All") {
+      const allowed = filterStatus.split(",");
+      finalTasks = tasksWithStatus.filter(task =>
         allowed.includes(task.liveStatus)
       );
     }
@@ -365,22 +372,11 @@ exports.getTasksByEmployee = async (req, res) => {
     const currentlyAssigned = finalTasks.filter(task =>
       task.assignedTo?.some(id => id.toString() === employee._id.toString())
     );
-
-    const response = {
-      success: true,
-      currentlyAssigned,
-      workedAndAssigned: finalTasks,
-    };
-
-    return res.status(200).json(response);
+    return res.status(200).json({ success: true, currentlyAssigned, workedAndAssigned: finalTasks, });
   } catch (err) {
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
+    return res.status(500).json({ success: false, message: "Internal server error", });
   }
 };
-
 
 exports.getMyTasks = async (req, res) => {
   try {

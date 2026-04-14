@@ -85,7 +85,7 @@ exports.getSummary = async (req, res) => {
             id: log._id,
             userName: log.user?.name,
             employeeCode: log.user?.employee?.employeeCode,
-            totalDailyTime: `${h}h ${m}m ${s}s`,
+            totalDailyTime: `${h} Hrs ${m} Mins ${s} Secs`,
             dateString: log.dateString,
             lastActionAt: log.createdAt
           };

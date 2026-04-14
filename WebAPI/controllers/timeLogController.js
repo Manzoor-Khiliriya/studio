@@ -8,11 +8,9 @@ const { emitDashboardUpdate } = require("../utils/socket");
 const emitEvent = (req, event, data, userId = null) => {
   const io = req.app.get("socketio");
   if (!io) return;
-
+  io.emit(event, data);
   if (userId) {
     io.to(userId.toString()).emit(event, data);
-  } else {
-    io.emit(event, data);
   }
 };
 
@@ -152,29 +150,33 @@ exports.stopTimer = async (req, res) => {
 exports.getMyLogs = async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];
-
     const logs = await TimeLog.find({
       user: req.user._id,
       dateString: today
     })
       .populate("task", "title projectNumber")
       .sort({ startTime: -1 });
-
     const activeLog = logs.find(l => l.isRunning);
-
-    const totalSeconds = logs
-      .filter(l => l.logType === "work")
-      .reduce((sum, l) => sum + (l.durationSeconds || 0), 0);
-
+    let totalSeconds = 0;
+    logs.forEach(log => {
+      if (log.logType !== "work") return;
+      if (log.isRunning) {
+        const runningSec = Math.floor(
+          (Date.now() - new Date(log.startTime).getTime()) / 1000
+        );
+        totalSeconds += Math.max(0, runningSec);
+      } else {
+        totalSeconds += (log.durationSeconds || 0);
+      }
+    });
     const hoursWorkedToday = +(totalSeconds / 3600).toFixed(2);
-
     res.json({
       activeTaskId: activeLog?.task?._id || null,
       status: activeLog ? activeLog.logType : "idle",
-      hoursWorkedToday,
+      totalSecondsWorkedToday: totalSeconds,
+      hoursWorkedToday, 
       logs
     });
-
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

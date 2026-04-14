@@ -72,7 +72,7 @@ export default function Sidebar() {
                   {isActive && (
                     <motion.div
                       layoutId="activeNav"
-                      className="absolute inset-0 bg-orange-600 rounded-xl shadow-lg shadow-orange-600/20"
+                      className="absolute inset-0 bg-[#ee4123] rounded-xl shadow-lg shadow-orange-600/20"
                       transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     />
                   )}
@@ -92,7 +92,7 @@ export default function Sidebar() {
         {/* User Footer - Pushed to bottom by flex-1 above */}
         <div className="pt-6 mt-auto border-t border-slate-800/50">
           <div className="flex items-center gap-3 px-3 py-4 mb-4 bg-orange-500/5 rounded-2xl border border-orange-500/10">
-            <div className="w-10 h-10 rounded-xl bg-orange-600 flex items-center justify-center text-white font-black ring-2 ring-[#1a1d23]">
+            <div className="w-10 h-10 rounded-xl bg-[#ee4123] flex items-center justify-center text-white font-black ring-2 ring-[#1a1d23]">
               {user.name?.charAt(0)}
             </div>
             <div className="flex-1 overflow-hidden">
@@ -103,7 +103,7 @@ export default function Sidebar() {
 
           <button
             onClick={handleLogout}
-            className="flex items-center justify-between w-full px-4 py-3 rounded-xl font-bold text-slate-500 hover:text-orange-400 hover:bg-orange-500/5 transition-all group cursor-pointer"
+            className="flex items-center justify-between w-full px-4 py-3 rounded-xl font-bold text-slate-500 hover:text-[#e7583e] hover:bg-orange-500/5 transition-all group cursor-pointer"
           >
             <div className="flex items-center gap-4">
               <HiLogout className="text-xl transition-transform group-hover:-translate-x-1" />
@@ -135,7 +135,7 @@ export default function Sidebar() {
                 {isActive && (
                   <motion.div
                     layoutId="mobileActive"
-                    className="w-1 h-1 rounded-full bg-orange-600 mt-0.5"
+                    className="w-1 h-1 rounded-full bg-[#ee4123] mt-0.5"
                   />
                 )}
               </>
@@ -172,12 +172,12 @@ export default function Sidebar() {
             >
               <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-8" />
               <div className="flex items-center gap-5 p-6 bg-orange-50 rounded-[2.5rem] mb-8 border border-orange-100/50">
-                <div className="w-16 h-16 rounded-3xl bg-orange-600 flex items-center justify-center text-white text-2xl font-black shadow-xl shadow-orange-200">
+                <div className="w-16 h-16 rounded-3xl bg-[#ee4123] flex items-center justify-center text-white text-2xl font-black shadow-xl shadow-orange-200">
                   {user.name?.charAt(0)}
                 </div>
                 <div>
                   <h4 className="font-black text-2xl text-slate-900 tracking-tight">{user.name}</h4>
-                  <p className="text-[10px] text-orange-600 uppercase font-black tracking-[0.2em]">{user.role} Dashboard</p>
+                  <p className="text-[10px] text-[#ee4123] uppercase font-black tracking-[0.2em]">{user.role} Dashboard</p>
                 </div>
               </div>
 

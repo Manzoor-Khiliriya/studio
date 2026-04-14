@@ -18,6 +18,8 @@ import HolidayModal from "../../components/HolidayModal";
 import ConfirmModal from "../../components/ConfirmModal";
 import { getAdminHolidayColumns } from "../../utils/adminHolidayHelper";
 import { useSocketEvents } from "../../hooks/useSocketEvents";
+import { set } from "date-fns";
+import CustomDropdown from "../../components/CustomDropdown";
 
 export default function AdminHolidayPage() {
   const holidayInitialState = { id: null, name: "", date: "", description: "" };
@@ -133,21 +135,12 @@ export default function AdminHolidayPage() {
 
             {/* Cycle/Year Selector */}
             <div className="relative group">
-              <select
+              <CustomDropdown
                 value={year}
-                onChange={(e) => setYear(e.target.value)}
-                className="appearance-none pl-6 pr-14 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:border-orange-500 outline-none font-black text-[11px] uppercase cursor-pointer transition-all text-slate-700 shadow-sm group"
-              >
-                <option value="">Cycle: All Years</option>
-                {dynamicYears.map((y) => (
-                  <option key={y} value={y}>
-                    {y === new Date().getFullYear() ? `${y} (Current)` : `${y} Cycle`}
-                  </option>
-                ))}
-              </select>
-              <HiOutlineAdjustmentsHorizontal
-                className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-                size={18}
+                onChange={setYear}
+                options={dynamicYears.map((y) => y.toString())}
+                className="min-w-[180px]"
+                buttonClass="w-full pl-4 pr-10 py-3.5 bg-white border border-slate-200 rounded-xl font-bold text-xs shadow-sm"
               />
             </div>
 

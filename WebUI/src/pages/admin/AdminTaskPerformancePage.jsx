@@ -183,7 +183,7 @@ const AdminTaskPerformancePage = () => {
                       >
                         <div className="p-4 space-y-2">
                           {group.taskList?.map((task) => {
-                            const taskPerc = (task.consumedHours / task.allocatedTime) * 100 || 0;
+                            const taskPerc = task.progressPercent ?? 0;
                             const isTaskOver = taskPerc > 100;
 
                             return (
@@ -225,7 +225,7 @@ const AdminTaskPerformancePage = () => {
             })
           ) : (
             <div className="bg-white rounded-[2rem] py-20 text-center border-2 border-dashed border-slate-200">
-              <p className="text-slate-300 font-black uppercase italic text-sm">No Metrics Found</p>
+              <p className="text-slate-300 font-black uppercase italic text-sm">No Projects Found</p>
             </div>
           )}
         </div>

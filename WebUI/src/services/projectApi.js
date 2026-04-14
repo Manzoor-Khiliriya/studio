@@ -8,6 +8,7 @@ export const projectApiSlice = apiSlice.injectEndpoints({
         params: params, 
       }),
       transformResponse: (response) => ({
+        activeTab: response.activeTab,
         projects: response.projects || [],
         pagination: response.pagination || {}
       }),

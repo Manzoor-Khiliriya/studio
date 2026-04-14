@@ -320,6 +320,7 @@ exports.getAllLeaves = async (req, res) => {
 
 
       return res.json({
+        view: "requests",
         leaves: processedLeaves,
         pagination: { totalLeaves, totalPages: Math.ceil(totalLeaves / parseInt(limit)), currentPage: parseInt(page) }
       });
@@ -356,6 +357,7 @@ exports.getAllLeaves = async (req, res) => {
       })));
 
       return res.json({
+        view: "casual-lop", 
         leaves,
         pagination: { totalLeaves, totalPages: Math.ceil(totalLeaves / parseInt(limit)), currentPage: parseInt(page) }
       });
@@ -424,6 +426,7 @@ exports.getAllLeaves = async (req, res) => {
       const paginatedResults = quotaData.slice(skip, skip + parseInt(limit));
 
       return res.json({
+        view: "quota",
         leaves: paginatedResults,
         pagination: {
           totalLeaves: quotaData.length,

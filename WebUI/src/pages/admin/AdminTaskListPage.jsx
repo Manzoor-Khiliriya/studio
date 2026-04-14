@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDeleteProjectMutation, useGetProjectsQuery, useUpdateProjectMutation } from "../../services/projectApi";
 
@@ -13,7 +13,6 @@ import {
   HiOutlinePlusCircle,
   HiOutlineCommandLine,
   HiOutlineTrash,
-  HiCheckCircle
 } from "react-icons/hi2";
 
 import PageHeader from "../../components/PageHeader";
@@ -67,6 +66,7 @@ export default function AdminTasksPage() {
   const [assigningTeamTask, setAssigningTeamTask] = useState(null);
   const [projectToDeactivate, setProjectToDeactivate] = useState(null);
   const [taskToDelete, setTaskToDelete] = useState(null);
+  const [isTabSwitching, setIsTabSwitching] = useState(false);
 
   const [deleteTask, { isLoading: isDeletingTask }] = useDeleteTaskMutation();
   const [updateProject, { isLoading: isDeactivating }] = useUpdateProjectMutation();
@@ -95,9 +95,13 @@ export default function AdminTasksPage() {
       projectType: allProjectType,
       status: allProjectStatus,
     }),
+  }, {
+    refetchOnMountOrArgChange: false,
+    keepUnusedDataFor: 300
   });
 
-  const projectGroups = data?.projects || [];
+  const projectGroups =
+    data?.activeTab === activeTab ? data.projects : [];
 
   useSocketEvents({
     onProjectChange: refetch,
@@ -220,7 +224,10 @@ export default function AdminTasksPage() {
   };
 
   const isProcessing = isDeactivating || isDeletingProject;
-  if (isLoading || isFetching) return <Loader message="Synchronizing Project Data..." />;
+  const isFirstTabLoad =
+    isFetching &&
+    data?.activeTab !== activeTab;
+  if (isLoading || isFirstTabLoad) return <Loader message="Synchronizing Project Data..." />;
 
   return (
     <div className="max-w-[1750px] mx-auto min-h-screen bg-slate-100">
@@ -234,7 +241,7 @@ export default function AdminTasksPage() {
         activeTab={activeTab}
         onTabChange={(tabId) => {
           setActiveTab(tabId);
-          setCurrentPage(1);
+          setCurrentPage(1)
         }}
       />
 
@@ -275,7 +282,7 @@ export default function AdminTasksPage() {
 
 
           <div className="flex flex-wrap items-end justify-between gap-6 pt-5 border-t border-slate-100">
-            <div className="flex flex-wrap items-center gap-8">
+            <div className="flex flex-wrap items-center gap-7">
 
               {activeTab === "live" && (
                 <div className="flex flex-col gap-1.5">
@@ -411,7 +418,7 @@ export default function AdminTasksPage() {
                     setEditingProject(null);
                     setShowProjectModal(true);
                   }}
-                  className="block flex items-center gap-2 px-5 py-4 bg-black hover:bg-orange-600 text-white rounded-xl transition-all font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-200 cursor-pointer active:scale-95"
+                  className="block flex items-center gap-2 mx-1.5 px-3.5 py-4 bg-black hover:bg-orange-600 text-white rounded-xl transition-all font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-200 cursor-pointer active:scale-95"
                 >
                   <HiOutlinePlusCircle size={18} />
                   <span>Add Project</span>
@@ -632,7 +639,7 @@ export default function AdminTasksPage() {
                       {activeTab === "live" && (
                         <button
                           onClick={(e) => { e.stopPropagation(); openTaskModalForProject(project); }}
-                          className="flex items-center justify-center gap-2 w-[145px] py-3 rounded-xl bg-slate-900 border border-slate-900 hover:bg-orange-500 hover:border-orange-500 text-white transition-all font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 cursor-pointer"
+                          className="flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-900 border border-slate-900 hover:bg-orange-500 hover:border-orange-500 text-white transition-all font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 cursor-pointer"
                         >
                           <HiOutlinePlusCircle size={16} />
                           <span>Add Task</span>
@@ -697,7 +704,7 @@ export default function AdminTasksPage() {
           ) : (
             <div className="bg-white rounded-[3rem] p-32 text-center border-2 border-dashed border-slate-200">
               <HiOutlineBriefcase size={40} className="text-slate-200 mx-auto mb-6" />
-              <p className="text-slate-300 font-black uppercase italic text-xl">No active projects matching filters.</p>
+              <p className="text-slate-300 font-black uppercase italic text-xl">No projects found.</p>
             </div>
           )}
         </div>

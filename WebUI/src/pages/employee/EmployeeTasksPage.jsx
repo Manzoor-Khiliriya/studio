@@ -11,6 +11,7 @@ import Table from "../../components/Table";
 import Loader from "../../components/Loader";
 import Pagination from "../../components/Pagination";
 import { useSocketEvents } from "../../hooks/useSocketEvents";
+import CustomDropdown from "../../components/CustomDropdown";
 
 export default function MyTasksPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -171,7 +172,7 @@ export default function MyTasksPage() {
     },
   ];
 
-  if (isLoading) return <Loader message="Accessing Command Data..." />;
+  if (isLoading) return <Loader message="Accessing Task Data..." />;
 
   const hasActiveFilters = searchTerm || taskSearch || statusFilter !== "All" || liveStatusFilter !== "All" || activeStatusFilter !== "All";
 
@@ -198,60 +199,82 @@ export default function MyTasksPage() {
 
 
           {/* Bottom Row: Status Dropdowns & Actions */}
-          <div className="flex flex-wrap items-end justify-end gap-6 pt-5 border-t border-slate-100">
-            <div className="flex flex-wrap items-center gap-6">
+          <div className="flex flex-wrap items-center gap-6 pt-5 border-t border-slate-100">
+            {/* Initiative Status */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[9px] font-black text-slate-400 uppercase ml-1 tracking-widest">Initiative Status</label>
+              <CustomDropdown
+                value={statusFilter}
+                onChange={(val) => {
+                  setStatusFilter(val);
+                  setCurrentPage(1);
+                }}
+                options={[
+                  { label: "All Phases", value: "All" },
+                  { label: "On hold", value: "On hold" },
+                  { label: "Modeling", value: "Modeling" },
+                  { label: "Lighting and Texturing", value: "Lighting and Texturing" },
+                  { label: "Feedback pending", value: "Feedback pending" },
+                  { label: "Final rendering", value: "Final rendering" },
+                  { label: "Postproduction", value: "Postproduction" },
+                  { label: "Completed", value: "Completed" },
+                ]}
+                className="min-w-[180px]"
+                buttonClass="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700"
+              />
+            </div>
 
-              {/* Initiative Status */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Initiative Status</label>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                  className="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 outline-none focus:border-orange-500 transition-all appearance-none cursor-pointer min-w-[180px]"
-                >
-                  <option value="All">All Phases</option>
-                  {["On hold", "Modeling", "Lighting and Texturing", "Feedback pending", "Final rendering", "Postproduction", "Completed"].map(s => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              </div>
+            {/* Live Status */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[9px] font-black text-slate-400 uppercase ml-1 tracking-widest">Live Status</label>
+              <CustomDropdown
+                value={statusFilter}
+                onChange={(val) => {
+                  setStatusFilter(val);
+                  setCurrentPage(1);
+                }}
+                options={[
+                  { label: "All Phases", value: "All" },
+                  { label: "On hold", value: "On hold" },
+                  { label: "Modeling", value: "Modeling" },
+                  { label: "Lighting and Texturing", value: "Lighting and Texturing" },
+                  { label: "Feedback pending", value: "Feedback pending" },
+                  { label: "Final rendering", value: "Final rendering" },
+                  { label: "Postproduction", value: "Postproduction" },
+                  { label: "Completed", value: "Completed" },
+                ]}
+                className="min-w-[180px]"
+                buttonClass="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700"
+              />
+            </div>
 
-              {/* Live Status */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Live Status</label>
-                <select
-                  value={liveStatusFilter}
-                  onChange={(e) => { setLiveStatusFilter(e.target.value); setCurrentPage(1); }}
-                  className="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 outline-none focus:border-orange-500 transition-all appearance-none cursor-pointer min-w-[140px]"
-                >
-                  <option value="All">All Live</option>
-                  <option value="To be started">To be started</option>
-                  <option value="Started">Started</option>
-                  <option value="In progress">In progress</option>
-                </select>
-              </div>
-
-              {/* Active Status (Drafts) */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Active Status</label>
-                <select
-                  value={activeStatusFilter}
-                  onChange={(e) => { setActiveStatusFilter(e.target.value); setCurrentPage(1); }}
-                  className="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 outline-none focus:border-orange-500 transition-all appearance-none cursor-pointer min-w-[140px]"
-                >
-                  <option value="All">All Versions</option>
-                  {["Draft-1", "Draft-2", "Draft-3", "Pre-Final", "Final"].map(d => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
-                </select>
-              </div>
+            {/* Active Status (Drafts) */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[9px] font-black text-slate-400 uppercase ml-1 tracking-widest">Active Status</label>
+              <CustomDropdown
+                value={activeStatusFilter}
+                onChange={(val) => {
+                  setActiveStatusFilter(val);
+                  setCurrentPage(1);
+                }}
+                options={[
+                  { label: "All Versions", value: "All" },
+                  { label: "Draft-1", value: "Draft-1" },
+                  { label: "Draft-2", value: "Draft-2" },
+                  { label: "Draft-3", value: "Draft-3" },
+                  { label: "Pre-Final", value: "Pre-Final" },
+                  { label: "Final", value: "Final" },
+                ]}
+                className="min-w-[140px]"
+                buttonClass="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700"
+              />
             </div>
 
             {/* Clear Filters Button */}
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}
-                className="flex items-center gap-2 px-6 py-3 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-2xl transition-all font-black text-[10px] tracking-widest cursor-pointer shadow-sm"
+                className="flex items-center gap-2 px-6 py-4 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-2xl transition-all font-black text-[10px] tracking-widest cursor-pointer shadow-sm"
               >
                 <HiOutlineXMark size={18} strokeWidth={2.5} />
                 <span>RESET MISSION FILTERS</span>
@@ -266,7 +289,7 @@ export default function MyTasksPage() {
             <Table
               columns={columns}
               data={data?.tasks || []}
-              emptyMessage="No matching mission parameters found in your sector."
+              emptyMessage="No tasks found."
             />
           </div>
 

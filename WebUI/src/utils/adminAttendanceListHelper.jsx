@@ -9,7 +9,7 @@ export const getAdminAttendanceColumns = () => [
       <div className="flex items-center gap-3 py-1">
         <div className="flex flex-col">
           <p className="font-black text-slate-800 text-[11px] uppercase tracking-tight">
-            {row.user?.name || "Unknown User"}
+            {row.user?.name || "Unknown User"} {row.user?.employee?.employeeCode ? `(${row.user?.employee?.employeeCode})` : ""}
           </p>
         </div>
       </div>
@@ -20,7 +20,7 @@ export const getAdminAttendanceColumns = () => [
     className: "text-left",
     render: (row) => (
       <div className="flex items-center gap-3 py-1">
-          <p className="text-[10px] text-slate-800 font-bold uppercase italic">
+          <p className="text-[10px] text-slate-800 font-black uppercase italic">
             {new Date(row.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
           </p>
         </div>
@@ -53,7 +53,6 @@ export const getAdminAttendanceColumns = () => [
   },
   {
     header: "Total Clocked Time",
-    className: "text-center",
     render: (row) => {
       const totalSecs = row.totalSecondsWorked || 0;
       const h = Math.floor(totalSecs / 3600);
@@ -61,12 +60,12 @@ export const getAdminAttendanceColumns = () => [
       const s = totalSecs % 60;
 
       return (
-        <div className="flex items-center justify-center gap-2 font-black text-slate-800 text-[10px] tabular-nums">
+        <div className="flex items-center gap-2 font-black text-slate-800 text-[10px] tabular-nums">
           <HiOutlineClock className="text-slate-600" size={12} />
           <>
-            {h > 0 && <span>{h}h </span>}
-            {m > 0 || h > 0 ? <span>{m}m </span> : null}
-            <span className="text-slate-800 font-black">{s}s</span>
+            {h > 0 && <span>{h} Hrs </span>}
+            {m > 0 || h > 0 ? <span>{m} Mins </span> : null}
+            <span className="text-slate-800 font-black">{s} Secs</span>
           </>
         </div>
       );
