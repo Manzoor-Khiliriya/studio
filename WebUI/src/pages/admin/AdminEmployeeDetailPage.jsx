@@ -63,6 +63,7 @@ const TaskGridView = ({ tasks, userId }) => {
     start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0],
     end: new Date().toISOString().split("T")[0],
   });
+  const [expanded, setExpanded] = useState(false);
 
   const formatDateDisplay = (dateStr) => {
     return new Date(dateStr).toLocaleDateString("en-IN", {
@@ -107,12 +108,17 @@ const TaskGridView = ({ tasks, userId }) => {
     return { gridData: data, totalHoursStr: formatToHrMin(totalAllSeconds), taskCount: data.length };
   }, [tasks, dateRange, userId]);
 
-  return (
-    <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm w-full mb-10">
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
+  const INITIAL_COUNT = 4;
 
+  const visibleData = expanded
+    ? gridData
+    : gridData.slice(0, INITIAL_COUNT);
+
+  return (
+    <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm  w-full">
+      <div className="bg-slate-50/80 px-6 py-4 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-2 border-b border-slate-100">
         {/* Modern Date Picker Container */}
-        <div className="flex items-center bg-orange-600 text-white rounded shadow-lg overflow-hidden border border-orange-700">
+        <div className="flex items-center my-auto bg-orange-600 text-white rounded shadow-lg overflow-hidden border border-orange-700">
           {/* Start Date */}
           <div className="relative hover:bg-orange-700 transition-colors cursor-pointer px-4 py-1">
             <span className="text-[11px] font-black uppercase tracking-wider whitespace-nowrap">
@@ -157,23 +163,42 @@ const TaskGridView = ({ tasks, userId }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 px-6 py-4 mb-1">
         {gridData.length > 0 ? (
-          gridData.map((item) => (
-            <div key={item.id} className={`flex items-center justify-between p-4 ${getTaskColor(item.id)} rounded-2xl shadow-sm`}>
+          visibleData.map((item) => (
+            <div
+              key={item.id}
+              className={`flex items-center justify-between p-4 ${getTaskColor(item.id)} rounded-2xl shadow-sm`}
+            >
               <h4 className="text-[10px] font-black uppercase text-white truncate mr-4">
                 {item.title} ({item.projectCode})
               </h4>
-              <p className="text-[9px] font-black text-white shrink-0 opacity-90">{item.timeStr}</p>
+              <p className="text-[9px] font-black text-white shrink-0 opacity-90">
+                {item.timeStr}
+              </p>
             </div>
           ))
         ) : (
-          <div className="col-span-full py-12 text-center bg-slate-50 rounded-3xl border-2 border-dashed border-slate-100">
-            <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">No performance logs found for this range</p>
+          <div className="col-span-full py-4 text-center bg-slate-50 rounded border-2 border-dashed border-slate-100">
+            <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">
+              No performance logs found for this range
+            </p>
           </div>
         )}
       </div>
-    </div>
+
+      {/* ✅ BUTTON OUTSIDE MAP */}
+      {gridData.length > INITIAL_COUNT && (
+        <div className="flex justify-center pb-4">
+          <button
+            onClick={() => setExpanded((prev) => !prev)}
+            className="px-6 py-2 text-[10px] font-black uppercase tracking-widest bg-slate-100 hover:bg-orange-600 hover:text-white text-slate-600 rounded-xl transition-all cursor-pointer"
+          >
+            {expanded ? "Show Less" : "Show More"}
+          </button>
+        </div>
+      )}
+    </div >
   );
 };
 
@@ -342,7 +367,7 @@ export default function EmployeeDetailPage() {
             <SectionHeader title="Record Book" />
             <TaskGridView tasks={workedAndAssigned} userId={userId} />
 
-            <div className="space-y-6">
+            <div className="space-y-5">
               {/* Dynamic Header based on date */}
               <SectionHeader
                 title={
@@ -404,7 +429,7 @@ export default function EmployeeDetailPage() {
 
           <div className="lg:col-span-4 space-y-8">
             <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl">
-              <div className="flex items-center gap-2 mb-8">
+              <div className="flex items-center gap-2 mb-1">
                 <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Live Tasks</h3>
               </div>
@@ -412,20 +437,29 @@ export default function EmployeeDetailPage() {
                 {liveTasks.length > 0 ? (
                   liveTasks.map((t) => <TaskSmallCard key={t._id} task={t} active />)
                 ) : (
-                  <p className="text-[10px] font-bold text-slate-500 uppercase italic py-4">No Live Tasks Found</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase italic h-18 flex items-center justify-center">No Live Tasks Found</p>
                 )}
               </div>
             </div>
 
             <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-              <div className="flex justify-between items-center mb-8">
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Full Task History</h3>
-                <PaginationControls current={taskPage} total={Math.ceil(workedAndAssigned.length / itemsPerPage)} setPage={setTaskPage} />
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                  Full Task History
+                </h3>
               </div>
-              <div className="space-y-3">
-                {paginatedAllTasks.map((t) => {
+
+              {/* 👇 Scroll container */}
+              <div className="space-y-3 h-[325px] overflow-y-auto pr-2 custom-scrollbar">
+                {workedAndAssigned.map((t) => {
                   const isAssigned = currentlyAssigned.some((a) => a._id === t._id);
-                  return <TaskSmallCard key={t._id} task={t} historical={!isAssigned} />;
+                  return (
+                    <TaskSmallCard
+                      key={t._id}
+                      task={t}
+                      historical={!isAssigned}
+                    />
+                  );
                 })}
               </div>
             </div>
@@ -497,7 +531,7 @@ function MetricBox({ label, value, icon, color }) {
 function TaskSmallCard({ task, active, historical }) {
   return (
     <div
-      className={`p-3 rounded-2xl border transition-all ${active
+      className={`h-18 p-3 rounded-2xl border transition-all ${active
         ? "bg-white/5 border-white/10 hover:bg-white/10"
         : historical
           ? "bg-slate-50 border-slate-100 opacity-60"
@@ -505,7 +539,7 @@ function TaskSmallCard({ task, active, historical }) {
         }`}
     >
       <div className="flex justify-between items-start gap-2">
-        <p className={`text-[11px] font-black uppercase tracking-tight ${active ? "text-slate-100" : "text-slate-800"}`}>{task.title}</p>
+        <p className={`text-[11px] font-black uppercase tracking-tight ${active ? "text-slate-100" : "text-slate-800"}`}>{task.title} {task?.project?.projectCode && `(${task.project.projectCode})`}</p>
         {historical && (
           <span className="text-[7px] font-black text-slate-400 uppercase border border-slate-200 px-1 rounded">History</span>
         )}
@@ -594,7 +628,7 @@ function SectionHeader({ title, noLine }) {
 
 function EmptyState({ message }) {
   return (
-    <div className="bg-white rounded-[2rem] border-2 border-dashed border-slate-200 p-10 text-center">
+    <div className="bg-white rounded-[2rem] border-2 border-slate-200 p-18 text-center">
       <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">{message}</p>
     </div>
   );
