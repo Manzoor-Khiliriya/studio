@@ -19,10 +19,15 @@ import LeaveModal from "../../components/LeaveModal";
 import Pagination from "../../components/Pagination";
 import PageHeader from "../../components/PageHeader";
 import { useSocketEvents } from '../../hooks/useSocketEvents';
+import ConfirmModal from '../../components/ConfirmModal';
 
 export default function EmployeeLeavePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedLeave, setSelectedLeave] = useState(null);
+  const [confirmState, setConfirmState] = useState({
+    open: false,
+    leaveId: null,
+  });
 
   // --- FILTER & PAGINATION STATE ---
   const [page, setPage] = useState(1);
@@ -46,13 +51,21 @@ export default function EmployeeLeavePage() {
 
   // --- HANDLERS ---
   const handleDelete = async (id) => {
-    if (!window.confirm("CRITICAL: Cancel this pending request?")) return;
-    const loadingToast = toast.loading("Purging request...");
+    setConfirmState({
+      open: true,
+      leaveId: id,
+    });
+  };
+
+  const handleConfirmDelete = async () => {
+    const loadingToast = toast.loading("Deleting request...");
     try {
-      await deleteLeave(id).unwrap();
+      await deleteLeave(confirmState.leaveId).unwrap();
       toast.success("Request voided", { id: loadingToast });
     } catch (err) {
       toast.error(err?.data?.message || "Protocol failure", { id: loadingToast });
+    } finally {
+      setConfirmState({ open: false, leaveId: null });
     }
   };
 
@@ -175,7 +188,7 @@ export default function EmployeeLeavePage() {
               className="bg-transparent text-[10px] font-black outline-none cursor-pointer text-slate-700 uppercase"
             >
               {["All", "Annual Leave", "Sick Leave", "Bereavement Leave", "Paternity Leave", "Maternity Leave", "Casual Leave", "LOP"].map(t => (
-              <option key={t} value={t}>{t}</option>
+                <option key={t} value={t}>{t}</option>
               ))}
             </select>
           </div>
@@ -275,6 +288,16 @@ export default function EmployeeLeavePage() {
         isOpen={isModalOpen}
         onClose={closeModal}
         initialData={selectedLeave}
+      />
+
+      <ConfirmModal
+        isOpen={confirmState.open}
+        onClose={() => setConfirmState({ open: false, leaveId: null })}
+        onConfirm={handleConfirmDelete}
+        title="Cancel Leave Request"
+        message="This will permanently cancel your pending leave request."
+        confirmText="Delete"
+        variant="danger"
       />
     </div>
   );

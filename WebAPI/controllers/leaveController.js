@@ -357,7 +357,7 @@ exports.getAllLeaves = async (req, res) => {
       })));
 
       return res.json({
-        view: "casual-lop", 
+        view: "casual-lop",
         leaves,
         pagination: { totalLeaves, totalPages: Math.ceil(totalLeaves / parseInt(limit)), currentPage: parseInt(page) }
       });
@@ -589,21 +589,31 @@ exports.updateLeave = async (req, res) => {
 exports.deleteLeave = async (req, res) => {
   try {
     const leave = await Leave.findById(req.params.id);
-    if (!leave) return res.status(404).json({ message: "Not found" });
-
+    if (!leave) {
+      return res.status(404).json({ message: "Leave Not found" });
+    }
     const isOwner = leave.user.toString() === req.user._id.toString();
     const isAdmin = req.user.role === "Admin";
 
-    if (isAdmin || (isOwner && leave.status === "Pending")) {
+    if (isAdmin) {
       await Leave.findByIdAndDelete(req.params.id);
-      emitEvent(req, "leaveChanged");
-      emitEvent(req, "leaveChanged", leave._id, leave.user);
-      emitDashboardUpdate(req);
-      return res.json({ message: "Deleted successfully" });
+    } else if (isOwner) {
+      if (leave.status !== "Pending") {
+        return res.status(403).json({
+          message: "Only pending leaves can be deleted",
+        });
+      }
+
+      await Leave.findByIdAndDelete(req.params.id);
+    } else {
+      return res.status(403).json({
+        message: "Unauthorized to delete",
+      });
     }
-
-    res.status(403).json({ message: "Unauthorized to delete" });
-
+    emitEvent(req, "leaveChanged");
+    emitEvent(req, "leaveChanged", leave._id, leave.user);
+    emitDashboardUpdate(req);
+    return res.json({ message: "Deleted successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

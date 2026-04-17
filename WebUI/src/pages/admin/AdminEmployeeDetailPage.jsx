@@ -339,6 +339,9 @@ export default function EmployeeDetailPage() {
               <MetricBox label="Leaves Taken" value={employee?.leaves?.length || 0} icon={<HiOutlineCalendarDays />} color="text-slate-500" />
             </div>
 
+            <SectionHeader title="Record Book" />
+            <TaskGridView tasks={workedAndAssigned} userId={userId} />
+
             <div className="space-y-6">
               {/* Dynamic Header based on date */}
               <SectionHeader
@@ -397,9 +400,6 @@ export default function EmployeeDetailPage() {
                 <EmptyState message="No personal activity recorded yet" />
               )}
             </div>
-
-            <SectionHeader title="Annual Record Book" />
-            <TaskGridView tasks={workedAndAssigned} userId={userId} />
           </div>
 
           <div className="lg:col-span-4 space-y-8">

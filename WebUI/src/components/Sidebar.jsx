@@ -34,11 +34,11 @@ export default function Sidebar() {
     { to: "/admin", label: "Dashboard", icon: <HiOutlineSquares2X2 /> },
     { to: "/employees", label: "Team Space", icon: <HiOutlineUsers /> },
     { to: "/projects", label: "Projects", icon: <HiOutlineQueueList /> },
-    { to: '/holidays', label: 'Holidays', icon: <HiOutlineFlag /> },
     { to: "/performance", label: "Performance", icon: <HiOutlineDocumentChartBar /> },
-    { to: '/leaves', label: 'Leaves', icon: <HiOutlineCalendar /> },
     { to: "/projects-calender", label: "Project Calender", icon: <HiCalendar /> },
     { to: "/attendance", label: "Attendance", icon: <HiOutlineViewColumns /> },
+    { to: '/holidays', label: 'Holidays', icon: <HiOutlineFlag /> },
+    { to: '/leaves', label: 'Leaves', icon: <HiOutlineCalendar /> },
   ];
 
   const employeeLinks = [

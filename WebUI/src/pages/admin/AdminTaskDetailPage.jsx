@@ -26,6 +26,7 @@ import { useSocketEvents } from "../../hooks/useSocketEvents";
 
 // --- UTILITY: FORMAT SECONDS TO HH:MM:SS ---
 const formatToHrMin = (totalSeconds) => {
+  totalSeconds = Math.floor(totalSeconds || 0);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;

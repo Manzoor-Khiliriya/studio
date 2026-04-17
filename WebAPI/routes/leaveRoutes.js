@@ -12,7 +12,7 @@ router.delete("/cancel/:id", leaveController.deleteLeave);
 
 router.get("/all", authorize("Admin"), leaveController.getAllLeaves);
 router.patch("/process/:id", authorize("Admin"), leaveController.processLeave);
-router.delete("/delete/:id", authorize("Admin"), leaveController.deleteLeave);
+router.delete("/delete/:id", leaveController.deleteLeave);
 
 router.get("/settings", authorize("Admin"), leaveController.getLeaveSettings);
 router.put("/settings", authorize("Admin"), leaveController.updateLeaveSettings);
