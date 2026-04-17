@@ -52,19 +52,17 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-slate-50 font-sans selection:bg-orange-100">
+    <div className="min-h-screen h-screen flex bg-slate-50 font-sans selection:bg-orange-100">
 
       {/* --- LEFT SIDE: BRAND PERSPECTIVE --- */}
       <div className="hidden lg:flex lg:w-1/2 bg-slate-900 relative items-center justify-center overflow-hidden">
-        <img
-          src={logo}
-          alt="logo"
-          className="h-[700px] w-full cursor-pointer transition-opacity"
-        />
+        <div className="h-screen w-full flex items-center justify-center bg-slate-900">
+          <img src={logo} className="max-h-full max-w-full object-contain" />
+        </div>
       </div>
 
       {/* --- RIGHT SIDE: FORM --- */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white">
+      <div className="w-full h-screen lg:w-1/2 flex items-center justify-center p-8 bg-white">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
