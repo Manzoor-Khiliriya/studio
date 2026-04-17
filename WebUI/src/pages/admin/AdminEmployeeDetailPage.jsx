@@ -391,7 +391,7 @@ export default function EmployeeDetailPage() {
                         </span>
                       </div>
                     </div>
-                    <span className="text-[10px] font-black text-orange-600 bg-white border border-orange-100 px-4 py-1.5 rounded-full shadow-sm">
+                    <span className="text-[10px] font-black text-orange-600">
                       {formatToHrMin(lastActiveDay.totalDaySeconds)}
                     </span>
                   </div>
