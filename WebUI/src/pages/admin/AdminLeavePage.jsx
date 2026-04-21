@@ -15,7 +15,8 @@ import {
   useGetAllLeavesQuery,
   useProcessLeaveMutation,
   useUpdateLeaveSettingsMutation,
-  useDeleteLeaveMutation
+  useDeleteLeaveMutation,
+  useAdjustAnnualLeaveMutation
 } from "../../services/leaveApi";
 
 // Components
@@ -41,6 +42,8 @@ export default function AdminLeavePage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [statusFilter, setStatusFilter] = useState("All");
+  const [adjustUser, setAdjustUser] = useState(null);
+  const [adjustValue, setAdjustValue] = useState(0);
 
   // Filter State
   const [dateRange, setDateRange] = useState("current-week");
@@ -84,7 +87,7 @@ export default function AdminLeavePage() {
   const [processLeave, { isLoading: isProcessing }] = useProcessLeaveMutation();
   const [updateSettings] = useUpdateLeaveSettingsMutation();
   const [deleteLeave, { isLoading: isDeleting }] = useDeleteLeaveMutation();
-
+  const [adjustAnnualLeave] = useAdjustAnnualLeaveMutation();
 
   useSocketEvents({
     onLeaveChange: refetch,
@@ -228,11 +231,28 @@ export default function AdminLeavePage() {
     }
   };
 
+  const handleAdjustmentSave = async () => {
+    const tId = toast.loading("Updating adjustment...");
+
+    try {
+      await adjustAnnualLeave({
+        userId: adjustUser._id,
+        value: Number(adjustValue)
+      }).unwrap();
+
+      toast.success("Adjustment updated", { id: tId });
+      setAdjustUser(null);
+      refetch();
+    } catch (err) {
+      toast.error("Failed", { id: tId });
+    }
+  };
+
   const columns = useMemo(() => {
     if (activeTab === "requests")
       return getAdminLeaveColumns(handleOpenConfirm, handleOpenEdit, handleOpenDelete);
     if (activeTab === "quota")
-      return getQuotaColumns();
+      return getQuotaColumns(setAdjustUser, setAdjustValue);
     return getCasualLopColumns(handleOpenEdit, handleOpenDelete);
   }, [activeTab]);
 
@@ -508,7 +528,7 @@ export default function AdminLeavePage() {
               type="submit"
               className="flex-1 py-4 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase hover:bg-orange-600 cursor-pointer transition-all shadow-lg hover:shadow-orange-200"
             >
-              Save Policy
+              Save
             </button>
             <button
               type="button"
@@ -519,6 +539,29 @@ export default function AdminLeavePage() {
             </button>
           </div>
         </form>
+      </CommonModal>
+
+      <CommonModal
+        isOpen={!!adjustUser}
+        onClose={() => setAdjustUser(null)}
+        title="Adjust Annual Leave"
+      >
+        <InputGroup label="Adjustment (+ / -)">
+          <input
+            type="number"
+            step="0.5"
+            value={adjustValue}
+            onChange={(e) => setAdjustValue(Number(e.target.value))}
+            className="w-full p-4 bg-slate-50 border rounded-2xl"
+          />
+        </InputGroup>
+
+        <button
+          onClick={handleAdjustmentSave}
+          className="w-full mt-4 py-3 bg-slate-900 text-white rounded-xl"
+        >
+          Save
+        </button>
       </CommonModal>
     </div>
   );

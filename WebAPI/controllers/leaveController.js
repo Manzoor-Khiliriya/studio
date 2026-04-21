@@ -80,7 +80,10 @@ exports.getMyLeaves = async (req, res) => {
 
     const taken = await getTakenDays(userId, t, false);
 
-    const totalAvailable = earned + carryForwardLimited;
+    const totalAvailable =
+      earned +
+      carryForwardLimited +
+      (balance.initialAdjustment || 0);
 
     const balances = {
       "Annual Leave": {
@@ -174,7 +177,10 @@ exports.applyLeave = async (req, res) => {
 
       const taken = await getTakenDays(userId, "Annual Leave", false);
 
-      const totalAvailable = earned + carryForwardLimited;
+      const totalAvailable =
+        earned +
+        carryForwardLimited +
+        (balance.initialAdjustment || 0);
 
       if (requestedDays > (totalAvailable - taken)) {
         return res.status(400).json({
@@ -398,13 +404,17 @@ exports.getAllLeaves = async (req, res) => {
 
             const taken = await getTakenDays(user._id, t, false);
 
-            const totalAvailable = earned + carryForwardLimited;
+            const totalAvailable =
+              earned +
+              carryForwardLimited +
+              (balance?.initialAdjustment || 0);
 
             userBalances[t] = {
               earned: +earned.toFixed(1),
               taken,
               remaining: +(totalAvailable - taken).toFixed(1),
-              carryForward: carryForwardLimited
+              carryForward: carryForwardLimited,
+              adjustment: balance?.initialAdjustment || 0
             };
           } else {
             const quota = setting ? setting.yearlyQuota : 10;
@@ -614,6 +624,34 @@ exports.deleteLeave = async (req, res) => {
     emitEvent(req, "leaveChanged", leave._id, leave.user);
     emitDashboardUpdate(req);
     return res.json({ message: "Deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.updateAnnualAdjustment = async (req, res) => {
+  try {
+    const { userId, value } = req.body;
+    const year = new Date().getFullYear();
+    let balance = await LeaveBalance.findOne({
+      user: userId,
+      year,
+      type: "Annual Leave"
+    });
+    if (!balance) {
+      balance = await LeaveBalance.create({
+        user: userId,
+        year,
+        type: "Annual Leave"
+      });
+    }
+    balance.initialAdjustment = Number(value) || 0;
+    await balance.save();
+    emitEvent(req, "leaveChanged");
+    res.json({
+      message: "Adjustment updated",
+      balance
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

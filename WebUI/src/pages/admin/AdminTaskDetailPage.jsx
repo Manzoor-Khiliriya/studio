@@ -149,7 +149,7 @@ export default function AdminTaskDetailPage() {
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2">
                   <HiOutlineChartPie className="text-orange-500" /> Time Distribution
                 </h3>
-                <div className="h-[280px]">
+                <div className="h-[280px] [&_*:focus]:outline-none">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -194,7 +194,7 @@ export default function AdminTaskDetailPage() {
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2">
                   <HiOutlineUserGroup className="text-orange-500" /> Contributor Split
                 </h3>
-                <div className="h-[280px]">
+                <div className="h-[280px] [&_*:focus]:outline-none">
                   {employeePieData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -261,46 +261,54 @@ export default function AdminTaskDetailPage() {
           </div>
 
           <div className="lg:col-span-4 space-y-8">
+            <MetricBox label="Task Description" value={task.description || "No tactical description provided."} icon={<HiOutlineClipboardDocumentList />} />
+
             {/* Team Management */}
-            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                  Currently Assigned Employees
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                </h3>
-                <button
-                  onClick={() => setIsAssignModalOpen(true)}
-                  className="p-2 bg-orange-50 text-orange-600 rounded-xl hover:bg-orange-600 hover:text-white transition-all cursor-pointer shadow-sm border border-orange-100"
-                >
-                  <HiOutlineUserPlus size={18} />
-                </button>
+            <div className="h-[400px]">
+
+              <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm h-full overflow-hidden">
+
+                <div className="h-full overflow-y-auto pr-2 custom-scrollbar space-y-3">
+
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                      Currently Assigned Employees
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    </h3>
+
+                    <button
+                      onClick={() => setIsAssignModalOpen(true)}
+                      className="p-2 bg-orange-50 text-orange-600 rounded-xl hover:bg-orange-600 hover:text-white transition-all cursor-pointer shadow-sm border border-orange-100"
+                    >
+                      <HiOutlineUserPlus size={18} />
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {task.assignedTo?.length > 0 ? (
+                      task.assignedTo.map((emp) => (
+                        <div key={emp.user?._id} className="flex items-center gap-4 p-3 rounded-2xl border border-slate-50 bg-slate-100">
+                          <span className="text-[11px] font-black text-slate-900 uppercase truncate">
+                            {emp.user?.name}{" "}
+                            {emp.user?.employee?.employeeCode
+                              ? `(${emp.user.employee.employeeCode})`
+                              : ""}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-[10px] font-black text-slate-300 uppercase italic text-center py-4">
+                        No active employee assigned.
+                      </p>
+                    )}
+                  </div>
+
+                </div>
               </div>
-              <div className="space-y-3">
-                {task.assignedTo?.length > 0 ? (
-                  task.assignedTo.map((emp) => (
-                    <div key={emp.user?._id} className="flex items-center gap-4 p-3 rounded-2xl border border-slate-50 bg-slate-100">
-                      <span className="text-[11px] font-black text-slate-900 uppercase truncate">
-                        {emp.user?.name} {emp.user?.employee?.employeeCode ? `(${emp.user.employee.employeeCode})` : ""}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-[10px] font-black text-slate-300 uppercase italic text-center py-4">No active employee assigned.</p>
-                )}
-              </div>
+
             </div>
 
-            {/* Tactical Info */}
-            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-              <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-6 flex items-center gap-2">
-                <HiOutlineClipboardDocumentList size={14} className="text-orange-500" /> Task Description
-              </h3>
-              <p className="text-sm text-slate-600 leading-relaxed font-medium">
-                {task.description || "No tactical description provided."}
-              </p>
-            </div>
-
-            <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-xl">
+            <div className="bg-slate-900 p-6 rounded-[2.5rem] text-white shadow-xl">
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Mission Timeline</h3>
               <div className="space-y-4">
                 <MetaItem label="Created On" value={new Date(task.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })} />

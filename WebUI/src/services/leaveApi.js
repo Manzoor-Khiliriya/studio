@@ -104,6 +104,17 @@ export const leaveApiSlice = apiSlice.injectEndpoints({
       transformResponse: (response) => response || [],
       providesTags: [{ type: "Leave", id: "CALENDAR" }],
     }),
+    adjustAnnualLeave: builder.mutation({
+      query: ({ userId, value }) => ({
+        url: "/leaves/adjust-annual",
+        method: "PUT",
+        body: { userId, value },
+      }),
+      invalidatesTags: [
+        { type: "Leave", id: "ADMIN-LIST" },
+        { type: "Leave", id: "PARTIAL-LIST" }
+      ],
+    }),
   }),
 });
 
@@ -116,5 +127,6 @@ export const {
   useProcessLeaveMutation,
   useGetLeaveSettingsQuery,
   useUpdateLeaveSettingsMutation,
-  useGetLeaveCalendarQuery
+  useGetLeaveCalendarQuery,
+  useAdjustAnnualLeaveMutation
 } = leaveApiSlice;

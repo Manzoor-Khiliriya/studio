@@ -34,8 +34,12 @@ export const StatusBadge = ({ status }) => {
 const renderQuotaCell = (balance, colorClass = "text-slate-900", isAccrual = false) => {
   if (!balance) return <span className="text-[10px] text-slate-300 italic tracking-widest">—</span>;
 
-  const total = isAccrual ? balance.earned : balance.quota;
-  
+  const total = isAccrual
+    ? balance.earned +
+    (balance.carryForward || 0) +
+    (balance.adjustment || 0)
+    : balance.quota;
+
   return (
     <div className="flex flex-col py-1 group">
       {/* Primary Info: Remaining Days */}
@@ -150,7 +154,7 @@ export const getAdminLeaveColumns = (onAction, onEdit, onDelete) => [
 /**
  * QUOTA COLUMNS
  */
-export const getQuotaColumns = () => [
+export const getQuotaColumns = (setAdjustUser, setAdjustValue) => [
   {
     header: "Employee",
     render: (r) => (
@@ -162,6 +166,20 @@ export const getQuotaColumns = () => [
   { header: "Bereavement", render: (r) => renderQuotaCell(r.balances?.["Bereavement Leave"], "text-blue-600") },
   { header: "Paternity", render: (r) => renderQuotaCell(r.balances?.["Paternity Leave"], "text-indigo-600") },
   { header: "Maternity", render: (r) => renderQuotaCell(r.balances?.["Maternity Leave"], "text-pink-600") },
+  {
+    header: "Adjust",
+    render: (r) => (
+      <button
+        onClick={() => {
+          setAdjustUser(r);
+          setAdjustValue(r.balances?.["Annual Leave"]?.adjustment || 0);
+        }}
+        className="text-[9px] font-black text-orange-600 hover:underline"
+      >
+        Adjust
+      </button>
+    )
+  }
 ];
 
 /**
