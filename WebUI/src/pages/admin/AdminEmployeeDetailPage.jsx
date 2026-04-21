@@ -189,10 +189,10 @@ const TaskGridView = ({ tasks, userId }) => {
 
       {/* ✅ BUTTON OUTSIDE MAP */}
       {gridData.length > INITIAL_COUNT && (
-        <div className="flex justify-center pb-4">
+        <div className="flex justify-end pb-2 pr-6">
           <button
             onClick={() => setExpanded((prev) => !prev)}
-            className="px-6 py-2 text-[10px] font-black uppercase tracking-widest bg-slate-100 hover:bg-orange-600 hover:text-white text-slate-600 rounded-xl transition-all cursor-pointer"
+            className="text-[10px] font-black text-orange-600 bg-white px-4 py-0.5 rounded-full shadow-sm cursor-pointer"
           >
             {expanded ? "Show Less" : "Show More"}
           </button>
@@ -378,47 +378,59 @@ export default function EmployeeDetailPage() {
               />
 
               {lastActiveDay ? (
-                <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
-                  <div className="bg-slate-50/80 px-8 py-4 flex justify-between items-center border-b border-slate-100">
-                    <div className="flex items-center gap-3">
-                      <HiOutlineCalendarDays className="text-orange-500" size={18} />
-                      <div className="flex flex-col">
-                        <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest">
-                          {lastActiveDay.date}
-                        </span>
-                        <span className="text-[8px] font-bold text-slate-400 uppercase">
-                          {lastActiveDay.date === new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) ? "Current Session" : "Last Active Session"}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-black text-orange-600">
-                      {formatToHrMin(lastActiveDay.totalDaySeconds)}
-                    </span>
-                  </div>
+                <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm h-[175px] overflow-hidden">
 
-                  <div className="p-8 grid grid-cols-1 gap-x-10 gap-y-6">
-                    {lastActiveDay.tasks.map((task, idx) => {
-                      const percentage = task.allocated > 0 ? Math.min((task.seconds / task.allocated) * 100, 100) : 0;
-                      const taskColor = getTaskColor(task.id);
-                      return (
-                        <div key={idx} className="space-y-2">
-                          <div className="flex justify-between items-end">
-                            <h4 className="text-[10px] font-black uppercase text-slate-800 truncate">
-                              {task.title} <span className="text-slate-400">({task.projectCode})</span>
-                            </h4>
-                            <span className="text-[9px] font-bold text-slate-500 ml-2">
-                              {formatToHrMin(task.seconds)}
-                            </span>
-                          </div>
-                          <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                            <div
-                              className={`${taskColor} h-full rounded-full transition-all duration-700`}
-                              style={{ width: `${percentage}%` }}
-                            />
-                          </div>
+                  <div className="h-full overflow-y-auto custom-scrollbar">
+
+                    <div className="bg-slate-50/80 px-6 py-4 flex justify-between items-center border-b border-slate-100 sticky top-0 z-10">
+                      <div className="flex items-center gap-3">
+                        <HiOutlineCalendarDays className="text-orange-500" size={18} />
+                        <div className="flex flex-col">
+                          <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest">
+                            {lastActiveDay.date}
+                          </span>
+                          <span className="text-[8px] font-bold text-slate-400 uppercase">
+                            {lastActiveDay.date === new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+                              ? "Current Session"
+                              : "Last Active Session"}
+                          </span>
                         </div>
-                      );
-                    })}
+                      </div>
+                      <span className="text-[10px] font-black text-orange-600">
+                        {formatToHrMin(lastActiveDay.totalDaySeconds)}
+                      </span>
+                    </div>
+
+                    <div className="px-6 py-3 grid grid-cols-1 gap-x-10 gap-y-6">
+                      {lastActiveDay.tasks.map((task, idx) => {
+                        const percentage =
+                          task.allocated > 0
+                            ? Math.min((task.seconds / task.allocated) * 100, 100)
+                            : 0;
+                        const taskColor = getTaskColor(task.id);
+
+                        return (
+                          <div key={idx} className="space-y-2">
+                            <div className="flex justify-between items-end">
+                              <h4 className="text-[10px] font-black uppercase text-slate-800 truncate">
+                                {task.title}{" "}
+                                <span className="text-slate-400">({task.projectCode})</span>
+                              </h4>
+                              <span className="text-[9px] font-bold text-slate-500 ml-2">
+                                {formatToHrMin(task.seconds)}
+                              </span>
+                            </div>
+
+                            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                              <div
+                                className={`${taskColor} h-full rounded-full transition-all duration-700`}
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               ) : (
