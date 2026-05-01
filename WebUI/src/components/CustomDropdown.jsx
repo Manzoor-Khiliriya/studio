@@ -42,7 +42,7 @@ export default function CustomDropdown({
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-md shadow-lg overflow-hidden">
+        <div className="absolute z-[9999] mt-1 w-full bg-white border border-slate-200 rounded-md shadow-lg overflow-hidden">
           {options.map((opt) => {
             const label = typeof opt === "object" ? opt.label : opt;
             const val = typeof opt === "object" ? opt.value : opt;

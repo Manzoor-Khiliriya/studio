@@ -160,18 +160,13 @@ export default function AdminTaskDetailPage() {
                         outerRadius={120}
                         paddingAngle={1}
                         stroke="none"
-                        // Add a slight animation for better UX
                         animationBegin={0}
                         animationDuration={800}
                       >
-                        {/* CONSUMED: Dark Slate */}
                         <Cell fill="#0f172a" />
-
-                        {/* REMAINING: Medium Gray (More visible than f1f5f9) */}
                         <Cell fill="#94a3b8" />
                       </Pie>
                       <Tooltip
-                        // Customizing tooltip style for better readability
                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '10px', fontWeight: 'bold' }}
                         formatter={(value) => formatToHrMin(value)}
                       />
@@ -179,7 +174,7 @@ export default function AdminTaskDetailPage() {
                   </ResponsiveContainer>
 
                   {/* Center Text */}
-                  <div className="absolute top-[58%] left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+                  <div className="absolute top-[50%] left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
                     <span className="text-4xl font-black text-slate-900 leading-none">
                       {task.progressPercent || 0}%
                     </span>

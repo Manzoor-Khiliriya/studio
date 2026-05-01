@@ -219,7 +219,7 @@ export default function AttendanceManagement() {
           </div>
         )}
 
-        {(search || rangeType !== "today") && (
+        {(search || rangeType !== "today") && activeTab === "logs" && (
           <button onClick={resetFilters} className="p-3.5 bg-rose-50 text-rose-500 rounded-2xl hover:bg-rose-100 transition-all">
             <HiOutlineXMark size={20} />
           </button>

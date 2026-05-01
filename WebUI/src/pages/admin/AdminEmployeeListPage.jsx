@@ -205,38 +205,31 @@ export default function EmployeeListPage() {
         </div>
       </main>
 
-      {/* 1. EMPLOYEE ADD/EDIT MODAL */}
       <EmployeeModal
         isOpen={isEmployeeModalOpen}
         onClose={() => setIsEmployeeModalOpen(false)}
         editData={selectedEmp}
       />
 
-      {/* 2. UNIFIED CONFIRMATION MODAL (Handles Delete and Status Toggles) */}
       <ConfirmModal
         isOpen={confirmConfig.isOpen}
         onClose={closeConfirmModal}
         onConfirm={handleExecuteConfirm}
         isLoading={isUpdatingStatus || isDeleting}
-
-        // Dynamic properties based on the type of action
         title={confirmConfig.type === 'delete' ? "Delete Employee" : "Update Access"}
         message={confirmConfig.type === 'delete'
           ? `You are about to permanently delete ${selectedEmp?.user?.name}. This action cannot be undone.`
           : `Are you sure you want to change the access status for ${selectedEmp?.user?.name}?`}
-
         confirmText={
           confirmConfig.type === 'delete'
             ? "Delete Employee"
             : (selectedEmp?.user?.status === "Enable" ? "Disable Access" : "Enable Access")
         }
-        // Dynamic Visual Variant
         variant={
           confirmConfig.type === 'delete'
             ? 'danger'
             : (selectedEmp?.user?.status === "Enable" ? 'danger' : 'success')
         }
-
       />
     </div>
   );

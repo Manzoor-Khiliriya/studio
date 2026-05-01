@@ -13,6 +13,7 @@ import {
   HiOutlinePlusCircle,
   HiOutlineCommandLine,
   HiOutlineTrash,
+  HiOutlineArrowDownTray,
 } from "react-icons/hi2";
 
 import PageHeader from "../../components/PageHeader";
@@ -223,6 +224,65 @@ export default function AdminTasksPage() {
     });
   };
 
+  const handleExportCSV = () => {
+    if (!projectGroups || projectGroups.length === 0) {
+      toast.error("No data to export");
+      return;
+    }
+
+    const headers = [
+      "Project Code",
+      "Project Name",
+      "Project Type",
+      "Client",
+      "Created Date",
+      "Status",
+      "No of Tasks",
+      "Invoice Number",
+      "Invoice Date"
+    ];
+
+    const rows = projectGroups.map((p) => [
+      p.projectCode,
+      p.title,
+      p.projectType,
+      p.clientName || "Direct Client",
+      p.createdAt
+        ? new Date(p.createdAt).toLocaleDateString("en-IN")
+        : "",
+      p.status,
+      (p.tasks || []).length,
+      p.invoiceNumber || "",
+      p.invoiceDate
+        ? new Date(p.invoiceDate).toLocaleDateString("en-IN")
+        : ""
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map((row) => row.join(","))
+      .join("\n");
+
+    const fileName = `projects_${activeTab}_${new Date()
+      .toISOString()
+      .split("T")[0]}.csv`;
+
+    const blob = new Blob([csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", fileName);
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast.success("CSV downloaded");
+  };
+
   const isProcessing = isDeactivating || isDeletingProject;
   const isFirstTabLoad =
     isFetching &&
@@ -282,7 +342,7 @@ export default function AdminTasksPage() {
 
 
           <div className="flex flex-wrap items-end justify-between gap-6 pt-5 border-t border-slate-100">
-            <div className="flex flex-wrap items-center gap-7">
+            <div className="flex flex-wrap items-end gap-7">
 
               {activeTab === "live" && (
                 <div className="flex flex-col gap-1.5">
@@ -438,7 +498,20 @@ export default function AdminTasksPage() {
                 </div>
               </div>
 
+              {activeTab !== "live" && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Export</label>
+                  <div className="flex items-center justify-center">
+                    <button
+                      onClick={handleExportCSV}
+                      className=" p-2 mb-0.5 bg-slate-100/50 text-slate-900 border border-slate-200 rounded-xl hover:text-orange-600 transition-all cursor-pointer shadow-sm"
+                      title="Export to CSV"
+                    >
+                      <HiOutlineArrowDownTray size={18} />
+                    </button> </div>
+                </div>
 
+              )}
 
               <div className="flex items-center gap-3">
                 {selectedProjects.length > 0 && (
@@ -569,7 +642,7 @@ export default function AdminTasksPage() {
                         </div>
 
                         <div className="flex flex-col gap-1">
-                          <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">Client</span>
+                          <span className="text-[9px] font-black text-left text-slate-400 uppercase tracking-[0.15em]">Client</span>
                           <div className="flex items-center gap-2">
                             <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center">
                               <HiOutlineUser size={10} className="text-orange-500" />

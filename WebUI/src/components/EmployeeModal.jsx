@@ -25,7 +25,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
     name: "", employeeCode: "", email: "", password: "", designation: "",
     proficiency: "100", joinedDate: getToday(), dailyWorkLimit: "9",
     mobileNumber: "",
-    dateOfBirth: ""  
+    dateOfBirth: ""
   });
 
   useEffect(() => {
@@ -62,8 +62,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
     setFormData(prev => ({ ...prev, [name]: finalValue }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     const loadingToast = toast.loading(isEditing ? "Updating profile..." : "Onboarding talent...");
     try {
       const payload = {
@@ -90,31 +89,34 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
     <CommonModal
       isOpen={isOpen}
       onClose={onClose}
-      title={isEditing ? "Update Personnel" : "Authorize New Entry"}
-      subtitle="Operational Identity Management"
+      title={isEditing ? "Update Employee" : "Create New Employee"}
       maxWidth="max-w-xl"
+      onSubmit={handleSubmit}
+      isLoading={isCreating || isUpdating}
+      submitText={isEditing ? "Update" : "Create"}
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+        }}
+        className="space-y-6"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InputGroup label="Full Name">
             <HiOutlineUser className="input-icon" />
-            <input required name="name" value={formData.name} onChange={handleChange} className="form-input" placeholder="e.g. John Doe" />
+            <input required name="name" value={formData.name} onChange={handleChange} className="form-input capitalize" placeholder="Enter Full Name" />
           </InputGroup>
           <InputGroup label="Employee Code">
             <HiOutlineIdentification className="input-icon" />
-            <input required name="employeeCode" value={formData.employeeCode} onChange={handleChange} className="form-input" placeholder="e.g. EMP001" />
-          </InputGroup>
-          <InputGroup label="Job Title">
-            <HiOutlineBriefcase className="input-icon" />
-            <input required name="designation" value={formData.designation} onChange={handleChange} className="form-input" placeholder="e.g. Lead Developer" />
+            <input required name="employeeCode" value={formData.employeeCode} onChange={handleChange} className="form-input" placeholder="Enter Employee Code" />
           </InputGroup>
         </div>
 
         {/* ROW 2: EMAIL & MOBILE */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <InputGroup label="Work Email">
-            <HiOutlineMail className="input-icon" />
-            <input required type="email" name="email" value={formData.email} onChange={handleChange} className="form-input" placeholder="john@company.com" />
+          <InputGroup label="Job Title">
+            <HiOutlineBriefcase className="input-icon" />
+            <input required name="designation" value={formData.designation} onChange={handleChange} className="form-input" placeholder="Enter Job Title" />
           </InputGroup>
           <InputGroup label="Mobile Number">
             <HiOutlinePhone className="input-icon" />
@@ -122,31 +124,36 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
           </InputGroup>
         </div>
 
-        {/* PASSWORD FIELD (Only for Create) */}
-        {!isEditing && (
-          <InputGroup label="Access Credentials">
-            <HiOutlineLockClosed className="input-icon" />
-            <input
-              required
-              name="password"
-              type={showPassword ? "text" : "password"}
-              value={formData.password}
-              onChange={handleChange}
-              className="form-input pr-12"
-              placeholder="Set initial password"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-            >
-              {showPassword ? <HiOutlineEyeSlash size={18} /> : <HiOutlineEye size={18} />}
-            </button>
+        <div className={isEditing ? "w-full" : "grid grid-cols-1 md:grid-cols-2 gap-4"}>
+          <InputGroup label="Work Email">
+            <HiOutlineMail className="input-icon" />
+            <input required type="email" name="email" value={formData.email} onChange={handleChange} className="form-input" placeholder="john@company.com" />
           </InputGroup>
-        )}
+          {!isEditing && (
+            <InputGroup label="Password">
+              <HiOutlineLockClosed className="input-icon" />
+              <input
+                required
+                name="password"
+                type={showPassword ? "text" : "password"}
+                value={formData.password}
+                onChange={handleChange}
+                className="form-input pr-12"
+                placeholder="Set initial password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute cursor-pointer right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                {showPassword ? <HiOutlineEyeSlash size={18} /> : <HiOutlineEye size={18} />}
+              </button>
+            </InputGroup>
+          )}
 
-        {/* ROW 3: DATE OF BIRTH & ONBOARDING DATE */}
-        <div className="pt-6 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InputGroup label="Date of Birth">
             <HiOutlineCake className="input-icon" />
             <input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleChange} className="form-input" />
@@ -161,25 +168,13 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InputGroup label="Daily Work Limit (Hrs)">
             <HiOutlineClock className="input-icon" />
-            <input required name="dailyWorkLimit" value={formData.dailyWorkLimit} onChange={handleChange} className="form-input" placeholder="9" />
+            <input required name="dailyWorkLimit" value={formData.dailyWorkLimit} onChange={handleChange} className="form-input" placeholder="Enter Daily Work Limit" />
           </InputGroup>
           <InputGroup label="Proficiency (%)">
             <HiOutlineChartBar className="input-icon" />
-            <input required name="proficiency" value={formData.proficiency} onChange={handleChange} className="form-input" placeholder="100" />
+            <input required name="proficiency" value={formData.proficiency} onChange={handleChange} className="form-input" placeholder="Enter Proficiency" />
           </InputGroup>
         </div>
-
-        <button
-          disabled={isCreating || isUpdating}
-          type="submit"
-          className="w-full bg-slate-900 hover:bg-orange-600 text-white py-4 rounded-xl font-black text-sm uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-xl shadow-slate-200 cursor-pointer"
-        >
-          {(isCreating || isUpdating) ? (
-            <CgSpinner className="animate-spin" size={20} />
-          ) : (
-            isEditing ? "Synchronize Updates" : "Validate Onboarding"
-          )}
-        </button>
       </form>
     </CommonModal>
   );

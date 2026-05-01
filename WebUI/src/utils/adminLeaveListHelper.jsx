@@ -64,9 +64,6 @@ const renderQuotaCell = (balance, colorClass = "text-slate-900", isAccrual = fal
   );
 };
 
-/**
- * MAIN REQUESTS COLUMNS
- */
 export const getAdminLeaveColumns = (onAction, onEdit, onDelete) => [
   {
     header: "Employee",
@@ -151,9 +148,6 @@ export const getAdminLeaveColumns = (onAction, onEdit, onDelete) => [
   },
 ];
 
-/**
- * QUOTA COLUMNS
- */
 export const getQuotaColumns = (setAdjustUser, setAdjustValue) => [
   {
     header: "Employee",
@@ -174,9 +168,9 @@ export const getQuotaColumns = (setAdjustUser, setAdjustValue) => [
           setAdjustUser(r);
           setAdjustValue(r.balances?.["Annual Leave"]?.adjustment || 0);
         }}
-        className="text-[9px] font-black text-orange-600 hover:underline"
+        className="text-[9px] font-black text-orange-600 hover:underline cursor-pointer"
       >
-        Adjust
+        Adjust Annual Leave
       </button>
     )
   }

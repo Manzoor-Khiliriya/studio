@@ -1,7 +1,8 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { HiOutlineXMark } from "react-icons/hi2";
 
-export default function CommonModal({ isOpen, onClose, title, subtitle, children, maxWidth = "max-w-xl" }) {
+export default function CommonModal({ isOpen, onClose, title, subtitle, children, maxWidth = "max-w-xl", onSubmit,
+  submitText = "Submit", cancelText = "Cancel", isLoading = false }) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -20,17 +21,12 @@ export default function CommonModal({ isOpen, onClose, title, subtitle, children
             initial={{ scale: 0.95, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-            className={`relative bg-white w-full ${maxWidth} rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[70vh]`}
+            className={`relative bg-white w-full ${maxWidth} rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[70vh]`}
           >
             {/* HEADER */}
-            <div className="px-8 py-6 flex justify-between items-center border-b border-slate-50">
+            <div className="p-5 flex justify-between items-center border-b border-slate-50">
               <div>
-                <h2 className="text-2xl font-bold text-slate-900">{title}</h2>
-                {subtitle && (
-                  <p className="text-[11px] font-bold text-orange-500 uppercase tracking-widest mt-0.5">
-                    {subtitle}
-                  </p>
-                )}
+                <h2 className="text-3xl font-bold text-slate-900">{title}</h2>
               </div>
               <button
                 onClick={onClose}
@@ -41,8 +37,26 @@ export default function CommonModal({ isOpen, onClose, title, subtitle, children
             </div>
 
             {/* CONTENT AREA */}
-            <div className="p-8 overflow-y-auto custom-scrollbar">
+            <div className="p-5 overflow-y-auto custom-scrollbar">
               {children}
+            </div>
+
+            {/* FOOTER */}
+            <div className="p-5 py-5 border-t border-slate-100 flex items-center justify-between w-full gap-3">
+              <button
+                onClick={onSubmit}
+                disabled={isLoading}
+                className="block w-full cursor-pointer py-3 rounded-xl text-white uppercase bg-green-500 hover:bg-green-600 font-bold text-sm tracking-widest active:scale-95 border-b-4  border-green-700  transition-all shadow-lg shadow-orange-200"
+              >
+                {isLoading ? "Processing..." : submitText}
+              </button>
+
+              <button
+                onClick={onClose}
+                className="block my-auto w-full py-3 rounded-xl font-bold text-white text-sm uppercase tracking-widest bg-slate-400 hover:bg-slate-500 transition-all active:scale-95 border-b-4 shadow-slate-100 border-slate-600 cursor-pointer"
+              >
+                {cancelText}
+              </button>
             </div>
           </motion.div>
         </div>
@@ -51,11 +65,10 @@ export default function CommonModal({ isOpen, onClose, title, subtitle, children
   );
 }
 
-// Keep your Helper Component here or in a separate UI file
 export function InputGroup({ label, children }) {
   return (
     <div className="flex flex-col gap-1.5 relative group">
-      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">
+      <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 ml-0.5">
         {label}
       </label>
       <div className="relative">

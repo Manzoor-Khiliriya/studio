@@ -6,11 +6,9 @@ import {
   HiOutlineCog6Tooth,
   HiOutlineCalendarDays,
   HiOutlineArrowPath,
-  HiOutlineArrowDownTray // Added Export Icon
+  HiOutlineArrowDownTray
 } from "react-icons/hi2";
 import { toast } from "react-hot-toast";
-
-// API Services
 import {
   useGetAllLeavesQuery,
   useProcessLeaveMutation,
@@ -18,16 +16,12 @@ import {
   useDeleteLeaveMutation,
   useAdjustAnnualLeaveMutation
 } from "../../services/leaveApi";
-
-// Components
 import Table from "../../components/Table";
 import Loader from "../../components/Loader";
 import Pagination from "../../components/Pagination";
 import ConfirmModal from "../../components/ConfirmModal";
 import LeaveModal from "../../components/LeaveModal";
 import CommonModal, { InputGroup } from "../../components/CommonModal";
-
-// Helpers
 import {
   getAdminLeaveColumns,
   getQuotaColumns,
@@ -558,7 +552,7 @@ export default function AdminLeavePage() {
 
         <button
           onClick={handleAdjustmentSave}
-          className="w-full mt-4 py-3 bg-slate-900 text-white rounded-xl"
+          className="w-full mt-4 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl cursor-pointer"
         >
           Save
         </button>

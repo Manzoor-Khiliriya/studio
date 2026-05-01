@@ -96,8 +96,15 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
       isOpen={isOpen}
       onClose={onClose}
       title={isEditing ? "Update Master Project" : "Create Master Project"}
-      subtitle={isEditing ? "Modifying high-level project parameters" : "Defining new top-level project objective"}
-      maxWidth="max-w-lg"
+      subtitle={
+        isEditing
+          ? "Modifying high-level project parameters"
+          : "Defining new top-level project objective"
+      }
+      maxWidth="max-w-xl"
+      onSubmit={handleSubmit}
+      isLoading={loading}
+      submitText={isEditing ? "Synchronize Project" : "Initialize Project"}
     >
       <form onSubmit={handleSubmit} className="space-y-5">
 
@@ -229,18 +236,6 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
           </InputGroup>
         </div>
 
-        {/* Action Button */}
-        <button
-          disabled={loading}
-          type="submit"
-          className="w-full bg-slate-900 hover:bg-orange-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 active:scale-[0.98] shadow-xl mt-2 disabled:opacity-50 cursor-pointer"
-        >
-          {loading ? (
-            <CgSpinner className="animate-spin" size={20} />
-          ) : (
-            isEditing ? "Synchronize Project" : "Initialize Project"
-          )}
-        </button>
       </form>
     </CommonModal>
   );

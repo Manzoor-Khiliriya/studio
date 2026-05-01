@@ -21,11 +21,7 @@ export default function ConfirmModal({
   verificationName = ""
 }) {
   const [userInput, setUserInput] = useState("");
-
-  // Reset input when modal opens/closes
   useEffect(() => { if (!isOpen) setUserInput(""); }, [isOpen]);
-
-  // 1. Initialize Variant Configuration
   const variantConfig = {
     danger: {
       icon: <HiOutlineShieldExclamation size={32} />,
@@ -99,7 +95,7 @@ export default function ConfirmModal({
               </div>
             </div>
 
-            <button onClick={onClose} className="absolute top-5 right-5 p-2 text-slate-300 hover:text-slate-900 hover:rotate-90 transition-all duration-300 cursor-pointer">
+            <button onClick={onClose} className="absolute top-5 right-5 p-2 text-slate-500 hover:text-slate-900 hover:rotate-90 transition-all duration-300 cursor-pointer">
               <HiOutlineXMark size={20} />
             </button>
           </motion.div>
