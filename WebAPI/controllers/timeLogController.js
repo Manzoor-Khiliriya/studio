@@ -4,6 +4,7 @@ const Employee = require("../models/Employee");
 const mongoose = require("mongoose");
 const { applyProficiency } = require("../utils/userHelpers");
 const { emitDashboardUpdate } = require("../utils/socket");
+const { getToday, now } = require("../utils/dateHelper");
 
 const emitEvent = (req, event, data, userId = null) => {
   const io = req.app.get("socketio");
@@ -21,7 +22,7 @@ exports.startTimer = async (req, res) => {
   try {
     const { taskId } = req.body;
     const userId = req.user._id;
-    const today = new Date().toISOString().split("T")[0];
+    const today = getToday();
 
     const employee = await Employee.findOne({ user: userId });
     if (!employee) throw new Error("Employee profile not found.");
@@ -39,8 +40,8 @@ exports.startTimer = async (req, res) => {
     const activeLog = await TimeLog.findOne({ user: userId, isRunning: true });
 
     if (activeLog) {
-      const now = new Date();
-      const rawSeconds = Math.max(0, Math.floor((now - new Date(activeLog.startTime)) / 1000));
+      const currentTime = now();
+      const rawSeconds = Math.max(0, Math.floor((currentTime - new Date(activeLog.startTime)) / 1000));
 
       if (activeLog.logType === "work") {
         const { adjustedSeconds } = await applyProficiency(userId, rawSeconds);
@@ -50,7 +51,7 @@ exports.startTimer = async (req, res) => {
         activeLog.durationSeconds = rawSeconds;
       }
 
-      activeLog.endTime = now;
+      activeLog.endTime = currentTime;
       activeLog.isRunning = false;
       await activeLog.save({ session });
     }
@@ -58,7 +59,7 @@ exports.startTimer = async (req, res) => {
     const log = await TimeLog.create([{
       user: userId,
       task: taskId,
-      startTime: new Date(),
+      startTime: now(),
       isRunning: true,
       logType: "work",
       action: "Start",
@@ -86,8 +87,8 @@ exports.togglePause = async (req, res) => {
     const active = await TimeLog.findOne({ user: userId, isRunning: true });
     if (!active) return res.status(404).json({ message: "No active timer." });
 
-    const now = new Date();
-    const rawSeconds = Math.max(0, Math.floor((now - new Date(active.startTime)) / 1000));
+    const currentTime = now();
+    const rawSeconds = Math.max(0, Math.floor((currentTime - new Date(active.startTime)) / 1000));
 
     if (active.logType === "work") {
       const { adjustedSeconds } = await applyProficiency(userId, rawSeconds);
@@ -97,7 +98,7 @@ exports.togglePause = async (req, res) => {
       active.durationSeconds = rawSeconds;
     }
 
-    active.endTime = now;
+    active.endTime = currentTime;
     active.isRunning = false;
     await active.save();
 
@@ -106,7 +107,7 @@ exports.togglePause = async (req, res) => {
     const newLog = await TimeLog.create({
       user: userId,
       task: active.task,
-      startTime: new Date(),
+      startTime: now(),
       logType: newType,
       isRunning: true,
       dateString: active.dateString
@@ -125,12 +126,12 @@ exports.stopTimer = async (req, res) => {
     const log = await TimeLog.findOne({ user: req.user._id, isRunning: true });
     if (!log) return res.status(400).json({ message: "No active timer found." });
 
-    const now = new Date();
-    const rawSeconds = Math.max(0, Math.floor((now - new Date(log.startTime)) / 1000));
+    const currentTime = now();
+    const rawSeconds = Math.max(0, Math.floor((currentTime - new Date(log.startTime)) / 1000));
 
     const { adjustedSeconds } = await applyProficiency(req.user._id, rawSeconds);
 
-    log.endTime = now;
+    log.endTime = currentTime;
     log.isRunning = false;
     log.rawDurationSeconds = rawSeconds;
     log.durationSeconds = adjustedSeconds;
@@ -149,7 +150,7 @@ exports.stopTimer = async (req, res) => {
 
 exports.getMyLogs = async (req, res) => {
   try {
-    const today = new Date().toISOString().split("T")[0];
+    const today = getToday();
     const logs = await TimeLog.find({
       user: req.user._id,
       dateString: today
@@ -162,7 +163,7 @@ exports.getMyLogs = async (req, res) => {
       if (log.logType !== "work") return;
       if (log.isRunning) {
         const runningSec = Math.floor(
-          (Date.now() - new Date(log.startTime).getTime()) / 1000
+          (now() - new Date(log.startTime).getTime()) / 1000
         );
         totalSeconds += Math.max(0, runningSec);
       } else {
@@ -184,11 +185,11 @@ exports.getMyLogs = async (req, res) => {
 
 exports.stopAllLiveSessions = async (req, res) => {
   try {
-    const now = new Date();
+    const currentTime = now();
     const activeLogs = await TimeLog.find({ isRunning: true });
 
     const updatePromises = activeLogs.map(async (log) => {
-      const rawSeconds = Math.max(0, Math.floor((now - new Date(log.startTime)) / 1000));
+      const rawSeconds = Math.max(0, Math.floor((currentTime - new Date(log.startTime)) / 1000));
 
       if (log.logType === "work") {
         const { adjustedSeconds } = await applyProficiency(log.user, rawSeconds);
@@ -198,7 +199,7 @@ exports.stopAllLiveSessions = async (req, res) => {
         log.durationSeconds = rawSeconds;
       }
 
-      log.endTime = now;
+      log.endTime = currentTime;
       log.isRunning = false;
 
       return log.save();

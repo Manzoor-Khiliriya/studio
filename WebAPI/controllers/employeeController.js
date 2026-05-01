@@ -73,7 +73,7 @@ exports.getActiveEmployeesList = async (req, res) => {
     const userIds = activeUsers.map(u => u._id);
     const employees = await Employee.find({ user: { $in: userIds } })
       .populate("user", "name")
-      .select("designation user")
+      .select("employeeCode designation user")
       .sort({ "user.name": 1 })
       .lean();
     res.json(employees);

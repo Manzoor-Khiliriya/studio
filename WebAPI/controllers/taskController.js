@@ -372,7 +372,7 @@ exports.getTasksByEmployee = async (req, res) => {
     const currentlyAssigned = finalTasks.filter(task =>
       task.assignedTo?.some(id => id.toString() === employee._id.toString())
     );
-    return res.status(200).json({ success: true, currentlyAssigned, workedAndAssigned: finalTasks, });
+    return res.status(200).json({ success: true, currentlyAssigned, workedAndAssigned: finalTasks });
   } catch (err) {
     return res.status(500).json({ success: false, message: "Internal server error", });
   }

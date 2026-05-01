@@ -1,13 +1,11 @@
 import { HiChevronLeft, HiChevronRight } from "react-icons/hi2";
 
 export default function Pagination({ pagination, onPageChange, loading, label = "Items" }) {
-  // 1. Safe Destructuring with fallbacks to match your API metadata
   const current = pagination?.current || 1;
-  const totalPages = pagination?.total || 1; // Assuming you passed meta.totalPages as 'total'
+  const totalPages = pagination?.total || 1; 
   const totalItems = pagination?.count || 0;
   const limit = pagination?.limit || 10;
 
-  // 2. Only hide if there's truly only one page
   if (!pagination || totalPages <= 1) return null;
 
   const getPages = () => {

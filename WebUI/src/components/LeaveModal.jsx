@@ -34,19 +34,18 @@ const LeaveModal = ({ isOpen, onClose, initialData }) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     const loadingToast = toast.loading(initialData ? "Updating registry..." : "Filing application...");
-    
+
     try {
       if (initialData) {
         await updateLeave({ id: initialData._id, ...formData }).unwrap();
-        toast.success("Registry entry updated", { id: loadingToast });
+        toast.success("Leave request updated", { id: loadingToast });
       } else {
         await applyLeave(formData).unwrap();
         toast.success("Application successfully filed", { id: loadingToast });
       }
-      onClose(); // Close modal on success
+      onClose();
     } catch (err) {
       toast.error(err?.data?.message || "Transmission error", { id: loadingToast });
     }
@@ -56,11 +55,16 @@ const LeaveModal = ({ isOpen, onClose, initialData }) => {
     <CommonModal
       isOpen={isOpen}
       onClose={onClose}
-      title={initialData ? "Edit Request" : "New Application"}
-      subtitle={initialData ? `Modifying Entry ID: ${initialData._id.slice(-6)}` : "Personnel Absence Protocol"}
+      title={initialData ? "Update Request" : "Create New Request"}
       maxWidth="max-w-md"
+      onSubmit={handleSubmit}
+      isLoading={isApplying || isUpdating}
+      submitText={initialData ? "Update" : "Create"}
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form
+        onSubmit={(e) => e.preventDefault()}
+        className="space-y-4"
+      >
         <InputGroup label="Request Category">
           <HiOutlineDocumentText className="input-icon" />
           <select
@@ -81,7 +85,7 @@ const LeaveModal = ({ isOpen, onClose, initialData }) => {
         </InputGroup>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <InputGroup label="Commencement">
+          <InputGroup label="Start Date">
             <HiOutlineCalendarDays className="input-icon" />
             <input
               type="date"
@@ -93,7 +97,7 @@ const LeaveModal = ({ isOpen, onClose, initialData }) => {
             />
           </InputGroup>
 
-          <InputGroup label="Termination">
+          <InputGroup label="End Date">
             <HiOutlineCalendarDays className="input-icon" />
             <input
               type="date"
@@ -107,8 +111,8 @@ const LeaveModal = ({ isOpen, onClose, initialData }) => {
           </InputGroup>
         </div>
 
-        <InputGroup label="Operational Justification">
-          <HiOutlineChatBubbleLeftRight className="input-icon !top-5 translate-y-0" />
+        <InputGroup label="Leave Reason">
+          <HiOutlineChatBubbleLeftRight className="input-icon !top-6.5 translate-y-0" />
           <textarea
             name="reason"
             value={formData.reason}
@@ -119,17 +123,6 @@ const LeaveModal = ({ isOpen, onClose, initialData }) => {
             placeholder="State the reason for this absence..."
           />
         </InputGroup>
-
-        <div className="pt-4">
-          <button
-            type="submit"
-            disabled={isApplying || isUpdating}
-            className="w-full bg-slate-900 text-white py-5 rounded-[1.5rem] font-black uppercase text-xs tracking-[0.2em] shadow-xl hover:bg-orange-600 transition-all disabled:opacity-50 flex items-center justify-center gap-3 cursor-pointer"
-          >
-            <HiOutlineShieldCheck size={20} />
-            {initialData ? "Update Registry" : "Authorize Request"}
-          </button>
-        </div>
       </form>
     </CommonModal>
   );

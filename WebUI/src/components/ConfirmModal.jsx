@@ -88,7 +88,7 @@ export default function ConfirmModal({
                 </button>
                 <button
                   onClick={onClose}
-                  className="flex-1 py-4 rounded-xl font-black text-white text-[10px] uppercase tracking-widest bg-slate-400 hover:bg-slate-500 transition-all active:scale-95 border-b-4 shadow-slate-100 border-slate-600 cursor-pointer"
+                  className="flex-1 py-4 rounded-xl font-black text-white text-[10px] uppercase tracking-widest bg-slate-500 hover:bg-slate-600 transition-all active:scale-95 border-b-4 shadow-slate-200 border-slate-700 cursor-pointer"
                 >
                   Cancel
                 </button>

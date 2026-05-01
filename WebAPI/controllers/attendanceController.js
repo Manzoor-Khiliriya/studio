@@ -2,6 +2,7 @@ const Attendance = require("../models/Attendance");
 const User = require("../models/User");
 const moment = require("moment");
 const { emitDashboardUpdate } = require("../utils/socket");
+const { getToday, now } = require("../utils/dateHelper");
 
 const emitEvent = (req, event, data, userId = null) => {
   const io = req.app.get("socketio");
@@ -16,26 +17,24 @@ const emitEvent = (req, event, data, userId = null) => {
 
 exports.clockIn = async (req, res) => {
   try {
-    const today = moment().format("YYYY-MM-DD");
+    const today = getToday();
     let attendance = await Attendance.findOne({ user: req.user.id, date: today });
 
+    const currentTime = now();
     if (attendance) {
       attendance.clockOut = null;
-      attendance.lastResumeTime = new Date();
-
+      attendance.lastResumeTime = currentTime;
       await attendance.save();
       emitEvent(req, "attendanceChanged");
       emitDashboardUpdate(req);
       return res.status(200).json(attendance);
     }
 
-    const now = new Date();
-
     attendance = await Attendance.create({
       user: req.user.id,
       date: today,
-      clockIn: now,
-      lastResumeTime: now,
+      clockIn: currentTime,
+      lastResumeTime: currentTime,
       totalSecondsWorked: 0
     });
 
@@ -49,8 +48,7 @@ exports.clockIn = async (req, res) => {
 
 exports.clockOut = async (req, res) => {
   try {
-    const today = moment().format("YYYY-MM-DD");
-
+    const today = getToday();
     const record = await Attendance.findOne({
       user: req.user.id,
       date: today,
@@ -61,10 +59,10 @@ exports.clockOut = async (req, res) => {
       return res.status(404).json({ message: "No active session." });
     }
 
-    const now = new Date();
-    const sessionSeconds = Math.floor((now - record.lastResumeTime) / 1000);
+    const currentTime = now();
+    const sessionSeconds = Math.floor((currentTime - record.lastResumeTime) / 1000);
 
-    record.clockOut = now;
+    record.clockOut = currentTime;
     record.totalSecondsWorked += sessionSeconds;
 
     await record.save();
@@ -79,7 +77,7 @@ exports.clockOut = async (req, res) => {
 
 exports.getTodayStatus = async (req, res) => {
   try {
-    const today = moment().format("YYYY-MM-DD");
+    const today = getToday();
     const record = await Attendance.findOne({ user: req.user.id, date: today });
     res.json(record);
   } catch (err) {

@@ -5,6 +5,7 @@ const { calculateLeaveDays, hasLeaveOverlap } = require("../utils/leaveHelpers")
 const sendNotification = require("../utils/notifier");
 const { emitDashboardUpdate } = require("../utils/socket");
 const LeaveBalance = require("../models/LeaveBalance");
+const { now } = require("../utils/dateHelper");
 
 const emitEvent = (req, event, data, userId = null) => {
   const io = req.app.get("socketio");
@@ -238,9 +239,9 @@ exports.getAllLeaves = async (req, res) => {
     let filterEnd = null;
 
     if (dateRange && dateRange !== "all") {
-      const now = new Date();
-      const start = new Date();
-      const end = new Date();
+      const currentTime = now();
+      const start = now();
+      const end = now();
 
       if (dateRange === "today") {
         start.setHours(0, 0, 0, 0);
@@ -249,12 +250,12 @@ exports.getAllLeaves = async (req, res) => {
       else if (dateRange === "upcoming") {
         start.setDate(start.getDate() + 1);
         start.setHours(0, 0, 0, 0);
-        end.setFullYear(now.getFullYear() + 2);
+        end.setFullYear(currentTime.getFullYear() + 2);
       }
       else if (dateRange === "current-week") {
         // Logic: Monday to Sunday
-        const day = now.getDay();
-        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+        const day = currentTime.getDay();
+        const diff = currentTime.getDate() - day + (day === 0 ? -6 : 1);
         start.setDate(diff);
         start.setHours(0, 0, 0, 0);
 
@@ -263,8 +264,8 @@ exports.getAllLeaves = async (req, res) => {
       }
       else if (dateRange === "last-week") {
         // Previous Monday to Previous Sunday
-        const day = now.getDay();
-        const diff = now.getDate() - day + (day === 0 ? -6 : 1) - 7;
+        const day = currentTime.getDay();
+        const diff = currentTime.getDate() - day + (day === 0 ? -6 : 1) - 7;
         start.setDate(diff);
         start.setHours(0, 0, 0, 0);
 
@@ -274,13 +275,13 @@ exports.getAllLeaves = async (req, res) => {
       else if (dateRange === "current-month") {
         start.setDate(1); // First of this month
         start.setHours(0, 0, 0, 0);
-        end.setMonth(now.getMonth() + 1, 0); // Last day of this month
+        end.setMonth(currentTime.getMonth() + 1, 0); // Last day of this month
         end.setHours(23, 59, 59, 999);
       }
       else if (dateRange === "last-month") {
-        start.setMonth(now.getMonth() - 1, 1); // First of last month
+        start.setMonth(currentTime.getMonth() - 1, 1); // First of last month
         start.setHours(0, 0, 0, 0);
-        end.setMonth(now.getMonth(), 0); // Last day of last month
+        end.setMonth(currentTime.getMonth(), 0); // Last day of last month
         end.setHours(23, 59, 59, 999);
       }
       else if (dateRange === "custom" && customStart && customEnd) {

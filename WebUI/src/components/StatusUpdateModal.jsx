@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import CommonModal, { InputGroup } from "./CommonModal";
 import { HiOutlineSquares2X2, HiOutlineArrowPath } from "react-icons/hi2";
 // UPDATED: Using the specific status update mutation
-import { useUpdateTaskStatusMutation } from "../services/taskApi"; 
+import { useUpdateTaskStatusMutation } from "../services/taskApi";
 import { toast } from "react-hot-toast";
 
 export default function StatusUpdateModal({ isOpen, onClose, task }) {
@@ -20,13 +20,13 @@ export default function StatusUpdateModal({ isOpen, onClose, task }) {
 
   const handleUpdate = async () => {
     try {
-      await updateStatus({ 
-        id: task._id, 
-        status, 
-        activeStatus 
+      await updateStatus({
+        id: task._id,
+        status,
+        activeStatus
       }).unwrap();
-      
-      toast.success("Mission status updated!");
+
+      toast.success("Task status updated!");
       onClose();
     } catch (err) {
       toast.error(err?.data?.message || "Failed to update status");
@@ -34,17 +34,20 @@ export default function StatusUpdateModal({ isOpen, onClose, task }) {
   };
 
   return (
-    <CommonModal 
-      isOpen={isOpen} 
-      onClose={onClose} 
-      title="Mission Progress" 
-      subtitle={`Update status for ${task?.projectNumber}`}
+    <CommonModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Task Progress"
       maxWidth="max-w-md"
+      onSubmit={handleUpdate}
+      isLoading={isLoading}
+      submitText="Update"
+      cancelText="Cancel"
     >
-      <div className="space-y-6 pt-2">
+      <div className="space-y-4">
         <InputGroup label="Active Version">
           <HiOutlineSquares2X2 className="input-icon" />
-          <select 
+          <select
             className="form-input font-black uppercase text-xs"
             value={activeStatus}
             onChange={(e) => setActiveStatus(e.target.value)}
@@ -57,32 +60,24 @@ export default function StatusUpdateModal({ isOpen, onClose, task }) {
 
         <InputGroup label="Operational Status">
           <HiOutlineArrowPath className="input-icon" />
-          <select 
+          <select
             className="form-input font-bold text-xs"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
           >
             {[
-              "On hold", 
-              "Modeling", 
+              "On hold",
+              "Modeling",
               "Lighting and Texturing",
-              "Feedback pending", 
-              "Final rendering", 
-              "Postproduction", 
-              "Completed", 
+              "Feedback pending",
+              "Final rendering",
+              "Postproduction",
+              "Completed",
             ].map(s => (
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
         </InputGroup>
-
-        <button
-          onClick={handleUpdate}
-          disabled={isLoading}
-          className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-orange-200 disabled:opacity-50"
-        >
-          {isLoading ? "Synchronizing..." : "Synchronize Status"}
-        </button>
       </div>
     </CommonModal>
   );

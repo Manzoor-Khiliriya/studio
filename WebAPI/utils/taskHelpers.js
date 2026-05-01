@@ -1,4 +1,5 @@
 const Holiday = require("../models/Holiday");
+const { formatDate } = require("../utils/dateHelper");
 
 const isWeekend = (date) => {
   const d = new Date(date).getDay();
@@ -22,14 +23,14 @@ const calculateEstimatedHours = async (start, end) => {
   }).select("date");
 
   const holidaySet = new Set(
-    holidays.map(h => h.date.toISOString().split("T")[0])
+    holidays.map(h => formatDate(h.date))
   );
 
   let days = 0;
   const current = new Date(startDate);
 
   while (current <= endDate) {
-    const dateStr = current.toISOString().split("T")[0];
+    const dateStr = formatDate(current);
 
     if (!isWeekend(current) && !holidaySet.has(dateStr)) {
       days++;

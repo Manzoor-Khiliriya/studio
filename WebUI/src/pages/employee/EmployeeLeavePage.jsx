@@ -228,7 +228,7 @@ export default function EmployeeLeavePage() {
             />
             <StatBox
               label="Remaining Leaves"
-              value={`${data?.stats?.remaining?.toFixed(1) || 0}`}
+              value={`${data?.balances?.annualLeave?.remaining?.toFixed(1) || 0}`}
               unit="Days"
               color="slate"
               icon={<HiOutlineShieldCheck />}
@@ -244,7 +244,7 @@ export default function EmployeeLeavePage() {
                 emptyMessage="No leave request records found."
               />
 
-              <div className="bg-slate-50/50 p-6 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="bg-slate-50/50 p-4 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-sm">
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-100 pr-3">
@@ -265,19 +265,17 @@ export default function EmployeeLeavePage() {
                     </span>
                   )}
                 </div>
-                <div className="bg-slate-50/50 p-6 border-t border-slate-100">
-                  <Pagination
-                    pagination={{
-                      current: page,
-                      total: data?.pagination?.totalPages || 1,
-                      count: data?.pagination?.totalLeaves || 0,
-                      limit: limit
-                    }}
-                    onPageChange={setPage}
-                    loading={isFetching}
-                    label="Records"
-                  />
-                </div>
+                <Pagination
+                  pagination={{
+                    current: page,
+                    total: data?.pagination?.totalPages || 1,
+                    count: data?.pagination?.totalLeaves || 0,
+                    limit: limit
+                  }}
+                  onPageChange={setPage}
+                  loading={isFetching}
+                  label="Records"
+                />
               </div>
             </div>
           </div>

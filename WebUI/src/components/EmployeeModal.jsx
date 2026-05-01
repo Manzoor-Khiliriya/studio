@@ -99,7 +99,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
         onSubmit={(e) => {
           e.preventDefault();
         }}
-        className="space-y-6"
+        className="space-y-4"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InputGroup label="Full Name">

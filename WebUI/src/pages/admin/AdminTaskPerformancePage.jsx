@@ -118,7 +118,7 @@ const AdminTaskPerformancePage = () => {
         </div>
 
         {/* --- PROJECT LIST --- */}
-        <div className="space-y-3 mb-8">
+        <div className="space-y-2 mb-4">
           {projectGroups.length > 0 ? (
             projectGroups.map((group) => {
               const projectPerc = group.progressPercent ?? ((group.totalConsumed / group.totalBudget) * 100 || 0);

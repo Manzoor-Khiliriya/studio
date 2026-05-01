@@ -22,7 +22,7 @@ import { set } from "date-fns";
 import CustomDropdown from "../../components/CustomDropdown";
 
 export default function AdminHolidayPage() {
-  const holidayInitialState = { id: null, name: "", date: "", description: "" };
+  const holidayInitialState = { name: "", date: "", description: "" };
   const currentYear = new Date().getFullYear().toString();
   const [holidayModel, setHolidayModel] = useState(holidayInitialState);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -192,7 +192,7 @@ export default function AdminHolidayPage() {
         isLoading={isDeleting}
         title="Delete Holiday"
         message={`Are you sure you want to permanently delete "${holidayToDelete?.name}" from the registry?`}
-        confirmText="Delete"
+        confirmText="Confirm"
         variant="danger"
       />
     </div>

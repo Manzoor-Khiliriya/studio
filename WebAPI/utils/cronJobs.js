@@ -8,11 +8,16 @@ const LeaveBalance = require("../models/LeaveBalance");
 const LeaveSetting = require("../models/LeaveSetting");
 const User = require("../models/User");
 const JobTracker = require("../models/JobTracker");
-const { calculateLeaveDays } = require("../utils/leaveHelpers");
 const Notification = require("../models/Notification");
 
+const { calculateLeaveDays } = require("../utils/leaveHelpers");
+const { now } = require("../utils/dateHelper");
+
+//
+// 🔥 HELPER (timezone-safe)
+//
 const getCutoffDate = () => {
-  const d = new Date();
+  const d = now();
   d.setMonth(d.getMonth() - 13);
   return d;
 };
@@ -21,7 +26,7 @@ const getCutoffDate = () => {
 // 🔥 1. CLEANUP (SAFE)
 //
 async function runCleanupSafe() {
-  const now = new Date();
+  const currentTime = now();
 
   const job = await JobTracker.findOne({ name: "data-cleanup" });
 
@@ -29,9 +34,9 @@ async function runCleanupSafe() {
     const last = new Date(job.lastRun);
 
     if (
-      last.getFullYear() === now.getFullYear() &&
-      last.getMonth() === now.getMonth() &&
-      last.getDate() === now.getDate()
+      last.getFullYear() === currentTime.getFullYear() &&
+      last.getMonth() === currentTime.getMonth() &&
+      last.getDate() === currentTime.getDate()
     ) {
       console.log("⏭ Cleanup already ran today");
       return;
@@ -62,7 +67,7 @@ async function runCleanupSafe() {
     clockIn: { $lt: cutoff }
   });
 
-  const oneMonthAgo = new Date();
+  const oneMonthAgo = now();
   oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
   const notificationResult = await Notification.deleteMany({
@@ -74,7 +79,7 @@ async function runCleanupSafe() {
 
   await JobTracker.findOneAndUpdate(
     { name: "data-cleanup" },
-    { lastRun: now },
+    { lastRun: currentTime },
     { upsert: true }
   );
 
@@ -85,7 +90,7 @@ async function runCleanupSafe() {
 // 🔥 2. MONTHLY ACCRUAL (SAFE)
 //
 async function runMonthlyAccrualSafe() {
-  const now = new Date();
+  const currentTime = now();
 
   const job = await JobTracker.findOne({ name: "monthly-accrual" });
 
@@ -93,8 +98,8 @@ async function runMonthlyAccrualSafe() {
     const last = new Date(job.lastRun);
 
     if (
-      last.getFullYear() === now.getFullYear() &&
-      last.getMonth() === now.getMonth()
+      last.getFullYear() === currentTime.getFullYear() &&
+      last.getMonth() === currentTime.getMonth()
     ) {
       console.log("⏭ Monthly accrual already ran");
       return;
@@ -106,7 +111,7 @@ async function runMonthlyAccrualSafe() {
   const users = await User.find({ role: "Employee" });
   const setting = await LeaveSetting.findOne({ leaveType: "Annual Leave" });
 
-  const currentYear = now.getFullYear();
+  const currentYear = currentTime.getFullYear();
   const rate = setting?.accrualRate || 0;
 
   for (const user of users) {
@@ -125,7 +130,7 @@ async function runMonthlyAccrualSafe() {
 
   await JobTracker.findOneAndUpdate(
     { name: "monthly-accrual" },
-    { lastRun: now },
+    { lastRun: currentTime },
     { upsert: true }
   );
 
@@ -136,14 +141,14 @@ async function runMonthlyAccrualSafe() {
 // 🔥 3. YEARLY CARRY FORWARD (SAFE)
 //
 async function runYearlyCarryForwardSafe() {
-  const now = new Date();
+  const currentTime = now();
 
   const job = await JobTracker.findOne({ name: "yearly-carry-forward" });
 
   if (job?.lastRun) {
     const last = new Date(job.lastRun);
 
-    if (last.getFullYear() === now.getFullYear()) {
+    if (last.getFullYear() === currentTime.getFullYear()) {
       console.log("⏭ Carry forward already ran");
       return;
     }
@@ -154,7 +159,7 @@ async function runYearlyCarryForwardSafe() {
   const users = await User.find({ role: "Employee" });
   const setting = await LeaveSetting.findOne({ leaveType: "Annual Leave" });
 
-  const currentYear = now.getFullYear();
+  const currentYear = currentTime.getFullYear();
   const nextYear = currentYear + 1;
 
   for (const user of users) {
@@ -204,7 +209,7 @@ async function runYearlyCarryForwardSafe() {
 
   await JobTracker.findOneAndUpdate(
     { name: "yearly-carry-forward" },
-    { lastRun: now },
+    { lastRun: currentTime },
     { upsert: true }
   );
 
@@ -212,17 +217,33 @@ async function runYearlyCarryForwardSafe() {
 }
 
 //
-// 🔥 CRON SCHEDULES
+// 🔥 CRON SCHEDULES (IST SAFE)
 //
-cron.schedule("0 0 * * *", runCleanupSafe);            // daily
+cron.schedule("0 0 * * *", runCleanupSafe, {
+  timezone: "Asia/Kolkata"
+});
+
 cron.schedule("0 0 1 * *", runMonthlyAccrualSafe, {
   timezone: "Asia/Kolkata"
 });
-cron.schedule("0 1 1 1 *", runYearlyCarryForwardSafe); // yearly
+
+cron.schedule("0 1 1 1 *", runYearlyCarryForwardSafe, {
+  timezone: "Asia/Kolkata"
+});
 
 //
-// 🔥 FALLBACK (VERY IMPORTANT)
+// 🔥 SAFE FALLBACK (on server restart)
 //
-runCleanupSafe();
-runMonthlyAccrualSafe();
-runYearlyCarryForwardSafe();
+(async () => {
+  const currentTime = now();
+
+  await runCleanupSafe();
+
+  if (currentTime.getDate() === 1) {
+    await runMonthlyAccrualSafe();
+  }
+
+  if (currentTime.getDate() === 1 && currentTime.getMonth() === 0) {
+    await runYearlyCarryForwardSafe();
+  }
+})();

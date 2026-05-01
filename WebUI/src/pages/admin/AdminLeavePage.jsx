@@ -194,7 +194,7 @@ export default function AdminLeavePage() {
 
   const executeAction = async () => {
     const { id, status, mode } = confirmConfig;
-    const tId = toast.loading(mode === 'delete' ? "Purging record..." : `Updating to ${status}...`);
+    const tId = toast.loading(mode === 'delete' ? "Deleting record..." : `Updating to ${status}...`);
 
     try {
       if (mode === 'delete') {
@@ -210,7 +210,7 @@ export default function AdminLeavePage() {
     }
   };
 
-  const handleUpdateSettings = async (e) => {
+  const handleUpdateSettings = async () => {
     e.preventDefault();
     const tId = toast.loading(`Updating Policy...`);
     try {
@@ -227,7 +227,6 @@ export default function AdminLeavePage() {
 
   const handleAdjustmentSave = async () => {
     const tId = toast.loading("Updating adjustment...");
-
     try {
       await adjustAnnualLeave({
         userId: adjustUser._id,
@@ -452,12 +451,24 @@ export default function AdminLeavePage() {
         onClose={() => setConfirmConfig((prev) => ({ ...prev, isOpen: false }))}
         onConfirm={executeAction}
         isLoading={isProcessing || isDeleting}
-        variant={confirmConfig.mode === "delete" ? "danger" : (confirmConfig.status === "Approved" ? "success" : "warning")}
-        title={confirmConfig.mode === "delete" ? "Delete Record" : `${confirmConfig.status} Request`}
+        variant={confirmConfig.mode === "delete" ? "danger" : (confirmConfig.status === "Approved" ? "success" : "danger")}
+        title={
+          confirmConfig.mode === "delete"
+            ? "Delete Record"
+            : confirmConfig.status === "Approved"
+              ? "Approve Request"
+              : confirmConfig.status === "Rejected"
+                ? "Reject Request"
+                : "Update Request"
+        }
         message={
           confirmConfig.mode === "delete"
             ? `Permanently delete the leave record for ${confirmConfig.employeeName}? This action is irreversible.`
-            : ""
+            : confirmConfig.status === "Approved"
+              ? `Approve leave request for ${confirmConfig.employeeName}? This will mark the request as approved.`
+              : confirmConfig.status === "Rejected"
+                ? `Reject leave request for ${confirmConfig.employeeName}? This action will decline the request.`
+                : "Are you sure you want to proceed?"
         }
       />
 
@@ -465,17 +476,20 @@ export default function AdminLeavePage() {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         title="Policy Configuration"
-        subtitle="Update Leave Quotas"
         maxWidth="max-w-md"
+        onSubmit={handleUpdateSettings}
+        submitText="Save"
       >
-        <form onSubmit={handleUpdateSettings} className="space-y-6">
+        <form
+          onSubmit={(e) => e.preventDefault()}
+          className="space-y-4"
+        >
           <InputGroup label="Leave Type">
             <select
               className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none text-[11px] uppercase focus:border-orange-500 transition-all"
               value={configForm.leaveType}
               onChange={(e) => setConfigForm({ ...configForm, leaveType: e.target.value })}
             >
-              {/* Filtered List: No Casual or LOP */}
               <option value="Annual Leave">Annual Leave</option>
               <option value="Sick Leave">Sick Leave</option>
               <option value="Bereavement Leave">Bereavement Leave</option>
@@ -517,21 +531,6 @@ export default function AdminLeavePage() {
             </InputGroup>
           )}
 
-          <div className="flex gap-4 pt-4">
-            <button
-              type="submit"
-              className="flex-1 py-4 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase hover:bg-orange-600 cursor-pointer transition-all shadow-lg hover:shadow-orange-200"
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsSettingsOpen(false)}
-              className="flex-1 py-4 text-[11px] font-black uppercase text-slate-400 cursor-pointer hover:text-slate-600 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
         </form>
       </CommonModal>
 
@@ -539,6 +538,8 @@ export default function AdminLeavePage() {
         isOpen={!!adjustUser}
         onClose={() => setAdjustUser(null)}
         title="Adjust Annual Leave"
+        onSubmit={handleAdjustmentSave}
+        submitText="Save"
       >
         <InputGroup label="Adjustment (+ / -)">
           <input
@@ -550,12 +551,6 @@ export default function AdminLeavePage() {
           />
         </InputGroup>
 
-        <button
-          onClick={handleAdjustmentSave}
-          className="w-full mt-4 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl cursor-pointer"
-        >
-          Save
-        </button>
       </CommonModal>
     </div>
   );

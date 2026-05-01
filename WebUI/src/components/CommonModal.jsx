@@ -24,7 +24,7 @@ export default function CommonModal({ isOpen, onClose, title, subtitle, children
             className={`relative bg-white w-full ${maxWidth} rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[70vh]`}
           >
             {/* HEADER */}
-            <div className="p-5 flex justify-between items-center border-b border-slate-50">
+            <div className="p-5 flex justify-between items-center border-b border-slate-300">
               <div>
                 <h2 className="text-3xl font-bold text-slate-900">{title}</h2>
               </div>
@@ -42,18 +42,18 @@ export default function CommonModal({ isOpen, onClose, title, subtitle, children
             </div>
 
             {/* FOOTER */}
-            <div className="p-5 py-5 border-t border-slate-100 flex items-center justify-between w-full gap-3">
+            <div className="p-5 py-5 border-t border-slate-300 flex items-center justify-between w-full gap-3">
               <button
                 onClick={onSubmit}
                 disabled={isLoading}
-                className="block w-full cursor-pointer py-3 rounded-xl text-white uppercase bg-green-500 hover:bg-green-600 font-bold text-sm tracking-widest active:scale-95 border-b-4  border-green-700  transition-all shadow-lg shadow-orange-200"
+                className="block w-full cursor-pointer py-3 rounded-xl text-white uppercase bg-green-500 hover:bg-green-600 font-black text-[12px] tracking-widest active:scale-95 border-b-4  border-green-700  transition-all shadow-lg shadow-orange-200"
               >
                 {isLoading ? "Processing..." : submitText}
               </button>
 
               <button
                 onClick={onClose}
-                className="block my-auto w-full py-3 rounded-xl font-bold text-white text-sm uppercase tracking-widest bg-slate-400 hover:bg-slate-500 transition-all active:scale-95 border-b-4 shadow-slate-100 border-slate-600 cursor-pointer"
+                className="block my-auto w-full py-3 rounded-xl font-black text-white text-[12px] uppercase tracking-widest bg-slate-500 hover:bg-slate-600 transition-all active:scale-95 border-b-4 shadow-slate-200 border-slate-700 cursor-pointer"
               >
                 {cancelText}
               </button>

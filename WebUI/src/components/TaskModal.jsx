@@ -4,6 +4,7 @@ import {
   HiOutlineClock,
   HiOutlineFlag,
   HiOutlineBriefcase,
+  HiOutlineInformationCircle,
 } from "react-icons/hi2";
 import { CgSpinner } from "react-icons/cg";
 import { toast } from "react-hot-toast";
@@ -21,7 +22,7 @@ export default function TaskModal({
 
   const [formData, setFormData] = useState({
     title: "",
-    projectId: "",
+    project: "",
     estimatedTime: "",
     allocatedTime: "",
     priority: "Medium",
@@ -32,8 +33,8 @@ export default function TaskModal({
   const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation();
 
   const { data: estimateData, isFetching: isCalculating } = useGetProjectEstimateQuery(
-    formData.projectId,
-    { skip: !formData.projectId || isEditing || !isOpen }
+    formData.project,
+    { skip: !formData.project || isEditing || !isOpen }
   );
 
   useEffect(() => {
@@ -51,7 +52,7 @@ export default function TaskModal({
       if (editTask) {
         setFormData({
           title: editTask.title || "",
-          projectId: singleProject?._id || editTask.project?._id || editTask.project || "",
+          project: singleProject?._id || editTask.project?._id || editTask.project || "",
           estimatedTime: String(editTask.estimatedTime || 8),
           allocatedTime: String(editTask.allocatedTime || 8),
           priority: editTask.priority || "Medium",
@@ -60,7 +61,7 @@ export default function TaskModal({
       } else if (singleProject) {
         setFormData({
           title: "",
-          projectId: singleProject._id,
+          project: singleProject._id,
           estimatedTime: "",
           allocatedTime: "",
           priority: "Medium",
@@ -71,20 +72,23 @@ export default function TaskModal({
   }, [editTask, isOpen, singleProject]);
 
   useEffect(() => {
-    if (!formData.projectId) return;
+    if (!formData.project) return;
 
     setFormData((prev) => ({
       ...prev,
       estimatedTime: "",
       allocatedTime: ""
     }));
-  }, [formData.projectId]);
+  }, [formData.project]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    if (!formData.project) {
+      return toast.error("Project not found. Please try again.");
+    }
 
-    if (!formData.projectId) {
-      return toast.error("Missing Project Context. Please try again.");
+    if (!formData.title) {
+      toast.error("Task title required");
+      return;
     }
 
     const loadingToast = toast.loading(isEditing ? "Synchronizing updates..." : "Initializing task...");
@@ -92,13 +96,9 @@ export default function TaskModal({
     try {
       const payload = {
         ...formData,
-        project: formData.projectId,
         allocatedTime: Number(formData.allocatedTime),
         estimatedTime: Number(formData.estimatedTime)
       };
-
-      // Remove local helper key before sending to API
-      delete payload.projectId;
 
       if (isEditing) {
         await updateTask({ id: editTask._id, ...payload }).unwrap();
@@ -117,11 +117,16 @@ export default function TaskModal({
     <CommonModal
       isOpen={isOpen}
       onClose={onClose}
-      title={isEditing ? "Edit Task" : "New Task Objective"}
-      subtitle={isEditing ? "Modify existing task parameters" : "Initialize a new task for this project"}
+      title={isEditing ? "Update Task" : "Create New Task"}
       maxWidth="max-w-xl"
+      onSubmit={handleSubmit}
+      isLoading={isCreating || isUpdating}
+      submitText={isEditing ? "Update" : "Create"}
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form
+        onSubmit={(e) => e.preventDefault()}
+        className="space-y-4"
+      >
         {/* Project Context Display (Read Only) */}
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12 md:col-span-6">
@@ -136,12 +141,12 @@ export default function TaskModal({
           </div>
 
           <div className="col-span-12 md:col-span-6">
-            <InputGroup label="Task Title">
+            <InputGroup label="Task Title *">
               <HiOutlineDocumentText className="input-icon" />
               <input
                 required
                 className="form-input"
-                placeholder="Enter task title"
+                placeholder="Enter Task Title"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               />
@@ -152,7 +157,7 @@ export default function TaskModal({
         {/* Resource Allocation & Priority */}
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12 md:col-span-3">
-            <InputGroup label="Estimate (H)">
+            <InputGroup label="Estimated (H)">
               {isCalculating ? (
                 <CgSpinner className="input-icon animate-spin text-orange-500" />
               ) : (
@@ -170,7 +175,7 @@ export default function TaskModal({
           </div>
 
           <div className="col-span-12 md:col-span-3">
-            <InputGroup label="Allocated (H)">
+            <InputGroup label="Allocated (H) *">
               <HiOutlineClock className={`input-icon ${formData.allocatedTime !== formData.estimatedTime ? 'text-orange-500' : 'text-slate-400'}`} />
               <input
                 required
@@ -200,6 +205,7 @@ export default function TaskModal({
 
         {/* Description / Metadata */}
         <InputGroup label="Task Description">
+          <HiOutlineInformationCircle className="input-icon !top-6 translate-y-0" />
           <textarea
             rows={2}
             className="form-input resize-none"
@@ -208,18 +214,6 @@ export default function TaskModal({
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           />
         </InputGroup>
-
-        <button
-          disabled={isCreating || isUpdating}
-          type="submit"
-          className="w-full bg-slate-900 hover:bg-orange-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 active:scale-[0.98] shadow-xl mt-2 disabled:opacity-70 cursor-pointer"
-        >
-          {(isCreating || isUpdating) ? (
-            <CgSpinner className="animate-spin" size={20} />
-          ) : (
-            isEditing ? "Synchronize Updates" : "Initialize Task"
-          )}
-        </button>
       </form>
     </CommonModal>
   );

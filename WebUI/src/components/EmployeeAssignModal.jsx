@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { 
-  HiOutlineMagnifyingGlass, 
-  HiCheckCircle, 
+import {
+  HiOutlineMagnifyingGlass,
+  HiCheckCircle,
   HiOutlineUserGroup,
   HiOutlineXMark,
   HiOutlineUsers
@@ -51,8 +51,8 @@ export default function EmployeeAssignModal({ isOpen, onClose, task }) {
   };
 
   // --- SELECT ALL LOGIC ---
-  const isAllFilteredSelected = 
-    filteredEmployees.length > 0 && 
+  const isAllFilteredSelected =
+    filteredEmployees.length > 0 &&
     filteredEmployees.every(emp => selectedIds.includes(emp._id));
 
   const handleToggleSelectAll = () => {
@@ -69,13 +69,13 @@ export default function EmployeeAssignModal({ isOpen, onClose, task }) {
 
   const handleSave = async () => {
     if (!task?._id) return;
-    
+
     try {
       await updateTask({
         id: task._id,
         assignedTo: selectedIds,
       }).unwrap();
-      
+
       toast.success("Team allocation synchronized successfully.");
       onClose();
     } catch (err) {
@@ -88,15 +88,18 @@ export default function EmployeeAssignModal({ isOpen, onClose, task }) {
       isOpen={isOpen}
       onClose={onClose}
       title="Team Assignment"
-      subtitle={task ? `Managing employees for: ${task.title}` : "Select team members"}
-      maxWidth="max-w-md"
+      maxWidth="max-w-xl"
+      onSubmit={handleSave}
+      isLoading={isUpdating}
+      submitText="Confirm"
+      cancelText="Cancel"
     >
       <div className="space-y-4">
         {/* Search Bar */}
         <div className="relative group">
-          <HiOutlineMagnifyingGlass 
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors" 
-            size={18} 
+          <HiOutlineMagnifyingGlass
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors"
+            size={18}
           />
           <input
             type="text"
@@ -115,13 +118,13 @@ export default function EmployeeAssignModal({ isOpen, onClose, task }) {
               {selectedIds.length} Assigned
             </span>
           </div>
-          
+
           {filteredEmployees.length > 0 && (
             <button
               onClick={handleToggleSelectAll}
-              className={`text-[10px] font-black uppercase tracking-widest transition-all px-3 py-1 rounded-lg border
-                ${isAllFilteredSelected 
-                  ? "text-rose-500 border-rose-100 bg-rose-50 hover:bg-rose-100" 
+              className={`text-[10px] font-black uppercase tracking-widest transition-all px-3 py-1 rounded-lg border cursor-pointer
+                ${isAllFilteredSelected
+                  ? "text-rose-500 border-rose-100 bg-rose-50 hover:bg-rose-100"
                   : "text-orange-500 border-orange-100 bg-orange-50 hover:bg-orange-100"}`}
             >
               {isAllFilteredSelected ? "Deselect All" : "Select All"}
@@ -130,9 +133,9 @@ export default function EmployeeAssignModal({ isOpen, onClose, task }) {
         </div>
 
         {/* Selection List */}
-        <div className="max-h-[350px] overflow-y-auto custom-scrollbar space-y-2 pr-2">
+        <div className="max-h-[350px] overflow-y-auto custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-4">
           {isFetchingEmployees ? (
-            <div className="py-10 flex flex-col items-center gap-3 text-slate-400">
+            <div className="py-10 col-span-2 flex flex-col items-center gap-3 text-slate-400">
               <CgSpinner className="animate-spin" size={24} />
               <span className="text-[10px] font-black uppercase tracking-widest text-center">Fetching Team Data...</span>
             </div>
@@ -152,9 +155,12 @@ export default function EmployeeAssignModal({ isOpen, onClose, task }) {
                       {emp.user?.name?.charAt(0).toUpperCase()}
                     </div>
                     <div className="leading-tight">
-                      <p className="text-[11px] font-black text-slate-900 uppercase tracking-tighter">{emp.user?.name}</p>
+                      <p className="text-[11px] font-black text-slate-900 uppercase tracking-tighter">
+                        {emp.user?.name}{" "}
+                        {emp?.employeeCode ? `(${emp.employeeCode})` : ""}
+                      </p>
                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                        {emp.employeeCode} <span className="mx-1">•</span> {emp.designation}
+                        <span className="mr-1">•</span> {emp.designation}
                       </p>
                     </div>
                   </div>
@@ -166,34 +172,10 @@ export default function EmployeeAssignModal({ isOpen, onClose, task }) {
               );
             })
           ) : (
-            <div className="py-12 text-center bg-slate-50/50 rounded-[2rem] border border-dashed border-slate-200">
+            <div className="py-12 col-span-2 text-center bg-slate-50/50 rounded-[2rem] border border-dashed border-slate-200">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">No matching members found.</p>
             </div>
           )}
-        </div>
-
-        {/* Bottom Actions */}
-        <div className="flex gap-3 pt-4 border-t border-slate-50">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 px-6 py-4 rounded-2xl border border-slate-200 text-slate-500 font-black text-[10px] uppercase tracking-[0.2em] hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
-          >
-            <HiOutlineXMark size={16} />
-            Cancel
-          </button>
-          <button
-            disabled={isUpdating}
-            onClick={handleSave}
-            className="flex-[2] bg-slate-900 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-orange-600 transition-all flex items-center justify-center gap-2 shadow-xl shadow-orange-500/10 active:scale-95 disabled:opacity-50"
-          >
-            {isUpdating ? <CgSpinner className="animate-spin" size={20} /> : (
-              <>
-                <HiOutlineUserGroup size={18} />
-                Confirm Team
-              </>
-            )}
-          </button>
         </div>
       </div>
     </CommonModal>

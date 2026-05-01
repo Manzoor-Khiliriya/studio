@@ -316,7 +316,9 @@ export default function AdminTaskDetailPage() {
       </main>
 
       {/* Modals */}
-      <ConfirmModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleConfirmDelete} isLoading={isDeleting} title="Purge Task" message="Warning: This will permanently remove all time logs and metrics. Proceed?" variant="danger" />
+      <ConfirmModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleConfirmDelete} isLoading={isDeleting} title="Delete Task"
+        message={`Are you sure you want to permanently delete this task? This action cannot be undone.`}
+        variant="danger" />
       <EmployeeAssignModal isOpen={isAssignModalOpen} onClose={() => setIsAssignModalOpen(false)} task={task} />
       <StatusUpdateModal isOpen={isStatusModalOpen} onClose={() => setIsStatusModalOpen(false)} task={task} />
       <TaskModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} editTask={task} singleProject={task.project} />
