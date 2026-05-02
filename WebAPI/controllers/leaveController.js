@@ -152,7 +152,7 @@ exports.applyLeave = async (req, res) => {
 
     // 🔥 ANNUAL LEAVE
     if (type === "Annual Leave") {
-      const currentYear = new Date().getFullYear();
+      const currentYear = now().getFullYear();
 
       let balance = await LeaveBalance.findOne({
         user: userId,
@@ -185,7 +185,7 @@ exports.applyLeave = async (req, res) => {
 
       if (requestedDays > (totalAvailable - taken)) {
         return res.status(400).json({
-          message: "Insufficient Annual Leave balance."
+          message: `Insufficient Annual Leave balance. Available ${totalAvailable - taken} Leaves`
         });
       }
     }
@@ -197,7 +197,7 @@ exports.applyLeave = async (req, res) => {
 
       if (taken + requestedDays > quota) {
         return res.status(400).json({
-          message: `${type} exceeded. Remaining: ${quota - taken}`
+          message: `Insufficient ${type} balance. Available: ${quota - taken} Leaves`
         });
       }
     }
@@ -520,12 +520,105 @@ exports.processLeave = async (req, res) => {
       return res.status(400).json({ message: "Invalid request" });
     }
 
-    leave.status = req.body.status;
+    const newStatus = req.body.status;
+
+    if (newStatus === "Approved") {
+      const existing = await Leave.find({
+        user: leave.user,
+        status: { $ne: "Rejected" },
+        _id: { $ne: leave._id }
+      });
+
+      if (hasLeaveOverlap(existing, leave.startDate, leave.endDate)) {
+        return res.status(400).json({
+          message: "Cannot approve. Overlaps with another leave."
+        });
+      }
+
+      const requestedDays = await calculateLeaveDays(
+        leave.startDate,
+        leave.endDate
+      );
+
+      const setting = await LeaveSetting.findOne({ leaveType: leave.type });
+
+      if (leave.type === "Annual Leave") {
+        const currentYear = now().getFullYear();
+
+        let balance = await LeaveBalance.findOne({
+          user: leave.user,
+          year: currentYear,
+          type: "Annual Leave"
+        });
+
+        if (!balance) {
+          balance = await LeaveBalance.create({
+            user: leave.user,
+            year: currentYear,
+            type: "Annual Leave"
+          });
+        }
+
+        const earned = balance.earned || 0;
+        const carryForward = balance.carriedForward || 0;
+
+        const carryForwardLimited = Math.min(
+          carryForward,
+          setting?.carryForwardLimit || 0
+        );
+
+        const existingLeaves = await Leave.find({
+          user: leave.user,
+          status: { $ne: "Rejected" },
+          type: "Annual Leave",
+          _id: { $ne: leave._id }
+        });
+
+        let taken = 0;
+        for (const l of existingLeaves) {
+          taken += await calculateLeaveDays(l.startDate, l.endDate);
+        }
+
+        const totalAvailable =
+          earned +
+          carryForwardLimited +
+          (balance.initialAdjustment || 0);
+
+        if (requestedDays > (totalAvailable - taken)) {
+          return res.status(400).json({
+            message: `Cannot approve. Insufficient Annual Leave balance. Available ${totalAvailable - taken
+              } Leaves`
+          });
+        }
+      }
+
+      else if (!["LOP", "Casual Leave"].includes(leave.type)) {
+        const existingLeaves = await Leave.find({
+          user: leave.user,
+          status: { $ne: "Rejected" },
+          type: leave.type,
+          _id: { $ne: leave._id }
+        });
+
+        let taken = 0;
+        for (const l of existingLeaves) {
+          taken += await calculateLeaveDays(l.startDate, l.endDate);
+        }
+
+        const quota = setting?.yearlyQuota || 10;
+
+        if (taken + requestedDays > quota) {
+          return res.status(400).json({
+            message: `Cannot approve. Insufficient ${leave.type} balance. Available: ${quota - taken
+              } Leaves`
+          });
+        }
+      }
+    }
+    leave.status = newStatus;
     leave.adminComment = req.body.adminComment;
     leave.processedBy = req.user._id;
-
     await leave.save();
-
     const io = req.app.get("socketio");
     const recipient = await User.findById(leave.user);
 
@@ -542,17 +635,22 @@ exports.processLeave = async (req, res) => {
           year: "numeric"
         });
 
-
-      await sendNotification(recipient, {
-        type: "leave",
-        message: `${statusEmoji} Your ${leave.type} request from ${formatDate(leave.startDate)} to ${formatDate(leave.endDate)} has been ${leave.status}.${adminNote}`,
-      }, io);
+      await sendNotification(
+        recipient,
+        {
+          type: "leave",
+          message: `${statusEmoji} Your ${leave.type} request from ${formatDate(
+            leave.startDate
+          )} to ${formatDate(leave.endDate)} has been ${leave.status
+            }.${adminNote}`,
+        },
+        io
+      );
     }
     emitEvent(req, "leaveChanged");
     emitEvent(req, "leaveChanged", leave, leave.user);
     emitDashboardUpdate(req);
     res.json(leave);
-
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -567,31 +665,105 @@ exports.updateLeave = async (req, res) => {
     const isAdmin = req.user.role === "Admin";
 
     if (!isOwner && !isAdmin) {
-      return res.status(403).json({ message: "Unauthorized" });
+      return res.status(403).json({ message: "Unauthorized Access!" });
     }
 
     if (!isAdmin && leave.status !== "Pending") {
       return res.status(400).json({ message: "Cannot update processed leaves" });
     }
-
-    Object.assign(leave, req.body);
-
+    const updatedLeave = {
+      ...leave.toObject(),
+      ...req.body
+    };
     const existing = await Leave.find({
       user: leave.user,
       status: { $ne: "Rejected" },
       _id: { $ne: leave._id }
     });
 
-    if (hasLeaveOverlap(existing, leave.startDate, leave.endDate)) {
-      return res.status(400).json({ message: "Overlap detected" });
+    if (hasLeaveOverlap(existing, updatedLeave.startDate, updatedLeave.endDate)) {
+      return res.status(400).json({ message: "Overlap with existing leave." });
     }
+    const requestedDays = await calculateLeaveDays(
+      updatedLeave.startDate,
+      updatedLeave.endDate
+    );
+    const setting = await LeaveSetting.findOne({ leaveType: updatedLeave.type });
+    if (updatedLeave.type === "Annual Leave") {
+      const currentYear = now().getFullYear();
 
+      let balance = await LeaveBalance.findOne({
+        user: leave.user,
+        year: currentYear,
+        type: "Annual Leave"
+      });
+
+      if (!balance) {
+        balance = await LeaveBalance.create({
+          user: leave.user,
+          year: currentYear,
+          type: "Annual Leave"
+        });
+      }
+
+      const earned = balance.earned || 0;
+      const carryForward = balance.carriedForward || 0;
+
+      const carryForwardLimited = Math.min(
+        carryForward,
+        setting?.carryForwardLimit || 0
+      );
+
+      const existingLeaves = await Leave.find({
+        user: leave.user,
+        status: { $ne: "Rejected" },
+        type: "Annual Leave",
+        _id: { $ne: leave._id }
+      });
+
+      let taken = 0;
+      for (const l of existingLeaves) {
+        taken += await calculateLeaveDays(l.startDate, l.endDate);
+      }
+
+      const totalAvailable =
+        earned +
+        carryForwardLimited +
+        (balance.initialAdjustment || 0);
+
+      if (requestedDays > (totalAvailable - taken)) {
+        return res.status(400).json({
+          message: `Insufficient Annual Leave balance. Available ${totalAvailable - taken
+            } Leaves`
+        });
+      }
+    }
+    else if (!["LOP", "Casual Leave"].includes(updatedLeave.type)) {
+      const existingLeaves = await Leave.find({
+        user: leave.user,
+        status: { $ne: "Rejected" },
+        type: updatedLeave.type,
+        _id: { $ne: leave._id }
+      });
+      let taken = 0;
+      for (const l of existingLeaves) {
+        taken += await calculateLeaveDays(l.startDate, l.endDate);
+      }
+
+      const quota = setting?.yearlyQuota || 10;
+
+      if (taken + requestedDays > quota) {
+        return res.status(400).json({
+          message: `Insufficient ${updatedLeave.type} balance. Available: ${quota - taken} leaves`
+        });
+      }
+    }
+    Object.assign(leave, updatedLeave);
     await leave.save();
     emitEvent(req, "leaveChanged");
     emitEvent(req, "leaveChanged", leave, leave.user);
     emitDashboardUpdate(req);
     res.json(leave);
-
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

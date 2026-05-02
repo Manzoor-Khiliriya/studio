@@ -11,6 +11,7 @@ import { toast } from "react-hot-toast";
 import CommonModal, { InputGroup } from "./CommonModal";
 import { useCreateTaskMutation, useUpdateTaskMutation } from "../services/taskApi";
 import { useGetProjectEstimateQuery } from "../services/projectApi";
+import CustomDropdown from "./CustomDropdown";
 
 export default function TaskModal({
   isOpen,
@@ -190,15 +191,19 @@ export default function TaskModal({
           <div className="col-span-12 md:col-span-6">
             <InputGroup label="Priority">
               <HiOutlineFlag className={`input-icon ${formData.priority === 'High' ? 'text-rose-500' : ''}`} />
-              <select
-                className="form-input font-bold text-[11px]"
+              <CustomDropdown
                 value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-              >
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-              </select>
+                onChange={(val) =>
+                  setFormData({ ...formData, priority: val })
+                }
+                options={[
+                  { label: "Low", value: "Low" },
+                  { label: "Medium", value: "Medium" },
+                  { label: "High", value: "High" },
+                ]}
+                className="w-full"
+                buttonClass="form-input text-xs font-bold pl-10"
+              />
             </InputGroup>
           </div>
         </div>

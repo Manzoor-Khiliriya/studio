@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useGetTaskPerformanceReportQuery } from '../../services/projectApi';
 import Loader from '../../components/Loader';
 import PageHeader from '../../components/PageHeader';
@@ -13,6 +13,7 @@ import {
   HiOutlineCalendarDays
 } from 'react-icons/hi2';
 import { useSocketEvents } from '../../hooks/useSocketEvents';
+import useDebounce from '../../hooks/useDebounce';
 
 // --- SUB-COMPONENT: COMPACT PROGRESS BAR WITH BREAKPOINTS ---
 const CustomProgressBar = ({ percentage, isOver }) => {
@@ -61,17 +62,13 @@ const Metric = ({ label, value, colorClass = "text-slate-700" }) => (
 const AdminTaskPerformancePage = () => {
   const [expandedProject, setExpandedProject] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(5);
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-      setCurrentPage(1);
-    }, 500);
-    return () => clearTimeout(handler);
-  }, [searchTerm]);
+  const debouncedSearch = useDebounce(
+    searchTerm.trim().length > 1 ? searchTerm.trim() : "",
+    500
+  );
 
   const { data, isLoading, isFetching, refetch } = useGetTaskPerformanceReportQuery({
     page: currentPage,

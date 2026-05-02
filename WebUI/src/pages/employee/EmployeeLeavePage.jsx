@@ -221,17 +221,9 @@ export default function EmployeeLeavePage() {
           <div className="xl:col-span-3 space-y-6">
             <StatBox
               label="Annual Leaves"
-              value={`${data?.balances?.annualLeave?.earned?.toFixed(1) || 0}`}
-              unit="Days"
-              color="orange"
-              icon={<HiOutlineSparkles />}
-            />
-            <StatBox
-              label="Remaining Leaves"
               value={`${data?.balances?.annualLeave?.remaining?.toFixed(1) || 0}`}
               unit="Days"
-              color="slate"
-              icon={<HiOutlineShieldCheck />}
+              color="orange"
             />
           </div>
 
@@ -304,9 +296,6 @@ export default function EmployeeLeavePage() {
 
 const StatBox = ({ label, value, unit, color, icon }) => (
   <div className="p-10 rounded-[3rem] bg-white border border-slate-200 shadow-xl shadow-slate-200/30 relative overflow-hidden group hover:border-orange-500/30 transition-all duration-500">
-    <div className="absolute -top-4 -right-4 text-7xl text-slate-50 group-hover:text-orange-50 transition-all duration-500">
-      {icon}
-    </div>
     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 relative z-10">{label}</p>
     <div className="flex items-baseline gap-2 relative z-10">
       <h3 className={`text-6xl font-black tracking-tighter tabular-nums ${color === 'orange' ? 'text-orange-500' : 'text-slate-900'}`}>

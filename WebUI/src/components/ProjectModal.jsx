@@ -13,6 +13,7 @@ import {
   useCreateProjectMutation,
   useUpdateProjectMutation
 } from "../services/projectApi";
+import CustomDropdown from "./CustomDropdown";
 
 export default function ProjectModal({ isOpen, onClose, editProject = null, activeTab }) {
   const isEditing = !!editProject;
@@ -129,16 +130,20 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
           </InputGroup>
 
           <InputGroup label="Project Type *">
-            <HiOutlineFlag className={`input-icon`} />
-            <select
-              className="form-input font-bold text-[11px]"
+            <HiOutlineFlag className="input-icon" />
+
+            <CustomDropdown
               value={formData.projectType}
-              onChange={(e) => setFormData({ ...formData, projectType: e.target.value })}
-              required
-            >
-              <option value="Standard">Standard</option>
-              <option value="Revision">Revision</option>
-            </select>
+              onChange={(val) =>
+                setFormData({ ...formData, projectType: val })
+              }
+              options={[
+                { label: "Standard", value: "Standard" },
+                { label: "Revision", value: "Revision" }
+              ]}
+              className="w-full"
+              buttonClass="form-input text-xs font-bold pl-10"
+            />
           </InputGroup>
 
           <InputGroup label="Client Name">
@@ -176,16 +181,20 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
             <>
               <InputGroup label="Status">
                 <HiOutlineFlag className={`input-icon`} />
-                <select
-                  className="form-input font-bold text-[11px]"
+                <CustomDropdown
                   value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                >
-                  <option value="Active">Active</option>
-                  <option value="On hold">On Hold</option>
-                  <option value="Submitted">Submitted</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
+                  onChange={(val) =>
+                    setFormData({ ...formData, status: val })
+                  }
+                  options={[
+                    { label: "Active", value: "Active" },
+                    { label: "On hold", value: "On hold" },
+                    { label: "Submitted", value: "Submitted" },
+                    { label: "Inactive", value: "Inactive" }
+                  ]}
+                  className="w-full"
+                  buttonClass="form-input text-xs font-bold pl-10"
+                />
               </InputGroup>
 
 

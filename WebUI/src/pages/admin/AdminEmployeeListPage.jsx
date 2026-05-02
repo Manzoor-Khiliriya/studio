@@ -1,61 +1,47 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-
-// API Services
 import { useGetAllEmployeesQuery } from "../../services/employeeApi";
 import { useChangeUserStatusMutation, useDeleteUserMutation } from "../../services/userApi";
-
-// Icons
 import { HiOutlineMagnifyingGlass, HiOutlineXMark } from "react-icons/hi2";
-
-// Components
 import PageHeader from "../../components/PageHeader";
 import Table from "../../components/Table";
 import Loader from "../../components/Loader";
 import Pagination from "../../components/Pagination";
 import EmployeeModal from "../../components/EmployeeModal";
 import ConfirmModal from "../../components/ConfirmModal";
-
-// Helpers
 import { getEmployeeColumns } from "../../utils/adminEmployeeListHelper";
 import { useSocketEvents } from "../../hooks/useSocketEvents";
+import useDebounce from "../../hooks/useDebounce";
 
 export default function EmployeeListPage() {
   const navigate = useNavigate();
-
-  // --- UI STATE ---
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(5);
-
-  // Modal States
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
   const [selectedEmp, setSelectedEmp] = useState(null);
-
-  // Unified Confirmation Modal State
   const [confirmConfig, setConfirmConfig] = useState({
     isOpen: false,
-    type: null, // 'delete' or 'toggle'
+    type: null,
   });
 
-  // --- API HOOKS ---
+  const debouncedSearch = useDebounce(
+    searchTerm.length > 1 ? searchTerm : "",
+    400
+  );
   const { data, isLoading, isFetching, refetch } = useGetAllEmployeesQuery({
     page: currentPage,
     limit: limit,
     status: statusFilter === "All" ? undefined : statusFilter,
-    search: searchTerm,
+    search: debouncedSearch,
   });
-
   const [changeUserStatus, { isLoading: isUpdatingStatus }] = useChangeUserStatusMutation();
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
-
   useSocketEvents({
     onEmployeeChange: refetch,
   });
-
-  // --- CONSOLIDATED HANDLERS ---
 
   const closeConfirmModal = () => {
     setConfirmConfig({ isOpen: false, type: null });
@@ -222,8 +208,8 @@ export default function EmployeeListPage() {
           : `Are you sure you want to change the access status for ${selectedEmp?.user?.name}?`}
         confirmText={
           confirmConfig.type === 'delete'
-            ? "Delete Employee"
-            : (selectedEmp?.user?.status === "Enable" ? "Disable Access" : "Enable Access")
+            ? "Confirm"
+            : (selectedEmp?.user?.status === "Enable" ? "Disable" : "Enable")
         }
         variant={
           confirmConfig.type === 'delete'

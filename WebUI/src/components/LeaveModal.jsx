@@ -5,6 +5,7 @@ import CommonModal, { InputGroup } from "./CommonModal";
 
 // Import mutations directly into the modal
 import { useApplyLeaveMutation, useUpdateLeaveMutation } from '../services/leaveApi';
+import CustomDropdown from "./CustomDropdown";
 
 const LeaveModal = ({ isOpen, onClose, initialData }) => {
   const [formData, setFormData] = useState({
@@ -35,6 +36,11 @@ const LeaveModal = ({ isOpen, onClose, initialData }) => {
   };
 
   const handleSubmit = async () => {
+    if (!formData.reason) {
+      toast.error("Leave reason is required");
+      return;
+    }
+
     const loadingToast = toast.loading(initialData ? "Updating registry..." : "Filing application...");
 
     try {
@@ -65,27 +71,29 @@ const LeaveModal = ({ isOpen, onClose, initialData }) => {
         onSubmit={(e) => e.preventDefault()}
         className="space-y-4"
       >
-        <InputGroup label="Request Category">
+        <InputGroup label="Request Category *">
           <HiOutlineDocumentText className="input-icon" />
-          <select
-            name="type"
+          <CustomDropdown
             value={formData.type}
-            onChange={handleChange}
-            required
-            className="form-input appearance-none cursor-pointer"
-          >
-            <option>Annual Leave</option>
-            <option>Sick Leave</option>
-            <option>Casual Leave</option>
-            <option>Maternity Leave</option>
-            <option>Bereavement Leave</option>
-            <option>Paternity Leave</option>
-            <option>LOP</option>
-          </select>
+            onChange={(val) =>
+              setFormData({ ...formData, type: val })
+            }
+            options={[
+              "Annual Leave",
+              "Sick Leave",
+              "Casual Leave",
+              "Maternity Leave",
+              "Bereavement Leave",
+              "Paternity Leave",
+              "LOP"
+            ]}
+            className="w-full"
+            buttonClass="form-input text-xs font-bold pl-10"
+          />
         </InputGroup>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <InputGroup label="Start Date">
+          <InputGroup label="Start Date *">
             <HiOutlineCalendarDays className="input-icon" />
             <input
               type="date"
@@ -97,7 +105,7 @@ const LeaveModal = ({ isOpen, onClose, initialData }) => {
             />
           </InputGroup>
 
-          <InputGroup label="End Date">
+          <InputGroup label="End Date *">
             <HiOutlineCalendarDays className="input-icon" />
             <input
               type="date"
@@ -111,7 +119,7 @@ const LeaveModal = ({ isOpen, onClose, initialData }) => {
           </InputGroup>
         </div>
 
-        <InputGroup label="Leave Reason">
+        <InputGroup label="Leave Reason *">
           <HiOutlineChatBubbleLeftRight className="input-icon !top-6.5 translate-y-0" />
           <textarea
             name="reason"

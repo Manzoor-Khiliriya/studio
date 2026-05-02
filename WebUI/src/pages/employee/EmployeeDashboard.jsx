@@ -261,7 +261,6 @@ export default function EmployeeDashboard() {
                       forceStopSignal={forceStopSignal}
                       totalSeconds={liveSeconds}
                     />
-                    <FiZap className="absolute -right-10 -bottom-10 text-white/[0.03]" size={200} />
                   </motion.div>
                 </div>
 

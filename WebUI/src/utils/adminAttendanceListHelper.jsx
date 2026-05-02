@@ -20,10 +20,10 @@ export const getAdminAttendanceColumns = () => [
     className: "text-left",
     render: (row) => (
       <div className="flex items-center gap-3 py-1">
-          <p className="text-[10px] text-slate-800 font-black uppercase italic">
-            {new Date(row.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-          </p>
-        </div>
+        <p className="text-[10px] text-slate-800 font-black uppercase italic">
+          {new Date(row.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+        </p>
+      </div>
     )
   },
   {

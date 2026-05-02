@@ -4,6 +4,7 @@ import { HiOutlineSquares2X2, HiOutlineArrowPath } from "react-icons/hi2";
 // UPDATED: Using the specific status update mutation
 import { useUpdateTaskStatusMutation } from "../services/taskApi";
 import { toast } from "react-hot-toast";
+import CustomDropdown from "./CustomDropdown";
 
 export default function StatusUpdateModal({ isOpen, onClose, task }) {
   // Use the new status-specific mutation
@@ -47,36 +48,40 @@ export default function StatusUpdateModal({ isOpen, onClose, task }) {
       <div className="space-y-4">
         <InputGroup label="Active Version">
           <HiOutlineSquares2X2 className="input-icon" />
-          <select
-            className="form-input font-black uppercase text-xs"
+          <CustomDropdown
             value={activeStatus}
-            onChange={(e) => setActiveStatus(e.target.value)}
-          >
-            {["Draft-1", "Draft-2", "Draft-3", "Draft-4", "Draft-5", "Pre-Final", "Final"].map(v => (
-              <option key={v} value={v}>{v}</option>
-            ))}
-          </select>
+            onChange={(val) => setActiveStatus(val)}
+            options={[
+              "Draft-1",
+              "Draft-2",
+              "Draft-3",
+              "Draft-4",
+              "Draft-5",
+              "Pre-Final",
+              "Final"
+            ]}
+            className="w-full"
+            buttonClass="form-input text-xs font-bold pl-10"
+          />
         </InputGroup>
 
         <InputGroup label="Operational Status">
           <HiOutlineArrowPath className="input-icon" />
-          <select
-            className="form-input font-bold text-xs"
+          <CustomDropdown
             value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          >
-            {[
+            onChange={(val) => setStatus(val)}
+            options={[
               "On hold",
               "Modeling",
               "Lighting and Texturing",
               "Feedback pending",
               "Final rendering",
               "Postproduction",
-              "Completed",
-            ].map(s => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
+              "Completed"
+            ]}
+            className="w-full"
+            buttonClass="form-input text-xs font-bold pl-10"
+          />
         </InputGroup>
       </div>
     </CommonModal>

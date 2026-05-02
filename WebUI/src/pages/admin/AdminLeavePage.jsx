@@ -29,6 +29,7 @@ import {
 } from "../../utils/adminLeaveListHelper";
 import { useSocketEvents } from "../../hooks/useSocketEvents";
 import CustomDropdown from "../../components/CustomDropdown";
+import useDebounce from "../../hooks/useDebounce";
 
 export default function AdminLeavePage() {
   const [activeTab, setActiveTab] = useState("requests");
@@ -63,9 +64,13 @@ export default function AdminLeavePage() {
     carryForwardLimit: 0
   });
 
+  const debouncedSearch = useDebounce(
+    searchQuery.length > 1 ? searchQuery : "",
+    400
+  );
   // RTK Query
   const { data, isLoading, isFetching, refetch } = useGetAllLeavesQuery({
-    search: searchQuery,
+    search: debouncedSearch,
     page,
     limit,
     view: activeTab,
@@ -485,17 +490,21 @@ export default function AdminLeavePage() {
           className="space-y-4"
         >
           <InputGroup label="Leave Type">
-            <select
-              className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none text-[11px] uppercase focus:border-orange-500 transition-all"
+            <CustomDropdown
               value={configForm.leaveType}
-              onChange={(e) => setConfigForm({ ...configForm, leaveType: e.target.value })}
-            >
-              <option value="Annual Leave">Annual Leave</option>
-              <option value="Sick Leave">Sick Leave</option>
-              <option value="Bereavement Leave">Bereavement Leave</option>
-              <option value="Paternity Leave">Paternity Leave</option>
-              <option value="Maternity Leave">Maternity Leave</option>
-            </select>
+              onChange={(val) =>
+                setConfigForm({ ...configForm, leaveType: val })
+              }
+              options={[
+                "Annual Leave",
+                "Sick Leave",
+                "Bereavement Leave",
+                "Paternity Leave",
+                "Maternity Leave"
+              ]}
+              className="w-full"
+              buttonClass="form-input text-xs font-bold -pl-6"
+            />
           </InputGroup>
 
           <InputGroup label={configForm.leaveType === "Annual Leave" ? "Days Per Month" : "Days Per Year"}>
@@ -540,6 +549,7 @@ export default function AdminLeavePage() {
         title="Adjust Annual Leave"
         onSubmit={handleAdjustmentSave}
         submitText="Save"
+        maxWidth="max-w-sm"
       >
         <InputGroup label="Adjustment (+ / -)">
           <input
@@ -547,7 +557,7 @@ export default function AdminLeavePage() {
             step="0.5"
             value={adjustValue}
             onChange={(e) => setAdjustValue(Number(e.target.value))}
-            className="w-full p-4 bg-slate-50 border rounded-2xl"
+            className="form-input pl-20"
           />
         </InputGroup>
 

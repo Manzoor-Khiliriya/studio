@@ -12,6 +12,7 @@ import Loader from "../../components/Loader";
 import Pagination from "../../components/Pagination";
 import { useSocketEvents } from "../../hooks/useSocketEvents";
 import CustomDropdown from "../../components/CustomDropdown";
+import useDebounce from "../../hooks/useDebounce";
 
 export default function MyTasksPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -21,11 +22,15 @@ export default function MyTasksPage() {
   const [activeStatusFilter, setActiveStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const limit = 8;
+  const debouncedSearch = useDebounce(
+    searchTerm.length > 1 ? searchTerm : "",
+    400
+  );
 
   const { data, isLoading, isFetching, refetch } = useGetMyTasksQuery({
     page: currentPage,
     limit,
-    search: searchTerm,
+    search: debouncedSearch,
     status: statusFilter === "All" ? "" : statusFilter,
     liveStatus: liveStatusFilter === "All" ? "" : liveStatusFilter,
     activeStatus: activeStatusFilter === "All" ? "" : activeStatusFilter,

@@ -20,6 +20,7 @@ import { getAdminHolidayColumns } from "../../utils/adminHolidayHelper";
 import { useSocketEvents } from "../../hooks/useSocketEvents";
 import { set } from "date-fns";
 import CustomDropdown from "../../components/CustomDropdown";
+import useDebounce from "../../hooks/useDebounce";
 
 export default function AdminHolidayPage() {
   const holidayInitialState = { name: "", date: "", description: "" };
@@ -31,7 +32,12 @@ export default function AdminHolidayPage() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [holidayToDelete, setHolidayToDelete] = useState(null);
 
-  const { data: holidays = [], isLoading, isFetching, refetch } = useGetHolidaysQuery({ year, search });
+  const debouncedSearch = useDebounce(
+    search.trim().length > 1 ? search.trim() : "",
+    500
+  );
+
+  const { data: holidays = [], isLoading, isFetching, refetch } = useGetHolidaysQuery({ year, search: debouncedSearch });
   const [addHoliday, { isLoading: isSaving }] = useAddHolidayMutation();
   const [updateHoliday] = useUpdateHolidayMutation();
   const [deleteHoliday, { isLoading: isDeleting }] = useDeleteHolidayMutation();
@@ -126,7 +132,7 @@ export default function AdminHolidayPage() {
               <HiOutlineMagnifyingGlass className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors" size={18} />
               <input
                 type="text"
-                placeholder="Search by title or description..."
+                placeholder="Search by name or description..."
                 className="w-full pl-12 pr-6 py-3.5 bg-white border border-slate-200 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/5 outline-none font-bold text-xs transition-all shadow-sm group"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}

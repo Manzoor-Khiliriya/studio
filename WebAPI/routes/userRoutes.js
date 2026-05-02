@@ -5,7 +5,8 @@ const { authenticate, authorize } = require("../middlewares/authMiddleware");
 
 router.use(authenticate);
 
-// Admin-only user management
+router.post("/heartbeat", userController.heartbeat);
+
 router.post("/", authorize("Admin"), userController.createUser);
 router.get("/", authorize("Admin"), userController.getAllUsers);
 router.get("/:id", authorize("Admin"), userController.getUserById);

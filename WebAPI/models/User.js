@@ -30,6 +30,11 @@ const userSchema = new mongoose.Schema({
     enum: ["Enable", "Disable"],
     default: "Enable",
   },
+  lastActiveAt: {
+    type: Date,
+    default: null,
+    index: true
+  },
   resetPasswordToken: {
     type: String,
     default: null,

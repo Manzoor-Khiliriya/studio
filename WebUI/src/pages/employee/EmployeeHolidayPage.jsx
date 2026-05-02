@@ -27,54 +27,53 @@ export default function EmployeeHolidayPage() {
   // --- REUSABLE TABLE COLUMNS ---
   const columns = [
     {
+      header: "Holiday Name",
+      render: (r) => (
+        <p className="font-black text-slate-900 text-[11px] uppercase tracking-tight group-hover:text-orange-600 transition-colors">
+          {r.name}
+        </p>
+      ),
+    },
+    {
       header: "Holiday Date",
-      className: "text-left",
-      render: (h) => {
-        const d = new Date(h.date);
+      render: (r) => {
+        const d = new Date(r.date);
         return (
-          <div className="flex items-center gap-4">
-            <div className="flex flex-col items-center justify-center bg-slate-900 text-white min-w-[3rem] h-12 rounded-xl shadow-lg shadow-slate-200">
-              <span className="text-[10px] font-black leading-none uppercase text-orange-400">
-                {d.toLocaleDateString("en-IN", { month: "short" })}
-              </span>
-              <span className="text-lg font-black leading-none">{d.getDate()}</span>
-            </div>
-            <p className="font-black text-slate-900 text-sm uppercase tracking-tight">
-              {d.toLocaleDateString("en-IN", { weekday: "long" })}
-            </p>
-          </div>
+          <p className="text-[11px] text-slate-800 font-black uppercase italic">
+            {new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+          </p>
         );
       },
     },
     {
-      header: "Holiday Name",
-      render: (h) => (
-        <span className="font-black text-slate-900 text-sm uppercase tracking-tight">
-          {h.name}
-        </span>
-      ),
+      header: "Day",
+      render: (r) => {
+        const d = new Date(r.date);
+        return (
+          <p className="font-black text-slate-900 text-[11px] uppercase tracking-tight">
+            {d.toLocaleDateString("en-IN", { weekday: "long" })}
+          </p>
+        );
+      },
     },
     {
       header: "Countdown",
-      className: "text-center",
-      cellClassName: "text-center",
       render: (h) => {
         const diffTime = new Date(h.date) - today;
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         return (
-          <div className="flex flex-col items-center">
-            <span className={`text-xs font-black uppercase ${diffDays <= 7 ? 'text-orange-500' : 'text-slate-500'}`}>
-              {diffDays === 0 ? "Today" : `In ${diffDays} Days`}
-            </span>
-          </div>
+          <p className={`text-xs font-black uppercase ${diffDays <= 7 ? 'text-orange-500' : 'text-slate-500'}`}>
+            {diffDays === 0 ? "Today" : `In ${diffDays} Days`}
+          </p>
         );
       }
     },
     {
       header: "Description",
-      render: (h) => (
-        <p className="text-xs font-bold text-slate-500 max-w-[300px] italic leading-relaxed">
-          {h.description || "Public observance. All production cycles suspended."}
+      className: "hidden md:table-cell",
+      render: (r) => (
+        <p className="text-xs font-bold text-slate-400 italic max-w-xs truncate block">
+          {r.description || "No specific instructions provided."}
         </p>
       ),
     },

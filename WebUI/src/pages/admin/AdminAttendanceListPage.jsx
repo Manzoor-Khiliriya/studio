@@ -23,27 +23,23 @@ import Pagination from "../../components/Pagination";
 import { useGetLeaveCalendarQuery } from "../../services/leaveApi";
 import { useSocketEvents } from "../../hooks/useSocketEvents";
 import CustomDropdown from "../../components/CustomDropdown";
+import useDebounce from "../../hooks/useDebounce";
 
 export default function AttendanceManagement() {
   const [activeTab, setActiveTab] = useState("logs");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [rangeType, setRangeType] = useState("today");
   const [dateFilter, setDateFilter] = useState({
     startDate: format(startOfToday(), "yyyy-MM-dd"),
     endDate: format(endOfToday(), "yyyy-MM-dd"),
   });
   const [currentMonth, setCurrentMonth] = useState(new Date());
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(1);
-    }, 500);
-    return () => clearTimeout(handler);
-  }, [search]);
+  const debouncedSearch = useDebounce(
+    search.trim().length > 1 ? search.trim() : "",
+    500
+  );
 
   const { data, isLoading, isFetching, refetch } = useGetAllAttendanceQuery({
     startDate: activeTab === "logs" ? dateFilter.startDate : format(startOfMonth(currentMonth), "yyyy-MM-dd"),

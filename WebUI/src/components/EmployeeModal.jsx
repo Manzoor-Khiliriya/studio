@@ -102,11 +102,11 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
         className="space-y-4"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <InputGroup label="Full Name">
+          <InputGroup label="Full Name *">
             <HiOutlineUser className="input-icon" />
             <input required name="name" value={formData.name} onChange={handleChange} className="form-input capitalize" placeholder="Enter Full Name" />
           </InputGroup>
-          <InputGroup label="Employee Code">
+          <InputGroup label="Employee Code *">
             <HiOutlineIdentification className="input-icon" />
             <input required name="employeeCode" value={formData.employeeCode} onChange={handleChange} className="form-input" placeholder="Enter Employee Code" />
           </InputGroup>
@@ -114,7 +114,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
 
         {/* ROW 2: EMAIL & MOBILE */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <InputGroup label="Job Title">
+          <InputGroup label="Job Title *">
             <HiOutlineBriefcase className="input-icon" />
             <input required name="designation" value={formData.designation} onChange={handleChange} className="form-input" placeholder="Enter Job Title" />
           </InputGroup>
@@ -125,12 +125,12 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
         </div>
 
         <div className={isEditing ? "w-full" : "grid grid-cols-1 md:grid-cols-2 gap-4"}>
-          <InputGroup label="Work Email">
+          <InputGroup label="Work Email *">
             <HiOutlineMail className="input-icon" />
             <input required type="email" name="email" value={formData.email} onChange={handleChange} className="form-input" placeholder="john@company.com" />
           </InputGroup>
           {!isEditing && (
-            <InputGroup label="Password">
+            <InputGroup label="Password *">
               <HiOutlineLockClosed className="input-icon" />
               <input
                 required
@@ -158,7 +158,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
             <HiOutlineCake className="input-icon" />
             <input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleChange} className="form-input" />
           </InputGroup>
-          <InputGroup label="Onboarding Date">
+          <InputGroup label="Onboarding Date *">
             <HiOutlineCalendarDays className="input-icon" />
             <input required type="date" name="joinedDate" value={formData.joinedDate} onChange={handleChange} className="form-input" />
           </InputGroup>
@@ -166,11 +166,11 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
 
         {/* ROW 4: WORK LIMIT & proficiency */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <InputGroup label="Daily Work Limit (Hrs)">
+          <InputGroup label="Daily Work Limit (Hrs) *">
             <HiOutlineClock className="input-icon" />
             <input required name="dailyWorkLimit" value={formData.dailyWorkLimit} onChange={handleChange} className="form-input" placeholder="Enter Daily Work Limit" />
           </InputGroup>
-          <InputGroup label="Proficiency (%)">
+          <InputGroup label="Proficiency (%) *">
             <HiOutlineChartBar className="input-icon" />
             <input required name="proficiency" value={formData.proficiency} onChange={handleChange} className="form-input" placeholder="Enter Proficiency" />
           </InputGroup>

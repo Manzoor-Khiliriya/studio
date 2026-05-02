@@ -3,6 +3,12 @@ import { apiSlice } from './apiSlice';
 export const userApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
 
+    heartbeat: builder.mutation({
+      query: () => ({
+        url: "/users/heartbeat",
+        method: "POST",
+      }),
+    }),
     getAllUsers: builder.query({
       query: () => '/users',
       providesTags: (result) =>
@@ -37,7 +43,7 @@ export const userApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, { id }) => [
         { type: 'User', id },
         { type: 'User', id: 'LIST' },
-        { type: 'Employee', id: 'LIST' } 
+        { type: 'Employee', id: 'LIST' }
       ],
     }),
     changeUserStatus: builder.mutation({
@@ -66,6 +72,7 @@ export const userApi = apiSlice.injectEndpoints({
 });
 
 export const {
+  useHeartbeatMutation,
   useGetAllUsersQuery,
   useGetUserByIdQuery,
   useCreateUserMutation,

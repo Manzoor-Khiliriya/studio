@@ -32,7 +32,7 @@ export default function HolidayModal({
         className="space-y-6"
       >
         {/* HOLIDAY NAME */}
-        <InputGroup label="Holiday Name">
+        <InputGroup label="Holiday Name *">
           <HiOutlineSparkles className="input-icon" />
           <input
             required
@@ -47,7 +47,7 @@ export default function HolidayModal({
         </InputGroup>
 
         {/* DATE SELECT */}
-        <InputGroup label="Holiday Date">
+        <InputGroup label="Holiday Date *">
           <HiOutlineCalendar className="input-icon" />
           <input
             required

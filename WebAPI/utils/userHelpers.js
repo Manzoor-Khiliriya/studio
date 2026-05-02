@@ -44,8 +44,11 @@ exports.isActiveEmployee = (user) =>
 // utils/applyProficiency.js
 
 exports.applyProficiency = async (userId, rawSeconds) => {
-  const employee = await Employee.findOne({ user: userId });
-  const proficiency = employee?.proficiency ?? 100;
+  const employee = await Employee.findOne({ user: userId }).select("proficiency");
+  let proficiency = employee?.proficiency;
+  if (typeof proficiency !== "number") {
+    proficiency = 100;
+  }
   const adjustedSeconds = Math.round(rawSeconds * (proficiency / 100));
   return { rawSeconds, adjustedSeconds };
 };

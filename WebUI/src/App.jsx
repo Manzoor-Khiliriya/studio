@@ -32,6 +32,7 @@ import EmployeeLeavePage from "./pages/employee/EmployeeLeavePage";
 import EmployeeHolidayPage from "./pages/employee/EmployeeHolidayPage";
 import { useEffect } from "react";
 import { connectSocket } from "./socket";
+import { useHeartbeatMutation } from "./services/userApi";
 
 function AppContent() {
   const user = useSelector((state) => state.auth.user);
@@ -40,6 +41,19 @@ function AppContent() {
       connectSocket(user._id);
     }
   }, [user]);
+
+  const [sendHeartbeat] = useHeartbeatMutation();
+
+  useEffect(() => {
+    if (!user?._id) return;
+
+    const interval = setInterval(() => {
+      sendHeartbeat().unwrap().catch(() => { });
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [user?._id, sendHeartbeat]);
+
   return (
     <>
       {user && <NotificationHandler userId={user._id} />}

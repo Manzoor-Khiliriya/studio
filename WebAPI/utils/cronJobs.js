@@ -12,6 +12,7 @@ const Notification = require("../models/Notification");
 
 const { calculateLeaveDays } = require("../utils/leaveHelpers");
 const { now } = require("../utils/dateHelper");
+const Employee = require("../models/Employee");
 
 //
 // 🔥 HELPER (timezone-safe)
@@ -217,9 +218,108 @@ async function runYearlyCarryForwardSafe() {
 }
 
 //
+// 🔥 4. AUTO CLOCK OUT (DAILY)
+
+async function runMidnightShutdown() {
+  try {
+    const currentTime = now();
+    console.log("🕛 Midnight shutdown started...");
+    const employees = await Employee.find().select("user proficiency");
+    const proficiencyMap = new Map(
+      employees.map(e => [e.user.toString(), e.proficiency ?? 100])
+    );
+    const activeLogs = await TimeLog.find({ isRunning: true });
+    const midnight = new Date(currentTime);
+    midnight.setHours(0, 0, 0, 0);
+    for (const log of activeLogs) {
+      const startTime = new Date(log.startTime);
+      const proficiency =
+        Math.max(0, Math.min(proficiencyMap.get(log.user.toString()) ?? 100, 200));
+      if (startTime >= midnight) {
+        const rawSeconds = Math.max(
+          0,
+          Math.floor((currentTime - startTime) / 1000)
+        );
+
+        if (log.logType === "work") {
+          const adjustedSeconds = Math.round(rawSeconds * (proficiency / 100));
+          log.rawDurationSeconds = rawSeconds;
+          log.durationSeconds = adjustedSeconds;
+        } else {
+          log.durationSeconds = rawSeconds;
+        }
+
+        log.endTime = currentTime;
+        log.isRunning = false;
+
+        await log.save();
+        continue;
+      }
+      const firstPartSeconds = Math.max(
+        0,
+        Math.floor((midnight - startTime) / 1000)
+      );
+
+      if (log.logType === "work") {
+        const adjustedSeconds = Math.round(firstPartSeconds * (proficiency / 100));
+        log.rawDurationSeconds = firstPartSeconds;
+        log.durationSeconds = adjustedSeconds;
+      } else {
+        log.durationSeconds = firstPartSeconds;
+      }
+
+      log.endTime = midnight;
+      log.isRunning = false;
+      await log.save();
+      const secondPartSeconds = Math.max(
+        0,
+        Math.floor((currentTime - midnight) / 1000)
+      );
+
+      let finalSeconds = secondPartSeconds;
+
+      if (log.logType === "work") {
+        finalSeconds = Math.round(secondPartSeconds * (proficiency / 100));
+      }
+
+      await TimeLog.create({
+        user: log.user,
+        task: log.task,
+        startTime: midnight,
+        endTime: currentTime,
+        rawDurationSeconds: secondPartSeconds,
+        durationSeconds: finalSeconds,
+        logType: log.logType,
+        isRunning: false,
+        dateString: midnight.toISOString().split("T")[0]
+      });
+    }
+
+    console.log(`⏹ Processed ${activeLogs.length} time logs`);
+
+    const activeAttendance = await Attendance.find({ clockOut: null });
+    for (const record of activeAttendance) {
+      const sessionSeconds = Math.floor(
+        (currentTime - new Date(record.lastResumeTime)) / 1000
+      );
+      record.clockOut = currentTime;
+      record.totalSecondsWorked += sessionSeconds;
+      await record.save();
+    }
+    console.log(`🕛 Clocked out ${activeAttendance.length} users`);
+    console.log("✅ Midnight shutdown complete");
+  } catch (err) {
+    console.error("❌ Midnight shutdown failed:", err.message);
+  }
+};
+
+//
 // 🔥 CRON SCHEDULES (IST SAFE)
 //
-cron.schedule("0 0 * * *", runCleanupSafe, {
+cron.schedule("0 0 * * *", async () => {
+  await runMidnightShutdown();
+  await runCleanupSafe();
+}, {
   timezone: "Asia/Kolkata"
 });
 
@@ -228,6 +328,52 @@ cron.schedule("0 0 1 * *", runMonthlyAccrualSafe, {
 });
 
 cron.schedule("0 1 1 1 *", runYearlyCarryForwardSafe, {
+  timezone: "Asia/Kolkata"
+});
+
+//
+// 🔥 5. HEARTBEAT AUTO STOP (NEW)
+//
+cron.schedule("* * * * *", async () => {
+  const threshold = new Date(now().getTime() - 60000); // 1 min
+
+  const inactiveUsers = await User.find({
+    lastActiveAt: { $exists: true, $lt: threshold }
+  });
+
+  if (!inactiveUsers.length) return;
+
+  const currentTime = now();
+
+  console.log(`⚡ Found ${inactiveUsers.length} inactive users`);
+
+  for (const user of inactiveUsers) {
+
+    // 🔥 STOP TASK TIMERS
+    await TimeLog.updateMany(
+      { user: user._id, isRunning: true },
+      {
+        $set: {
+          isRunning: false,
+          endTime: currentTime
+        }
+      }
+    );
+
+    // 🔥 CLOCK OUT ATTENDANCE
+    await Attendance.updateMany(
+      { user: user._id, clockOut: null },
+      {
+        $set: {
+          clockOut: currentTime
+        }
+      }
+    );
+  }
+
+  console.log("✅ Inactive users auto-stopped");
+
+}, {
   timezone: "Asia/Kolkata"
 });
 

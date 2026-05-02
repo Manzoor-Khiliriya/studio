@@ -8,44 +8,42 @@ import { FiEdit, FiTrash2 } from "react-icons/fi";
  */
 export const getAdminHolidayColumns = (onEdit, onDelete) => [
   {
+    header: "Holiday Name",
+    render: (r) => (
+      <p className="font-black text-slate-900 text-[11px] uppercase tracking-tight group-hover:text-orange-600 transition-colors">
+        {r.name}
+      </p>
+    ),
+  },
+  {
     header: "Holiday Date",
     render: (r) => {
       const d = new Date(r.date);
       return (
-        <div className="flex items-center gap-4 py-1">
-          <div className="flex flex-col items-center justify-center bg-slate-900 text-white w-10 h-10 rounded-lg shadow-lg">
-            <span className="text-[9px] font-black leading-none uppercase opacity-60">
-              {d.toLocaleDateString("en-IN", { month: "short" })}
-            </span>
-            <span className="text-base font-black leading-none">{d.getDate()}</span>
-          </div>
-          <div>
-            <p className="font-black text-slate-900 text-[11px] uppercase tracking-tight">
-              {d.toLocaleDateString("en-IN", { weekday: "long" })}
-            </p>
-            <p className="text-[9px] font-bold text-slate-400 uppercase italic">
-              {d.getFullYear()}
-            </p>
-          </div>
-        </div>
+        <p className="text-[11px] text-slate-800 font-black uppercase italic">
+          {new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+        </p>
       );
     },
   },
   {
-    header: "Holiday Name",
-    render: (r) => (
-      <span className="font-black text-slate-900 text-sm uppercase tracking-tight group-hover:text-orange-600 transition-colors">
-        {r.name}
-      </span>
-    ),
+    header: "Day",
+    render: (r) => {
+      const d = new Date(r.date);
+      return (
+        <p className="font-black text-slate-900 text-[11px] uppercase tracking-tight">
+          {d.toLocaleDateString("en-IN", { weekday: "long" })}
+        </p>
+      );
+    },
   },
   {
     header: "Description",
     className: "hidden md:table-cell",
     render: (r) => (
-      <span className="text-xs font-bold text-slate-400 italic max-w-xs truncate block">
+      <p className="text-xs font-bold text-slate-400 italic max-w-xs truncate block">
         {r.description || "No specific instructions provided."}
-      </span>
+      </p>
     ),
   },
   {

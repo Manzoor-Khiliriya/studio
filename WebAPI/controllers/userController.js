@@ -182,3 +182,14 @@ exports.deleteUser = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.heartbeat = async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.user._id, {
+      lastActiveAt: now()
+    });
+    res.sendStatus(200);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
