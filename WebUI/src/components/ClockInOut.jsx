@@ -137,11 +137,11 @@ export default function ClockInOut({ taskList = [], totalSeconds }) {
         variant="error"
       />
 
-      {/* <FloatingTimer
+      <FloatingTimer
         seconds={totalSeconds}
         isRunning={!!activeLog && !isPaused}
         isBreak={isPaused}
-      /> */}
+      />
     </>
   );
 }

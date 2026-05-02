@@ -69,7 +69,7 @@ export default function CustomDropdown({
           )}
 
           {/* OPTIONS */}
-          <div className="max-h-60 overflow-y-auto custom-scrollbar">
+          <div className="max-h-70 overflow-y-auto custom-scrollbar">
             {filteredOptions.length === 0 && (
               <div className="px-3 py-2 text-xs text-slate-400">
                 No results found

@@ -322,7 +322,7 @@ const debouncedTaskSearch = useDebounce(
       />
 
       <main className="max-w-[1750px] mx-auto px-8 pb-10 -mt-10">
-        <div className="bg-white/90 backdrop-blur-xl border border-slate-200 p-6 rounded-[2.5rem] shadow-xl shadow-slate-200/50 mb-4 flex flex-col gap-5">
+        <div className="bg-white/90 border border-slate-200 p-6 rounded-[2.5rem] shadow-xl shadow-slate-200/50 mb-4 flex flex-col gap-5 overflow-visible">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             <div className={`relative group ${activeTab !== "live" ? "lg:col-span-12" : "lg:col-span-6"}`}>
               <HiOutlineMagnifyingGlass className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors" size={18} />
