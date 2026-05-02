@@ -334,73 +334,70 @@ cron.schedule("0 1 1 1 *", runYearlyCarryForwardSafe, {
 //
 // 🔥 5. HEARTBEAT AUTO STOP (NEW)
 //
-cron.schedule("* * * * *", async () => {
-  const threshold = new Date(now().getTime() - 60000);
+module.exports = (io) => {
 
-  const inactiveUsers = await User.find({
-    lastActiveAt: { $exists: true, $lt: threshold }
-  });
+  cron.schedule("* * * * *", async () => {
+    try {
+      const currentTime = now();
 
-  if (!inactiveUsers.length) return;
+      const threshold = new Date(currentTime.getTime() - 60000);
 
-  const currentTime = now();
+      const inactiveUsers = await User.find({
+        lastActiveAt: { $exists: true, $lt: threshold }
+      });
 
-  console.log(`⚡ Found ${inactiveUsers.length} inactive users`);
+      if (!inactiveUsers.length) return;
 
-  for (const user of inactiveUsers) {
+      console.log(`⚡ Found ${inactiveUsers.length} inactive users`);
 
-    // 🔥 TIMELOG FIX
-    const activeLogs = await TimeLog.find({
-      user: user._id,
-      isRunning: true
-    });
+      for (const user of inactiveUsers) {
 
-    for (const log of activeLogs) {
-      const startTime = new Date(log.startTime);
+        // 🔥 STOP TIMELOG
+        const logs = await TimeLog.find({ user: user._id, isRunning: true });
 
-      const rawSeconds = Math.max(
-        0,
-        Math.floor((currentTime - startTime) / 1000)
-      );
+        for (const log of logs) {
+          const rawSeconds = Math.floor((currentTime - log.startTime) / 1000);
 
-      if (log.logType === "work") {
-        const employee = await Employee.findOne({ user: user._id });
-        const proficiency = employee?.proficiency ?? 100;
+          log.durationSeconds = rawSeconds;
+          log.endTime = currentTime;
+          log.isRunning = false;
 
-        const adjustedSeconds = Math.round(rawSeconds * (proficiency / 100));
+          await log.save();
+        }
 
-        log.rawDurationSeconds = rawSeconds;
-        log.durationSeconds = adjustedSeconds;
-      } else {
-        log.durationSeconds = rawSeconds;
+        // 🔥 STOP ATTENDANCE
+        const records = await Attendance.find({
+          user: user._id,
+          clockOut: null
+        });
+
+        for (const record of records) {
+          const sessionSeconds = Math.floor(
+            (currentTime - new Date(record.lastResumeTime)) / 1000
+          );
+
+          record.clockOut = currentTime;
+          record.totalSecondsWorked += sessionSeconds;
+
+          await record.save();
+        }
+
+        // 🔥 EMIT TO THAT USER (optional)
+        io.to(user._id.toString()).emit("attendanceChanged");
       }
 
-      log.endTime = currentTime;
-      log.isRunning = false;
+      // 🔥 GLOBAL EMIT (IMPORTANT)
+      io.emit("attendanceChanged");
+      io.emit("dashboardUpdate");
 
-      await log.save();
+      console.log("✅ Heartbeat auto-stop done");
+
+    } catch (err) {
+      console.error("❌ Cron error:", err.message);
     }
+  });
 
-    // 🔥 ATTENDANCE FIX
-    const activeAttendance = await Attendance.find({
-      user: user._id,
-      clockOut: null
-    });
-
-    for (const record of activeAttendance) {
-      const sessionSeconds = Math.floor(
-        (currentTime - new Date(record.lastResumeTime)) / 1000
-      );
-      record.clockOut = currentTime;
-      record.totalSecondsWorked += sessionSeconds;
-      await record.save();
-    }
-  }
-  console.log("✅ Inactive users auto-stopped");
-
-}, {
-  timezone: "Asia/Kolkata"
-});
+};
 
 //
 // 🔥 SAFE FALLBACK (on server restart)

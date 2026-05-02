@@ -23,7 +23,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "*", 
+    origin: "*",
     methods: ["GET", "POST"]
   }
 });
@@ -36,7 +36,8 @@ app.use(express.json());
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log("DB Connected");
-    require("./utils/cronJobs"); 
+    const cronJobs = require("./utils/cronJobs");
+    cronJobs(io);
   })
   .catch(err => console.log(err));
 
