@@ -54,7 +54,8 @@ exports.getEmployeeProfile = async (req, res) => {
 exports.getMyEmployeeProfile = async (req, res) => {
   try {
     const employee = await Employee.findOne({ user: req.user._id })
-      .populate("user", "name email role status")
+      .select("-dailyWorkLimit -proficiency -createdAt -updatedAt")
+      .populate("user", "name email")
       .lean();
     if (!employee) {
       return res.status(404).json({ message: "Employee profile not found" });

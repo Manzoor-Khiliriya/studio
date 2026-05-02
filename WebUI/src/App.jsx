@@ -33,6 +33,7 @@ import EmployeeHolidayPage from "./pages/employee/EmployeeHolidayPage";
 import { useEffect } from "react";
 import { connectSocket } from "./socket";
 import { useHeartbeatMutation } from "./services/userApi";
+import EmployeeProfilePage from "./pages/employee/EmployeeProfilePage";
 
 function AppContent() {
   const user = useSelector((state) => state.auth.user);
@@ -87,6 +88,7 @@ function AppContent() {
             <Route element={<ProtectedRoute allowedRoles={["Employee"]} />}>
               <Route element={<Layout />}>
                 <Route path="/employee" element={<EmployeeDashboard />} />
+                <Route path="/my-profile" element={<EmployeeProfilePage />} />
                 <Route path="/my-tasks" element={<MyTasksPage />} />
                 <Route path="/my-leaves" element={<EmployeeLeavePage />} />
                 <Route path="/public-holidays" element={<EmployeeHolidayPage />} />

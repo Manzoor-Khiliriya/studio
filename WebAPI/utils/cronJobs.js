@@ -335,7 +335,7 @@ cron.schedule("0 1 1 1 *", runYearlyCarryForwardSafe, {
 // 🔥 5. HEARTBEAT AUTO STOP (NEW)
 //
 cron.schedule("* * * * *", async () => {
-  const threshold = new Date(now().getTime() - 60000); // 1 min
+  const threshold = new Date(now().getTime() - 60000);
 
   const inactiveUsers = await User.find({
     lastActiveAt: { $exists: true, $lt: threshold }
@@ -349,28 +349,53 @@ cron.schedule("* * * * *", async () => {
 
   for (const user of inactiveUsers) {
 
-    // 🔥 STOP TASK TIMERS
-    await TimeLog.updateMany(
-      { user: user._id, isRunning: true },
-      {
-        $set: {
-          isRunning: false,
-          endTime: currentTime
-        }
-      }
-    );
+    // 🔥 TIMELOG FIX
+    const activeLogs = await TimeLog.find({
+      user: user._id,
+      isRunning: true
+    });
 
-    // 🔥 CLOCK OUT ATTENDANCE
-    await Attendance.updateMany(
-      { user: user._id, clockOut: null },
-      {
-        $set: {
-          clockOut: currentTime
-        }
+    for (const log of activeLogs) {
+      const startTime = new Date(log.startTime);
+
+      const rawSeconds = Math.max(
+        0,
+        Math.floor((currentTime - startTime) / 1000)
+      );
+
+      if (log.logType === "work") {
+        const employee = await Employee.findOne({ user: user._id });
+        const proficiency = employee?.proficiency ?? 100;
+
+        const adjustedSeconds = Math.round(rawSeconds * (proficiency / 100));
+
+        log.rawDurationSeconds = rawSeconds;
+        log.durationSeconds = adjustedSeconds;
+      } else {
+        log.durationSeconds = rawSeconds;
       }
-    );
+
+      log.endTime = currentTime;
+      log.isRunning = false;
+
+      await log.save();
+    }
+
+    // 🔥 ATTENDANCE FIX
+    const activeAttendance = await Attendance.find({
+      user: user._id,
+      clockOut: null
+    });
+
+    for (const record of activeAttendance) {
+      const sessionSeconds = Math.floor(
+        (currentTime - new Date(record.lastResumeTime)) / 1000
+      );
+      record.clockOut = currentTime;
+      record.totalSecondsWorked += sessionSeconds;
+      await record.save();
+    }
   }
-
   console.log("✅ Inactive users auto-stopped");
 
 }, {

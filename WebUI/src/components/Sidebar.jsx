@@ -11,7 +11,8 @@ import {
   HiOutlineViewColumns,
   HiOutlineChevronRight,
   HiOutlineFlag,
-  HiCalendar
+  HiCalendar,
+  HiOutlineUser
 } from "react-icons/hi2";
 import { FiMenu } from "react-icons/fi";
 import { HiLogout, HiOutlineCalendar } from "react-icons/hi";
@@ -43,6 +44,7 @@ export default function Sidebar() {
 
   const employeeLinks = [
     { to: "/employee", label: "Overview", icon: <HiOutlineViewColumns /> },
+    { to: "/my-profile", label: "Profile", icon: <HiOutlineUser /> },
     { to: "/my-tasks", label: "My Tasks", icon: <HiOutlineQueueList /> },
     { to: '/my-leaves', label: 'Leaves', icon: <HiOutlineCalendar /> },
     { to: '/public-holidays', label: 'Calendar', icon: <HiOutlineFlag /> },

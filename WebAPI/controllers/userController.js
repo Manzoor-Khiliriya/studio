@@ -4,6 +4,7 @@ const { sanitizeUser } = require("../utils/userHelpers");
 const { hashPassword } = require("../utils/authHelpers");
 const sendNotification = require("../utils/notifier");
 const { emitDashboardUpdate } = require("../utils/socket");
+const { now } = require("../utils/dateHelper");
 
 const emitEvent = (req, event, data, userId = null) => {
   const io = req.app.get("socketio");
