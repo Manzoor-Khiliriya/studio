@@ -43,7 +43,7 @@ export default function TruncateText({
       </span>
 
       {open && (
-        <div className="absolute mt-2 bg-white border border-slate-200 shadow-xl rounded-lg p-3 text-xs font-medium text-slate-700 w-max">
+        <div className="absolute z-40 mt-2 bg-white border border-slate-200 shadow-xl rounded-lg p-3 text-xs font-medium text-slate-700 w-max">
           {text || "-"}
         </div>
       )}

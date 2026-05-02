@@ -41,9 +41,10 @@ export default function CustomDropdown({
       <div
         tabIndex={0}
         onClick={() => !disabled && setOpen(!open)}
-        className={`flex items-center justify-between cursor-pointer ${
-          disabled ? "opacity-50 cursor-not-allowed" : ""
-        } ${buttonClass || "form-input pl-10"}`}
+        className={`flex items-center justify-between cursor-pointer ${disabled ? "opacity-50 cursor-not-allowed" : ""
+          } ${buttonClass ||
+          "pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700"
+          }`}
       >
         <span className="truncate">{selectedLabel}</span>
         <HiChevronDown className={`transition ${open ? "rotate-180" : ""}`} />
@@ -51,24 +52,24 @@ export default function CustomDropdown({
 
       {/* DROPDOWN */}
       {open && (
-        <div className="absolute z-[99999] mt-1 w-full bg-slate-900 border border-white/10 rounded-md shadow-lg overflow-hidden">
-          
+        <div className="absolute z-[9999] mt-1 w-full bg-white border border-slate-200 rounded-md shadow-lg overflow-hidden">
+
           {/* 🔍 SEARCH INPUT */}
           {searchable && (
-            <div className="p-2 border-b border-white/10">
+            <div className=" border-b border-white/10">
               <input
                 autoFocus
                 type="text"
                 placeholder="Search..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-slate-800 text-white outline-none rounded-md"
+                className="w-full px-3 py-2 text-xs bg-slate-800 text-white outline-none"
               />
             </div>
           )}
 
           {/* OPTIONS */}
-          <div className="max-h-60 overflow-y-auto">
+          <div className="max-h-60 overflow-y-auto custom-scrollbar">
             {filteredOptions.length === 0 && (
               <div className="px-3 py-2 text-xs text-slate-400">
                 No results found
@@ -88,11 +89,10 @@ export default function CustomDropdown({
                     setOpen(false);
                     setSearch(""); // reset search
                   }}
-                  className={`px-3 py-2 text-xs font-semibold cursor-pointer truncate ${
-                    value === val
-                      ? "bg-orange-500 text-white"
-                      : "text-white hover:bg-orange-600/20"
-                  }`}
+                  className={`px-2 py-2 text-[10px] font-semibold cursor-pointer ${value === val
+                    ? "bg-orange-500 text-white"
+                    : "text-slate-700 hover:bg-orange-100"
+                    }`}
                 >
                   {label}
                 </div>
