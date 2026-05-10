@@ -87,7 +87,7 @@ export default function CustomDropdown({
                     if (disabled) return;
                     onChange(val);
                     setOpen(false);
-                    setSearch(""); // reset search
+                    setSearch("");
                   }}
                   className={`px-2 py-2 text-[10px] font-semibold cursor-pointer ${value === val
                     ? "bg-orange-500 text-white"

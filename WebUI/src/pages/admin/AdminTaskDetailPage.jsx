@@ -16,7 +16,10 @@ import {
 } from "react-icons/hi2";
 import { toast } from "react-hot-toast";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
-import { useGetTaskDetailQuery, useDeleteTaskMutation } from "../../services/taskApi";
+import {
+  useGetTaskDetailQuery,
+  useDeleteTaskMutation,
+} from "../../services/taskApi";
 import Loader from "../../components/Loader";
 import ConfirmModal from "../../components/ConfirmModal";
 import EmployeeAssignModal from "../../components/EmployeeAssignModal";
@@ -37,8 +40,33 @@ const formatToHrMin = (totalSeconds) => {
 };
 
 const getOperatorColor = (index) => {
-  const palette = ["#f97316", "#8b5cf6", "#ec4899", "#06b6d4", "#10b981", "#f59e0b", "#6366f1"];
+  const palette = [
+    "#f97316",
+    "#8b5cf6",
+    "#ec4899",
+    "#06b6d4",
+    "#10b981",
+    "#f59e0b",
+    "#6366f1",
+  ];
   return palette[index % palette.length];
+};
+
+const formatHoursToDays = (hours) => {
+  const totalHours = Number(hours || 0);
+
+  const days = Math.floor(totalHours / 9);
+  const remainingHours = totalHours % 9;
+
+  if (days > 0 && remainingHours > 0) {
+    return `${days} Day${days > 1 ? "s" : ""} ${remainingHours} Hr${remainingHours > 1 ? "s" : ""}`;
+  }
+
+  if (days > 0) {
+    return `${days} Day${days > 1 ? "s" : ""}`;
+  }
+
+  return `${remainingHours} Hr${remainingHours > 1 ? "s" : ""}`;
 };
 
 export default function AdminTaskDetailPage() {
@@ -60,28 +88,40 @@ export default function AdminTaskDetailPage() {
   });
 
   // Derived Values (Memoized for performance)
-  const { consumedSec, allocatedSec, timeData, employeePieData } = useMemo(() => {
-    if (!task) return { consumedSec: 0, allocatedSec: 0, timeData: [], employeePieData: [] };
+  const { consumedSec, allocatedSec, timeData, employeePieData } =
+    useMemo(() => {
+      if (!task)
+        return {
+          consumedSec: 0,
+          allocatedSec: 0,
+          timeData: [],
+          employeePieData: [],
+        };
 
-    const cSec = (task.totalConsumedHours || 0) * 3600;
-    const aSec = (task.allocatedTime || 0) * 3600;
+      const cSec = (task.totalConsumedHours || 0) * 3600;
+      const aSec = (task.allocatedTime || 0) * 3600;
 
-    // Time Distribution Chart Data
-    const tData = [
-      { name: "Consumed", value: cSec },
-      { name: "Remaining", value: Math.max(aSec - cSec, 0) },
-    ];
+      // Time Distribution Chart Data
+      const tData = [
+        { name: "Consumed", value: cSec },
+        { name: "Remaining", value: Math.max(aSec - cSec, 0) },
+      ];
 
-    // Contributor Split Chart Data
-    const eData = (task.stats?.historicalContributors || [])
-      .filter((op) => op.seconds > 0)
-      .map((op) => ({
-        name: op.name,
-        value: op.seconds, // Keep as seconds for the HMS formatter
-      }));
+      // Contributor Split Chart Data
+      const eData = (task.stats?.historicalContributors || [])
+        .filter((op) => op.seconds > 0)
+        .map((op) => ({
+          name: op.name,
+          value: op.seconds, // Keep as seconds for the HMS formatter
+        }));
 
-    return { consumedSec: cSec, allocatedSec: aSec, timeData: tData, employeePieData: eData };
-  }, [task]);
+      return {
+        consumedSec: cSec,
+        allocatedSec: aSec,
+        timeData: tData,
+        employeePieData: eData,
+      };
+    }, [task]);
 
   const handleConfirmDelete = async () => {
     try {
@@ -96,7 +136,12 @@ export default function AdminTaskDetailPage() {
   };
 
   if (isLoading) return <Loader />;
-  if (isError || !task) return <div className="p-20 text-center font-black uppercase text-slate-400 tracking-widest">Task Not Found</div>;
+  if (isError || !task)
+    return (
+      <div className="p-20 text-center font-black uppercase text-slate-400 tracking-widest">
+        Task Not Found
+      </div>
+    );
 
   const isOver = (task.totalConsumedHours || 0) > (task.allocatedTime || 0);
 
@@ -104,8 +149,12 @@ export default function AdminTaskDetailPage() {
     <div className="max-w-[1750px] mx-auto  min-h-screen bg-slate-100 pb-10">
       <header className="bg-white border-b border-slate-200 pt-8 pb-10">
         <div className="max-w-[1750px] mx-auto px-8">
-          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 hover:text-orange-600 font-bold uppercase text-[10px] tracking-widest mb-6 border-none bg-transparent cursor-pointer transition-all group">
-            <HiOutlineArrowLeft className="group-hover:-translate-x-1 transition-transform" /> Back to Dashboard
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-slate-400 hover:text-orange-600 font-bold uppercase text-[10px] tracking-widest mb-6 border-none bg-transparent cursor-pointer transition-all group"
+          >
+            <HiOutlineArrowLeft className="group-hover:-translate-x-1 transition-transform" />{" "}
+            Back to Dashboard
           </button>
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -114,19 +163,48 @@ export default function AdminTaskDetailPage() {
                 {task.title?.charAt(0)}
               </span>
               <div>
-                <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase mb-3 leading-none">{task.title}</h1>
+                <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase mb-3 leading-none">
+                  {task.title}
+                </h1>
                 <div className="flex flex-wrap gap-2">
-                  <Badge icon={<HiOutlineBolt size={10} />} text={task.liveStatus} className="bg-blue-50 text-blue-600 border-blue-100" />
-                  <Badge text={task.status} className="bg-emerald-50 text-emerald-600 border-emerald-100" />
-                  <Badge text={task.priority} className={task.priority === "High" ? "bg-rose-50 text-rose-600 animate-pulse border-rose-100" : "bg-amber-50 text-amber-600 border-amber-100"} />
+                  <Badge
+                    icon={<HiOutlineBolt size={10} />}
+                    text={task.liveStatus}
+                    className="bg-blue-50 text-blue-600 border-blue-100"
+                  />
+                  <Badge
+                    text={task.status}
+                    className="bg-emerald-50 text-emerald-600 border-emerald-100"
+                  />
+                  <Badge
+                    text={task.priority}
+                    className={
+                      task.priority === "High"
+                        ? "bg-rose-50 text-rose-600 animate-pulse border-rose-100"
+                        : "bg-amber-50 text-amber-600 border-amber-100"
+                    }
+                  />
                 </div>
               </div>
             </div>
 
             <div className="flex gap-3">
-              <HeaderButton onClick={() => setIsStatusModalOpen(true)} icon={<HiOutlineArrowPath size={18} />} text="Update Status" />
-              <HeaderButton onClick={() => setIsEditModalOpen(true)} icon={<HiOutlinePencilSquare size={18} />} text="Update Task" />
-              <HeaderButton onClick={() => setIsDeleteModalOpen(true)} icon={<HiOutlineTrash size={18} />} text="Delete Task" variant="danger" />
+              <HeaderButton
+                onClick={() => setIsStatusModalOpen(true)}
+                icon={<HiOutlineArrowPath size={18} />}
+                text="Update Status"
+              />
+              <HeaderButton
+                onClick={() => setIsEditModalOpen(true)}
+                icon={<HiOutlinePencilSquare size={18} />}
+                text="Update Task"
+              />
+              <HeaderButton
+                onClick={() => setIsDeleteModalOpen(true)}
+                icon={<HiOutlineTrash size={18} />}
+                text="Delete Task"
+                variant="danger"
+              />
             </div>
           </div>
         </div>
@@ -137,17 +215,34 @@ export default function AdminTaskDetailPage() {
           <div className="lg:col-span-8 space-y-8">
             {/* KPI Section */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <MetricBox label="Time Spent" value={formatToHrMin(consumedSec)} icon={<HiOutlineClock />} />
-              <MetricBox label="Estimate" value={`${task.estimatedTime || 0}h`} icon={<HiOutlineCalendarDays />} />
-              <MetricBox label="Allocated" value={`${task.allocatedTime || 0}h`} icon={<HiOutlineCalendarDays />} />
-              <MetricBox label="Efficiency" value={isOver ? "Overload" : "Nominal"} color={isOver ? "text-rose-600" : "text-emerald-600"} />
+              <MetricBox
+                label="Time Spent"
+                value={formatToHrMin(consumedSec)}
+                icon={<HiOutlineClock />}
+              />
+              <MetricBox
+                label="Estimate"
+                value={formatHoursToDays(task.estimatedTime || 0)}
+                icon={<HiOutlineCalendarDays />}
+              />
+              <MetricBox
+                label="Allocated"
+                value={`${task.allocatedTime || 0}h`}
+                icon={<HiOutlineCalendarDays />}
+              />
+              <MetricBox
+                label="Efficiency"
+                value={isOver ? "Overload" : "Nominal"}
+                color={isOver ? "text-rose-600" : "text-emerald-600"}
+              />
             </div>
 
             {/* Charts Section */}
             <div className="grid md:grid-cols-2 gap-8">
               <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm relative overflow-hidden min-h-[400px]">
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <HiOutlineChartPie className="text-orange-500" /> Time Distribution
+                  <HiOutlineChartPie className="text-orange-500" /> Time
+                  Distribution
                 </h3>
                 <div className="h-[280px] [&_*:focus]:outline-none">
                   <ResponsiveContainer width="100%" height="100%">
@@ -167,7 +262,13 @@ export default function AdminTaskDetailPage() {
                         <Cell fill="#94a3b8" />
                       </Pie>
                       <Tooltip
-                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '10px', fontWeight: 'bold' }}
+                        contentStyle={{
+                          borderRadius: "12px",
+                          border: "none",
+                          boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
+                          fontSize: "10px",
+                          fontWeight: "bold",
+                        }}
                         formatter={(value) => formatToHrMin(value)}
                       />
                     </PieChart>
@@ -187,23 +288,42 @@ export default function AdminTaskDetailPage() {
 
               <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden min-h-[400px]">
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <HiOutlineUserGroup className="text-orange-500" /> Contributor Split
+                  <HiOutlineUserGroup className="text-orange-500" /> Contributor
+                  Split
                 </h3>
                 <div className="h-[280px] [&_*:focus]:outline-none">
                   {employeePieData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
-                        <Pie data={employeePieData} dataKey="value" nameKey="name" innerRadius={80} outerRadius={120} paddingAngle={1} stroke="none">
+                        <Pie
+                          data={employeePieData}
+                          dataKey="value"
+                          nameKey="name"
+                          innerRadius={80}
+                          outerRadius={120}
+                          paddingAngle={1}
+                          stroke="none"
+                        >
                           {employeePieData.map((op, i) => (
                             <Cell key={i} fill={getOperatorColor(i)} />
                           ))}
                         </Pie>
-                        <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '10px', fontWeight: 'bold' }}
-                          formatter={(value) => formatToHrMin(value)} />
+                        <Tooltip
+                          contentStyle={{
+                            borderRadius: "12px",
+                            border: "none",
+                            boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
+                            fontSize: "10px",
+                            fontWeight: "bold",
+                          }}
+                          formatter={(value) => formatToHrMin(value)}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="h-full flex items-center justify-center text-[10px] font-black text-slate-300 uppercase italic">No data to display</div>
+                    <div className="h-full flex items-center justify-center text-[10px] font-black text-slate-300 uppercase italic">
+                      No data to display
+                    </div>
                   )}
                 </div>
               </div>
@@ -213,10 +333,12 @@ export default function AdminTaskDetailPage() {
             <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
               <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                  <HiOutlineClock className="text-orange-500" /> Performance Analysis (All Records)
+                  <HiOutlineClock className="text-orange-500" /> Performance
+                  Analysis (All Records)
                 </h3>
                 <span className="text-[9px] font-black text-slate-400 uppercase bg-white px-3 py-1 rounded-full border border-slate-200 shadow-sm">
-                  {task.stats?.totalHistoricalContributors || 0} Total Contributors
+                  {task.stats?.totalHistoricalContributors || 0} Total
+                  Contributors
                 </span>
               </div>
               <div className="p-8 space-y-8">
@@ -237,34 +359,42 @@ export default function AdminTaskDetailPage() {
                           </h4>
                         </div>
                         <div className="text-right">
-                          <span className="text-[10px] font-black text-slate-900 bg-slate-100 px-2 py-1 rounded-md">{formatToHrMin(op.seconds)}</span>
+                          <span className="text-[10px] font-black text-slate-900 bg-slate-100 px-2 py-1 rounded-md">
+                            {formatToHrMin(op.seconds)}
+                          </span>
                         </div>
                       </div>
                       <div className="relative w-full h-3 bg-slate-100 rounded-full overflow-hidden">
                         <div
                           className="absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out"
-                          style={{ width: `${op.percentage}%`, backgroundColor: getOperatorColor(idx) }}
+                          style={{
+                            width: `${op.percentage}%`,
+                            backgroundColor: getOperatorColor(idx),
+                          }}
                         />
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="py-10 text-center text-[10px] font-black text-slate-300 uppercase italic">No logged activity found.</div>
+                  <div className="py-10 text-center text-[10px] font-black text-slate-300 uppercase italic">
+                    No logged activity found.
+                  </div>
                 )}
               </div>
             </div>
           </div>
 
           <div className="lg:col-span-4 space-y-8">
-            <MetricBox label="Task Description" value={task.description || "No tactical description provided."} icon={<HiOutlineClipboardDocumentList />} />
+            <MetricBox
+              label="Task Description"
+              value={task.description || "No tactical description provided."}
+              icon={<HiOutlineClipboardDocumentList />}
+            />
 
             {/* Team Management */}
             <div className="h-[400px]">
-
               <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm h-full overflow-hidden">
-
                 <div className="h-full overflow-y-auto pr-2 custom-scrollbar space-y-3">
-
                   <div className="flex justify-between items-center mb-6">
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
                       Currently Assigned Employees
@@ -282,7 +412,10 @@ export default function AdminTaskDetailPage() {
                   <div className="space-y-3">
                     {task.assignedTo?.length > 0 ? (
                       task.assignedTo.map((emp) => (
-                        <div key={emp.user?._id} className="flex items-center gap-4 p-3 rounded-2xl border border-slate-50 bg-slate-100">
+                        <div
+                          key={emp.user?._id}
+                          className="flex items-center gap-4 p-3 rounded-2xl border border-slate-50 bg-slate-100"
+                        >
                           <span className="text-[11px] font-black text-slate-900 uppercase truncate">
                             {emp.user?.name}{" "}
                             {emp.user?.employee?.employeeCode
@@ -297,18 +430,45 @@ export default function AdminTaskDetailPage() {
                       </p>
                     )}
                   </div>
-
                 </div>
               </div>
-
             </div>
 
             <div className="bg-slate-900 p-6 rounded-[2.5rem] text-white shadow-xl">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Mission Timeline</h3>
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">
+                Mission Timeline
+              </h3>
               <div className="space-y-4">
-                <MetaItem label="Created On" value={new Date(task.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })} />
-                <MetaItem label="Project Start" value={task?.project?.startDate ? new Date(task.project.startDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "TBD"} />
-                <MetaItem label="Project End" value={task?.project?.endDate ? new Date(task.project.endDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "TBD"} />
+                <MetaItem
+                  label="Created On"
+                  value={new Date(task.createdAt).toLocaleDateString("en-IN", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                />
+                <MetaItem
+                  label="Project Start"
+                  value={
+                    task?.project?.startDate
+                      ? new Date(task.project.startDate).toLocaleDateString(
+                          "en-IN",
+                          { day: "2-digit", month: "short", year: "numeric" },
+                        )
+                      : "TBD"
+                  }
+                />
+                <MetaItem
+                  label="Project End"
+                  value={
+                    task?.project?.endDate
+                      ? new Date(task.project.endDate).toLocaleDateString(
+                          "en-IN",
+                          { day: "2-digit", month: "short", year: "numeric" },
+                        )
+                      : "TBD"
+                  }
+                />
               </div>
             </div>
           </div>
@@ -316,12 +476,31 @@ export default function AdminTaskDetailPage() {
       </main>
 
       {/* Modals */}
-      <ConfirmModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleConfirmDelete} isLoading={isDeleting} title="Delete Task"
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        isLoading={isDeleting}
+        title="Delete Task"
         message={`Are you sure you want to permanently delete this task? This action cannot be undone.`}
-        variant="danger" />
-      <EmployeeAssignModal isOpen={isAssignModalOpen} onClose={() => setIsAssignModalOpen(false)} task={task} />
-      <StatusUpdateModal isOpen={isStatusModalOpen} onClose={() => setIsStatusModalOpen(false)} task={task} />
-      <TaskModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} editTask={task} singleProject={task.project} />
+        variant="danger"
+      />
+      <EmployeeAssignModal
+        isOpen={isAssignModalOpen}
+        onClose={() => setIsAssignModalOpen(false)}
+        task={task}
+      />
+      <StatusUpdateModal
+        isOpen={isStatusModalOpen}
+        onClose={() => setIsStatusModalOpen(false)}
+        task={task}
+      />
+      <TaskModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        editTask={task}
+        singleProject={task.project}
+      />
     </div>
   );
 }
@@ -329,9 +508,10 @@ export default function AdminTaskDetailPage() {
 // --- SMALL SUB-COMPONENTS FOR CLEANER JSX ---
 
 function HeaderButton({ onClick, icon, text, variant = "primary" }) {
-  const styles = variant === "danger"
-    ? "bg-slate-900 hover:bg-rose-600"
-    : "bg-slate-900 hover:bg-orange-600";
+  const styles =
+    variant === "danger"
+      ? "bg-slate-900 hover:bg-rose-600"
+      : "bg-slate-900 hover:bg-orange-600";
 
   return (
     <button
@@ -348,7 +528,9 @@ function MetricBox({ label, value, icon, color = "text-slate-900" }) {
     <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
       <div className="flex items-center gap-2 mb-3 text-slate-400">
         {icon && React.cloneElement(icon, { size: 14 })}
-        <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
+        <span className="text-[9px] font-black uppercase tracking-widest">
+          {label}
+        </span>
       </div>
       <p className={`text-md font-black tracking-tight ${color}`}>{value}</p>
     </div>
@@ -357,7 +539,9 @@ function MetricBox({ label, value, icon, color = "text-slate-900" }) {
 
 function Badge({ text, className, icon }) {
   return (
-    <span className={`px-3 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 ${className}`}>
+    <span
+      className={`px-3 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 ${className}`}
+    >
       {icon} {text}
     </span>
   );
@@ -366,7 +550,9 @@ function Badge({ text, className, icon }) {
 function MetaItem({ label, value }) {
   return (
     <div className="flex justify-between items-center border-b border-white/10 pb-3">
-      <span className="text-[9px] font-black text-slate-500 uppercase">{label}</span>
+      <span className="text-[9px] font-black text-slate-500 uppercase">
+        {label}
+      </span>
       <span className="text-[10px] font-bold text-slate-200">{value}</span>
     </div>
   );
