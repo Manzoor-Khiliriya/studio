@@ -218,7 +218,12 @@ exports.getEmployeeAllocations = async (req, res) => {
 
       .populate({
         path: "task",
-        select: "title priority status",
+        select: "title project",
+
+        populate: {
+          path: "project",
+          select: "title projectCode",
+        },
       });
 
     const grouped = {};

@@ -192,6 +192,10 @@ export default function AdminTaskDetailPage() {
                     className="bg-emerald-50 text-emerald-600 border-emerald-100"
                   />
                   <Badge
+                    text={task.activeStatus}
+                    className="bg-orange-50 text-orange-600 border-orange-100"
+                  />
+                  <Badge
                     text={task.priority}
                     className={
                       task.priority === "High"

@@ -106,13 +106,9 @@ exports.updateTask = async (req, res) => {
         .filter((empId) => !existingEmployeeIds.includes(empId.toString()))
         .map((empId, index) => ({
           task: task._id,
-
           employee: empId,
-
           role: "Main",
-
           priorityOrder: index + 1,
-
           allocatedHours: 0,
         }));
 
@@ -446,7 +442,7 @@ exports.getTasksByEmployee = async (req, res) => {
       $or: [{ assignedTo: employee._id }, { _id: { $in: tasksWithLogs } }],
     };
     const allRelatedTasks = await Task.find(query)
-      .populate("project", "projectCode")
+      .populate("project", "title projectCode")
       .populate("timeLogs")
       .sort({ createdAt: -1 });
 

@@ -22,6 +22,7 @@ import EmployeeModal from "../../components/EmployeeModal";
 import ConfirmModal from "../../components/ConfirmModal";
 import { useDeleteUserMutation } from "../../services/userApi";
 import { useSocketEvents } from "../../hooks/useSocketEvents";
+import TruncateText from "../../components/TruncateText";
 
 // --- UTILITY: FORMAT SECONDS TO HR/MIN ---
 const formatToHrMin = (totalSeconds) => {
@@ -99,7 +100,7 @@ const TaskGridView = ({ tasks, userId }) => {
       return {
         id: task._id,
         title: task.title,
-        projectCode: task.project?.projectCode || "N/A",
+        projectTitle: task.project?.title || "N/A",
         timeStr: formatToHrMin(rangeSeconds),
         hasActivity: rangeSeconds > 0,
       };
@@ -115,7 +116,7 @@ const TaskGridView = ({ tasks, userId }) => {
     : gridData.slice(0, INITIAL_COUNT);
 
   return (
-    <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm  w-full">
+    <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-visible shadow-sm  w-full">
       <div className="bg-slate-50/80 px-6 py-4 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-2 border-b border-slate-100">
         {/* Modern Date Picker Container */}
         <div className="flex items-center my-auto bg-orange-600 text-white rounded shadow-lg overflow-hidden border border-orange-700">
@@ -168,11 +169,16 @@ const TaskGridView = ({ tasks, userId }) => {
           visibleData.map((item) => (
             <div
               key={item.id}
-              className={`flex items-center justify-between p-4 ${getTaskColor(item.id)} rounded-2xl shadow-sm`}
+              className={`flex items-center justify-between flex-wrap p-4 ${getTaskColor(item.id)} rounded-2xl shadow-sm`}
             >
-              <h4 className="text-[10px] font-black uppercase text-white truncate mr-4">
-                {item.title} ({item.projectCode})
-              </h4>
+              {/* <h4 className="text-[10px] font-black uppercase text-white truncate mr-4">
+                {item.title} ({item.projectTitle})
+              </h4> */}
+              <TruncateText
+                maxWidth="max-w-[80px]"
+                text={`${item.title} (${item.projectTitle})`}
+                className="text-[10px] font-black uppercase text-white truncate mr-4"
+              />
               <p className="text-[9px] font-black text-white shrink-0 opacity-90">
                 {item.timeStr}
               </p>
@@ -262,7 +268,7 @@ export default function EmployeeDetailPage() {
             logsByDate[dateKey].tasks[task._id] = {
               id: task._id,
               title: task.title,
-              projectCode: task.project?.projectCode || "N/A",
+              projectTitle: task.project?.title || "N/A",
               seconds: 0,
               allocated: (task.allocatedTime || 0) * 3600,
             };
@@ -414,7 +420,7 @@ export default function EmployeeDetailPage() {
                             <div className="flex justify-between items-end">
                               <h4 className="text-[10px] font-black uppercase text-slate-800 truncate">
                                 {task.title}{" "}
-                                <span className="text-slate-400">({task.projectCode})</span>
+                                <span className="text-slate-800">({task.projectTitle})</span>
                               </h4>
                               <span className="text-[9px] font-bold text-slate-500 ml-2">
                                 {formatToHrMin(task.seconds)}
@@ -551,7 +557,7 @@ function TaskSmallCard({ task, active, historical }) {
         }`}
     >
       <div className="flex justify-between items-start gap-2">
-        <p className={`text-[11px] font-black uppercase tracking-tight ${active ? "text-slate-100" : "text-slate-800"}`}>{task.title} {task?.project?.projectCode && `(${task.project.projectCode})`}</p>
+        <p className={`text-[11px] font-black uppercase tracking-tight ${active ? "text-slate-100" : "text-slate-800"}`}>{task.title} {task?.project?.title && `(${task.project.title})`}</p>
         {historical && (
           <span className="text-[7px] font-black text-slate-400 uppercase border border-slate-200 px-1 rounded">History</span>
         )}

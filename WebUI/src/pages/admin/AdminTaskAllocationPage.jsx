@@ -72,9 +72,9 @@ export default function AdminTaskAllocationPage() {
                         className="bg-white border border-slate-300 shadow-sm overflow-visible"
                     >
                         {/* EMPLOYEE HEADER */}
-                        <div className="px-8 py-3 border-b border-slate-300 bg-slate-200">
+                        <div className="px-6 py-3 text-center border-b border-slate-300 bg-slate-200">
                             <h2 className="text-lg font-black uppercase text-slate-900">
-                                {group.employee?.user?.name} - {group.employee?.employeeCode}
+                                {group.employee?.user?.name} - ({group.employee?.employeeCode})
                             </h2>
                         </div>
 
@@ -110,7 +110,7 @@ export default function AdminTaskAllocationPage() {
                                             {/* TASK */}
                                             <td className="px-6 py-3`">
                                                 <span className="font-black text-slate-900 text-sm uppercase">
-                                                    {allocation.task?.title}
+                                                    {allocation.task?.title} ({allocation.task?.project?.title})
                                                 </span>
                                             </td>
 
@@ -119,8 +119,8 @@ export default function AdminTaskAllocationPage() {
                                                 <input
                                                     type="number"
                                                     min={1}
-                                                    value={allocation.priorityOrder}
-                                                    onChange={(e) =>
+                                                    defaultValue={allocation.priorityOrder}
+                                                    onBlur={(e) =>
                                                         handleUpdate(
                                                             allocation._id,
                                                             "priorityOrder",
@@ -165,8 +165,8 @@ export default function AdminTaskAllocationPage() {
                                                 <input
                                                     type="number"
                                                     min={0}
-                                                    value={allocation.allocatedHours}
-                                                    onChange={(e) =>
+                                                    defaultValue={allocation.allocatedHours}
+                                                    onBlur={(e) =>
                                                         handleUpdate(
                                                             allocation._id,
                                                             "allocatedHours",
