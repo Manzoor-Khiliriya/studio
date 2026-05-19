@@ -34,6 +34,7 @@ import { useEffect } from "react";
 import { connectSocket } from "./socket";
 import { useHeartbeatMutation } from "./services/userApi";
 import EmployeeProfilePage from "./pages/employee/EmployeeProfilePage";
+import AdminTaskAllocationPage from "./pages/admin/AdminTaskAllocationPage";
 
 function AppContent() {
   const user = useSelector((state) => state.auth.user);
@@ -82,6 +83,7 @@ function AppContent() {
                 <Route path="/performance" element={<AdminTaskPerformancePage />} />
                 <Route path="/projects-calender" element={<AdminProjectCalendar />} />
                 <Route path="/attendance" element={<AdminAttendanceListPage />} />
+                <Route path="/task-history" element={<AdminTaskAllocationPage />} />
               </Route>
             </Route>
 

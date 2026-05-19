@@ -3,8 +3,8 @@ import {
   HiOutlineUser, HiOutlineBriefcase, HiOutlineLockClosed,
   HiOutlineChartBar, HiOutlineEye, HiOutlineEyeSlash,
   HiOutlineClock, HiOutlineCalendarDays,
-  HiOutlinePhone, // New Icon
-  HiOutlineCake, // New Icon for DOB
+  HiOutlinePhone,
+  HiOutlineCake,
   HiOutlineIdentification
 } from "react-icons/hi2";
 import { CgSpinner } from "react-icons/cg";
@@ -104,7 +104,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InputGroup label="Full Name *">
             <HiOutlineUser className="input-icon" />
-            <input required name="name" value={formData.name} onChange={handleChange} className="form-input capitalize" placeholder="Enter Full Name" />
+            <input required name="name" value={formData.name} onChange={handleChange} className="form-input" placeholder="Enter Full Name" />
           </InputGroup>
           <InputGroup label="Employee Code *">
             <HiOutlineIdentification className="input-icon" />

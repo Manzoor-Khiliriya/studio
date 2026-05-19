@@ -74,7 +74,7 @@ const sendNotification = async (recipient, data, io) => {
 
     // 4. Send Email
     await transporter.sendMail({
-      from: `"sanddstudioadmin" <${process.env.EMAIL_USER}>`,
+      from: `"Sandd Studio" <${process.env.EMAIL_USER}>`,
       to: recipient.email,
       subject: finalSubject,
       html: finalHtml,

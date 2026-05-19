@@ -46,7 +46,7 @@ export default function CommonModal({ isOpen, onClose, title, subtitle, children
               <button
                 onClick={onSubmit}
                 disabled={isLoading}
-                className="block w-full cursor-pointer py-3 rounded-xl text-white uppercase bg-green-500 hover:bg-green-600 font-black text-[12px] tracking-widest active:scale-95 border-b-4  border-green-700  transition-all shadow-lg shadow-orange-200"
+                className="block w-full cursor-pointer py-3 rounded-xl text-white uppercase bg-orange-500 hover:bg-orange-600 font-black text-[12px] tracking-widest active:scale-95 border-b-4  border-orange-700  transition-all shadow-lg shadow-orange-200"
               >
                 {isLoading ? "Processing..." : submitText}
               </button>

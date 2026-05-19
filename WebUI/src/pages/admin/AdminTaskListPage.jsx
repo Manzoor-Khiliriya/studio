@@ -338,7 +338,7 @@ export default function AdminTasksPage() {
         }}
       />
 
-      <main className="max-w-[1750px] mx-auto px-8 pb-10 -mt-10">
+      <main className="max-w-[1750px] mx-auto px-8 pb-10 -mt-10 overflow-visible">
         <div className="bg-white/90 border border-slate-200 p-6 rounded-[2.5rem] shadow-xl shadow-slate-200/50 mb-4 flex flex-col gap-5 overflow-visible">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             <div
@@ -719,18 +719,10 @@ export default function AdminTasksPage() {
                           <span className="text-[9px] font-black text-left text-slate-400 uppercase tracking-[0.15em]">
                             Client
                           </span>
-                          <div className="flex items-center gap-2">
-                            <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center">
-                              <HiOutlineUser
-                                size={10}
-                                className="text-orange-500"
-                              />
-                            </div>
-                            <TruncateText
-                              text={project.clientName || "Direct Client"}
-                              className="text-[11px] font-bold w-30 text-slate-800 font-mono uppercase"
-                            />
-                          </div>
+                          <TruncateText
+                            text={project.clientName || "Direct Client"}
+                            className="text-[11px] font-bold w-30 text-slate-800 font-mono uppercase"
+                          />
                         </div>
 
                         {activeTab === "live" ? (
@@ -738,16 +730,10 @@ export default function AdminTasksPage() {
                             <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">
                               Timeline
                             </span>
-                            <div className="flex items-center gap-2">
-                              <HiOutlineCalendarDays
-                                size={14}
-                                className="text-orange-500"
-                              />
-                              <span className="text-[11px] font-bold text-slate-800 font-mono">
-                                {formatDate(project.startDate)} —{" "}
-                                {formatDate(project.endDate)}
-                              </span>
-                            </div>
+                            <span className="text-[11px] font-bold text-slate-800 font-mono">
+                              {formatDate(project.startDate)} —{" "}
+                              {formatDate(project.endDate)}
+                            </span>
                           </div>
                         ) : (
                           <div className="flex flex-col justify-center items-center w-[90px] gap-1">
@@ -925,20 +911,19 @@ export default function AdminTasksPage() {
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200 pr-3">
                 Page Limit
               </span>
-              <select
-                value={limit}
-                onChange={(e) => {
-                  setLimit(Number(e.target.value));
+              <CustomDropdown
+                value={limit.toString()}
+                onChange={(val) => {
+                  setLimit(Number(val));
                   setCurrentPage(1);
                 }}
-                className="bg-transparent text-[9px] font-black outline-none focus:ring-0 cursor-pointer text-slate-700"
-              >
-                {[5, 10, 25, 50].map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
-              </select>
+                options={[5, 10, 25, 50].map((v) => ({
+                  label: `${v}`,
+                  value: v.toString(),
+                }))}
+                className="w-10"
+                buttonClass="w-full p-1 bg-transparent text-[9px] font-black cursor-pointer text-slate-700 flex items-center gap-2"
+              />
             </div>
             {activeTab === "live" && (
               <>

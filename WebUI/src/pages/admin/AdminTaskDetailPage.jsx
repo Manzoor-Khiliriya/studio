@@ -26,6 +26,7 @@ import EmployeeAssignModal from "../../components/EmployeeAssignModal";
 import StatusUpdateModal from "../../components/StatusUpdateModal";
 import TaskModal from "../../components/TaskModal";
 import { useSocketEvents } from "../../hooks/useSocketEvents";
+import { useUpdateTaskAllocationMutation } from "../../services/taskAllocationApi";
 
 // --- UTILITY: FORMAT SECONDS TO HH:MM:SS ---
 const formatToHrMin = (totalSeconds) => {
@@ -82,6 +83,7 @@ export default function AdminTaskDetailPage() {
   // API Hooks
   const { data: task, isLoading, isError, refetch } = useGetTaskDetailQuery(id);
   const [deleteTask, { isLoading: isDeleting }] = useDeleteTaskMutation();
+  const [updateAllocation] = useUpdateTaskAllocationMutation();
 
   useSocketEvents({
     onTaskChange: refetch,
@@ -144,6 +146,19 @@ export default function AdminTaskDetailPage() {
     );
 
   const isOver = (task.totalConsumedHours || 0) > (task.allocatedTime || 0);
+
+  const handleAllocationUpdate = async (id, field, value) => {
+    try {
+      await updateAllocation({
+        id,
+        [field]: value,
+      }).unwrap();
+      toast.success("Updated");
+      refetch();
+    } catch (err) {
+      toast.error(err?.data?.message || "Update failed");
+    }
+  };
 
   return (
     <div className="max-w-[1750px] mx-auto  min-h-screen bg-slate-100 pb-10">
@@ -410,18 +425,57 @@ export default function AdminTaskDetailPage() {
                   </div>
 
                   <div className="space-y-3">
-                    {task.assignedTo?.length > 0 ? (
-                      task.assignedTo.map((emp) => (
+                    {task.allocations?.length > 0 ? (
+                      task.allocations.map((allocation) => (
                         <div
-                          key={emp.user?._id}
-                          className="flex items-center gap-4 p-3 rounded-2xl border border-slate-50 bg-slate-100"
+                          key={allocation._id}
+                          className="p-4 rounded-2xl border border-slate-100 bg-slate-50 space-y-1"
                         >
-                          <span className="text-[11px] font-black text-slate-900 uppercase truncate">
-                            {emp.user?.name}{" "}
-                            {emp.user?.employee?.employeeCode
-                              ? `(${emp.user.employee.employeeCode})`
-                              : ""}
-                          </span>
+                          {/* NAME */}
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-black text-slate-900 uppercase">
+                              {allocation.employee?.user?.name} ({allocation.employee?.employeeCode})
+                            </span>
+
+                            <span className="text-[9px] font-black text-orange-500 uppercase">
+                              #{allocation.priorityOrder}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-3">
+                            {/* ROLE */}
+                            <div className="">
+                              <p className="text-[8px] font-black uppercase text-slate-600 tracking-widest mb-1">
+                                Role
+                              </p>
+
+                              <p className="text-[10px] font-black text-slate-900 uppercase">
+                                {allocation.role}
+                              </p>
+                            </div>
+
+                            {/* PRIORITY */}
+                            <div className="">
+                              <p className="text-[8px] font-black uppercase text-slate-600 tracking-widest mb-1">
+                                Priority
+                              </p>
+
+                              <p className="text-[10px] font-black text-orange-600 uppercase">
+                                #{allocation.priorityOrder}
+                              </p>
+                            </div>
+
+                            {/* HOURS */}
+                            <div className="">
+                              <p className="text-[8px] font-black uppercase text-slate-600 tracking-widest mb-1">
+                                Allocated
+                              </p>
+
+                              <p className="text-[10px] font-black text-slate-900 uppercase">
+                                {allocation.allocatedHours} hrs
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       ))
                     ) : (

@@ -23,7 +23,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
 
   const [formData, setFormData] = useState({
     projectCode: "",
-    projectType: "Standard",
+    projectType: "Standard Ext",
     title: "",
     clientName: "",
     startDate: "",
@@ -38,7 +38,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
     if (editProject && isOpen) {
       setFormData({
         projectCode: editProject.projectCode || "",
-        projectType: editProject.projectType || "Standard",
+        projectType: editProject.projectType || "Standard Ext",
         title: editProject.title || "",
         clientName: editProject.clientName || "",
         startDate: editProject.startDate ? new Date(editProject.startDate).toISOString().split('T')[0] : "",
@@ -51,7 +51,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
     } else if (isOpen) {
       setFormData({
         projectCode: "",
-        projectType: "Standard",
+        projectType: "Standard Ext",
         title: "",
         clientName: "",
         startDate: "",
@@ -138,8 +138,10 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
                 setFormData({ ...formData, projectType: val })
               }
               options={[
-                { label: "Standard", value: "Standard" },
-                { label: "Revision", value: "Revision" }
+                { label: "Standard Ext", value: "Standard Ext" },
+                { label: "Standard Int", value: "Standard Int" },
+                { label: "Revision Ext", value: "Revision Ext" },
+                { label: "Revision Int", value: "Revision Int" }
               ]}
               className="w-full"
               buttonClass="form-input text-xs font-bold pl-10"

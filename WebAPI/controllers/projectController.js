@@ -383,6 +383,7 @@ exports.getTaskPerformanceReport = async (req, res) => {
         $group: {
           _id: "$_id",
           projectCode: { $first: "$projectCode" },
+          projectType: { $first: "$projectType" },
           title: { $first: "$title" },
           endDate: { $first: "$endDate" },
           createdAt: { $first: "$createdAt" },

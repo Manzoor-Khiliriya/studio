@@ -20,9 +20,22 @@ export default function EmployeeAssignModal({ isOpen, onClose, task }) {
   const [selectedIds, setSelectedIds] = useState([]);
 
   // --- API HOOKS ---
-  const { data: activeEmployees, isLoading: isFetchingEmployees } = useGetActiveEmployeesQuery(undefined, {
-    skip: !isOpen, // Only fetch when modal is open
-  });
+  const {
+    data: activeEmployees,
+    isLoading:
+    isFetchingEmployees,
+  } = useGetActiveEmployeesQuery(
+    undefined,
+    {
+      skip: !isOpen,
+
+      refetchOnMountOrArgChange:
+        true,
+
+      refetchOnFocus: true,
+    }
+  );
+  
   const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation();
 
   // --- SYNC STATE ---

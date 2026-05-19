@@ -1,16 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
-  HiOutlineShieldCheck, HiOutlineClock,
-  HiOutlineCalendar, HiOutlineTrash, HiOutlinePencilAlt,
-  HiOutlineLockClosed, HiOutlineSparkles, HiOutlineFilter
-} from 'react-icons/hi';
-import { toast } from 'react-hot-toast';
+  HiOutlineShieldCheck,
+  HiOutlineClock,
+  HiOutlineCalendar,
+  HiOutlineTrash,
+  HiOutlinePencilAlt,
+  HiOutlineLockClosed,
+  HiOutlineSparkles,
+  HiOutlineFilter,
+} from "react-icons/hi";
+import { toast } from "react-hot-toast";
 
 // API Services
 import {
   useGetMyLeavesQuery,
-  useDeleteLeaveMutation
-} from '../../services/leaveApi';
+  useDeleteLeaveMutation,
+} from "../../services/leaveApi";
 
 // Components
 import Table from "../../components/Table";
@@ -18,8 +23,9 @@ import Loader from "../../components/Loader";
 import LeaveModal from "../../components/LeaveModal";
 import Pagination from "../../components/Pagination";
 import PageHeader from "../../components/PageHeader";
-import { useSocketEvents } from '../../hooks/useSocketEvents';
-import ConfirmModal from '../../components/ConfirmModal';
+import { useSocketEvents } from "../../hooks/useSocketEvents";
+import ConfirmModal from "../../components/ConfirmModal";
+import CustomDropdown from "../../components/CustomDropdown";
 
 export default function EmployeeLeavePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -40,7 +46,7 @@ export default function EmployeeLeavePage() {
     page,
     limit: limit,
     type: typeFilter === "All" ? "" : typeFilter,
-    status: statusFilter === "All" ? "" : statusFilter
+    status: statusFilter === "All" ? "" : statusFilter,
   });
 
   useSocketEvents({
@@ -63,7 +69,9 @@ export default function EmployeeLeavePage() {
       await deleteLeave(confirmState.leaveId).unwrap();
       toast.success("Request voided", { id: loadingToast });
     } catch (err) {
-      toast.error(err?.data?.message || "Protocol failure", { id: loadingToast });
+      toast.error(err?.data?.message || "Protocol failure", {
+        id: loadingToast,
+      });
     } finally {
       setConfirmState({ open: false, leaveId: null });
     }
@@ -96,7 +104,7 @@ export default function EmployeeLeavePage() {
         <p className="text-[10px] text-slate-700 font-black uppercase truncate max-w-[280px] italic">
           {req.reason || "No operational context provided"}
         </p>
-      )
+      ),
     },
     {
       header: "Requested On",
@@ -105,7 +113,7 @@ export default function EmployeeLeavePage() {
         <div className="flex items-center justify-center gap-2">
           <HiOutlineCalendar className="text-orange-500" size={13} />
           <p className="text-[10px] text-slate-700 font-black tracking-widest uppercase">
-            {new Date(req.createdAt).toLocaleDateString('en-IN')}
+            {new Date(req.createdAt).toLocaleDateString("en-IN")}
           </p>
         </div>
       ),
@@ -117,7 +125,8 @@ export default function EmployeeLeavePage() {
         <div className="flex items-center justify-center gap-2">
           <HiOutlineCalendar className="text-orange-500" size={13} />
           <p className="text-[10px] text-slate-700 font-black tracking-widest uppercase">
-            {new Date(req.startDate).toLocaleDateString('en-IN')} — {new Date(req.endDate).toLocaleDateString('en-IN')}
+            {new Date(req.startDate).toLocaleDateString("en-IN")} —{" "}
+            {new Date(req.endDate).toLocaleDateString("en-IN")}
           </p>
         </div>
       ),
@@ -125,19 +134,27 @@ export default function EmployeeLeavePage() {
     {
       header: "No Of Days",
       className: "text-center",
-      render: (req) => <p className=" text-center text-slate-700 text-[10px] uppercase font-black">{req.businessDays || 0} days</p>
+      render: (req) => (
+        <p className=" text-center text-slate-700 text-[10px] uppercase font-black">
+          {req.businessDays || 0} days
+        </p>
+      ),
     },
     {
       header: "Status",
       className: "text-center",
-      render: (req) => <div className="text-center"><StatusBadge status={req.status} /></div>,
+      render: (req) => (
+        <div className="text-center">
+          <StatusBadge status={req.status} />
+        </div>
+      ),
     },
     {
       header: "Actions",
       className: "text-center",
       render: (req) => (
         <div className="flex justify-center items-start gap-2">
-          {req.status === 'Pending' ? (
+          {req.status === "Pending" ? (
             <>
               <button
                 onClick={() => openEditModal(req)}
@@ -153,15 +170,13 @@ export default function EmployeeLeavePage() {
               </button>
             </>
           ) : (
-            <button
-              className="text-slate-500 hover:text-slate-600  transition-all cursor-not-allowed"
-            >
+            <button className="text-slate-500 hover:text-slate-600  transition-all cursor-not-allowed">
               <HiOutlineLockClosed size={18} />
             </button>
           )}
         </div>
-      )
-    }
+      ),
+    },
   ];
 
   if (isLoading) return <Loader message="Accessing Personal Ledger..." />;
@@ -176,19 +191,34 @@ export default function EmployeeLeavePage() {
       />
 
       <main className="max-w-[1750px] mx-auto px-8 -mt-10 pb-20">
-
         {/* TACTICAL FILTER BAR */}
         <div className="flex flex-wrap items-center gap-4 mb-8 bg-white/90 backdrop-blur-xl p-5 rounded-[2.5rem] border border-slate-200 shadow-xl shadow-slate-200/40">
           <div className="flex items-center gap-3 bg-slate-50 px-5 py-3 rounded-2xl border border-slate-100">
             <HiOutlineFilter className="text-slate-400" size={16} />
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200 pr-4">Type</span>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200 pr-4">
+              Type
+            </span>
             <select
               value={typeFilter}
-              onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setTypeFilter(e.target.value);
+                setPage(1);
+              }}
               className="bg-transparent text-[10px] font-black outline-none cursor-pointer text-slate-700 uppercase"
             >
-              {["All", "Annual Leave", "Sick Leave", "Bereavement Leave", "Paternity Leave", "Maternity Leave", "Casual Leave", "LOP"].map(t => (
-                <option key={t} value={t}>{t}</option>
+              {[
+                "All",
+                "Annual Leave",
+                "Sick Leave",
+                "Bereavement Leave",
+                "Paternity Leave",
+                "Maternity Leave",
+                "Casual Leave",
+                "LOP",
+              ].map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
               ))}
             </select>
           </div>
@@ -197,13 +227,21 @@ export default function EmployeeLeavePage() {
             {["All", "Pending", "Approved", "Rejected"].map((s) => (
               <button
                 key={s}
-                onClick={() => { setStatusFilter(s); setPage(1); }}
-                className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === s
-                  ? "bg-white text-orange-600 shadow-md ring-1 ring-slate-200"
-                  : "text-slate-500 hover:text-slate-800 cursor-pointer"
-                  }`}
+                onClick={() => {
+                  setStatusFilter(s);
+                  setPage(1);
+                }}
+                className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                  statusFilter === s
+                    ? "bg-white text-orange-600 shadow-md ring-1 ring-slate-200"
+                    : "text-slate-500 hover:text-slate-800 cursor-pointer"
+                }`}
               >
-                {s === 'Pending' ? 'Under Review' : s === 'Approved' ? 'Approved' : s}
+                {s === "Pending"
+                  ? "Under Review"
+                  : s === "Approved"
+                    ? "Approved"
+                    : s}
               </button>
             ))}
           </div>
@@ -211,7 +249,9 @@ export default function EmployeeLeavePage() {
           {isFetching && (
             <div className="ml-auto flex items-center gap-3 px-6 py-2 bg-orange-50 rounded-full border border-orange-100">
               <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
-              <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Syncing...</span>
+              <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest">
+                Syncing...
+              </span>
             </div>
           )}
         </div>
@@ -229,7 +269,9 @@ export default function EmployeeLeavePage() {
 
           {/* TABLE SECTION */}
           <div className="xl:col-span-9 flex flex-col">
-            <div className={`bg-white rounded-[3.5rem] border border-slate-200 shadow-2xl shadow-slate-200/50 overflow-hidden transition-all duration-300 ${isFetching ? 'opacity-50' : 'opacity-100'}`}>
+            <div
+              className={`bg-white rounded-[3.5rem] border border-slate-200 shadow-2xl shadow-slate-200/50 overflow-visible transition-all duration-300 ${isFetching ? "opacity-50" : "opacity-100"}`}
+            >
               <Table
                 columns={columns}
                 data={data?.history || []}
@@ -242,13 +284,19 @@ export default function EmployeeLeavePage() {
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-100 pr-3">
                       Page Limit
                     </span>
-                    <select
-                      value={limit}
-                      onChange={(e) => { setLimit(Number(e.target.value)); setCurrentPage(1); }}
-                      className="bg-transparent text-[9px] font-black outline-none focus:ring-0 cursor-pointer text-slate-700"
-                    >
-                      {[5, 10, 25, 50].map((v) => <option key={v} value={v}>{v}</option>)}
-                    </select>
+                    <CustomDropdown
+                      value={limit.toString()}
+                      onChange={(val) => {
+                        setLimit(Number(val));
+                        setCurrentPage(1);
+                      }}
+                      options={[5, 10, 25, 50].map((v) => ({
+                        label: `${v}`,
+                        value: v.toString(),
+                      }))}
+                      className="w-10"
+                      buttonClass="w-full p-1 bg-transparent text-[9px] font-black cursor-pointer text-slate-700 flex items-center gap-2"
+                    />
                   </div>
 
                   {data?.pagination?.totalLeaves && (
@@ -262,7 +310,7 @@ export default function EmployeeLeavePage() {
                     current: page,
                     total: data?.pagination?.totalPages || 1,
                     count: data?.pagination?.totalLeaves || 0,
-                    limit: limit
+                    limit: limit,
                   }}
                   onPageChange={setPage}
                   loading={isFetching}
@@ -293,15 +341,20 @@ export default function EmployeeLeavePage() {
   );
 }
 
-
 const StatBox = ({ label, value, unit, color, icon }) => (
   <div className="p-10 rounded-[3rem] bg-white border border-slate-200 shadow-xl shadow-slate-200/30 relative overflow-hidden group hover:border-orange-500/30 transition-all duration-500">
-    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 relative z-10">{label}</p>
+    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 relative z-10">
+      {label}
+    </p>
     <div className="flex items-baseline gap-2 relative z-10">
-      <h3 className={`text-6xl font-black tracking-tighter tabular-nums ${color === 'orange' ? 'text-orange-500' : 'text-slate-900'}`}>
+      <h3
+        className={`text-6xl font-black tracking-tighter tabular-nums ${color === "orange" ? "text-orange-500" : "text-slate-900"}`}
+      >
         {value}
       </h3>
-      <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{unit}</span>
+      <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
+        {unit}
+      </span>
     </div>
   </div>
 );
@@ -320,7 +373,9 @@ export const StatusBadge = ({ status }) => {
   };
 
   return (
-    <p className={`text-[9px] font-black uppercase tracking-[0.2em] ${styles[status]}`}>
+    <p
+      className={`text-[9px] font-black uppercase tracking-[0.2em] ${styles[status]}`}
+    >
       {label[status]}
     </p>
   );

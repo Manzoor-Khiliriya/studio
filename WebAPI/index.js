@@ -16,6 +16,7 @@ const holidayRoutes = require("./routes/holidayRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const attendanceRoutes = require("./routes/attendanceRoutes");
 const projectRoutes = require("./routes/projectRoutes");
+const taskAllocationRoutes = require("./routes/taskAllocationRoutes");
 
 const app = express();
 
@@ -69,6 +70,7 @@ app.use('/api/holidays', holidayRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/projects", projectRoutes);
+app.use("/api/task-allocations", taskAllocationRoutes);
 
 const PORT = process.env.PORT || 5000;
 

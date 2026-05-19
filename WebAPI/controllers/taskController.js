@@ -3,6 +3,7 @@ const Task = require("../models/Task");
 const Project = require("../models/Project");
 const TimeLog = require("../models/TimeLog");
 const Employee = require("../models/Employee");
+const TaskAllocation = require("../models/TaskAllocation");
 const sendTaskNotification = require("../utils/notifier");
 const { calculateEstimatedHours } = require("../utils/taskHelpers");
 const { emitDashboardUpdate } = require("../utils/socket");
@@ -11,7 +12,7 @@ const emitEvent = (req, event, data, userIds = []) => {
   const io = req.app.get("socketio");
   if (!io) return;
   if (userIds.length) {
-    userIds.forEach(id => {
+    userIds.forEach((id) => {
       io.to(id.toString()).emit(event, data);
     });
   } else {
@@ -23,22 +24,26 @@ exports.createTask = async (req, res) => {
   try {
     const { project, title, description, allocatedTime } = req.body;
     if (!title || !project) {
-      return res.status(400).json({ success: false, message: "Missing required fields" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing required fields" });
     }
     const projectExists = await Project.findById(project);
     if (!projectExists) {
-      return res.status(404).json({ success: false, message: "Project not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Project not found" });
     }
     const estimatedTime = await calculateEstimatedHours(
       projectExists.startDate,
-      projectExists.endDate
+      projectExists.endDate,
     );
     const task = await Task.create({
       title,
       project,
       description,
       estimatedTime,
-      allocatedTime: allocatedTime || estimatedTime
+      allocatedTime: allocatedTime || estimatedTime,
     });
     const populatedTask = await task.populate("project");
     emitEvent(req, "taskChanged", populatedTask);
@@ -46,60 +51,119 @@ exports.createTask = async (req, res) => {
     return res.status(201).json({
       success: true,
       message: "Task created successfully",
-      task: populatedTask
+      task: populatedTask,
     });
   } catch (err) {
-    return res.status(500).json({ success: false, message: "Internal server error" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
   }
 };
 
 exports.updateTask = async (req, res) => {
   try {
-    const { title, assignedTo, project, priority, allocatedTime, description } = req.body;
+    const { title, assignedTo, project, priority, allocatedTime, description } =
+      req.body;
     const io = req.app.get("socketio");
 
     const task = await Task.findById(req.params.id);
     if (!task) {
-      return res.status(404).json({ success: false, message: "Task not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Task not found" });
     }
-    const oldAssigneeIds = task.assignedTo.map(id => id.toString());
+    const oldAssigneeIds = task.assignedTo.map((id) => id.toString());
     if (title) task.title = title;
     if (priority) task.priority = priority;
     if (description !== undefined) task.description = description;
     if (project && project !== task.project.toString()) {
       const projectExists = await Project.findById(project);
       if (!projectExists) {
-        return res.status(404).json({ success: false, message: "Project not found" });
+        return res
+          .status(404)
+          .json({ success: false, message: "Project not found" });
       }
       task.project = project;
       task.estimatedTime = await calculateEstimatedHours(
         projectExists.startDate,
-        projectExists.endDate
+        projectExists.endDate,
       );
     }
-    if (assignedTo) task.assignedTo = assignedTo;
+    if (assignedTo) {
+      task.assignedTo = assignedTo;
+
+      const existingAllocations = await TaskAllocation.find({
+        task: task._id,
+      });
+
+      const existingEmployeeIds = existingAllocations.map((a) =>
+        a.employee.toString(),
+      );
+
+      const assignedEmployeeIds = assignedTo.map((id) => id.toString());
+
+      const newAllocations = assignedTo
+        .filter((empId) => !existingEmployeeIds.includes(empId.toString()))
+        .map((empId, index) => ({
+          task: task._id,
+
+          employee: empId,
+
+          role: "Main",
+
+          priorityOrder: index + 1,
+
+          allocatedHours: 0,
+        }));
+
+      if (newAllocations.length > 0) {
+        await TaskAllocation.insertMany(newAllocations);
+      }
+
+      await TaskAllocation.deleteMany({
+        task: task._id,
+
+        employee: {
+          $nin: assignedEmployeeIds,
+        },
+      });
+    }
     if (allocatedTime !== undefined) task.allocatedTime = Number(allocatedTime);
     await task.save();
     const updated = await Task.findById(task._id)
       .populate("project")
-      .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
+      .populate({
+        path: "assignedTo",
+        populate: { path: "user", select: "name" },
+      })
       .populate("timeLogs");
     if (assignedTo) {
-      const newAssigneeIds = assignedTo.map(id => id.toString());
-      const added = newAssigneeIds.filter(id => !oldAssigneeIds.includes(id));
+      const newAssigneeIds = assignedTo.map((id) => id.toString());
+      const added = newAssigneeIds.filter((id) => !oldAssigneeIds.includes(id));
 
       if (added.length) {
-        const addedEmps = await Employee.find({ _id: { $in: added } }).populate("user");
+        const addedEmps = await Employee.find({ _id: { $in: added } }).populate(
+          "user",
+        );
 
         for (const emp of addedEmps) {
-          await sendTaskNotification(emp.user, {
-            type: "task",
-            message: `A new task "${task.title}" has been assigned to you under project"${updated.project?.title}". Please check it out.`,
-            taskId: task._id
-          }, io);
+          await sendTaskNotification(
+            emp.user,
+            {
+              type: "task",
+              message: `A new task "${task.title}" has been assigned to you under project"${updated.project?.title}". Please check it out.`,
+              taskId: task._id,
+            },
+            io,
+          );
         }
 
-        emitEvent(req, "taskChanged", updated, addedEmps.map(e => e.user._id));
+        emitEvent(
+          req,
+          "taskChanged",
+          updated,
+          addedEmps.map((e) => e.user._id),
+        );
       }
     }
 
@@ -109,10 +173,12 @@ exports.updateTask = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Task updated successfully",
-      task: updated
+      task: updated,
     });
   } catch (err) {
-    return res.status(500).json({ success: false, message: "Internal server error" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -122,7 +188,9 @@ exports.updateTaskStatus = async (req, res) => {
 
     const task = await Task.findById(req.params.id);
     if (!task) {
-      return res.status(404).json({ success: false, message: "Task not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Task not found" });
     }
 
     if (status) task.status = status;
@@ -131,8 +199,14 @@ exports.updateTaskStatus = async (req, res) => {
     await task.save();
 
     const updatedTask = await Task.findById(task._id)
-      .populate("project", "projectCode title clientName startDate endDate createdAt")
-      .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
+      .populate(
+        "project",
+        "projectCode title clientName startDate endDate createdAt",
+      )
+      .populate({
+        path: "assignedTo",
+        populate: { path: "user", select: "name" },
+      })
       .populate("timeLogs");
 
     emitEvent(req, "taskChanged", updatedTask);
@@ -140,23 +214,33 @@ exports.updateTaskStatus = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Task status updated",
-      task: updatedTask
+      task: updatedTask,
     });
   } catch (err) {
-    return res.status(500).json({ success: false, message: "Internal server error" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
   }
 };
 
 exports.getAllTasks = async (req, res) => {
   try {
-    const { search, status, page = 1, limit = 5, createdAt, startDate, endDate } = req.query;
+    const {
+      search,
+      status,
+      page = 1,
+      limit = 5,
+      createdAt,
+      startDate,
+      endDate,
+    } = req.query;
 
-    const projectQuery = { status: 'Active' };
+    const projectQuery = { status: "Active" };
 
     if (search) {
       projectQuery.$or = [
         { projectCode: { $regex: search, $options: "i" } },
-        { title: { $regex: search, $options: "i" } }
+        { title: { $regex: search, $options: "i" } },
       ];
     }
 
@@ -190,7 +274,7 @@ exports.getAllTasks = async (req, res) => {
       .skip(skip)
       .limit(Number(limit));
 
-    const projectIds = paginatedProjects.map(p => p._id);
+    const projectIds = paginatedProjects.map((p) => p._id);
 
     const taskQuery = { project: { $in: projectIds } };
 
@@ -199,8 +283,14 @@ exports.getAllTasks = async (req, res) => {
     }
 
     const tasks = await Task.find(taskQuery)
-      .populate("project", "projectCode title clientName startDate endDate createdAt")
-      .populate({ path: "assignedTo", populate: { path: "user", select: "name" } })
+      .populate(
+        "project",
+        "projectCode title clientName startDate endDate createdAt",
+      )
+      .populate({
+        path: "assignedTo",
+        populate: { path: "user", select: "name" },
+      })
       .populate("timeLogs")
       .sort({ createdAt: -1 });
 
@@ -212,18 +302,23 @@ exports.getAllTasks = async (req, res) => {
         totalProjects,
         totalPages: Math.ceil(totalProjects / limit),
         currentPage: Number(page),
-        limit: Number(limit)
-      }
+        limit: Number(limit),
+      },
     });
   } catch (err) {
-    return res.status(500).json({ success: false, message: "Internal server error" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
   }
 };
 
 exports.getTaskDetail = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id)
-      .populate("project", "projectCode title clientName startDate endDate createdAt")
+      .populate(
+        "project",
+        "projectCode title clientName startDate endDate createdAt",
+      )
       .populate({
         path: "assignedTo",
         populate: {
@@ -231,9 +326,9 @@ exports.getTaskDetail = async (req, res) => {
           select: "name",
           populate: {
             path: "employee",
-            select: "employeeCode"
-          }
-        }
+            select: "employeeCode",
+          },
+        },
       })
       .populate({
         path: "timeLogs",
@@ -242,17 +337,31 @@ exports.getTaskDetail = async (req, res) => {
           select: "name",
           populate: {
             path: "employee",
-            select: "employeeCode"
-          }
-        }
-      })
+            select: "employeeCode",
+          },
+        },
+      });
 
     if (!task) {
       return res.status(404).json({
         success: false,
-        message: "Task not found"
+        message: "Task not found",
       });
     }
+
+    const allocations = await TaskAllocation.find({
+      task: task._id,
+    })
+      .populate({
+        path: "employee",
+        populate: {
+          path: "user",
+          select: "name",
+        },
+      })
+      .sort({
+        priorityOrder: 1,
+      });
 
     const totalAllocatedSeconds = (task.allocatedTime || 0) * 3600;
     const contributorMap = new Map();
@@ -272,49 +381,51 @@ exports.getTaskDetail = async (req, res) => {
           code: user?.employee?.employeeCode || "N/A",
           seconds: 0,
           isCurrentlyAssigned: (task.assignedTo || []).some(
-            a => a?.user?._id?.toString() === userId
-          )
+            (a) => a?.user?._id?.toString() === userId,
+          ),
         });
       }
 
-      contributorMap.get(userId).seconds += (log.durationSeconds || 0);
+      contributorMap.get(userId).seconds += log.durationSeconds || 0;
     });
 
-    const historicalContributors = Array.from(contributorMap.values()).map(c => ({
-      ...c,
-      percentage:
-        totalAllocatedSeconds > 0
-          ? ((c.seconds / totalAllocatedSeconds) * 100).toFixed(1)
-          : 0
-    }));
+    const historicalContributors = Array.from(contributorMap.values()).map(
+      (c) => ({
+        ...c,
+        percentage:
+          totalAllocatedSeconds > 0
+            ? ((c.seconds / totalAllocatedSeconds) * 100).toFixed(1)
+            : 0,
+      }),
+    );
 
     const totalConsumedSeconds = (task.timeLogs || [])
-      .filter(log => log.logType === "work")
+      .filter((log) => log.logType === "work")
       .reduce((sum, log) => sum + (log.durationSeconds || 0), 0);
 
     const totalConsumedHours = totalConsumedSeconds / 3600;
 
     const taskData = {
       ...task.toObject(),
+      allocations,
       liveStatus: task.liveStatus,
       totalConsumedSeconds,
       totalConsumedHours,
       stats: {
         totalAssigned: task.assignedTo?.length || 0,
         totalHistoricalContributors: historicalContributors.length,
-        historicalContributors
-      }
+        historicalContributors,
+      },
     };
 
     return res.status(200).json({
       success: true,
-      task: taskData
+      task: taskData,
     });
-
   } catch (err) {
     return res.status(500).json({
       success: false,
-      message: "Internal server error"
+      message: "Internal server error",
     });
   }
 };
@@ -323,32 +434,33 @@ exports.getTasksByEmployee = async (req, res) => {
   try {
     const employee = await Employee.findOne({ user: req.params.userId });
     if (!employee) {
-      return res.status(404).json({ success: false, message: "Employee not found", });
+      return res
+        .status(404)
+        .json({ success: false, message: "Employee not found" });
     }
-    const tasksWithLogs = await TimeLog.distinct("task", { user: req.params.userId, });
+    const tasksWithLogs = await TimeLog.distinct("task", {
+      user: req.params.userId,
+    });
     const { liveStatus: filterStatus } = req.query;
     const query = {
-      $or: [
-        { assignedTo: employee._id },
-        { _id: { $in: tasksWithLogs } },
-      ],
+      $or: [{ assignedTo: employee._id }, { _id: { $in: tasksWithLogs } }],
     };
     const allRelatedTasks = await Task.find(query)
       .populate("project", "projectCode")
       .populate("timeLogs")
       .sort({ createdAt: -1 });
 
-    const tasksWithStatus = allRelatedTasks.map(task => {
-      const userLogs = (task.timeLogs || []).filter(log =>
-        (log.user?._id || log.user).toString() === req.params.userId
+    const tasksWithStatus = allRelatedTasks.map((task) => {
+      const userLogs = (task.timeLogs || []).filter(
+        (log) => (log.user?._id || log.user).toString() === req.params.userId,
       );
 
-      const isRunning = userLogs.some(log =>
-        log.isRunning === true && log.logType === "work"
+      const isRunning = userLogs.some(
+        (log) => log.isRunning === true && log.logType === "work",
       );
 
-      const hasWorked = userLogs.some(log =>
-        log.logType === "work" && log.durationSeconds > 0
+      const hasWorked = userLogs.some(
+        (log) => log.logType === "work" && log.durationSeconds > 0,
       );
 
       let status = "To be started";
@@ -356,7 +468,7 @@ exports.getTasksByEmployee = async (req, res) => {
       else if (hasWorked) status = "Started";
       return {
         ...task.toObject(),
-        liveStatus: status
+        liveStatus: status,
       };
     });
 
@@ -364,17 +476,23 @@ exports.getTasksByEmployee = async (req, res) => {
 
     if (filterStatus && filterStatus !== "All") {
       const allowed = filterStatus.split(",");
-      finalTasks = tasksWithStatus.filter(task =>
-        allowed.includes(task.liveStatus)
+      finalTasks = tasksWithStatus.filter((task) =>
+        allowed.includes(task.liveStatus),
       );
     }
 
-    const currentlyAssigned = finalTasks.filter(task =>
-      task.assignedTo?.some(id => id.toString() === employee._id.toString())
+    const currentlyAssigned = finalTasks.filter((task) =>
+      task.assignedTo?.some((id) => id.toString() === employee._id.toString()),
     );
-    return res.status(200).json({ success: true, currentlyAssigned, workedAndAssigned: finalTasks });
+    return res.status(200).json({
+      success: true,
+      currentlyAssigned,
+      workedAndAssigned: finalTasks,
+    });
   } catch (err) {
-    return res.status(500).json({ success: false, message: "Internal server error", });
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -461,7 +579,7 @@ exports.getMyTasks = async (req, res) => {
     let finalTasks = tasks.map((task) => {
       const totalSeconds = (task.timeLogs || []).reduce(
         (acc, log) => acc + (log.durationSeconds || 0),
-        0
+        0,
       );
 
       return {
@@ -474,9 +592,7 @@ exports.getMyTasks = async (req, res) => {
 
     if (liveStatus && liveStatus !== "All") {
       const allowed = liveStatus.split(",");
-      finalTasks = finalTasks.filter((t) =>
-        allowed.includes(t.liveStatus)
-      );
+      finalTasks = finalTasks.filter((t) => allowed.includes(t.liveStatus));
     }
 
     const total = await Task.countDocuments(query);
@@ -506,7 +622,9 @@ exports.deleteTask = async (req, res) => {
 
     if (!task) {
       await session.abortTransaction();
-      return res.status(404).json({ success: false, message: "Task not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Task not found" });
     }
 
     await Task.deleteOne({ _id: task._id }).session(session);
@@ -519,7 +637,9 @@ exports.deleteTask = async (req, res) => {
     return res.status(204).send();
   } catch (err) {
     await session.abortTransaction();
-    return res.status(500).json({ success: false, message: "Internal server error" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
   } finally {
     session.endSession();
   }

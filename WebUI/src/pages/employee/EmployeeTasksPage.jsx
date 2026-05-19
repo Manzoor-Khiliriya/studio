@@ -21,7 +21,7 @@ export default function MyTasksPage() {
   const [liveStatusFilter, setLiveStatusFilter] = useState("All");
   const [activeStatusFilter, setActiveStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
-  const limit = 8;
+  const [limit, setLimit] = useState(5);
   const debouncedSearch = useDebounce(
     searchTerm.length > 1 ? searchTerm : "",
     400
@@ -29,7 +29,7 @@ export default function MyTasksPage() {
 
   const { data, isLoading, isFetching, refetch } = useGetMyTasksQuery({
     page: currentPage,
-    limit,
+    limit: limit,
     search: debouncedSearch,
     status: statusFilter === "All" ? "" : statusFilter,
     liveStatus: liveStatusFilter === "All" ? "" : liveStatusFilter,
@@ -289,7 +289,7 @@ export default function MyTasksPage() {
         </div>
 
         {/* DATA TERMINAL */}
-        <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+        <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm overflow-visible flex flex-col">
           <div className={isFetching ? "opacity-40" : "opacity-100"}>
             <Table
               columns={columns}
@@ -298,18 +298,46 @@ export default function MyTasksPage() {
             />
           </div>
 
-          <div className="p-4 bg-slate-50/50 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="px-2">
-              <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em]">
-                Assigned Tasks: {data?.pagination?.totalTasks || 0}
-              </span>
+          <div className="bg-slate-50/50 p-4 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-sm">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-100 pr-3">
+                  Page Limit
+                </span>
+                <CustomDropdown
+                  value={limit.toString()}
+                  onChange={(val) => {
+                    setLimit(Number(val));
+                    setCurrentPage(1);
+                  }}
+                  options={[5, 10, 25, 50].map((v) => ({
+                    label: `${v}`,
+                    value: v.toString(),
+                  }))}
+                  className="w-10"
+                  buttonClass="w-full p-1 bg-transparent text-[9px] font-black cursor-pointer text-slate-700 flex items-center gap-2"
+                />
+              </div>
+
+              {data?.pagination?.totalTasks && (
+                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight ml-2">
+                  Total {data?.pagination?.totalTasks} Tasks
+                </span>
+              )}
             </div>
             <Pagination
-              pagination={data?.pagination}
+              pagination={{
+                current: currentPage,
+                total: data?.pagination?.totalPages || 1,
+                count: data?.pagination?.totalTasks || 0,
+                limit: limit,
+              }}
               onPageChange={setCurrentPage}
               loading={isFetching}
+              label="Records"
             />
           </div>
+
         </div>
       </main>
     </div>

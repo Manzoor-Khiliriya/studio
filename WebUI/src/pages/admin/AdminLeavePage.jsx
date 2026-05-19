@@ -6,7 +6,7 @@ import {
   HiOutlineCog6Tooth,
   HiOutlineCalendarDays,
   HiOutlineArrowPath,
-  HiOutlineArrowDownTray
+  HiOutlineArrowDownTray,
 } from "react-icons/hi2";
 import { toast } from "react-hot-toast";
 import {
@@ -14,7 +14,7 @@ import {
   useProcessLeaveMutation,
   useUpdateLeaveSettingsMutation,
   useDeleteLeaveMutation,
-  useAdjustAnnualLeaveMutation
+  useAdjustAnnualLeaveMutation,
 } from "../../services/leaveApi";
 import Table from "../../components/Table";
 import Loader from "../../components/Loader";
@@ -25,7 +25,7 @@ import CommonModal, { InputGroup } from "../../components/CommonModal";
 import {
   getAdminLeaveColumns,
   getQuotaColumns,
-  getCasualLopColumns
+  getCasualLopColumns,
 } from "../../utils/adminLeaveListHelper";
 import { useSocketEvents } from "../../hooks/useSocketEvents";
 import CustomDropdown from "../../components/CustomDropdown";
@@ -54,34 +54,37 @@ export default function AdminLeavePage() {
     isOpen: false,
     id: null,
     status: null,
-    mode: 'status',
-    employeeName: ""
+    mode: "status",
+    employeeName: "",
   });
 
   const [configForm, setConfigForm] = useState({
     leaveType: "Sick Leave",
     value: 10,
-    carryForwardLimit: 0
+    carryForwardLimit: 0,
   });
 
   const debouncedSearch = useDebounce(
     searchQuery.length > 1 ? searchQuery : "",
-    400
+    400,
   );
   // RTK Query
-  const { data, isLoading, isFetching, refetch } = useGetAllLeavesQuery({
-    search: debouncedSearch,
-    page,
-    limit,
-    view: activeTab,
-    status: statusFilter,
-    dateRange,
-    startDate: customDates.start,
-    endDate: customDates.end,
-  }, {
-    refetchOnMountOrArgChange: false,
-    keepUnusedDataFor: 300
-  });
+  const { data, isLoading, isFetching, refetch } = useGetAllLeavesQuery(
+    {
+      search: debouncedSearch,
+      page,
+      limit,
+      view: activeTab,
+      status: statusFilter,
+      dateRange,
+      startDate: customDates.start,
+      endDate: customDates.end,
+    },
+    {
+      refetchOnMountOrArgChange: false,
+      keepUnusedDataFor: 300,
+    },
+  );
 
   const [processLeave, { isLoading: isProcessing }] = useProcessLeaveMutation();
   const [updateSettings] = useUpdateLeaveSettingsMutation();
@@ -98,21 +101,31 @@ export default function AdminLeavePage() {
     }
 
     let csvContent = "";
-    let fileName = `leave_report_${activeTab}_${new Date().toISOString().split('T')[0]}.csv`;
+    let fileName = `leave_report_${activeTab}_${new Date().toISOString().split("T")[0]}.csv`;
 
     if (activeTab === "quota") {
       // 1. Define detailed headers
       const headers = [
         "Employee",
         "Code",
-        "Annual (Earned)", "Annual (Used)", "Annual (Bal)",
-        "Sick (Quota)", "Sick (Used)", "Sick (Bal)",
-        "Bereavement (Quota)", "Bereavement (Used)", "Bereavement (Bal)",
-        "Paternity (Quota)", "Paternity (Used)", "Paternity (Bal)",
-        "Maternity (Quota)", "Maternity (Used)", "Maternity (Bal)"
+        "Annual (Earned)",
+        "Annual (Used)",
+        "Annual (Bal)",
+        "Sick (Quota)",
+        "Sick (Used)",
+        "Sick (Bal)",
+        "Bereavement (Quota)",
+        "Bereavement (Used)",
+        "Bereavement (Bal)",
+        "Paternity (Quota)",
+        "Paternity (Used)",
+        "Paternity (Bal)",
+        "Maternity (Quota)",
+        "Maternity (Used)",
+        "Maternity (Bal)",
       ];
 
-      const rows = data.leaves.map(r => {
+      const rows = data.leaves.map((r) => {
         const b = r.balances || {};
 
         return [
@@ -137,20 +150,29 @@ export default function AdminLeavePage() {
       });
 
       // 2. Generate CSV Content
-      csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+      csvContent = [headers, ...rows].map((e) => e.join(",")).join("\n");
     } else {
-      const headers = ["Employee", "Employee Code", "Type", "Requested On", "Start Date", "End Date", "Duration", "Status"];
-      const rows = data.leaves.map(r => [
+      const headers = [
+        "Employee",
+        "Employee Code",
+        "Type",
+        "Requested On",
+        "Start Date",
+        "End Date",
+        "Duration",
+        "Status",
+      ];
+      const rows = data.leaves.map((r) => [
         r.user?.name,
         r.user?.employee?.employeeCode || "N/A",
         r.type,
-        new Date(r.createdAt).toLocaleDateString('en-IN'),
-        new Date(r.startDate).toLocaleDateString('en-IN'),
-        new Date(r.endDate).toLocaleDateString('en-IN'),
+        new Date(r.createdAt).toLocaleDateString("en-IN"),
+        new Date(r.startDate).toLocaleDateString("en-IN"),
+        new Date(r.endDate).toLocaleDateString("en-IN"),
         `${r.duration} days`,
-        r.status
+        r.status,
       ]);
-      csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+      csvContent = [headers, ...rows].map((e) => e.join(",")).join("\n");
     }
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -178,8 +200,8 @@ export default function AdminLeavePage() {
       isOpen: true,
       id,
       status: newStatus,
-      mode: 'status',
-      employeeName: rowData?.user?.name || "Employee"
+      mode: "status",
+      employeeName: rowData?.user?.name || "Employee",
     });
   };
 
@@ -187,8 +209,8 @@ export default function AdminLeavePage() {
     setConfirmConfig({
       isOpen: true,
       id,
-      mode: 'delete',
-      employeeName: rowData?.user?.name || "Record"
+      mode: "delete",
+      employeeName: rowData?.user?.name || "Record",
     });
   };
 
@@ -199,10 +221,12 @@ export default function AdminLeavePage() {
 
   const executeAction = async () => {
     const { id, status, mode } = confirmConfig;
-    const tId = toast.loading(mode === 'delete' ? "Deleting record..." : `Updating to ${status}...`);
+    const tId = toast.loading(
+      mode === "delete" ? "Deleting record..." : `Updating to ${status}...`,
+    );
 
     try {
-      if (mode === 'delete') {
+      if (mode === "delete") {
         await deleteLeave(id).unwrap();
         toast.success("Record deleted permanently", { id: tId });
       } else {
@@ -222,8 +246,9 @@ export default function AdminLeavePage() {
       await updateSettings({
         leaveType: configForm.leaveType,
         value: Number(configForm.value),
-        carryForwardLimit: Number(configForm.carryForwardLimit)
-      }).unwrap(); toast.success(`Policy updated`, { id: tId });
+        carryForwardLimit: Number(configForm.carryForwardLimit),
+      }).unwrap();
+      toast.success(`Policy updated`, { id: tId });
       setIsSettingsOpen(false);
     } catch (err) {
       toast.error("Update failed", { id: tId });
@@ -235,7 +260,7 @@ export default function AdminLeavePage() {
     try {
       await adjustAnnualLeave({
         userId: adjustUser._id,
-        value: Number(adjustValue)
+        value: Number(adjustValue),
       }).unwrap();
 
       toast.success("Adjustment updated", { id: tId });
@@ -248,18 +273,19 @@ export default function AdminLeavePage() {
 
   const columns = useMemo(() => {
     if (activeTab === "requests")
-      return getAdminLeaveColumns(handleOpenConfirm, handleOpenEdit, handleOpenDelete);
+      return getAdminLeaveColumns(
+        handleOpenConfirm,
+        handleOpenEdit,
+        handleOpenDelete,
+      );
     if (activeTab === "quota")
       return getQuotaColumns(setAdjustUser, setAdjustValue);
     return getCasualLopColumns(handleOpenEdit, handleOpenDelete);
   }, [activeTab]);
 
-  const leaves =
-    data?.view === activeTab ? data.leaves : null;
+  const leaves = data?.view === activeTab ? data.leaves : null;
   const paginationData = data?.pagination || { totalLeaves: 0, totalPages: 1 };
-  const isTabLoading =
-    isFetching &&
-    data?.view !== activeTab;
+  const isTabLoading = isFetching && data?.view !== activeTab;
   if (isLoading) return <Loader message="Accessing Attendance Matrix..." />;
 
   return (
@@ -267,20 +293,40 @@ export default function AdminLeavePage() {
       {/* HEADER */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase mb-2">Leave Management</h1>
-          <p className="text-slate-500 text-sm font-medium">Monitoring personnel availability and policy compliance</p>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase mb-2">
+            Leave Management
+          </h1>
+          <p className="text-slate-500 text-sm font-medium">
+            Monitoring personnel availability and policy compliance
+          </p>
         </div>
 
         <div className="flex bg-white p-1 rounded-2xl border border-slate-200 shadow-sm">
           {[
-            { id: 'requests', label: 'Leave Requests', icon: <HiOutlineClipboardDocumentList size={16} /> },
-            { id: 'quota', label: 'Leave Quotas', icon: <HiOutlineUserCircle size={16} /> },
-            { id: 'casual-lop', label: 'Casual/LOP Leaves', icon: <HiOutlineCalendarDays size={16} /> }
-          ].map(tab => (
+            {
+              id: "requests",
+              label: "Leave Requests",
+              icon: <HiOutlineClipboardDocumentList size={16} />,
+            },
+            {
+              id: "quota",
+              label: "Leave Quotas",
+              icon: <HiOutlineUserCircle size={16} />,
+            },
+            {
+              id: "casual-lop",
+              label: "Casual/LOP Leaves",
+              icon: <HiOutlineCalendarDays size={16} />,
+            },
+          ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => { setActiveTab(tab.id); setPage(1); handleResetFilters(); }}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${activeTab === tab.id ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+              onClick={() => {
+                setActiveTab(tab.id);
+                setPage(1);
+                handleResetFilters();
+              }}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${activeTab === tab.id ? "bg-orange-600 text-white shadow-lg" : "text-slate-400 hover:text-slate-600"}`}
             >
               {tab.icon} {tab.label}
             </button>
@@ -292,13 +338,19 @@ export default function AdminLeavePage() {
       <div className="flex flex-col gap-4 mb-8">
         <div className="flex flex-col md:flex-row items-center gap-3">
           <div className="relative flex-1 group w-full">
-            <HiOutlineMagnifyingGlass className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors" size={18} />
+            <HiOutlineMagnifyingGlass
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors"
+              size={18}
+            />
             <input
               type="text"
               placeholder="Search employee by name..."
               className="w-full pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl focus:border-orange-500 outline-none font-bold text-xs transition-all shadow-sm"
               value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(1);
+              }}
             />
           </div>
 
@@ -315,7 +367,7 @@ export default function AdminLeavePage() {
                     { label: "All Status", value: "All" },
                     { label: "Pending", value: "Pending" },
                     { label: "Approved", value: "Approved" },
-                    { label: "Declined", value: "Rejected" }
+                    { label: "Declined", value: "Rejected" },
                   ]}
                   className="min-w-[140px]"
                   buttonClass="bg-slate-50 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl text-slate-700 border border-slate-100"
@@ -337,7 +389,7 @@ export default function AdminLeavePage() {
                   { label: "Last Week", value: "last-week" },
                   { label: "Current Month", value: "current-month" },
                   { label: "Last Month", value: "last-month" },
-                  { label: "Custom Range", value: "custom" }
+                  { label: "Custom Range", value: "custom" },
                 ]}
                 className="min-w-[160px]"
                 buttonClass="bg-slate-50 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl text-slate-700 border border-slate-100"
@@ -368,37 +420,49 @@ export default function AdminLeavePage() {
             >
               <HiOutlineArrowDownTray size={18} />
             </button>
-            <button onClick={() => setIsSettingsOpen(true)} className="p-4 bg-slate-900 text-white rounded-2xl hover:bg-orange-600 transition-all cursor-pointer shadow-lg shadow-slate-200">
+            <button
+              onClick={() => setIsSettingsOpen(true)}
+              className="p-4 bg-slate-900 text-white rounded-2xl hover:bg-orange-600 transition-all cursor-pointer shadow-lg shadow-slate-200"
+            >
               <HiOutlineCog6Tooth size={18} />
             </button>
           </div>
         </div>
 
-
         {/* --- CUSTOM DATE INPUTS --- */}
         {dateRange === "custom" && activeTab !== "quota" && (
           <div className="flex flex-wrap items-center gap-3 p-4 bg-orange-50 border border-orange-100 rounded-[1.5rem] animate-in slide-in-from-top-2 duration-300">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black uppercase text-orange-600 ml-2">From:</span>
+              <span className="text-[10px] font-black uppercase text-orange-600 ml-2">
+                From:
+              </span>
               <input
                 type="date"
                 className="bg-white px-4 py-2 rounded-xl border border-orange-200 text-xs font-bold outline-none focus:border-orange-500"
                 value={customDates.start}
-                onChange={(e) => setCustomDates(prev => ({ ...prev, start: e.target.value }))}
+                onChange={(e) =>
+                  setCustomDates((prev) => ({ ...prev, start: e.target.value }))
+                }
               />
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black uppercase text-orange-600">To:</span>
+              <span className="text-[10px] font-black uppercase text-orange-600">
+                To:
+              </span>
               <input
                 type="date"
                 className="bg-white px-4 py-2 rounded-xl border border-orange-200 text-xs font-bold outline-none focus:border-orange-500"
                 value={customDates.end}
-                onChange={(e) => setCustomDates(prev => ({ ...prev, end: e.target.value }))}
+                onChange={(e) =>
+                  setCustomDates((prev) => ({ ...prev, end: e.target.value }))
+                }
               />
             </div>
             <div className="ml-auto flex items-center gap-2 pr-4">
               <p className="text-[9px] font-bold text-orange-400 italic ml-auto mr-4">
-                {activeTab === 'requests' ? "Filtering by submission date" : "Filtering by leave start date"}
+                {activeTab === "requests"
+                  ? "Filtering by submission date"
+                  : "Filtering by leave start date"}
               </p>
             </div>
           </div>
@@ -406,7 +470,7 @@ export default function AdminLeavePage() {
       </div>
 
       {/* TABLE */}
-      <div className="border border-slate-200 rounded-[2rem] overflow-hidden bg-white shadow-xl shadow-slate-200/50">
+      <div className="border border-slate-200 rounded-[2rem] overflow-visible bg-white shadow-xl shadow-slate-200/50">
         <div className={isFetching ? "opacity-50" : "opacity-100"}>
           {isTabLoading || !leaves ? (
             <Loader message="Loading data..." />
@@ -422,21 +486,39 @@ export default function AdminLeavePage() {
         <div className="bg-white p-6 border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100 shadow-sm">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200 pr-3">Page Limit</span>
-              <select
-                value={limit}
-                onChange={(e) => { setLimit(Number(e.target.value)); setCurrentPage(1); }}
-                className="bg-transparent text-[9px] font-black outline-none focus:ring-0 cursor-pointer text-slate-700"
-              >
-                {[5, 10, 25, 50].map((v) => <option key={v} value={v}>{v}</option>)}
-              </select>
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200 pr-3">
+                Page Limit
+              </span>
+              <CustomDropdown
+                value={limit.toString()}
+                onChange={(val) => {
+                  setLimit(Number(val));
+                  setCurrentPage(1);
+                }}
+                options={[5, 10, 25, 50].map((v) => ({
+                  label: `${v}`,
+                  value: v.toString(),
+                }))}
+                className="w-10"
+                buttonClass="w-full p-1 bg-transparent text-[9px] font-black cursor-pointer text-slate-700 flex items-center gap-2"
+              />
             </div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase">Total {paginationData.totalLeaves} Records</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase">
+              Total {paginationData.totalLeaves} Records
+            </span>
           </div>
 
           <Pagination
-            pagination={{ current: page, total: paginationData.totalPages, count: paginationData.totalLeaves, limit }}
-            onPageChange={(p) => { setPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+            pagination={{
+              current: page,
+              total: paginationData.totalPages,
+              count: paginationData.totalLeaves,
+              limit,
+            }}
+            onPageChange={(p) => {
+              setPage(p);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
             loading={isFetching}
             label="Leaves"
           />
@@ -446,7 +528,10 @@ export default function AdminLeavePage() {
       {/* --- MODALS --- */}
       <LeaveModal
         isOpen={isEditModalOpen}
-        onClose={() => { setIsEditModalOpen(false); setSelectedLeave(null); }}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedLeave(null);
+        }}
         initialData={selectedLeave}
         isAdmin={true}
       />
@@ -456,7 +541,13 @@ export default function AdminLeavePage() {
         onClose={() => setConfirmConfig((prev) => ({ ...prev, isOpen: false }))}
         onConfirm={executeAction}
         isLoading={isProcessing || isDeleting}
-        variant={confirmConfig.mode === "delete" ? "danger" : (confirmConfig.status === "Approved" ? "success" : "danger")}
+        variant={
+          confirmConfig.mode === "delete"
+            ? "danger"
+            : confirmConfig.status === "Approved"
+              ? "success"
+              : "danger"
+        }
         title={
           confirmConfig.mode === "delete"
             ? "Delete Record"
@@ -485,10 +576,7 @@ export default function AdminLeavePage() {
         onSubmit={handleUpdateSettings}
         submitText="Save"
       >
-        <form
-          onSubmit={(e) => e.preventDefault()}
-          className="space-y-4"
-        >
+        <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
           <InputGroup label="Leave Type">
             <CustomDropdown
               value={configForm.leaveType}
@@ -500,14 +588,20 @@ export default function AdminLeavePage() {
                 "Sick Leave",
                 "Bereavement Leave",
                 "Paternity Leave",
-                "Maternity Leave"
+                "Maternity Leave",
               ]}
               className="w-full"
               buttonClass="form-input text-xs font-bold -pl-6"
             />
           </InputGroup>
 
-          <InputGroup label={configForm.leaveType === "Annual Leave" ? "Days Per Month" : "Days Per Year"}>
+          <InputGroup
+            label={
+              configForm.leaveType === "Annual Leave"
+                ? "Days Per Month"
+                : "Days Per Year"
+            }
+          >
             <div className="relative">
               <input
                 type="number"
@@ -516,7 +610,9 @@ export default function AdminLeavePage() {
                 placeholder="e.g. 1.5"
                 className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-black outline-none text-slate-900 text-lg focus:border-orange-500"
                 value={configForm.value}
-                onChange={(e) => setConfigForm({ ...configForm, value: e.target.value })}
+                onChange={(e) =>
+                  setConfigForm({ ...configForm, value: e.target.value })
+                }
               />
               <span className="absolute right-10 top-1/2 -translate-y-1/2 text-[12px] font-black text-slate-400 uppercase">
                 Days
@@ -533,13 +629,12 @@ export default function AdminLeavePage() {
                 onChange={(e) =>
                   setConfigForm({
                     ...configForm,
-                    carryForwardLimit: e.target.value
+                    carryForwardLimit: e.target.value,
                   })
                 }
               />
             </InputGroup>
           )}
-
         </form>
       </CommonModal>
 
@@ -560,7 +655,6 @@ export default function AdminLeavePage() {
             className="form-input pl-20"
           />
         </InputGroup>
-
       </CommonModal>
     </div>
   );

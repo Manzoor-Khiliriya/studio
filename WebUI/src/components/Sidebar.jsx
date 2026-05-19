@@ -12,7 +12,8 @@ import {
   HiOutlineChevronRight,
   HiOutlineFlag,
   HiCalendar,
-  HiOutlineUser
+  HiOutlineUser,
+  HiOutlineDocumentCheck
 } from "react-icons/hi2";
 import { FiMenu } from "react-icons/fi";
 import { HiLogout, HiOutlineCalendar } from "react-icons/hi";
@@ -35,6 +36,7 @@ export default function Sidebar() {
     { to: "/admin", label: "Dashboard", icon: <HiOutlineSquares2X2 /> },
     { to: "/employees", label: "Team Space", icon: <HiOutlineUsers /> },
     { to: "/projects", label: "Projects", icon: <HiOutlineQueueList /> },
+    { to: "/task-history", label: "Task History", icon: <HiOutlineDocumentCheck /> },
     { to: "/performance", label: "Performance", icon: <HiOutlineDocumentChartBar /> },
     { to: "/projects-calender", label: "Project Calender", icon: <HiCalendar /> },
     { to: "/attendance", label: "Attendance", icon: <HiOutlineViewColumns /> },

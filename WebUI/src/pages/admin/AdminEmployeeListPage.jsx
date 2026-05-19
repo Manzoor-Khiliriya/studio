@@ -2,7 +2,10 @@ import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { useGetAllEmployeesQuery } from "../../services/employeeApi";
-import { useChangeUserStatusMutation, useDeleteUserMutation } from "../../services/userApi";
+import {
+  useChangeUserStatusMutation,
+  useDeleteUserMutation,
+} from "../../services/userApi";
 import { HiOutlineMagnifyingGlass, HiOutlineXMark } from "react-icons/hi2";
 import PageHeader from "../../components/PageHeader";
 import Table from "../../components/Table";
@@ -13,6 +16,7 @@ import ConfirmModal from "../../components/ConfirmModal";
 import { getEmployeeColumns } from "../../utils/adminEmployeeListHelper";
 import { useSocketEvents } from "../../hooks/useSocketEvents";
 import useDebounce from "../../hooks/useDebounce";
+import CustomDropdown from "../../components/CustomDropdown";
 
 export default function EmployeeListPage() {
   const navigate = useNavigate();
@@ -29,7 +33,7 @@ export default function EmployeeListPage() {
 
   const debouncedSearch = useDebounce(
     searchTerm.length > 1 ? searchTerm : "",
-    400
+    400,
   );
   const { data, isLoading, isFetching, refetch } = useGetAllEmployeesQuery({
     page: currentPage,
@@ -37,7 +41,8 @@ export default function EmployeeListPage() {
     status: statusFilter === "All" ? undefined : statusFilter,
     search: debouncedSearch,
   });
-  const [changeUserStatus, { isLoading: isUpdatingStatus }] = useChangeUserStatusMutation();
+  const [changeUserStatus, { isLoading: isUpdatingStatus }] =
+    useChangeUserStatusMutation();
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
   useSocketEvents({
     onEmployeeChange: refetch,
@@ -50,8 +55,10 @@ export default function EmployeeListPage() {
   const handleExecuteConfirm = async () => {
     if (!selectedEmp) return;
 
-    const isDelete = confirmConfig.type === 'delete';
-    const loadingMessage = isDelete ? "Deleting records..." : "Updating access...";
+    const isDelete = confirmConfig.type === "delete";
+    const loadingMessage = isDelete
+      ? "Deleting records..."
+      : "Updating access...";
     const t = toast.loading(loadingMessage);
 
     try {
@@ -63,8 +70,14 @@ export default function EmployeeListPage() {
         // Handle Status Toggle
         const currentStatus = selectedEmp.user?.status;
         const newStatus = currentStatus === "Enable" ? "Disable" : "Enable";
-        await changeUserStatus({ id: selectedEmp.user._id, status: newStatus }).unwrap();
-        toast.success(`Access ${newStatus === "Enable" ? "enabled" : "disabled"}`, { id: t });
+        await changeUserStatus({
+          id: selectedEmp.user._id,
+          status: newStatus,
+        }).unwrap();
+        toast.success(
+          `Access ${newStatus === "Enable" ? "enabled" : "disabled"}`,
+          { id: t },
+        );
       }
       closeConfirmModal();
       setSelectedEmp(null);
@@ -74,20 +87,24 @@ export default function EmployeeListPage() {
   };
 
   // --- TABLE COLUMNS CONFIG ---
-  const columns = useMemo(() => getEmployeeColumns({
-    onEdit: (emp) => {
-      setSelectedEmp(emp);
-      setIsEmployeeModalOpen(true);
-    },
-    onDelete: (emp) => {
-      setSelectedEmp(emp);
-      setConfirmConfig({ isOpen: true, type: 'delete' });
-    },
-    onToggle: (emp) => {
-      setSelectedEmp(emp);
-      setConfirmConfig({ isOpen: true, type: 'toggle' });
-    }
-  }), []);
+  const columns = useMemo(
+    () =>
+      getEmployeeColumns({
+        onEdit: (emp) => {
+          setSelectedEmp(emp);
+          setIsEmployeeModalOpen(true);
+        },
+        onDelete: (emp) => {
+          setSelectedEmp(emp);
+          setConfirmConfig({ isOpen: true, type: "delete" });
+        },
+        onToggle: (emp) => {
+          setSelectedEmp(emp);
+          setConfirmConfig({ isOpen: true, type: "toggle" });
+        },
+      }),
+    [],
+  );
 
   if (isLoading) return <Loader message="Accessing Workforce Database..." />;
 
@@ -98,22 +115,30 @@ export default function EmployeeListPage() {
         subtitle="Manage employee credentials, performance metrics, and tactical access."
         iconText="E"
         actionLabel="Add Employee"
-        onAction={() => { setSelectedEmp(null); setIsEmployeeModalOpen(true); }}
+        onAction={() => {
+          setSelectedEmp(null);
+          setIsEmployeeModalOpen(true);
+        }}
       />
 
       <main className="max-w-[1750px] mx-auto px-8 pb-10 -mt-10">
         {/* SEARCH & FILTER BAR */}
         <div className="bg-white/90 backdrop-blur-xl border border-slate-200 p-5 rounded-[2.5rem] shadow-xl shadow-slate-200/50 mb-8 flex flex-col gap-6">
           <div className="flex flex-wrap items-center gap-4">
-
             <div className="relative flex-1 w-full group">
-              <HiOutlineMagnifyingGlass className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors" size={18} />
+              <HiOutlineMagnifyingGlass
+                className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors"
+                size={18}
+              />
               <input
                 type="text"
                 placeholder="Search employee name..."
                 className="w-full pl-12 pr-6 py-3.5 bg-white border border-slate-200 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/5 outline-none font-bold text-xs transition-all shadow-sm group"
                 value={searchTerm}
-                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
               />
             </div>
 
@@ -121,11 +146,15 @@ export default function EmployeeListPage() {
               {["All", "Active", "Disabled"].map((status) => (
                 <button
                   key={status}
-                  onClick={() => { setStatusFilter(status); setCurrentPage(1); }}
-                  className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${statusFilter === status
-                    ? "bg-white text-orange-600 shadow-md ring-1 ring-slate-200"
-                    : "text-slate-500 hover:text-slate-800"
-                    }`}
+                  onClick={() => {
+                    setStatusFilter(status);
+                    setCurrentPage(1);
+                  }}
+                  className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${
+                    statusFilter === status
+                      ? "bg-white text-orange-600 shadow-md ring-1 ring-slate-200"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
                 >
                   {status}
                 </button>
@@ -134,7 +163,10 @@ export default function EmployeeListPage() {
 
             {(searchTerm || statusFilter !== "All") && (
               <button
-                onClick={() => { setSearchTerm(""); setStatusFilter("All"); }}
+                onClick={() => {
+                  setSearchTerm("");
+                  setStatusFilter("All");
+                }}
                 className="flex items-center gap-2 px-6 py-3 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-2xl transition-all font-bold text-xs cursor-pointer"
               >
                 <HiOutlineXMark size={18} strokeWidth={2.5} />
@@ -145,7 +177,7 @@ export default function EmployeeListPage() {
         </div>
 
         {/* DATA TABLE CONTAINER */}
-        <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col group/table">
+        <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm overflow-visible flex flex-col group/table">
           <Table
             columns={columns}
             data={data?.employees || []}
@@ -160,15 +192,21 @@ export default function EmployeeListPage() {
                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-100 pr-3">
                   Page Limit
                 </span>
-                <select
-                  value={limit}
-                  onChange={(e) => { setLimit(Number(e.target.value)); setCurrentPage(1); }}
-                  className="bg-transparent text-[9px] font-black outline-none focus:ring-0 cursor-pointer text-slate-700"
-                >
-                  {[5, 10, 25, 50].map((v) => <option key={v} value={v}>{v}</option>)}
-                </select>
-              </div>
 
+                <CustomDropdown
+                  value={limit.toString()}
+                  onChange={(val) => {
+                    setLimit(Number(val));
+                    setCurrentPage(1);
+                  }}
+                  options={[5, 10, 25, 50].map((v) => ({
+                    label: `${v}`,
+                    value: v.toString(),
+                  }))}
+                  className="w-10"
+                  buttonClass="w-full p-1 bg-transparent text-[9px] font-black cursor-pointer text-slate-700 flex items-center gap-2"
+                />
+              </div>
               {data?.totalEmployees && (
                 <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight ml-2">
                   Total {data?.totalEmployees} Employees
@@ -202,19 +240,27 @@ export default function EmployeeListPage() {
         onClose={closeConfirmModal}
         onConfirm={handleExecuteConfirm}
         isLoading={isUpdatingStatus || isDeleting}
-        title={confirmConfig.type === 'delete' ? "Delete Employee" : "Update Access"}
-        message={confirmConfig.type === 'delete'
-          ? `You are about to permanently delete ${selectedEmp?.user?.name}. This action cannot be undone.`
-          : `Are you sure you want to change the access status for ${selectedEmp?.user?.name}?`}
+        title={
+          confirmConfig.type === "delete" ? "Delete Employee" : "Update Access"
+        }
+        message={
+          confirmConfig.type === "delete"
+            ? `You are about to permanently delete ${selectedEmp?.user?.name}. This action cannot be undone.`
+            : `Are you sure you want to change the access status for ${selectedEmp?.user?.name}?`
+        }
         confirmText={
-          confirmConfig.type === 'delete'
+          confirmConfig.type === "delete"
             ? "Confirm"
-            : (selectedEmp?.user?.status === "Enable" ? "Disable" : "Enable")
+            : selectedEmp?.user?.status === "Enable"
+              ? "Disable"
+              : "Enable"
         }
         variant={
-          confirmConfig.type === 'delete'
-            ? 'danger'
-            : (selectedEmp?.user?.status === "Enable" ? 'danger' : 'success')
+          confirmConfig.type === "delete"
+            ? "danger"
+            : selectedEmp?.user?.status === "Enable"
+              ? "danger"
+              : "success"
         }
       />
     </div>
