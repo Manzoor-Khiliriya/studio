@@ -155,7 +155,8 @@ export const getQuotaColumns = (setAdjustUser, setAdjustValue) => [
       <span className="font-black text-slate-900 text-[11px] uppercase">{r?.employee?.user?.name} {`(${r?.employee?.employeeCode ? r?.employee?.employeeCode : ''})`}</span>
     ),
   },
-  { header: "Annual Leave", render: (r) => renderQuotaCell(r.balances?.["Annual Leave"], "text-emerald-600", true) },
+  { header: "Earned Leave", render: (r) => renderQuotaCell(r.balances?.["Earned Leave"], "text-emerald-600", true) },
+  { header: "Casual Leave", render: (r) => renderQuotaCell(r.balances?.["Casual Leave"], "text-yellow-600") },
   { header: "Sick Leave", render: (r) => renderQuotaCell(r.balances?.["Sick Leave"], "text-orange-600") },
   { header: "Bereavement", render: (r) => renderQuotaCell(r.balances?.["Bereavement Leave"], "text-blue-600") },
   { header: "Paternity", render: (r) => renderQuotaCell(r.balances?.["Paternity Leave"], "text-indigo-600") },
@@ -166,11 +167,11 @@ export const getQuotaColumns = (setAdjustUser, setAdjustValue) => [
       <button
         onClick={() => {
           setAdjustUser(r);
-          setAdjustValue(r.balances?.["Annual Leave"]?.adjustment || 0);
+          setAdjustValue(r.balances?.["Earned Leave"]?.adjustment || 0);
         }}
         className="text-[9px] font-black text-orange-600 hover:underline cursor-pointer"
       >
-        Adjust Annual Leave
+        Adjust Earned Leave
       </button>
     )
   }

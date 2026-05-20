@@ -192,35 +192,46 @@ export default function EmployeeLeavePage() {
 
       <main className="max-w-[1750px] mx-auto px-8 -mt-10 pb-20">
         {/* TACTICAL FILTER BAR */}
-        <div className="flex flex-wrap items-center gap-4 mb-8 bg-white/90 backdrop-blur-xl p-5 rounded-[2.5rem] border border-slate-200 shadow-xl shadow-slate-200/40">
+        <div className="relative z-[200] flex flex-wrap items-center gap-4 mb-8 bg-white/90 backdrop-blur-xl p-5 rounded-[2.5rem] border border-slate-200 shadow-xl shadow-slate-200/40">
           <div className="flex items-center gap-3 bg-slate-50 px-5 py-3 rounded-2xl border border-slate-100">
-            <HiOutlineFilter className="text-slate-400" size={16} />
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200 pr-4">
-              Type
+              Leave Type
             </span>
-            <select
+            <CustomDropdown
               value={typeFilter}
-              onChange={(e) => {
-                setTypeFilter(e.target.value);
+              onChange={(val) => {
+                setTypeFilter(val);
                 setPage(1);
               }}
-              className="bg-transparent text-[10px] font-black outline-none cursor-pointer text-slate-700 uppercase"
-            >
-              {[
+              options={[
                 "All",
-                "Annual Leave",
+                "Earned Leave",
                 "Sick Leave",
                 "Bereavement Leave",
                 "Paternity Leave",
                 "Maternity Leave",
                 "Casual Leave",
+                "Complimentary Leave",
                 "LOP",
-              ].map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
+              ].map((t) => ({
+                label: t,
+                value: t,
+              }))}
+              className="min-w-[170px]"
+              buttonClass="
+    bg-transparent
+    text-[10px]
+    font-black
+    cursor-pointer
+    text-slate-700
+    uppercase
+    flex
+    items-center
+    justify-between
+    gap-2
+    px-1
+  "
+            />
           </div>
 
           <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200/50">
@@ -231,11 +242,10 @@ export default function EmployeeLeavePage() {
                   setStatusFilter(s);
                   setPage(1);
                 }}
-                className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                  statusFilter === s
+                className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === s
                     ? "bg-white text-orange-600 shadow-md ring-1 ring-slate-200"
                     : "text-slate-500 hover:text-slate-800 cursor-pointer"
-                }`}
+                  }`}
               >
                 {s === "Pending"
                   ? "Under Review"
@@ -256,12 +266,12 @@ export default function EmployeeLeavePage() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 relative z-0">
           {/* STATS SECTION */}
           <div className="xl:col-span-3 space-y-6">
             <StatBox
-              label="Annual Leaves"
-              value={`${data?.balances?.annualLeave?.remaining?.toFixed(1) || 0}`}
+              label="Earned Leaves"
+              value={`${data?.balances?.earnedLeave?.remaining?.toFixed(1) || 0}`}
               unit="Days"
               color="orange"
             />
@@ -343,7 +353,7 @@ export default function EmployeeLeavePage() {
 
 const StatBox = ({ label, value, unit, color, icon }) => (
   <div className="p-10 rounded-[3rem] bg-white border border-slate-200 shadow-xl shadow-slate-200/30 relative overflow-hidden group hover:border-orange-500/30 transition-all duration-500">
-    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 relative z-10">
+    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 relative">
       {label}
     </p>
     <div className="flex items-baseline gap-2 relative z-10">

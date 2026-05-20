@@ -108,9 +108,12 @@ export default function AdminLeavePage() {
       const headers = [
         "Employee",
         "Code",
-        "Annual (Earned)",
-        "Annual (Used)",
-        "Annual (Bal)",
+        "Earned (Earned)",
+        "Earned (Used)",
+        "Earned (Bal)",
+        "Casual (Quota)",
+        "Casual (Used)",
+        "Casual (Bal)",
         "Sick (Quota)",
         "Sick (Used)",
         "Sick (Bal)",
@@ -131,9 +134,12 @@ export default function AdminLeavePage() {
         return [
           r.employee?.user?.name || "N/A",
           r.employee?.employeeCode || "N/A",
-          b["Annual Leave"]?.earned || 0,
-          b["Annual Leave"]?.taken || 0,
-          b["Annual Leave"]?.remaining || 0,
+          b["Earned Leave"]?.earned || 0,
+          b["Earned Leave"]?.taken || 0,
+          b["Earned Leave"]?.remaining || 0,
+          b["Casual Leave"]?.quota || 0,
+          b["Casual Leave"]?.taken || 0,
+          b["Casual Leave"]?.remaining || 0,
           b["Sick Leave"]?.quota || 0,
           b["Sick Leave"]?.taken || 0,
           b["Sick Leave"]?.remaining || 0,
@@ -239,7 +245,7 @@ export default function AdminLeavePage() {
     }
   };
 
-  const handleUpdateSettings = async () => {
+  const handleUpdateSettings = async (e) => {
     e.preventDefault();
     const tId = toast.loading(`Updating Policy...`);
     try {
@@ -315,7 +321,7 @@ export default function AdminLeavePage() {
             },
             {
               id: "casual-lop",
-              label: "Casual/LOP Leaves",
+              label: "LOP/LWP Leaves",
               icon: <HiOutlineCalendarDays size={16} />,
             },
           ].map((tab) => (
@@ -584,8 +590,9 @@ export default function AdminLeavePage() {
                 setConfigForm({ ...configForm, leaveType: val })
               }
               options={[
-                "Annual Leave",
+                "Earned Leave",
                 "Sick Leave",
+                "Casual Leave",
                 "Bereavement Leave",
                 "Paternity Leave",
                 "Maternity Leave",
@@ -597,7 +604,7 @@ export default function AdminLeavePage() {
 
           <InputGroup
             label={
-              configForm.leaveType === "Annual Leave"
+              configForm.leaveType === "Earned Leave"
                 ? "Days Per Month"
                 : "Days Per Year"
             }
@@ -620,7 +627,7 @@ export default function AdminLeavePage() {
             </div>
           </InputGroup>
 
-          {configForm.leaveType === "Annual Leave" && (
+          {configForm.leaveType === "Earned Leave" && (
             <InputGroup label="Carry Forward Limit">
               <input
                 type="number"
@@ -641,7 +648,7 @@ export default function AdminLeavePage() {
       <CommonModal
         isOpen={!!adjustUser}
         onClose={() => setAdjustUser(null)}
-        title="Adjust Annual Leave"
+        title="Adjust Earned Leave"
         onSubmit={handleAdjustmentSave}
         submitText="Save"
         maxWidth="max-w-sm"

@@ -84,6 +84,10 @@ export default function AdminTaskAllocationPage() {
                                 <thead className="">
                                     <tr>
                                         <th className="px-6 py-2 text-left text-[10px] uppercase font-black text-slate-500">
+                                            Project
+                                        </th>
+
+                                        <th className="px-6 py-2 text-left text-[10px] uppercase font-black text-slate-500">
                                             Task
                                         </th>
 
@@ -96,7 +100,7 @@ export default function AdminTaskAllocationPage() {
                                         </th>
 
                                         <th className="px-6 py-2 text-left text-[10px] uppercase font-black text-slate-500">
-                                            Hours
+                                            Time Allocated
                                         </th>
                                     </tr>
                                 </thead>
@@ -107,10 +111,16 @@ export default function AdminTaskAllocationPage() {
                                             key={allocation._id}
                                             className="border-t border-slate-100"
                                         >
+                                            <td className="px-6 py-3`">
+                                                <span className="font-black text-slate-900 text-sm uppercase">
+                                                    {allocation.task?.project?.title}
+                                                </span>
+                                            </td>
+
                                             {/* TASK */}
                                             <td className="px-6 py-3`">
                                                 <span className="font-black text-slate-900 text-sm uppercase">
-                                                    {allocation.task?.title} ({allocation.task?.project?.title})
+                                                    {allocation.task?.title}
                                                 </span>
                                             </td>
 

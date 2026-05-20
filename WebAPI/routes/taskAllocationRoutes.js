@@ -5,12 +5,6 @@ const { authenticate, authorize } = require("../middlewares/authMiddleware");
 
 router.use(authenticate);
 
-router.post(
-  "/",
-  authorize("Admin"),
-  taskAllocationController.createTaskAllocation,
-);
-
 router.put(
   "/:id",
   authorize("Admin"),
@@ -28,13 +22,5 @@ router.get(
   authorize("Admin"),
   taskAllocationController.getEmployeeAllocations,
 );
-
-router.get(
-  "/employee/:employeeId",
-  authorize("Admin"),
-  taskAllocationController.getEmployeeTaskQueue,
-);
-
-router.get("/my-queue", taskAllocationController.getMyTaskQueue);
 
 module.exports = router;

@@ -116,12 +116,19 @@ exports.updateTask = async (req, res) => {
         await TaskAllocation.insertMany(newAllocations);
       }
 
+      emitEvent(req, "allocationChanged", {
+        taskId: task._id,
+      });
+
       await TaskAllocation.deleteMany({
         task: task._id,
 
         employee: {
           $nin: assignedEmployeeIds,
         },
+      });
+      emitEvent(req, "allocationChanged", {
+        taskId: task._id,
       });
     }
     if (allocatedTime !== undefined) task.allocatedTime = Number(allocatedTime);

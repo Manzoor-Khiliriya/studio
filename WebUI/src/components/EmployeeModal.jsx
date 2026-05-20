@@ -47,7 +47,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null }) {
       });
     } else if (isOpen) {
       setFormData({
-        name: "", email: "", password: "", designation: "",
+        name: "", employeeCode: "", email: "", password: "", designation: "",
         proficiency: "100", joinedDate: getToday(), dailyWorkLimit: "9",
         mobileNumber: "", dateOfBirth: ""
       });

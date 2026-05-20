@@ -4,7 +4,8 @@ const leaveSettingSchema = new mongoose.Schema({
   leaveType: {
     type: String,
     enum: [
-      "Annual Leave",
+      "Earned Leave",
+      "Casual Leave",
       "Sick Leave",
       "Bereavement Leave",
       "Paternity Leave",

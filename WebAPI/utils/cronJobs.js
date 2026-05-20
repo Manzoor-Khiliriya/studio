@@ -110,7 +110,7 @@ async function runMonthlyAccrualSafe() {
   console.log("🚀 Running monthly accrual...");
 
   const users = await User.find({ role: "Employee" });
-  const setting = await LeaveSetting.findOne({ leaveType: "Annual Leave" });
+  const setting = await LeaveSetting.findOne({ leaveType: "Earned Leave" });
 
   const currentYear = currentTime.getFullYear();
   const rate = setting?.accrualRate || 0;
@@ -120,7 +120,7 @@ async function runMonthlyAccrualSafe() {
       {
         user: user._id,
         year: currentYear,
-        type: "Annual Leave"
+        type: "Earned Leave"
       },
       {
         $inc: { earned: rate }
@@ -158,7 +158,7 @@ async function runYearlyCarryForwardSafe() {
   console.log("🚀 Running yearly carry forward...");
 
   const users = await User.find({ role: "Employee" });
-  const setting = await LeaveSetting.findOne({ leaveType: "Annual Leave" });
+  const setting = await LeaveSetting.findOne({ leaveType: "Earned Leave" });
 
   const currentYear = currentTime.getFullYear();
   const nextYear = currentYear + 1;
@@ -167,14 +167,14 @@ async function runYearlyCarryForwardSafe() {
     const balance = await LeaveBalance.findOne({
       user: user._id,
       year: currentYear,
-      type: "Annual Leave"
+      type: "Earned Leave"
     });
 
     const earned = balance?.earned || 0;
 
     const leaves = await Leave.find({
       user: user._id,
-      type: "Annual Leave",
+      type: "Earned Leave",
       status: "Approved",
       startDate: {
         $gte: new Date(`${currentYear}-01-01`),
@@ -198,7 +198,7 @@ async function runYearlyCarryForwardSafe() {
       {
         user: user._id,
         year: nextYear,
-        type: "Annual Leave"
+        type: "Earned Leave"
       },
       {
         earned: 0,

@@ -263,8 +263,8 @@ export default function AdminTaskDetailPage() {
                   <HiOutlineChartPie className="text-orange-500" /> Time
                   Distribution
                 </h3>
-                <div className="h-[280px] [&_*:focus]:outline-none">
-                  <ResponsiveContainer width="100%" height="100%">
+                <div className="h-[280px] min-h-[280px] w-full [&_*:focus]:outline-none">
+                  <ResponsiveContainer width="100%" height={280}>
                     <PieChart>
                       <Pie
                         data={timeData}
@@ -310,9 +310,9 @@ export default function AdminTaskDetailPage() {
                   <HiOutlineUserGroup className="text-orange-500" /> Contributor
                   Split
                 </h3>
-                <div className="h-[280px] [&_*:focus]:outline-none">
+                <div className="h-[280px] min-h-[280px] w-full [&_*:focus]:outline-none">
                   {employeePieData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height={280}>
                       <PieChart>
                         <Pie
                           data={employeePieData}
@@ -439,10 +439,6 @@ export default function AdminTaskDetailPage() {
                           <div className="flex items-center justify-between">
                             <span className="text-[11px] font-black text-slate-900 uppercase">
                               {allocation.employee?.user?.name} ({allocation.employee?.employeeCode})
-                            </span>
-
-                            <span className="text-[9px] font-black text-orange-500 uppercase">
-                              #{allocation.priorityOrder}
                             </span>
                           </div>
 

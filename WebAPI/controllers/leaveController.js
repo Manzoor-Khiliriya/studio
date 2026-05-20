@@ -50,8 +50,8 @@ exports.getMyLeaves = async (req, res) => {
 
     const settings = await LeaveSetting.find();
 
-    // 🔥 ANNUAL LEAVE (UPDATED LOGIC)
-    const t = "Annual Leave";
+    // 🔥 Earned LEAVE (UPDATED LOGIC)
+    const t = "Earned Leave";
     const setting = settings.find(s => s.leaveType === t);
 
     const currentYear = new Date().getFullYear();
@@ -59,7 +59,7 @@ exports.getMyLeaves = async (req, res) => {
     let balance = await LeaveBalance.findOne({
       user: userId,
       year: currentYear,
-      type: "Annual Leave"
+      type: "Earned Leave"
     });
 
     // ✅ create if not exists
@@ -67,7 +67,7 @@ exports.getMyLeaves = async (req, res) => {
       balance = await LeaveBalance.create({
         user: userId,
         year: currentYear,
-        type: "Annual Leave"
+        type: "Earned Leave"
       });
     }
 
@@ -87,7 +87,7 @@ exports.getMyLeaves = async (req, res) => {
       (balance.initialAdjustment || 0);
 
     const balances = {
-      "Annual Leave": {
+      "Earned Leave": {
         earned: +earned.toFixed(1),
         taken,
         remaining: +(totalAvailable - taken).toFixed(1),
@@ -119,7 +119,7 @@ exports.getMyLeaves = async (req, res) => {
     res.json({
       history,
       balances: {
-        annualLeave: balances["Annual Leave"]
+        earnedLeave: balances["Earned Leave"]
       },
       pagination: {
         totalLeaves,
@@ -150,21 +150,21 @@ exports.applyLeave = async (req, res) => {
 
     const setting = await LeaveSetting.findOne({ leaveType: type });
 
-    // 🔥 ANNUAL LEAVE
-    if (type === "Annual Leave") {
+    // 🔥 EARNED LEAVE
+    if (type === "Earned Leave") {
       const currentYear = now().getFullYear();
 
       let balance = await LeaveBalance.findOne({
         user: userId,
         year: currentYear,
-        type: "Annual Leave"
+        type: "Earned Leave"
       });
 
       if (!balance) {
         balance = await LeaveBalance.create({
           user: userId,
           year: currentYear,
-          type: "Annual Leave"
+          type: "Earned Leave"
         });
       }
 
@@ -176,7 +176,7 @@ exports.applyLeave = async (req, res) => {
         setting?.carryForwardLimit || 0
       );
 
-      const taken = await getTakenDays(userId, "Annual Leave", false);
+      const taken = await getTakenDays(userId, "Earned Leave", false);
 
       const totalAvailable =
         earned +
@@ -185,13 +185,13 @@ exports.applyLeave = async (req, res) => {
 
       if (requestedDays > (totalAvailable - taken)) {
         return res.status(400).json({
-          message: `Insufficient Annual Leave balance. Available ${totalAvailable - taken} Leaves`
+          message: `Insufficient Earned Leave balance. Available ${totalAvailable - taken} Leaves`
         });
       }
     }
 
     // 🔥 OTHER LEAVES
-    else if (!["LOP", "Casual Leave"].includes(type)) {
+    else if (!["LOP"].includes(type)) {
       const taken = await getTakenDays(userId, type, true);
       const quota = setting?.yearlyQuota || 10;
 
@@ -335,7 +335,7 @@ exports.getAllLeaves = async (req, res) => {
 
     // --- VIEW 2: CASUAL & LOP (Filtered & Sorted by START date) ---
     if (view === "casual-lop") {
-      let query = { type: { $in: ["Casual Leave", "LOP"] }, status: "Approved" };
+      let query = { type: { $in: ["LOP"] }, status: "Approved" };
 
       if (filterStart && filterEnd) {
         query.startDate = { $gte: filterStart, $lte: filterEnd };
@@ -381,18 +381,18 @@ exports.getAllLeaves = async (req, res) => {
       const users = await User.find(userQuery).populate("employee").lean();
 
       const settings = await LeaveSetting.find();
-      const leaveTypes = ["Annual Leave", "Sick Leave", "Bereavement Leave", "Paternity Leave", "Maternity Leave"];
+      const leaveTypes = ["Earned Leave", "Casual Leave", "Sick Leave", "Bereavement Leave", "Paternity Leave", "Maternity Leave"];
 
       const quotaData = await Promise.all(users.map(async (user) => {
 
         const userBalances = {};
         for (const t of leaveTypes) {
           const setting = settings.find(s => s.leaveType === t);
-          if (t === "Annual Leave") {
+          if (t === "Earned Leave") {
             const balance = await LeaveBalance.findOne({
               user: user._id,
               year: new Date().getFullYear(),
-              type: "Annual Leave"
+              type: "Earned Leave"
             });
 
             const earned = balance?.earned || 0;
@@ -465,7 +465,7 @@ exports.updateLeaveSettings = async (req, res) => {
     const { leaveType, value } = req.body;
     let updateFields = { updatedBy: req.user._id };
 
-    if (leaveType === "Annual Leave") {
+    if (leaveType === "Earned Leave") {
       updateFields.accrualRate = Number(value);
       updateFields.carryForwardLimit = Number(req.body.carryForwardLimit || 0);
     } else {
@@ -542,20 +542,20 @@ exports.processLeave = async (req, res) => {
 
       const setting = await LeaveSetting.findOne({ leaveType: leave.type });
 
-      if (leave.type === "Annual Leave") {
+      if (leave.type === "Earned Leave") {
         const currentYear = now().getFullYear();
 
         let balance = await LeaveBalance.findOne({
           user: leave.user,
           year: currentYear,
-          type: "Annual Leave"
+          type: "Earned Leave"
         });
 
         if (!balance) {
           balance = await LeaveBalance.create({
             user: leave.user,
             year: currentYear,
-            type: "Annual Leave"
+            type: "Earned Leave"
           });
         }
 
@@ -570,7 +570,7 @@ exports.processLeave = async (req, res) => {
         const existingLeaves = await Leave.find({
           user: leave.user,
           status: { $ne: "Rejected" },
-          type: "Annual Leave",
+          type: "Earned Leave",
           _id: { $ne: leave._id }
         });
 
@@ -586,13 +586,13 @@ exports.processLeave = async (req, res) => {
 
         if (requestedDays > (totalAvailable - taken)) {
           return res.status(400).json({
-            message: `Cannot approve. Insufficient Annual Leave balance. Available ${totalAvailable - taken
+            message: `Cannot approve. Insufficient Earned Leave balance. Available ${totalAvailable - taken
               } Leaves`
           });
         }
       }
 
-      else if (!["LOP", "Casual Leave"].includes(leave.type)) {
+      else if (!["LOP"].includes(leave.type)) {
         const existingLeaves = await Leave.find({
           user: leave.user,
           status: { $ne: "Rejected" },
@@ -689,20 +689,20 @@ exports.updateLeave = async (req, res) => {
       updatedLeave.endDate
     );
     const setting = await LeaveSetting.findOne({ leaveType: updatedLeave.type });
-    if (updatedLeave.type === "Annual Leave") {
+    if (updatedLeave.type === "Earned Leave") {
       const currentYear = now().getFullYear();
 
       let balance = await LeaveBalance.findOne({
         user: leave.user,
         year: currentYear,
-        type: "Annual Leave"
+        type: "Earned Leave"
       });
 
       if (!balance) {
         balance = await LeaveBalance.create({
           user: leave.user,
           year: currentYear,
-          type: "Annual Leave"
+          type: "Earned Leave"
         });
       }
 
@@ -717,7 +717,7 @@ exports.updateLeave = async (req, res) => {
       const existingLeaves = await Leave.find({
         user: leave.user,
         status: { $ne: "Rejected" },
-        type: "Annual Leave",
+        type: "Earned Leave",
         _id: { $ne: leave._id }
       });
 
@@ -733,12 +733,12 @@ exports.updateLeave = async (req, res) => {
 
       if (requestedDays > (totalAvailable - taken)) {
         return res.status(400).json({
-          message: `Insufficient Annual Leave balance. Available ${totalAvailable - taken
+          message: `Insufficient Earned Leave balance. Available ${totalAvailable - taken
             } Leaves`
         });
       }
     }
-    else if (!["LOP", "Casual Leave"].includes(updatedLeave.type)) {
+    else if (!["LOP"].includes(updatedLeave.type)) {
       const existingLeaves = await Leave.find({
         user: leave.user,
         status: { $ne: "Rejected" },
@@ -802,20 +802,20 @@ exports.deleteLeave = async (req, res) => {
   }
 };
 
-exports.updateAnnualAdjustment = async (req, res) => {
+exports.updateEarnedAdjustment = async (req, res) => {
   try {
     const { userId, value } = req.body;
     const year = new Date().getFullYear();
     let balance = await LeaveBalance.findOne({
       user: userId,
       year,
-      type: "Annual Leave"
+      type: "Earned Leave"
     });
     if (!balance) {
       balance = await LeaveBalance.create({
         user: userId,
         year,
-        type: "Annual Leave"
+        type: "Earned Leave"
       });
     }
     balance.initialAdjustment = Number(value) || 0;
