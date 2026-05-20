@@ -1,6 +1,7 @@
 const Task = require("../models/Task");
 const Employee = require("../models/Employee");
 const TaskAllocation = require("../models/TaskAllocation");
+const { getToday } = require("../utils/dateHelper");
 
 const emitEvent = (req, event, data, userIds = []) => {
   const io = req.app.get("socketio");
@@ -95,12 +96,19 @@ exports.getEmployeeAllocations = async (req, res) => {
 
       .populate({
         path: "task",
-        select: "title project",
+        select: "title project timelogs",
 
-        populate: {
-          path: "project",
-          select: "title projectCode",
-        },
+        populate: [
+          {
+            path: "project",
+            select: "title projectCode",
+          },
+
+          {
+            path: "timeLogs",
+            select: "rawDurationSeconds dateString user logType",
+          },
+        ],
       });
 
     const grouped = {};
@@ -117,6 +125,34 @@ exports.getEmployeeAllocations = async (req, res) => {
           tasks: [],
         };
       }
+
+      const today = getToday();
+
+      const todayWorkedSeconds = (allocation.task?.timeLogs || [])
+
+        .filter(
+          (log) =>
+            log.user?.toString() === allocation.employee.user._id.toString() &&
+            log.dateString === today &&
+            log.logType === "work",
+        )
+
+        .reduce(
+          (acc, log) => acc + (log.rawDurationSeconds  || 0),
+
+          0,
+        );
+
+      allocation._doc.todayWorkedHours = (todayWorkedSeconds / 3600).toFixed(1);
+
+      allocation._doc.isOverWorked =
+        todayWorkedSeconds / 3600 > allocation.allocatedHours;
+
+      allocation._doc.overWorkedHours = Math.max(
+        0,
+        todayWorkedSeconds / 3600 - allocation.allocatedHours,
+      ).toFixed(1);
+
       grouped[employeeId].tasks.push(allocation);
     });
 

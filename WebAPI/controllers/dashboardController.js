@@ -179,43 +179,28 @@ exports.getSummary = async (req, res) => {
 
           return {
             id: task._id,
-
             projectTitle: task?.project?.title,
-
             projectCode: task?.project?.projectCode || "N/A",
-
             title: task?.title,
-
             deadline: task.endDate,
-
             priority: task.priority,
-
             status: task.liveStatus,
-
             description: task.description,
-
             updatedAt: task.updatedAt,
-
             allocation: allocation
               ? {
                   role: allocation.role,
-
                   priorityOrder: allocation.priorityOrder,
-
                   allocatedHours: allocation.allocatedHours,
                 }
               : null,
           };
         })
-
         .sort((a, b) => {
           const aPriority = a.allocation?.priorityOrder || 9999;
-
           const bPriority = b.allocation?.priorityOrder || 9999;
-
           return aPriority - bPriority;
         }),
-
       approvedLeavesCount,
     });
   } catch (err) {

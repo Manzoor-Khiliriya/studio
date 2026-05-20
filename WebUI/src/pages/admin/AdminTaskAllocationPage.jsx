@@ -7,6 +7,7 @@ import Loader from "../../components/Loader";
 import { toast } from "react-hot-toast";
 import PageHeader from "../../components/PageHeader";
 import CustomDropdown from "../../components/CustomDropdown";
+import { useSocketEvents } from "../../hooks/useSocketEvents";
 
 export default function AdminTaskAllocationPage() {
     const {
@@ -23,6 +24,11 @@ export default function AdminTaskAllocationPage() {
     );
 
     const [updateAllocation] = useUpdateTaskAllocationMutation();
+
+    useSocketEvents({
+        onTaskChange: refetch,
+        onAllocationChange: refetch,
+    });
 
     const handleUpdate = async (id, field, value) => {
         try {
@@ -100,7 +106,7 @@ export default function AdminTaskAllocationPage() {
                                         </th>
 
                                         <th className="px-6 py-2 text-left text-[10px] uppercase font-black text-slate-500">
-                                            Time Allocated
+                                            Time Allocated (Hrs)
                                         </th>
                                     </tr>
                                 </thead>
@@ -171,20 +177,45 @@ export default function AdminTaskAllocationPage() {
                                             </td>
 
                                             {/* HOURS */}
-                                            <td className="px-6 py-3">
-                                                <input
-                                                    type="number"
-                                                    min={0}
-                                                    defaultValue={allocation.allocatedHours}
-                                                    onBlur={(e) =>
-                                                        handleUpdate(
-                                                            allocation._id,
-                                                            "allocatedHours",
-                                                            Number(e.target.value),
-                                                        )
-                                                    }
-                                                    className="w-12 py-2 text-center text-sm font-bold outline-none"
-                                                />
+                                            <td className="px-6 py-3    ">
+
+                                                {/* TOP ROW */}
+                                                <div className="flex items-center gap-2">
+
+                                                    {/* ALLOCATED INPUT */}
+
+                                                    <input
+                                                        type="number"
+                                                        min={0}
+                                                        defaultValue={allocation.allocatedHours}
+                                                        onBlur={(e) =>
+                                                            handleUpdate(
+                                                                allocation._id,
+                                                                "allocatedHours",
+                                                                Number(e.target.value),
+                                                            )
+                                                        }
+                                                        className="w-14 text-center text-sm font-black outline-none bg-transparent"
+                                                    />
+
+                                                    {allocation.isOverWorked ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[10px] font-black uppercase tracking-wide text-red-500">
+                                                                Exceeded by {allocation.overWorkedHours}h
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        <div
+                                                            className={`text-[10px] font-black uppercase tracking-wide ${allocation.isOverWorked
+                                                                ? "text-red-600"
+                                                                : "text-emerald-600"
+                                                                }`}
+                                                        >
+                                                            {allocation.todayWorkedHours || 0} hrs Worked
+                                                        </div>
+                                                    )}
+                                                </div>
+
                                             </td>
                                         </tr>
                                     ))}

@@ -167,7 +167,7 @@ exports.getMyLogs = async (req, res) => {
         );
         totalSeconds += Math.max(0, runningSec);
       } else {
-        totalSeconds += (log.durationSeconds || 0);
+        totalSeconds += (log.rawDurationSeconds  || 0);
       }
     });
     const hoursWorkedToday = +(totalSeconds / 3600).toFixed(2);

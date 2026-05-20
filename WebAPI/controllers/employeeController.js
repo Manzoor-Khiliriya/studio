@@ -54,7 +54,7 @@ exports.getEmployeeProfile = async (req, res) => {
 exports.getMyEmployeeProfile = async (req, res) => {
   try {
     const employee = await Employee.findOne({ user: req.user._id })
-      .select("-dailyWorkLimit -proficiency -createdAt -updatedAt")
+      .select("-dailyWorkLimit -proficiency -createdAt -updatedAt -createdBy -updatedBy")
       .populate("user", "name email")
       .lean();
     if (!employee) {
