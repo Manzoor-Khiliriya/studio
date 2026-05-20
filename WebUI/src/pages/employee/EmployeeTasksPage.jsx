@@ -136,19 +136,14 @@ export default function MyTasksPage() {
       ),
     },
     {
-      header: <span className={headerClass}>Task Priority</span>,
+      header: <span className={headerClass}>Allocated Time</span>,
       className: "text-center",
       cellClassName: "text-center",
       render: (row) => {
-        const colors = {
-          High: "text-red-600",
-          Medium: "text-amber-500",
-          Low: "text-slate-600",
-        };
         return (
           <div className="py-2">
-            <p className={`text-[10px] font-black tracking-wider ${colors[row.priority] || "text-slate-600"}`}>
-              {row.priority}
+            <p className={`text-[10px] font-black tracking-wider text-slate-600`}>
+              {row?.allocation?.allocatedHours || 0} hrs
             </p>
           </div>
         );

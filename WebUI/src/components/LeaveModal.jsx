@@ -85,7 +85,7 @@ const LeaveModal = ({ isOpen, onClose, initialData }) => {
               "Maternity Leave",
               "Bereavement Leave",
               "Paternity Leave",
-              "Complimentary Leave",
+              "Compensatory Off",
               "LOP"
             ]}
             className="w-full"

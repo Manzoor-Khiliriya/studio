@@ -26,6 +26,7 @@ import {
   getAdminLeaveColumns,
   getQuotaColumns,
   getCasualLopColumns,
+  getCompensatoryOffColumns,
 } from "../../utils/adminLeaveListHelper";
 import { useSocketEvents } from "../../hooks/useSocketEvents";
 import CustomDropdown from "../../components/CustomDropdown";
@@ -286,7 +287,9 @@ export default function AdminLeavePage() {
       );
     if (activeTab === "quota")
       return getQuotaColumns(setAdjustUser, setAdjustValue);
-    return getCasualLopColumns(handleOpenEdit, handleOpenDelete);
+    if (activeTab === "compensatory-off")
+      return getCompensatoryOffColumns();
+    return getCasualLopColumns();
   }, [activeTab]);
 
   const leaves = data?.view === activeTab ? data.leaves : null;
@@ -322,6 +325,11 @@ export default function AdminLeavePage() {
             {
               id: "casual-lop",
               label: "LOP/LWP Leaves",
+              icon: <HiOutlineCalendarDays size={16} />,
+            },
+            {
+              id: "compensatory-off",
+              label: "Compensatory Off",
               icon: <HiOutlineCalendarDays size={16} />,
             },
           ].map((tab) => (
@@ -489,7 +497,7 @@ export default function AdminLeavePage() {
           )}
         </div>
 
-        <div className="bg-white p-6 border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
+        <div className="bg-white p-6 border-t border-slate-200 rounded-b-[2rem] flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100 shadow-sm">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200 pr-3">

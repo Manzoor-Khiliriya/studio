@@ -180,7 +180,68 @@ export const getQuotaColumns = (setAdjustUser, setAdjustValue) => [
 /**
  * CASUAL & LOP COLUMNS
  */
-export const getCasualLopColumns = (onEdit, onDelete) => [
+export const getCasualLopColumns = () => [
+  {
+    header: "Employee",
+    render: (r) => (
+      <p className="font-black text-slate-900 text-[11px] uppercase">{r.user?.name} {`(${r.user?.employee?.employeeCode ? r.user?.employee?.employeeCode : ''})`}</p>
+    ),
+  },
+  {
+    header: "Leave Type",
+    className: "text-center",
+    render: (req) => (
+      <p className="text-[10px] text-center text-slate-700 font-black uppercase tracking-widest">
+        {req.type}
+      </p>
+    ),
+  },
+  {
+    header: "Leave Reason",
+    className: "text-left",
+    render: (req) => (
+      <p className="text-[10px] text-slate-700 font-black uppercase truncate max-w-[280px] italic">
+        {req.reason || "No operational context provided"}
+      </p>
+    )
+  },
+  {
+    header: "Requested On",
+    className: "text-center",
+    render: (req) => (
+      <div className="flex items-center justify-center gap-2">
+        <HiOutlineCalendar className="text-orange-500" size={13} />
+        <p className="text-[10px] text-slate-700 font-black tracking-widest uppercase">
+          {new Date(req.createdAt).toLocaleDateString('en-IN')}
+        </p>
+      </div>
+    ),
+  },
+  {
+    header: "Leave Timeline",
+    className: "text-center",
+    render: (req) => (
+      <div className="flex items-center justify-center gap-2">
+        <HiOutlineCalendar className="text-orange-500" size={13} />
+        <p className="text-[10px] text-slate-700 font-black tracking-widest uppercase">
+          {new Date(req.startDate).toLocaleDateString('en-IN')} — {new Date(req.endDate).toLocaleDateString('en-IN')}
+        </p>
+      </div>
+    ),
+  },
+  {
+    header: "No Of Days",
+    className: "text-center",
+    render: (req) => <p className=" text-center text-slate-700 text-[10px] uppercase font-black">{req.duration || 0} days</p>
+  },
+  {
+    header: "Status",
+    className: "text-center",
+    render: (req) => <div className="text-center"><StatusBadge status={req.status} /></div>,
+  },
+];
+
+export const getCompensatoryOffColumns = () => [
   {
     header: "Employee",
     render: (r) => (

@@ -73,6 +73,11 @@ exports.updateTask = async (req, res) => {
         .json({ success: false, message: "Task not found" });
     }
     const oldAssigneeIds = task.assignedTo.map((id) => id.toString());
+    const newAssignedIds = assignedTo
+      ? assignedTo.map((id) => id.toString())
+      : [];
+
+    const removed = oldAssigneeIds.filter((id) => !newAssignedIds.includes(id));
     if (title) task.title = title;
     if (priority) task.priority = priority;
     if (description !== undefined) task.description = description;
@@ -166,6 +171,21 @@ exports.updateTask = async (req, res) => {
           "taskChanged",
           updated,
           addedEmps.map((e) => e.user._id),
+        );
+      }
+
+      if (removed.length) {
+        const removedEmps = await Employee.find({
+          _id: {
+            $in: removed,
+          },
+        }).populate("user");
+
+        emitEvent(
+          req,
+          "taskChanged",
+          updated,
+          removedEmps.map((e) => e.user._id),
         );
       }
     }
@@ -562,7 +582,6 @@ exports.getMyTasks = async (req, res) => {
 
     const tasks = await Task.find(query)
       .populate("project", "projectCode title")
-      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(Number(limit));
 
@@ -611,6 +630,12 @@ exports.getMyTasks = async (req, res) => {
             }
           : null,
       };
+    });
+
+    finalTasks.sort((a, b) => {
+      const aPriority = a.allocation?.priorityOrder || 9999;
+      const bPriority = b.allocation?.priorityOrder || 9999;
+      return aPriority - bPriority;
     });
 
     if (liveStatus && liveStatus !== "All") {

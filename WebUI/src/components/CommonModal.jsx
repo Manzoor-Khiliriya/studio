@@ -6,7 +6,7 @@ export default function CommonModal({ isOpen, onClose, title, subtitle, children
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 py-5 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 py-5 flex items-center justify-center z-[5000] p-4">
           {/* BACKDROP */}
           <motion.div
             initial={{ opacity: 0 }}

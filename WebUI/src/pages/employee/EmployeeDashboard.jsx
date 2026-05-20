@@ -56,6 +56,9 @@ export default function EmployeeDashboard() {
     onTaskChange: () => {
       refetchSummary();
     },
+    onAllocationChange: () => {
+      refetchSummary();
+    },
   });
 
   const allActiveTasks = useMemo(() => {

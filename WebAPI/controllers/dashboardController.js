@@ -135,7 +135,6 @@ exports.getSummary = async (req, res) => {
           assignedTo: employeeProfile._id,
           status: { $ne: "Completed" },
         })
-          .sort({ priority: -1, endDate: 1 })
           .populate("project", "title projectCode")
           .populate("timeLogs"),
 
@@ -172,29 +171,50 @@ exports.getSummary = async (req, res) => {
           }
         : null,
 
-      taskSnapshot: assignedTasks.map((t) => {
-        const task = t.toObject();
-        const allocation = allocationMap[task._id.toString()];
+      taskSnapshot: assignedTasks
+        .map((t) => {
+          const task = t.toObject();
 
-        return {
-          id: task._id,
-          projectTitle: task?.project?.title,
-          projectCode: task?.project?.projectCode || "N/A",
-          title: task?.title,
-          deadline: task.endDate,
-          priority: task.priority,
-          status: task.liveStatus,
-          description: task.description,
-          updatedAt: task.updatedAt,
-          allocation: allocation
-            ? {
-                role: allocation.role,
-                priorityOrder: allocation.priorityOrder,
-                allocatedHours: allocation.allocatedHours,
-              }
-            : null,
-        };
-      }),
+          const allocation = allocationMap[task._id.toString()];
+
+          return {
+            id: task._id,
+
+            projectTitle: task?.project?.title,
+
+            projectCode: task?.project?.projectCode || "N/A",
+
+            title: task?.title,
+
+            deadline: task.endDate,
+
+            priority: task.priority,
+
+            status: task.liveStatus,
+
+            description: task.description,
+
+            updatedAt: task.updatedAt,
+
+            allocation: allocation
+              ? {
+                  role: allocation.role,
+
+                  priorityOrder: allocation.priorityOrder,
+
+                  allocatedHours: allocation.allocatedHours,
+                }
+              : null,
+          };
+        })
+
+        .sort((a, b) => {
+          const aPriority = a.allocation?.priorityOrder || 9999;
+
+          const bPriority = b.allocation?.priorityOrder || 9999;
+
+          return aPriority - bPriority;
+        }),
 
       approvedLeavesCount,
     });

@@ -211,7 +211,7 @@ export default function EmployeeLeavePage() {
                 "Paternity Leave",
                 "Maternity Leave",
                 "Casual Leave",
-                "Complimentary Leave",
+                "Compensatory Off",
                 "LOP",
               ].map((t) => ({
                 label: t,

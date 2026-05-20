@@ -370,6 +370,42 @@ exports.getAllLeaves = async (req, res) => {
       });
     }
 
+    if (view === "compensatory-off") {
+      let query = { type: { $in: ["Compensatory Off"] }, status: "Approved" };
+
+      if (filterStart && filterEnd) {
+        query.startDate = { $gte: filterStart, $lte: filterEnd };
+      }
+
+      if (search) {
+        const users = await User.find({ name: { $regex: search, $options: "i" } }).select("_id");
+        query.user = { $in: users.map((u) => u._id) };
+      }
+
+      const totalLeaves = await Leave.countDocuments(query);
+      const leavesRaw = await Leave.find(query)
+        .populate({
+          path: "user",
+          select: "name email",
+          populate: { path: "employee", select: "employeeCode designation" }
+        })
+        .sort({ startDate: -1 }) // Sort by when the leave actually happens
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean();
+
+      const leaves = await Promise.all(leavesRaw.map(async (l) => ({
+        ...l,
+        duration: await calculateLeaveDays(l.startDate, l.endDate)
+      })));
+
+      return res.json({
+        view: "compensatory-off",
+        leaves,
+        pagination: { totalLeaves, totalPages: Math.ceil(totalLeaves / parseInt(limit)), currentPage: parseInt(page) }
+      });
+    }
+
     // --- VIEW 3: QUOTA ---
     if (view === "quota") {
       // UPDATED: Added { role: "employee" } to the query
