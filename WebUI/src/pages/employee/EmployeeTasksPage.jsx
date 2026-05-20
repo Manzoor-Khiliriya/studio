@@ -38,6 +38,7 @@ export default function MyTasksPage() {
 
   useSocketEvents({
     onTaskChange: refetch,
+    onAllocationChange: refetch,
   });
 
   const clearFilters = () => {

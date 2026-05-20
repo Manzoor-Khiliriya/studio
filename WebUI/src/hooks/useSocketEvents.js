@@ -11,6 +11,7 @@ export const useSocketEvents = ({
   onHolidayChange,
   onNotificationChange,
   onDashboardUpdate,
+  onAllocationChange,
 }) => {
   useEffect(() => {
     const socket = getSocket();
@@ -61,6 +62,11 @@ export const useSocketEvents = ({
       onDashboardUpdate?.();
     };
 
+    const handleAllocation = () => {
+      console.log("🧩 Allocation changed");
+      onAllocationChange?.();
+    };
+
     socket.on("employeeChanged", handleEmployee);
     socket.on("projectChanged", handleProject);
     socket.on("taskChanged", handleTask);
@@ -70,6 +76,7 @@ export const useSocketEvents = ({
     socket.on("holidayChanged", handleHoliday);
     socket.on("notificationChanged", handleNotification);
     socket.on("dashboardUpdated", handleDashboard);
+    socket.on("allocationChanged", handleAllocation);
 
     return () => {
       socket.off("employeeChanged", handleEmployee);
@@ -81,6 +88,7 @@ export const useSocketEvents = ({
       socket.off("holidayChanged", handleHoliday);
       socket.off("notificationChanged", handleNotification);
       socket.off("dashboardUpdated", handleDashboard);
+      socket.off("allocationChanged", handleAllocation);
     };
   }, [
     onEmployeeChange,
@@ -92,5 +100,6 @@ export const useSocketEvents = ({
     onHolidayChange,
     onNotificationChange,
     onDashboardUpdate,
+    onAllocationChange,
   ]);
 };

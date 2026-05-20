@@ -81,12 +81,15 @@ export default function AdminTaskDetailPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // API Hooks
-  const { data: task, isLoading, isError, refetch } = useGetTaskDetailQuery(id);
+  const { data: task, isLoading, isError, refetch } = useGetTaskDetailQuery(id, {
+    refetchOnMountOrArgChange: true,
+  });
   const [deleteTask, { isLoading: isDeleting }] = useDeleteTaskMutation();
   const [updateAllocation] = useUpdateTaskAllocationMutation();
 
   useSocketEvents({
     onTaskChange: refetch,
+    onAllocationChange: refetch,
   });
 
   // Derived Values (Memoized for performance)
@@ -506,9 +509,9 @@ export default function AdminTaskDetailPage() {
                   value={
                     task?.project?.startDate
                       ? new Date(task.project.startDate).toLocaleDateString(
-                          "en-IN",
-                          { day: "2-digit", month: "short", year: "numeric" },
-                        )
+                        "en-IN",
+                        { day: "2-digit", month: "short", year: "numeric" },
+                      )
                       : "TBD"
                   }
                 />
@@ -517,9 +520,9 @@ export default function AdminTaskDetailPage() {
                   value={
                     task?.project?.endDate
                       ? new Date(task.project.endDate).toLocaleDateString(
-                          "en-IN",
-                          { day: "2-digit", month: "short", year: "numeric" },
-                        )
+                        "en-IN",
+                        { day: "2-digit", month: "short", year: "numeric" },
+                      )
                       : "TBD"
                   }
                 />
