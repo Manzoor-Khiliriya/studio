@@ -141,7 +141,8 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
                 { label: "Standard Ext", value: "Standard Ext" },
                 { label: "Standard Int", value: "Standard Int" },
                 { label: "Revision Ext", value: "Revision Ext" },
-                { label: "Revision Int", value: "Revision Int" }
+                { label: "Revision Int", value: "Revision Int" },
+                {label: "Interior Design and Fitout", value: "Interior Design and Fitout"}
               ]}
               className="w-full"
               buttonClass="form-input text-xs font-bold pl-10"

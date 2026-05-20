@@ -34,12 +34,13 @@ const CustomProgressBar = ({ percentage, isOver }) => {
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${Math.min(percentage, 100)}%` }}
-          className={`h-full relative z-10 transition-colors duration-700 ${isOver
+          className={`h-full relative z-10 transition-colors duration-700 ${
+            isOver
               ? "bg-rose-500"
               : percentage > 75
                 ? "bg-orange-500"
                 : "bg-indigo-600"
-            }`}
+          }`}
         />
       </div>
       <div className="flex justify-between w-full px-0.5 mt-0.5 opacity-40 text-[6px] font-black uppercase tracking-tighter">
@@ -139,10 +140,10 @@ const AdminTaskPerformancePage = () => {
               const subDate = group.endDate ? new Date(group.endDate) : null;
               const formattedDate = subDate
                 ? subDate.toLocaleDateString("en-IN", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                })
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })
                 : "N/A";
 
               return (
@@ -174,9 +175,9 @@ const AdminTaskPerformancePage = () => {
                         </div>
                       </div>
 
-                      <div className="">
+                      <div className="w-[160px]">
                         <p
-                          className={`text-[9px] font-black text-center uppercase w-[100px]  ${isExpanded ? "text-slate-400" : "text-slate-600"}`}
+                          className={`text-[9px] font-black text-center uppercase ${isExpanded ? "text-slate-400" : "text-slate-600"}`}
                         >
                           Project Type
                         </p>

@@ -710,9 +710,10 @@ export default function AdminTasksPage() {
                           <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">
                             Project Type
                           </span>
-                          <span className="text-[11px] font-bold text-slate-800 font-mono">
-                            {project.projectType}
-                          </span>
+                           <TruncateText
+                            text={project?.projectType}
+                            className="text-[11px] text-center font-bold w-30 text-slate-800 font-mono uppercase"
+                          />
                         </div>
 
                         <div className="flex flex-col gap-1">
