@@ -269,15 +269,15 @@ export default function EmployeeDashboard() {
                   <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="space-y-4"
+                    className="space-y-2"
                   >
-                    <div className="flex items-center justify-between px-4">
+                    <div className="flex items-center justify-between">
                       <h3 className="font-black text-slate-800 text-lg flex items-center gap-2">
                         <HiOutlineBolt className="text-orange-500" /> Active Objectives
                       </h3>
                     </div>
 
-                    <div className="min-h-[500px] space-y-4">
+                    <div className="min-h-[500px] space-y-2">
                       <AnimatePresence mode="popLayout">
                         {paginatedMissions.length > 0 ? (
                           paginatedMissions.map((task) => (

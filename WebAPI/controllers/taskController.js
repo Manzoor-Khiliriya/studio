@@ -555,7 +555,6 @@ exports.getMyTasks = async (req, res) => {
 
     const tasks = await Task.find(query)
       .populate("project", "projectCode title")
-      .populate("timeLogs")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(Number(limit));
@@ -572,17 +571,38 @@ exports.getMyTasks = async (req, res) => {
       });
     }
 
+    const allocations = await TaskAllocation.find({
+      employee: employee._id,
+    });
+
+    const allocationMap = {};
+
+    allocations.forEach((a) => {
+      allocationMap[a.task.toString()] = a;
+    });
+
     let finalTasks = tasks.map((task) => {
       const totalSeconds = (task.timeLogs || []).reduce(
         (acc, log) => acc + (log.durationSeconds || 0),
         0,
       );
 
+      const allocation = allocationMap[task._id.toString()];
+
       return {
         ...task.toObject(),
         liveStatus: task.liveStatus,
         totalLoggedSeconds: totalSeconds,
         totalConsumedHours: totalSeconds / 3600,
+        allocation: allocation
+          ? {
+              role: allocation.role,
+
+              priorityOrder: allocation.priorityOrder,
+
+              allocatedHours: allocation.allocatedHours,
+            }
+          : null,
       };
     });
 

@@ -61,7 +61,7 @@ export default function MyTasksPage() {
     };
 
     const themeClass =
-      themes[status?.toLowerCase()] || "text-slate-500";
+      themes[status?.toLowerCase()] || "text-slate-600";
 
     return (
       <span className={`text-[10px] font-black py-2 tracking-widest ${themeClass}`}>
@@ -74,7 +74,7 @@ export default function MyTasksPage() {
     const isFinal = status === "Final";
     const isPreFinal = status === "Pre-Final";
 
-    let textColor = "text-slate-500";
+    let textColor = "text-slate-600";
     if (isFinal) textColor = "text-emerald-600";
     else if (isPreFinal) textColor = "text-orange-600";
 
@@ -91,13 +91,13 @@ export default function MyTasksPage() {
     const statusMap = {
       "in progress": "text-green-600",
       "started": "text-blue-600",
-      "to be started": "text-slate-400",
+      "to be started": "text-slate-600",
     };
 
     return statusMap[status?.toLowerCase()] || "text-yellow-600";
   };
 
-  const headerClass = "text-[10px] font-black uppercase tracking-widest text-slate-400";
+  const headerClass = "text-[10px] font-black uppercase tracking-widest text-slate-500";
 
   const columns = [
     {
@@ -116,7 +116,7 @@ export default function MyTasksPage() {
       cellClassName: "text-center",
       render: (row) => (
         <div className="py-2">
-          <p className="text-[11px] font-bold text-slate-800 uppercase tracking-tight truncate max-w-[150px]">
+          <p className="text-[11px] font-bold text-slate-900 uppercase tracking-tight truncate max-w-[150px]">
             {row.title}
           </p>
         </div>
@@ -128,7 +128,7 @@ export default function MyTasksPage() {
       cellClassName: "text-center",
       render: (row) => (
         <div className="py-2">
-          <p className="text-[11px] font-bold text-slate-500 capitalize italic truncate max-w-[180px]">
+          <p className="text-[11px] font-bold text-slate-600 capitalize italic truncate max-w-[180px]">
             {row.description || "No details provided"}
           </p>
         </div>
@@ -142,16 +142,40 @@ export default function MyTasksPage() {
         const colors = {
           High: "text-red-600",
           Medium: "text-amber-500",
-          Low: "text-slate-400",
+          Low: "text-slate-600",
         };
         return (
           <div className="py-2">
-            <p className={`text-[10px] font-black tracking-wider ${colors[row.priority] || "text-slate-500"}`}>
-              • {row.priority}
+            <p className={`text-[10px] font-black tracking-wider ${colors[row.priority] || "text-slate-600"}`}>
+              {row.priority}
             </p>
           </div>
         );
       },
+    },
+    {
+      header: <span className={headerClass}>Work Priority</span>,
+      className: "text-center",
+      cellClassName: "text-center",
+      render: (row) => {
+        return (
+          <div className="py-2">
+            <p className={`text-[10px] font-black tracking-wider text-slate-600`}>
+              {row?.allocation?.priorityOrder}
+            </p>
+          </div>
+        );
+      },
+    },
+    {
+      header: <span className={headerClass}>Role</span>,
+      className: "text-center",
+      cellClassName: "text-center",
+      render: (task) => (
+        <span className={`text-[10px] font-black text-slate-600`}>
+          {task?.allocation?.role || "Main"}
+        </span>
+      ),
     },
     {
       header: <span className={headerClass}>Live Status</span>,

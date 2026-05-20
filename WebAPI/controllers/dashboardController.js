@@ -7,6 +7,7 @@ const Attendance = require("../models/Attendance");
 const moment = require("moment");
 const User = require("../models/User");
 const Project = require("../models/Project");
+const TaskAllocation = require("../models/TaskAllocation");
 
 exports.getSummary = async (req, res) => {
   try {
@@ -17,7 +18,6 @@ exports.getSummary = async (req, res) => {
         ADMIN DASHBOARD
     ============================================================= */
     if (isActiveAdmin(req.user)) {
-
       const [
         totalActiveEmployees,
         clockedInNow,
@@ -32,31 +32,36 @@ exports.getSummary = async (req, res) => {
         Task.find().populate("timeLogs"),
         Project.countDocuments({ deleteStatus: "Disable" }),
         TimeLog.find({ isRunning: true, logType: "work" })
-          .populate({ path: "user", select: "name", populate: { path: "employee", select: "employeeCode" } })
+          .populate({
+            path: "user",
+            select: "name",
+            populate: { path: "employee", select: "employeeCode" },
+          })
           .populate({
             path: "task",
             select: "title project",
-            populate: { path: "project", select: "projectCode" }
-          }).lean(),
+            populate: { path: "project", select: "projectCode" },
+          })
+          .lean(),
       ]);
 
-      const tasksWithVirtuals = allTasks.map(task => ({
+      const tasksWithVirtuals = allTasks.map((task) => ({
         ...task.toObject(),
-        liveStatus: task.liveStatus
+        liveStatus: task.liveStatus,
       }));
 
       const inProgressTasks = tasksWithVirtuals.filter(
-        t => t.liveStatus === "In progress"
+        (t) => t.liveStatus === "In progress",
       ).length;
 
       const rawActivity = await TimeLog.find({
-        clearedByAdmin: false
+        clearedByAdmin: false,
       })
         .sort({ createdAt: -1 })
         .populate({
           path: "user",
           select: "name",
-          populate: { path: "employee", select: "employeeCode" }
+          populate: { path: "employee", select: "employeeCode" },
         })
         .populate("task", "title")
         .lean();
@@ -67,15 +72,17 @@ exports.getSummary = async (req, res) => {
         const groupKey = `${log.user?._id}_${log.dateString}`;
 
         if (!groupedActivity[groupKey]) {
-
           const allDayLogs = await TimeLog.find({
             user: log.user?._id,
             dateString: log.dateString,
             logType: "work",
-            isRunning: false
+            isRunning: false,
           });
 
-          const totalSeconds = allDayLogs.reduce((acc, curr) => acc + (curr.durationSeconds || 0), 0);
+          const totalSeconds = allDayLogs.reduce(
+            (acc, curr) => acc + (curr.durationSeconds || 0),
+            0,
+          );
 
           const h = Math.floor(totalSeconds / 3600);
           const m = Math.floor((totalSeconds % 3600) / 60);
@@ -87,7 +94,7 @@ exports.getSummary = async (req, res) => {
             employeeCode: log.user?.employee?.employeeCode,
             totalDailyTime: `${h} Hrs ${m} Mins ${s} Secs`,
             dateString: log.dateString,
-            lastActionAt: log.createdAt
+            lastActionAt: log.createdAt,
           };
         }
       }
@@ -103,16 +110,16 @@ exports.getSummary = async (req, res) => {
           tasksInProgress: inProgressTasks,
           totalProjects: uniqueProjects,
         },
-        liveTracking: activeTimers.map(t => ({
+        liveTracking: activeTimers.map((t) => ({
           id: t._id,
           userId: t.user?._id,
           employee: t.user?.name,
           employeeCode: t.user?.employee?.employeeCode,
           task: t.task?.title,
           projectCode: t.task?.project?.projectCode || "N/A",
-          since: t.startTime
+          since: t.startTime,
         })),
-        recentActivity
+        recentActivity,
       });
     }
 
@@ -122,34 +129,52 @@ exports.getSummary = async (req, res) => {
 
     const employeeProfile = await Employee.findOne({ user: userId }).lean();
 
-    const [assignedTasks, approvedLeavesCount, runningTimer] = await Promise.all([
-      Task.find({ assignedTo: employeeProfile._id, status: { $ne: "Completed" } })
-        .sort({ priority: -1, endDate: 1 })
-        .populate("project", "title projectCode")
-        .populate("timeLogs"),
+    const [assignedTasks, approvedLeavesCount, runningTimer] =
+      await Promise.all([
+        Task.find({
+          assignedTo: employeeProfile._id,
+          status: { $ne: "Completed" },
+        })
+          .sort({ priority: -1, endDate: 1 })
+          .populate("project", "title projectCode")
+          .populate("timeLogs"),
 
-      Leave.countDocuments({ user: userId, status: "Approved" }),
+        Leave.countDocuments({ user: userId, status: "Approved" }),
 
-      TimeLog.findOne({ user: userId, isRunning: true })
-        .populate({
-          path: "task",
-          select: "title project",
-          populate: { path: "project", select: "projectCode" }
-        }).lean()
-    ]);
+        TimeLog.findOne({ user: userId, isRunning: true })
+          .populate({
+            path: "task",
+            select: "title project",
+            populate: { path: "project", select: "projectCode" },
+          })
+          .lean(),
+      ]);
+
+    const allocations = await TaskAllocation.find({
+      employee: employeeProfile._id,
+    });
+
+    const allocationMap = {};
+
+    allocations.forEach((a) => {
+      allocationMap[a.task.toString()] = a;
+    });
 
     return res.json({
       role: "Employee",
-      activeTimer: runningTimer ? {
-        logId: runningTimer._id,
-        task: runningTimer.task?.title,
-        projectCode: runningTimer.task?.project?.projectCode || "N/A",
-        startedAt: runningTimer.startTime,
-        type: runningTimer.logType
-      } : null,
+      activeTimer: runningTimer
+        ? {
+            logId: runningTimer._id,
+            task: runningTimer.task?.title,
+            projectCode: runningTimer.task?.project?.projectCode || "N/A",
+            startedAt: runningTimer.startTime,
+            type: runningTimer.logType,
+          }
+        : null,
 
-      taskSnapshot: assignedTasks.map(t => {
+      taskSnapshot: assignedTasks.map((t) => {
         const task = t.toObject();
+        const allocation = allocationMap[task._id.toString()];
 
         return {
           id: task._id,
@@ -160,13 +185,19 @@ exports.getSummary = async (req, res) => {
           priority: task.priority,
           status: task.liveStatus,
           description: task.description,
-          updatedAt: task.updatedAt
+          updatedAt: task.updatedAt,
+          allocation: allocation
+            ? {
+                role: allocation.role,
+                priorityOrder: allocation.priorityOrder,
+                allocatedHours: allocation.allocatedHours,
+              }
+            : null,
         };
       }),
 
-      approvedLeavesCount
+      approvedLeavesCount,
     });
-
   } catch (err) {
     res.status(500).json({ error: "Internal server error" });
   }
