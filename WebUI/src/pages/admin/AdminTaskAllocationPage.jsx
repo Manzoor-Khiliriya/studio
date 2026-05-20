@@ -118,14 +118,14 @@ export default function AdminTaskAllocationPage() {
                                             className="border-t border-slate-100"
                                         >
                                             <td className="px-6 py-3`">
-                                                <span className="font-black text-slate-900 text-sm uppercase">
+                                                <span className="w-full py-2 text-sm font-bold bg-white text-slate-700 uppercase">
                                                     {allocation.task?.project?.title}
                                                 </span>
                                             </td>
 
                                             {/* TASK */}
                                             <td className="px-6 py-3`">
-                                                <span className="font-black text-slate-900 text-sm uppercase">
+                                                <span className=" w-full py-2 text-sm font-bold bg-white text-slate-700 uppercase">
                                                     {allocation.task?.title}
                                                 </span>
                                             </td>
@@ -165,19 +165,12 @@ export default function AdminTaskAllocationPage() {
                                                         },
                                                     ]}
                                                     className="w-22"
-                                                    buttonClass="
-    w-full
-    py-2
-    text-sm
-    font-bold
-    bg-white
-    text-slate-700
-  "
+                                                    buttonClass="w-full py-2 text-sm font-bold bg-white text-slate-700"
                                                 />
                                             </td>
 
                                             {/* HOURS */}
-                                            <td className="px-6 py-3    ">
+                                            <td className="px-5 py-3">
 
                                                 {/* TOP ROW */}
                                                 <div className="flex items-center gap-2">
@@ -195,7 +188,7 @@ export default function AdminTaskAllocationPage() {
                                                                 Number(e.target.value),
                                                             )
                                                         }
-                                                        className="w-14 text-center text-sm font-black outline-none bg-transparent"
+                                                        className="w-10 py-2 text-center text-sm font-bold outline-none"
                                                     />
 
                                                     {allocation.isOverWorked ? (
