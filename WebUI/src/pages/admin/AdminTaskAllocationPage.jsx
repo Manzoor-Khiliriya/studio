@@ -199,14 +199,14 @@ export default function AdminTaskAllocationPage() {
                                                     />
 
                                                     {allocation.isOverWorked ? (
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-[10px] font-black uppercase tracking-wide text-red-500">
-                                                                Exceeded by {allocation.overWorkedHours}h
+                                                        <div className="flex items-center">
+                                                            <span className="text-[10px] font-black text-red-500">
+                                                                Exceeded by {allocation.overWorkedHours} hrs
                                                             </span>
                                                         </div>
                                                     ) : (
                                                         <div
-                                                            className={`text-[10px] font-black uppercase tracking-wide ${allocation.isOverWorked
+                                                            className={`text-[10px] font-black ${allocation.isOverWorked
                                                                 ? "text-red-600"
                                                                 : "text-emerald-600"
                                                                 }`}
