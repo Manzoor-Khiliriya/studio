@@ -62,7 +62,7 @@ export default function AdminTaskAllocationPage() {
                     {employees.map((group) => (
                         <div
                             key={group.employee._id}
-                            className="bg-white border border-slate-300 shadow-sm overflow-visible"
+                            className="bg-white border border-slate-300 shadow-sm overflow-hidden rounded-xl"
                         >
                             <div className="px-6 py-3 text-center border-b border-slate-300 bg-slate-200">
                                 <h2 className="text-lg font-black uppercase text-slate-900">
