@@ -8,19 +8,7 @@ export const taskAllocationApiSlice = apiSlice.injectEndpoints({
         method: "PUT",
         body: data,
       }),
-
-      invalidatesTags: (result, error, { id }) => [
-        { type: "TaskAllocation", id },
-        { type: "TaskAllocation", id: "LIST" },
-      ],
-    }),
-    deleteTaskAllocation: builder.mutation({
-      query: (id) => ({
-        url: `/task-allocations/${id}`,
-        method: "DELETE",
-      }),
-
-      invalidatesTags: [{ type: "TaskAllocation", id: "LIST" }],
+      invalidatesTags: [{ type: "TaskAllocation", id: "EMPLOYEE_WORKLOAD" }],
     }),
     getEmployeeAllocations: builder.query({
       query: () => ({
@@ -36,14 +24,6 @@ export const taskAllocationApiSlice = apiSlice.injectEndpoints({
           id: "EMPLOYEE_WORKLOAD",
         },
       ],
-    }),
-    updateDailyAllocation: builder.mutation({
-      query: ({ id, allocatedHours }) => ({
-        url: `/task-allocations/${id}/daily`,
-        method: "PATCH",
-        body: { allocatedHours },
-      }),
-      invalidatesTags: [{ type: "TaskAllocation", id: "EMPLOYEE_WORKLOAD" }],
     }),
   }),
 });

@@ -26,7 +26,7 @@ const taskAllocationSchema = new mongoose.Schema(
     dailyAllocations: [
       {
         date: String,
-        allocatedHours: Number,
+        allocatedSeconds: Number,
       },
     ],
   },

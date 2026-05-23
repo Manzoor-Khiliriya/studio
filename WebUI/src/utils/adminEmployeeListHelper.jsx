@@ -129,7 +129,7 @@ export const getEmployeeColumns = ({ onEdit, onDelete, onToggle }) => [
         <button
           onClick={(e) => { e.stopPropagation(); onEdit(emp); }}
           className="text-yellow-500 hover:text-yellow-600 rounded-lg transition-all duration-200 active:scale-90 cursor-pointer"
-          title="Edit Employee"
+          title="Update Employee"
         >
           <FiEdit size={18} />
         </button>
