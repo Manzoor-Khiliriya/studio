@@ -549,8 +549,8 @@ function MetricBox({ label, value, icon, color }) {
 function TaskSmallCard({ task, active, historical }) {
   return (
     <div
-      className={`h-18 p-3 rounded-2xl border transition-all ${active
-        ? "bg-white/5 border-white/10 hover:bg-white/10"
+      className={`h-18 p-3 transition-all ${active
+        ? ""
         : historical
           ? "bg-slate-50 border-slate-100 opacity-60"
           : "bg-slate-50 border-slate-100 hover:border-slate-200"
@@ -575,7 +575,7 @@ function TaskSmallCard({ task, active, historical }) {
         >
           {task.status}
         </span>
-        <span className={`text-[10px] font-black ${active ? "text-white/40" : "text-slate-300"}`}>
+        <span className={`text-[10px] font-black ${active ? "text-white/100" : "text-slate-300"}`}>
           {task.allocatedTime || 0}H ALLOC
         </span>
       </div>
