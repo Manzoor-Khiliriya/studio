@@ -116,8 +116,9 @@ const TaskGridView = ({ tasks, userId }) => {
     : gridData.slice(0, INITIAL_COUNT);
 
   return (
-    <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-visible shadow-sm  w-full">
-      <div className="bg-slate-50/80 px-6 py-4 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-2 border-b border-slate-100">
+    <div className="bg-white border border-slate-200 rounded-[2.5rem] overflow-visible shadow-sm w-full">
+
+      <div className="bg-slate-200 rounded-t-[2.5rem] px-6 py-4 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-2 border-b border-slate-100">
         {/* Modern Date Picker Container */}
         <div className="flex items-center my-auto bg-orange-600 text-white rounded shadow-lg overflow-hidden border border-orange-700">
           {/* Start Date */}
@@ -155,11 +156,11 @@ const TaskGridView = ({ tasks, userId }) => {
         <div className="flex gap-10">
           <div className="text-center">
             <p className="text-slate-900 font-black text-sm leading-none mb-1">{totalHoursStr}</p>
-            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Selected Hours</p>
+            <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest">Worked Hours</p>
           </div>
           <div className="text-center">
             <p className="text-slate-900 font-black text-sm leading-none mb-1">{taskCount}</p>
-            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Total Tasks</p>
+            <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest">Total Tasks</p>
           </div>
         </div>
       </div>
@@ -384,35 +385,45 @@ export default function EmployeeDetailPage() {
               />
 
               {lastActiveDay ? (
-                <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm h-[175px] overflow-hidden">
+                <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm h-[175px] overflow-hidden flex flex-col">
 
-                  <div className="h-full overflow-y-auto custom-scrollbar">
+                  {/* Header */}
+                  <div className="bg-slate-200 px-6 py-4 flex justify-between items-center border-b border-slate-100 shrink-0">
+                    <div className="flex items-center gap-3">
+                      <HiOutlineCalendarDays className="text-orange-500" size={18} />
 
-                    <div className="bg-slate-50/80 px-6 py-4 flex justify-between items-center border-b border-slate-100 sticky top-0 z-10">
-                      <div className="flex items-center gap-3">
-                        <HiOutlineCalendarDays className="text-orange-500" size={18} />
-                        <div className="flex flex-col">
-                          <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest">
-                            {lastActiveDay.date}
-                          </span>
-                          <span className="text-[8px] font-bold text-slate-400 uppercase">
-                            {lastActiveDay.date === new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
-                              ? "Current Session"
-                              : "Last Active Session"}
-                          </span>
-                        </div>
+                      <div className="flex flex-col">
+                        <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest">
+                          {lastActiveDay.date}
+                        </span>
+
+                        <span className="text-[8px] font-bold text-slate-700 uppercase">
+                          {lastActiveDay.date ===
+                            new Date().toLocaleDateString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })
+                            ? "Current Session"
+                            : "Last Active Session"}
+                        </span>
                       </div>
-                      <span className="text-[10px] font-black text-orange-600">
-                        {formatToHrMin(lastActiveDay.totalDaySeconds)}
-                      </span>
                     </div>
 
-                    <div className="px-6 py-3 grid grid-cols-1 gap-x-10 gap-y-6">
+                    <span className="text-[10px] font-black text-orange-600">
+                      {formatToHrMin(lastActiveDay.totalDaySeconds)}
+                    </span>
+                  </div>
+
+                  {/* Scroll Area */}
+                  <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-3">
+                    <div className="grid grid-cols-1 gap-x-10 gap-y-6">
                       {lastActiveDay.tasks.map((task, idx) => {
                         const percentage =
                           task.allocated > 0
                             ? Math.min((task.seconds / task.allocated) * 100, 100)
                             : 0;
+
                         const taskColor = getTaskColor(task.id);
 
                         return (
@@ -420,9 +431,12 @@ export default function EmployeeDetailPage() {
                             <div className="flex justify-between items-end">
                               <h4 className="text-[10px] font-black uppercase text-slate-800 truncate">
                                 {task.title}{" "}
-                                <span className="text-slate-800">({task.projectTitle})</span>
+                                <span className="text-slate-800">
+                                  ({task.projectTitle})
+                                </span>
                               </h4>
-                              <span className="text-[9px] font-bold text-slate-500 ml-2">
+
+                              <span className="text-[9px] font-bold text-slate-500 ml-2 shrink-0">
                                 {formatToHrMin(task.seconds)}
                               </span>
                             </div>
