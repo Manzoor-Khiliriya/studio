@@ -87,7 +87,7 @@ export default function AdminTaskAllocationPage() {
                             </table>
 
                             {/* SCROLLABLE BODY */}
-                            <div className="overflow-y-auto max-h-[42px] custom-scrollbar">
+                            <div className="overflow-y-auto max-h-[84px] custom-scrollbar">
                                 <table className="w-full table-fixed">
                                     <tbody>
                                         {(() => {
@@ -97,7 +97,7 @@ export default function AdminTaskAllocationPage() {
                                                 ...group.tasks.filter(a => a._id !== live?._id),
                                             ];
                                             return sorted.map((allocation) => (
-                                                <tr key={allocation._id} className={`border-t border-slate-100 ${allocation.isCurrentlyWorking ? "bg-emerald-50/50" : ""}`}>
+                                                <tr key={allocation._id} className={`border-t border-slate-100 ${allocation.isCurrentlyWorking ? "bg-emerald-100" : ""}`}>
                                                     <td className="w-1/6 px-2 py-2">
                                                         <p className="text-[10px] font-black text-slate-700 uppercase truncate">
                                                             {allocation.task?.project?.title}
