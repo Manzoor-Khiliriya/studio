@@ -143,7 +143,7 @@ export default function MyTasksPage() {
         return (
           <div className="py-2">
             <p className={`text-[10px] font-black tracking-wider text-slate-600`}>
-              {row?.allocation?.allocatedHours || 0} hrs
+              {row?.allocation?.todayAllocatedFormatted || "0 Hrs 0 Mins 0 Secs"}
             </p>
           </div>
         );

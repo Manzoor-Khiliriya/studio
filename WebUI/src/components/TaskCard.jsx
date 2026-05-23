@@ -56,7 +56,7 @@ export default function TaskCard({ task, isTracking }) {
 
               {/* HOURS */}
               <span className="px-2 py-1 text-[9px] font-bold bg-yellow-100 text-gray-900 rounded-md">
-                {task.allocation?.allocatedHours || 0} hrs
+                {task.allocation?.todayAllocatedFormatted || "0 Hrs 0 Mins 0 Secs"}
               </span>
             </div>
 

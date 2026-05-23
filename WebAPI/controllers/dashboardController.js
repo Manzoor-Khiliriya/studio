@@ -8,6 +8,7 @@ const moment = require("moment");
 const User = require("../models/User");
 const Project = require("../models/Project");
 const TaskAllocation = require("../models/TaskAllocation");
+const { getToday } = require("../utils/dateHelper");
 
 exports.getSummary = async (req, res) => {
   try {
@@ -154,10 +155,11 @@ exports.getSummary = async (req, res) => {
     });
 
     const allocationMap = {};
-
     allocations.forEach((a) => {
       allocationMap[a.task.toString()] = a;
     });
+
+    const today = getToday();
 
     return res.json({
       role: "Employee",
@@ -174,8 +176,15 @@ exports.getSummary = async (req, res) => {
       taskSnapshot: assignedTasks
         .map((t) => {
           const task = t.toObject();
-
           const allocation = allocationMap[task._id.toString()];
+
+          const todayAllocation = allocation?.dailyAllocations?.find(
+            (d) => d.date === today,
+          );
+          const todayAllocatedSeconds = todayAllocation?.allocatedSeconds ?? 0;
+          const ah = Math.floor(todayAllocatedSeconds / 3600);
+          const am = Math.floor((todayAllocatedSeconds % 3600) / 60);
+          const as_ = todayAllocatedSeconds % 60;
 
           return {
             id: task._id,
@@ -191,7 +200,8 @@ exports.getSummary = async (req, res) => {
               ? {
                   role: allocation.role,
                   priorityOrder: allocation.priorityOrder,
-                  allocatedHours: allocation.allocatedHours,
+                  todayAllocatedSeconds,
+                  todayAllocatedFormatted: `${ah} Hrs ${am} Mins ${as_} Secs`,
                 }
               : null,
           };

@@ -7,6 +7,7 @@ const TaskAllocation = require("../models/TaskAllocation");
 const sendTaskNotification = require("../utils/notifier");
 const { calculateEstimatedHours } = require("../utils/taskHelpers");
 const { emitDashboardUpdate } = require("../utils/socket");
+const { getToday } = require("../utils/dateHelper");
 
 const emitEvent = (req, event, data, userIds = []) => {
   const io = req.app.get("socketio");
@@ -114,7 +115,6 @@ exports.updateTask = async (req, res) => {
           employee: empId,
           role: "Main",
           priorityOrder: index + 1,
-          allocatedHours: 0,
         }));
 
       if (newAllocations.length > 0) {
@@ -614,6 +614,14 @@ exports.getMyTasks = async (req, res) => {
       );
 
       const allocation = allocationMap[task._id.toString()];
+      const today = getToday();
+      const todayAllocation = allocation?.dailyAllocations?.find(
+        (d) => d.date === today,
+      );
+      const todayAllocatedSeconds = todayAllocation?.allocatedSeconds ?? 0;
+      const ah = Math.floor(todayAllocatedSeconds / 3600);
+      const am = Math.floor((todayAllocatedSeconds % 3600) / 60);
+      const as_ = todayAllocatedSeconds % 60;
 
       return {
         ...task.toObject(),
@@ -623,10 +631,9 @@ exports.getMyTasks = async (req, res) => {
         allocation: allocation
           ? {
               role: allocation.role,
-
               priorityOrder: allocation.priorityOrder,
-
-              allocatedHours: allocation.allocatedHours,
+              todayAllocatedSeconds,
+              todayAllocatedFormatted: `${ah} Hrs ${am} Mins ${as_} Secs`,
             }
           : null,
       };
