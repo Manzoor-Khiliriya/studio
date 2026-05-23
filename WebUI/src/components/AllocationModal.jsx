@@ -80,6 +80,7 @@ export default function AllocationModal({ allocation, onClose, onSuccess }) {
                             <input
                                 type="number"
                                 min={0}
+                                max={23}
                                 value={hours}
                                 onChange={(e) => setHours(Number(e.target.value))}
                                 className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold text-center outline-none focus:border-orange-400"
