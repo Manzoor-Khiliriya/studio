@@ -296,9 +296,8 @@ export default function AdminTasksPage() {
       .map((row) => row.join(","))
       .join("\n");
 
-    const fileName = `projects_${activeTab}_${
-      new Date().toISOString().split("T")[0]
-    }.csv`;
+    const fileName = `projects_${activeTab}_${new Date().toISOString().split("T")[0]
+      }.csv`;
 
     const blob = new Blob([csvContent], {
       type: "text/csv;charset=utf-8;",
@@ -437,14 +436,14 @@ export default function AdminTasksPage() {
               {[
                 ...(activeTab === "live"
                   ? [
-                      { label: "Created", key: "createdAt" },
-                      { label: "Start Date", key: "startDate" },
-                      { label: "End Date", key: "endDate" },
-                    ]
+                    { label: "Created", key: "createdAt" },
+                    { label: "Start Date", key: "startDate" },
+                    { label: "End Date", key: "endDate" },
+                  ]
                   : [
-                      { label: "Created From", key: "createdFrom" },
-                      { label: "Created To", key: "createdTo" },
-                    ]),
+                    { label: "Created From", key: "createdFrom" },
+                    { label: "Created To", key: "createdTo" },
+                  ]),
               ].map((filter) => (
                 <div key={filter.key} className="flex flex-col gap-1.5">
                   <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">
@@ -505,7 +504,7 @@ export default function AdminTasksPage() {
                     }
                     setCurrentPage(1);
                   }}
-                  options={["All", "Standard", "Revision"]}
+                  options={["All", "Standard Exterior", "Standard Interior", "Revision Exterior", "Revision Interior", "Interior Design and Fitout"]}
                   className="min-w-35"
                 />
               </div>
@@ -615,27 +614,27 @@ export default function AdminTasksPage() {
                     (allDateFilters.createdFrom || allDateFilters.createdTo)) ||
                   (activeTab === "live"
                     ? liveSearch ||
-                      taskSearch ||
-                      liveStatusFilter !== "All" ||
-                      taskStatusFilter !== "All" ||
-                      liveDateFilters.createdAt ||
-                      liveDateFilters.startDate ||
-                      liveDateFilters.endDate ||
-                      liveProjectType !== "All" ||
-                      liveProjectStatus !== "All"
+                    taskSearch ||
+                    liveStatusFilter !== "All" ||
+                    taskStatusFilter !== "All" ||
+                    liveDateFilters.createdAt ||
+                    liveDateFilters.startDate ||
+                    liveDateFilters.endDate ||
+                    liveProjectType !== "All" ||
+                    liveProjectStatus !== "All"
                     : allSearch ||
-                      allDateFilters.createdFrom ||
-                      allDateFilters.createdTo ||
-                      allProjectType !== "All" ||
-                      allProjectStatus !== "All")) && (
-                  <button
-                    onClick={clearFilters}
-                    className="flex items-center gap-2 px-6 py-3 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-2xl transition-all font-black text-[10px] tracking-widest cursor-pointer"
-                  >
-                    <HiOutlineXMark size={18} strokeWidth={2.5} />
-                    <span>RESET FILTERS</span>
-                  </button>
-                )}
+                    allDateFilters.createdFrom ||
+                    allDateFilters.createdTo ||
+                    allProjectType !== "All" ||
+                    allProjectStatus !== "All")) && (
+                    <button
+                      onClick={clearFilters}
+                      className="flex items-center gap-2 px-6 py-3 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-2xl transition-all font-black text-[10px] tracking-widest cursor-pointer"
+                    >
+                      <HiOutlineXMark size={18} strokeWidth={2.5} />
+                      <span>RESET FILTERS</span>
+                    </button>
+                  )}
               </div>
             </div>
 
@@ -710,7 +709,7 @@ export default function AdminTasksPage() {
                           <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">
                             Project Type
                           </span>
-                           <TruncateText
+                          <TruncateText
                             text={project?.projectType}
                             className="text-[11px] text-center font-bold w-30 text-slate-800 font-mono uppercase"
                           />

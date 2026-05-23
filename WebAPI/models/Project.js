@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const projectSchema = new mongoose.Schema({
   projectCode: { type: String, required: true, unique: true, uppercase: true },
-  projectType: { type: String, enum: ["Standard Ext", "Standard Int", "Revision Ext", "Revision Int", "Interior Design and Fitout"], required: true },
+  projectType: { type: String, enum: ["Standard Exterior", "Standard Interior", "Revision Exterior", "Revision Interior", "Interior Design and Fitout"], required: true },
   title: { type: String, required: true },
   clientName: { type: String },
   startDate: { type: Date, required: true },

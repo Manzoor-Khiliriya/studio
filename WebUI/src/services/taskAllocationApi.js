@@ -37,6 +37,14 @@ export const taskAllocationApiSlice = apiSlice.injectEndpoints({
         },
       ],
     }),
+    updateDailyAllocation: builder.mutation({
+      query: ({ id, allocatedHours }) => ({
+        url: `/task-allocations/${id}/daily`,
+        method: "PATCH",
+        body: { allocatedHours },
+      }),
+      invalidatesTags: [{ type: "TaskAllocation", id: "EMPLOYEE_WORKLOAD" }],
+    }),
   }),
 });
 
@@ -44,4 +52,5 @@ export const {
   useUpdateTaskAllocationMutation,
   useDeleteTaskAllocationMutation,
   useGetEmployeeAllocationsQuery,
+  useUpdateDailyAllocationMutation,
 } = taskAllocationApiSlice;

@@ -138,10 +138,10 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
                 setFormData({ ...formData, projectType: val })
               }
               options={[
-                { label: "Standard Ext", value: "Standard Ext" },
-                { label: "Standard Int", value: "Standard Int" },
-                { label: "Revision Ext", value: "Revision Ext" },
-                { label: "Revision Int", value: "Revision Int" },
+                { label: "Standard Exterior", value: "Standard Exterior" },
+                { label: "Standard Interior", value: "Standard Interior" },
+                { label: "Revision Exterior", value: "Revision Exterior" },
+                { label: "Revision Interior", value: "Revision Interior" },
                 {label: "Interior Design and Fitout", value: "Interior Design and Fitout"}
               ]}
               className="w-full"

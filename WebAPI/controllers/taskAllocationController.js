@@ -17,29 +17,20 @@ const emitEvent = (req, event, data, userIds = []) => {
 
 exports.updateTaskAllocation = async (req, res) => {
   try {
-    const { role, priorityOrder, allocatedHours } = req.body;
-
+    const { role, priorityOrder } = req.body;
     const allocation = await TaskAllocation.findById(req.params.id);
-
     if (!allocation) {
       return res.status(404).json({
         success: false,
         message: "Allocation not found",
       });
     }
-
     if (role !== undefined) {
       allocation.role = role;
     }
-
     if (priorityOrder !== undefined) {
       allocation.priorityOrder = priorityOrder;
     }
-
-    if (allocatedHours !== undefined) {
-      allocation.allocatedHours = allocatedHours;
-    }
-
     await allocation.save();
     emitEvent(req, "allocationChanged", {
       taskId: allocation.task,
@@ -85,7 +76,6 @@ exports.deleteTaskAllocation = async (req, res) => {
 exports.getEmployeeAllocations = async (req, res) => {
   try {
     const allocations = await TaskAllocation.find()
-
       .populate({
         path: "employee",
         populate: {
@@ -93,7 +83,6 @@ exports.getEmployeeAllocations = async (req, res) => {
           select: "name",
         },
       })
-
       .populate({
         path: "task",
         select: "title project timelogs",
@@ -106,7 +95,8 @@ exports.getEmployeeAllocations = async (req, res) => {
 
           {
             path: "timeLogs",
-            select: "rawDurationSeconds dateString user logType",
+            select:
+              "rawDurationSeconds dateString user logType isRunning startTime",
           },
         ],
       });
@@ -129,29 +119,47 @@ exports.getEmployeeAllocations = async (req, res) => {
       const today = getToday();
 
       const todayWorkedSeconds = (allocation.task?.timeLogs || [])
-
         .filter(
           (log) =>
             log.user?.toString() === allocation.employee.user._id.toString() &&
             log.dateString === today &&
             log.logType === "work",
         )
+        .reduce((acc, log) => {
+          if (log.isRunning) {
+            const liveSeconds = Math.floor(
+              (Date.now() - new Date(log.startTime).getTime()) / 1000,
+            );
+            return acc + Math.max(0, liveSeconds);
+          }
+          return acc + (log.rawDurationSeconds || 0);
+        }, 0);
 
-        .reduce(
-          (acc, log) => acc + (log.rawDurationSeconds  || 0),
+      // with this
+      const workedHours = todayWorkedSeconds / 3600;
+      const h = Math.floor(todayWorkedSeconds / 3600);
+      const m = Math.floor((todayWorkedSeconds % 3600) / 60);
+      const s = todayWorkedSeconds % 60;
 
-          0,
-        );
+      allocation._doc.todayWorkedFormatted = `${h}h ${m}m ${s}s`;
+      allocation._doc.todayWorkedHours = workedHours;
+      const todayAllocation = allocation.dailyAllocations?.find(
+        (d) => d.date === today,
+      );
+      const todayAllocatedHours = todayAllocation?.allocatedHours ?? 0;
 
-      allocation._doc.todayWorkedHours = (todayWorkedSeconds / 3600).toFixed(1);
+      allocation._doc.todayAllocatedHours = todayAllocatedHours;
+      const overWorkedSeconds = Math.max(
+        0,
+        todayWorkedSeconds - todayAllocatedHours * 3600,
+      );
+      const oh = Math.floor(overWorkedSeconds / 3600);
+      const om = Math.floor((overWorkedSeconds % 3600) / 60);
+      const os = overWorkedSeconds % 60;
 
       allocation._doc.isOverWorked =
-        todayWorkedSeconds / 3600 > allocation.allocatedHours;
-
-      allocation._doc.overWorkedHours = Math.max(
-        0,
-        todayWorkedSeconds / 3600 - allocation.allocatedHours,
-      ).toFixed(1);
+        todayWorkedSeconds > todayAllocatedHours * 3600;
+      allocation._doc.overWorkedFormatted = `${oh}h ${om}m ${os}s`;
 
       grouped[employeeId].tasks.push(allocation);
     });
@@ -165,5 +173,30 @@ exports.getEmployeeAllocations = async (req, res) => {
       success: false,
       message: "Internal server error",
     });
+  }
+};
+
+exports.setDailyAllocatedHours = async (req, res) => {
+  try {
+    const { allocatedHours } = req.body;
+    const today = getToday();
+    const allocation = await TaskAllocation.findById(req.params.id);
+    if (!allocation) return res.status(404).json({ message: "Not found" });
+
+    const existingIndex = allocation.dailyAllocations.findIndex(
+      (d) => d.date === today,
+    );
+    if (existingIndex > -1) {
+      allocation.dailyAllocations[existingIndex].allocatedHours =
+        allocatedHours;
+    } else {
+      allocation.dailyAllocations.push({ date: today, allocatedHours });
+    }
+
+    await allocation.save();
+    emitEvent(req, "allocationChanged", { taskId: allocation.task });
+    return res.status(200).json({ success: true, allocation });
+  } catch (err) {
+    return res.status(500).json({ message: "Internal server error" });
   }
 };

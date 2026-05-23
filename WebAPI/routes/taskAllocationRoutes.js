@@ -23,4 +23,6 @@ router.get(
   taskAllocationController.getEmployeeAllocations,
 );
 
+router.patch("/:id/daily", authorize("Admin"), taskAllocationController.setDailyAllocatedHours);
+
 module.exports = router;

@@ -2,6 +2,7 @@ import React from "react";
 import {
     useGetEmployeeAllocationsQuery,
     useUpdateTaskAllocationMutation,
+    useUpdateDailyAllocationMutation
 } from "../../services/taskAllocationApi";
 import Loader from "../../components/Loader";
 import { toast } from "react-hot-toast";
@@ -20,10 +21,12 @@ export default function AdminTaskAllocationPage() {
             refetchOnMountOrArgChange: true,
             refetchOnFocus: true,
             refetchOnReconnect: true,
+            pollingInterval: 30000,
         }
     );
 
     const [updateAllocation] = useUpdateTaskAllocationMutation();
+    const [updateDailyAllocation] = useUpdateDailyAllocationMutation()
 
     useSocketEvents({
         onTaskChange: refetch,
@@ -32,13 +35,12 @@ export default function AdminTaskAllocationPage() {
 
     const handleUpdate = async (id, field, value) => {
         try {
-            await updateAllocation({
-                id,
-                [field]: value,
-            }).unwrap();
-
+            if (field === "dailyAllocatedHours") {
+                await updateDailyAllocation({ id, allocatedHours: value }).unwrap();
+            } else {
+                await updateAllocation({ id, [field]: value }).unwrap();
+            }
             toast.success("Updated");
-
             refetch();
         } catch (err) {
             toast.error(err?.data?.message || "Update failed");
@@ -180,11 +182,11 @@ export default function AdminTaskAllocationPage() {
                                                     <input
                                                         type="number"
                                                         min={0}
-                                                        defaultValue={allocation.allocatedHours}
+                                                        defaultValue={allocation.todayAllocatedHours}
                                                         onBlur={(e) =>
                                                             handleUpdate(
                                                                 allocation._id,
-                                                                "allocatedHours",
+                                                                "dailyAllocatedHours",
                                                                 Number(e.target.value),
                                                             )
                                                         }
@@ -192,19 +194,16 @@ export default function AdminTaskAllocationPage() {
                                                     />
 
                                                     {allocation.isOverWorked ? (
-                                                        <div className="flex items-center">
-                                                            <span className="text-[10px] font-black text-red-500">
-                                                                Exceeded by {allocation.overWorkedHours} hrs
+                                                        <div className="text-[10px] font-black text-rose-600 px-1">
+                                                            <span className="text-[10px] font-black text-rose-600">
+                                                                + {allocation.overWorkedFormatted}
                                                             </span>
                                                         </div>
                                                     ) : (
                                                         <div
-                                                            className={`text-[10px] font-black ${allocation.isOverWorked
-                                                                ? "text-red-600"
-                                                                : "text-emerald-600"
-                                                                }`}
+                                                            className={`text-[10px] font-black text-emerald-600 px-1`}
                                                         >
-                                                            {allocation.todayWorkedHours || 0} hrs Worked
+                                                            {allocation?.todayWorkedFormatted || "0h 0m 0s"} Worked
                                                         </div>
                                                     )}
                                                 </div>

@@ -464,7 +464,7 @@ export default function AdminTaskDetailPage() {
                               </p>
 
                               <p className="text-[10px] font-black text-orange-600 uppercase">
-                                #{allocation.priorityOrder}
+                                {allocation.priorityOrder}
                               </p>
                             </div>
 

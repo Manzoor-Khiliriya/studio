@@ -23,11 +23,12 @@ const taskAllocationSchema = new mongoose.Schema(
       required: true,
       min: 1,
     },
-    allocatedHours: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
+    dailyAllocations: [
+      {
+        date: String,
+        allocatedHours: Number,
+      },
+    ],
   },
   {
     timestamps: true,
