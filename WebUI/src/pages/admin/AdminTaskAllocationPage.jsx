@@ -85,24 +85,24 @@ export default function AdminTaskAllocationPage() {
                                     {group.tasks.map((allocation) => (
                                         <tr key={allocation._id} className="border-t border-slate-100">
                                             <td className="px-5 py-3">
-                                                <span className="text-sm font-bold text-slate-700 uppercase">
+                                                <p className="text-[10px] font-black text-slate-700 uppercase">
                                                     {allocation.task?.project?.title}
-                                                </span>
+                                                </p>
                                             </td>
                                             <td className="px-5 py-3">
-                                                <span className="text-sm font-bold text-slate-700 uppercase">
+                                                <p className="text-[10px] font-black text-slate-700 uppercase">
                                                     {allocation.task?.title}
-                                                </span>
+                                                </p>
                                             </td>
                                             <td className="px-5 py-3">
-                                                <span className="text-sm font-bold text-slate-700">
+                                                <p className="text-[10px] font-black text-slate-700">
                                                     {allocation.priorityOrder}
-                                                </span>
+                                                </p>
                                             </td>
                                             <td className="px-5 py-3">
-                                                <span className={`text-[10px] font-black ${allocation.role === "Main" ? " text-orange-600" : "text-slate-700"}`}>
+                                                <p className={`text-[10px] font-black ${allocation.role === "Main" ? " text-orange-600" : "text-slate-700"}`}>
                                                     {allocation.role}
-                                                </span>
+                                                </p>
                                             </td>
                                             <td className="px-5 py-3">
                                                 <div className="flex items-center gap-3 text-[10px] font-black">
