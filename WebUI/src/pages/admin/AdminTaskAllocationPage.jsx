@@ -76,12 +76,12 @@ export default function AdminTaskAllocationPage() {
                             <table className="w-full table-fixed">
                                 <thead className="bg-slate-50 border-b border-slate-200">
                                     <tr>
-                                        <th className="w-1/6 px-2 py-2 text-left text-[10px] uppercase font-black text-slate-500">Project</th>
-                                        <th className="w-1/6 px-2 py-2 text-left text-[10px] uppercase font-black text-slate-500">Project Type</th>
-                                        <th className="w-1/6 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Task</th>
+                                        <th className="w-2/9 px-2 py-2 text-left text-[10px] uppercase font-black text-slate-500">Project</th>
+                                        <th className="w-2/6 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Task</th>
+                                        <th className="w-2/6 px-2 py-2 text-left text-[10px] uppercase font-black text-slate-500">Project Type</th>
                                         <th className="w-1/9 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Priority</th>
                                         <th className="w-1/9 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Role</th>
-                                        <th className="w-2/5 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Today</th>
+                                        <th className="w-2/6 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Today</th>
                                         <th className="w-1/12 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Action</th>
                                     </tr>
                                 </thead>
@@ -99,17 +99,12 @@ export default function AdminTaskAllocationPage() {
                                             ];
                                             return sorted.map((allocation) => (
                                                 <tr key={allocation._id} className={`border-t border-slate-100 ${allocation.isCurrentlyWorking ? "bg-emerald-100" : ""}`}>
-                                                    <td className="w-1/6 px-2 py-2">
+                                                    <td className="w-2/9 px-2 py-2">
                                                         <p className="text-[10px] font-black text-slate-700 uppercase truncate">
                                                             {allocation.task?.project?.title}
                                                         </p>
                                                     </td>
-                                                    <td className="w-1/6 px-2 py-2">
-                                                        <p className="text-[10px] font-black text-slate-700 truncate">
-                                                            {allocation.task?.project?.projectType}
-                                                        </p>
-                                                    </td>
-                                                    <td className="w-1/6 px-2 py-2">
+                                                    <td className="w-2/6 px-2 py-2">
                                                         <div className="flex items-center gap-2">
                                                             <p className="text-[10px] font-black text-slate-700 uppercase truncate">
                                                                 {allocation.task?.title}
@@ -122,6 +117,11 @@ export default function AdminTaskAllocationPage() {
                                                             )}
                                                         </div>
                                                     </td>
+                                                    <td className="w-2/6 px-2 py-2">
+                                                        <p className="text-[10px] font-black text-slate-700 truncate">
+                                                            {allocation.task?.project?.projectType}
+                                                        </p>
+                                                    </td>
                                                     <td className="w-1/9 px-2 py-2">
                                                         <p className="text-[10px] font-black text-slate-700">{allocation.priorityOrder}</p>
                                                     </td>
@@ -130,7 +130,7 @@ export default function AdminTaskAllocationPage() {
                                                             {allocation.role}
                                                         </p>
                                                     </td>
-                                                    <td className="w-2/5 px-2 py-2">
+                                                    <td className="w-2/6 px-2 py-2">
                                                         <div className="flex items-center gap-3 text-[10px] font-black">
                                                             <span className="text-slate-700 w-[65px] shrink-0">
                                                                 {allocation.todayAllocatedFormatted || "0h 0m 0s"}
