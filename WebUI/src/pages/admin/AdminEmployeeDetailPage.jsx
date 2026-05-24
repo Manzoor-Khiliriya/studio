@@ -122,7 +122,7 @@ const TaskGridView = ({ tasks, userId }) => {
         {/* Modern Date Picker Container */}
         <div className="flex items-center my-auto text-black overflow-hidden">
           {/* Start Date */}
-          <div className="relative hover:bg-orange-700 transition-colors cursor-pointer px-4 py-1">
+          <div className="relative hover:bg-slate-200 rounded-[2rem] transition-colors cursor-pointer px-4 py-1">
             <span className="text-[11px] font-black uppercase tracking-wider whitespace-nowrap">
               {formatDateDisplay(dateRange.start)}
             </span>
@@ -138,7 +138,7 @@ const TaskGridView = ({ tasks, userId }) => {
           <div className="text-black font-black px-1 text-sm">-</div>
 
           {/* End Date */}
-          <div className="relative hover:bg-orange-700 transition-colors cursor-pointer px-4 py-1">
+          <div className="relative hover:bg-slate-200 rounded-[2rem] transition-colors cursor-pointer px-4 py-1">
             <span className="text-[11px] font-black uppercase tracking-wider whitespace-nowrap">
               {formatDateDisplay(dateRange.end)}
             </span>
