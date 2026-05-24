@@ -75,7 +75,7 @@ exports.getEmployeeAllocations = async (req, res) => {
         populate: [
           {
             path: "project",
-            select: "title projectCode",
+            select: "title projectType",
           },
 
           {

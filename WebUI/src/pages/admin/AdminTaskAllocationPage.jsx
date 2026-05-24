@@ -77,6 +77,7 @@ export default function AdminTaskAllocationPage() {
                                 <thead className="bg-slate-50 border-b border-slate-200">
                                     <tr>
                                         <th className="w-1/6 px-2 py-2 text-left text-[10px] uppercase font-black text-slate-500">Project</th>
+                                        <th className="w-1/6 px-2 py-2 text-left text-[10px] uppercase font-black text-slate-500">Project Type</th>
                                         <th className="w-1/6 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Task</th>
                                         <th className="w-1/9 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Priority</th>
                                         <th className="w-1/9 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Role</th>
@@ -101,6 +102,11 @@ export default function AdminTaskAllocationPage() {
                                                     <td className="w-1/6 px-2 py-2">
                                                         <p className="text-[10px] font-black text-slate-700 uppercase truncate">
                                                             {allocation.task?.project?.title}
+                                                        </p>
+                                                    </td>
+                                                    <td className="w-1/6 px-2 py-2">
+                                                        <p className="text-[10px] font-black text-slate-700 uppercase truncate">
+                                                            {allocation.task?.project?.projectType}
                                                         </p>
                                                     </td>
                                                     <td className="w-1/6 px-2 py-2">
