@@ -82,8 +82,8 @@ export default function AdminTaskAllocationPage() {
                                         <th className="w-2/9 px-2 py-2 text-left text-[10px] uppercase font-black text-slate-500">Project</th>
                                         <th className="w-2/6 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Task</th>
                                         <th className="w-2/6 px-2 py-2 text-left text-[10px] uppercase font-black text-slate-500">Project Type</th>
-                                        <th className="w-1/9 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Priority</th>
-                                        <th className="w-1/9 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Role</th>
+                                        <th className="w-1/8 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Priority</th>
+                                        <th className="w-1/8 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Role</th>
                                         <th className="w-2/6 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Today</th>
                                         <th className="w-1/10 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Action</th>
                                     </tr>
@@ -125,10 +125,10 @@ export default function AdminTaskAllocationPage() {
                                                             {allocation.task?.project?.projectType}
                                                         </p>
                                                     </td>
-                                                    <td className="w-1/9 px-2 py-2">
+                                                    <td className="w-1/8 px-2 py-2">
                                                         <p className="text-[10px] font-black text-slate-700">{allocation.priorityOrder}</p>
                                                     </td>
-                                                    <td className="w-1/9 px-2 py-2">
+                                                    <td className="w-1/8 px-2 py-2">
                                                         <p className={`text-[10px] font-black ${allocation.role === "Main" ? "text-orange-600" : "text-slate-700"}`}>
                                                             {allocation.role}
                                                         </p>
