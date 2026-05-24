@@ -118,7 +118,7 @@ const TaskGridView = ({ tasks, userId }) => {
   return (
     <div className="bg-white border border-slate-200 rounded-[2.5rem] overflow-visible shadow-sm w-full">
 
-      <div className="bg-slate-200 rounded-t-[2.5rem] px-6 py-4 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-2 border-b border-slate-100">
+      <div className="bg-slate-50 rounded-t-[2.5rem] px-6 py-4 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-2 border-b border-slate-100">
         {/* Modern Date Picker Container */}
         <div className="flex items-center my-auto bg-orange-600 text-white rounded shadow-lg overflow-hidden border border-orange-700">
           {/* Start Date */}
@@ -165,7 +165,7 @@ const TaskGridView = ({ tasks, userId }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 px-6 py-4 mb-1">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 px-6 ${gridData.length > INITIAL_COUNT ? 'py-1.5' : 'py-4 mb-1'}`}>
         {gridData.length > 0 ? (
           visibleData.map((item) => (
             <div
@@ -196,10 +196,10 @@ const TaskGridView = ({ tasks, userId }) => {
 
       {/* ✅ BUTTON OUTSIDE MAP */}
       {gridData.length > INITIAL_COUNT && (
-        <div className="flex justify-end pb-2 pr-6">
+        <div className="flex justify-end pb-2 pr-7">
           <button
             onClick={() => setExpanded((prev) => !prev)}
-            className="text-[10px] font-black text-orange-600 bg-white px-4 py-0.5 rounded-full shadow-sm cursor-pointer"
+            className="text-[10px] font-black text-orange-600 hover:text-orange-700 cursor-pointer"
           >
             {expanded ? "Show Less" : "Show More"}
           </button>
@@ -388,7 +388,7 @@ export default function EmployeeDetailPage() {
                 <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm h-[175px] overflow-hidden flex flex-col">
 
                   {/* Header */}
-                  <div className="bg-slate-200 px-6 py-4 flex justify-between items-center border-b border-slate-100 shrink-0">
+                  <div className="bg-slate-50 px-6 py-4 flex justify-between items-center border-b border-slate-100 shrink-0">
                     <div className="flex items-center gap-3">
                       <HiOutlineCalendarDays className="text-orange-500" size={18} />
 
@@ -463,13 +463,45 @@ export default function EmployeeDetailPage() {
             <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl">
               <div className="flex items-center gap-2 mb-1">
                 <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Live Tasks</h3>
+                <h3 className="text-[10px] font-black text-slate-200 uppercase tracking-[0.2em]">Live Tasks</h3>
               </div>
               <div className="space-y-3">
                 {liveTasks.length > 0 ? (
-                  liveTasks.map((t) => <TaskSmallCard key={t._id} task={t} active />)
+                  liveTasks.map((t) => (
+                    <div
+                      key={t._id}
+                      className="h-18 p-3 transition-all"
+                    >
+                      <div className="flex justify-between items-start gap-2">
+                        <p className="text-[11px] font-black uppercase tracking-tight text-white">
+                          {t.title}{" "}
+                          {t?.project?.title && `(${t.project.title})`}
+                        </p>
+
+                        <span className="text-[7px] font-black uppercase px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                          Live
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-end mt-2">
+                        <span className="text-[8px] font-black uppercase tracking-widest text-orange-400">
+                          {t.liveStatus}
+                        </span>
+
+                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-200">
+                          {t.status}
+                        </span>
+
+                        <span className="text-[10px] font-black text-white">
+                          {t.allocatedTime || 0}H ALLOC
+                        </span>
+                      </div>
+                    </div>
+                  ))
                 ) : (
-                  <p className="text-[10px] font-bold text-slate-500 uppercase italic h-18 flex items-center justify-center">No Live Tasks Found</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase italic h-18 flex items-center justify-center">
+                    No Live Tasks Found
+                  </p>
                 )}
               </div>
             </div>
@@ -483,12 +515,24 @@ export default function EmployeeDetailPage() {
 
               {/* 👇 Scroll container */}
               <div className="space-y-3 h-[325px] overflow-y-auto pr-2 custom-scrollbar">
-                {workedAndAssigned.map((t) => {
+                {[
+                  // Current assigned first
+                  ...workedAndAssigned.filter((t) =>
+                    currentlyAssigned.some((a) => a._id === t._id)
+                  ),
+
+                  // Historical last
+                  ...workedAndAssigned.filter(
+                    (t) => !currentlyAssigned.some((a) => a._id === t._id)
+                  ),
+                ].map((t) => {
                   const isAssigned = currentlyAssigned.some((a) => a._id === t._id);
+
                   return (
                     <TaskSmallCard
                       key={t._id}
                       task={t}
+                      active={isAssigned}
                       historical={!isAssigned}
                     />
                   );
@@ -563,33 +607,77 @@ function MetricBox({ label, value, icon, color }) {
 function TaskSmallCard({ task, active, historical }) {
   return (
     <div
-      className={`h-18 p-3 transition-all ${active
-        ? ""
-        : historical
-          ? "bg-slate-50 border-slate-100 opacity-60"
-          : "bg-slate-50 border-slate-100 hover:border-slate-200"
+      className={`h-18 p-3 rounded-xl border transition-all duration-200
+        ${active
+          ? "bg-slate-50 border-slate-500/40 hover:border-slate-500"
+          : historical
+            ? "bg-slate-50 border-slate-100 opacity-70"
+            : "bg-orange-50 border-orange-200"
         }`}
     >
       <div className="flex justify-between items-start gap-2">
-        <p className={`text-[11px] font-black uppercase tracking-tight ${active ? "text-slate-100" : "text-slate-800"}`}>{task.title} {task?.project?.title && `(${task.project.title})`}</p>
-        {historical && (
-          <span className="text-[7px] font-black text-slate-400 uppercase border border-slate-200 px-1 rounded">History</span>
+        <p
+          className={`text-[11px] font-black uppercase tracking-tight
+            ${active
+              ? "text-black"
+              : historical
+                ? "text-slate-700"
+                : "text-orange-700"
+            }`}
+        >
+          {task.title}{" "}
+          {task?.project?.title && `(${task.project.title})`}
+        </p>
+
+        {active ? (
+          <span className="text-[7px] font-black uppercase px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">
+            Current
+          </span>
+        ) : historical ? (
+          <span className="text-[7px] font-black uppercase px-1.5 py-0.5 rounded bg-slate-200 text-slate-500 border border-slate-300">
+            History
+          </span>
+        ) : (
+          <span className="text-[7px] font-black uppercase px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 border border-orange-200">
+            Current
+          </span>
         )}
       </div>
+
       <div className="flex justify-between items-end mt-2">
         <span
-          className={`text-[8px] font-black uppercase tracking-widest ${active ? " text-orange-400" : " text-slate-500"
+          className={`text-[8px] font-black uppercase tracking-widest
+            ${active
+              ? "text-orange-600"
+              : historical
+                ? "text-slate-500"
+                : "text-orange-500"
             }`}
         >
           {task.liveStatus}
         </span>
+
         <span
-          className={`text-[8px] font-black  uppercase tracking-widest ${active ? " text-orange-400" : " text-slate-500"
+          className={`text-[8px] font-black uppercase tracking-widest
+            ${active
+              ? "text-slate-900"
+              : historical
+                ? "text-slate-500"
+                : "text-orange-500"
             }`}
         >
           {task.status}
         </span>
-        <span className={`text-[10px] font-black ${active ? "text-white/100" : "text-slate-300"}`}>
+
+        <span
+          className={`text-[10px] font-black
+            ${active
+              ? "text-black"
+              : historical
+                ? "text-slate-400"
+                : "text-orange-700"
+            }`}
+        >
           {task.allocatedTime || 0}H ALLOC
         </span>
       </div>

@@ -37,6 +37,10 @@ import { useGetLeaveCalendarQuery } from "../../services/leaveApi";
 import { useSocketEvents } from "../../hooks/useSocketEvents";
 import CustomDropdown from "../../components/CustomDropdown";
 import useDebounce from "../../hooks/useDebounce";
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from '@fullcalendar/daygrid';
+import interactionPlugin from '@fullcalendar/interaction';
+import { useGetHolidaysQuery } from "../../services/holidayApi";
 
 export default function AttendanceManagement() {
   const [activeTab, setActiveTab] = useState("logs");
@@ -81,10 +85,13 @@ export default function AttendanceManagement() {
       refetchOnMountOrArgChange: true,
     },
   );
+  const { data: holidaysData, refetch: refetchHolidays } = useGetHolidaysQuery();
+
 
   useSocketEvents({
     onAttendanceChange: refetch,
-    onLeaveChange: refetch,
+    onLeaveChange: refetchLeave,
+    onHolidayChange: refetchHolidays,
   });
 
   const attendanceData = data?.records || [];
@@ -150,6 +157,40 @@ export default function AttendanceManagement() {
 
   const columns = useMemo(() => getAdminAttendanceColumns(), []);
 
+  const calendarEvents = useMemo(() => {
+    // Holiday Backgrounds
+    const holidayEvents = (holidaysData || []).map((h) => ({
+      start: h.date?.split("T")[0],
+      display: "background",
+      className: "holiday-bg-highlight",
+    }));
+
+    // Leave Events
+    const leaveEvents = (leaveCalendar || []).map((leave, index) => ({
+      id: index,
+      title: leave.name,
+      start: leave.date,
+      allDay: true,
+      extendedProps: {
+        employeeCode: leave.employeeCode,
+        leaveType: leave.type,
+      },
+    }));
+
+    return [...leaveEvents, ...holidayEvents];
+  }, [leaveCalendar, holidaysData]);
+
+  const leaveTypeColors = {
+    "Earned Leave": "bg-violet-500",
+    "Sick Leave": "bg-rose-500",
+    "Bereavement Leave": "bg-slate-700",
+    "Paternity Leave": "bg-green-500",
+    "Maternity Leave": "bg-pink-500",
+    "Casual Leave": "bg-blue-500",
+    "Compensatory Off": "bg-amber-500",
+    LOP: "bg-red-700",
+  };
+
   if (isLoading) return <Loader message="Accessing Attendance Records..." />;
 
   return (
@@ -173,22 +214,20 @@ export default function AttendanceManagement() {
         <div className="flex bg-white p-1 rounded-2xl border border-slate-200 shadow-sm">
           <button
             onClick={() => setActiveTab("logs")}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all  cursor-pointer ${
-              activeTab === "logs"
-                ? "bg-orange-600 text-white shadow-lg"
-                : "text-slate-400 hover:text-slate-600"
-            }`}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all  cursor-pointer ${activeTab === "logs"
+              ? "bg-orange-600 text-white shadow-lg"
+              : "text-slate-400 hover:text-slate-600"
+              }`}
           >
             <HiOutlineListBullet size={16} />
             Daily Attendance
           </button>
           <button
             onClick={() => setActiveTab("calendar")}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${
-              activeTab === "calendar"
-                ? "bg-orange-600 text-white shadow-lg"
-                : "text-slate-400 hover:text-slate-600"
-            }`}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${activeTab === "calendar"
+              ? "bg-orange-600 text-white shadow-lg"
+              : "text-slate-400 hover:text-slate-600"
+              }`}
           >
             <HiOutlineCalendarDays size={16} />
             Leave Calendar
@@ -215,7 +254,7 @@ export default function AttendanceManagement() {
           </div>
         )}
 
-        {activeTab === "logs" ? (
+        {activeTab === "logs" && (
           <>
             <div className="relative">
               <CustomDropdown
@@ -257,24 +296,6 @@ export default function AttendanceManagement() {
               </div>
             )}
           </>
-        ) : (
-          <div className="flex items-center justify-center gap-4 mx-auto bg-white px-5 py-2 rounded-2xl border border-slate-200 shadow-sm">
-            <button
-              onClick={() => setCurrentMonth(dateFnsSubMonths(currentMonth, 1))}
-              className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-orange-600 transition-colors"
-            >
-              <HiOutlineChevronLeft size={18} />
-            </button>
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-900 w-28 text-center">
-              {format(currentMonth, "MMMM yyyy")}
-            </span>
-            <button
-              onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-              className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-orange-600 transition-colors"
-            >
-              <HiOutlineChevronRight size={18} />
-            </button>
-          </div>
         )}
 
         {(search || rangeType !== "today") && activeTab === "logs" && (
@@ -288,7 +309,7 @@ export default function AttendanceManagement() {
       </div>
 
       {/* DATA VIEW CONTAINER */}
-      <div className="border border-slate-100 rounded-[2rem] overflow-visible bg-white shadow-sm">
+      <div className={` ${activeTab === "logs" ? "rounded-[2rem] overflow-visible border border-slate-100 bg-white shadow-sm" : "overflow-hidden"}`}>
         {activeTab === "logs" ? (
           <>
             <div className={isFetching ? "opacity-50" : ""}>
@@ -330,99 +351,108 @@ export default function AttendanceManagement() {
             </div>
           </>
         ) : (
-          <div className="p-4 bg-white min-h-[600px]">
+          <div className="min-h-[600px]">
             {isLeaveLoading ? (
               <div className="flex justify-center items-center h-96">
                 <Loader message="Syncing calendar..." />
               </div>
             ) : (
-              <div className="animate-in fade-in duration-500">
-                {/* CALENDAR GRID */}
-                <div className="grid grid-cols-7 gap-px bg-slate-200 border border-slate-200 rounded-[2rem] overflow-hidden">
-                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
-                    (day) => (
-                      <div
-                        key={day}
-                        className="bg-slate-50 py-4 text-center text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-200"
-                      >
-                        {day}
-                      </div>
-                    ),
-                  )}
+              <>
+                <div className="modern-calendar-wrapper">
+                  <FullCalendar
+                    plugins={[dayGridPlugin, interactionPlugin]}
+                    initialView="dayGridMonth"
+                    events={calendarEvents}
+                    height="auto"
+                    fixedWeekCount={false}
+                    displayEventTime={false}
+                    dayMaxEvents={3}
+                    headerToolbar={{
+                      left: "prev,next today",
+                      center: "title",
+                      right: "dayGridMonth,dayGridWeek",
+                    }}
+                    eventContent={(eventInfo) => {
+                      if (eventInfo.event.display === "background") return null;
 
-                  {calendarDays.map((day, idx) => {
-                    const dateStr = format(day, "yyyy-MM-dd");
-                    const isCurrentMonth = isSameMonth(day, currentMonth);
-                    const dayLeaves =
-                      leaveCalendar?.filter((l) => l.date === dateStr) || [];
+                      const type = eventInfo.event.extendedProps.leaveType;
+                      const employeeCode =
+                        eventInfo.event.extendedProps.employeeCode;
 
-                    return (
-                      <div
-                        key={idx}
-                        className={`min-h-[140px] p-3 transition-colors flex flex-col ${
-                          isCurrentMonth
-                            ? "bg-white"
-                            : "bg-slate-50/30 opacity-40"
-                        }`}
-                      >
-                        <span
-                          className={`text-xs font-black mb-2 ${isCurrentMonth ? "text-slate-900" : "text-slate-300"}`}
-                        >
-                          {format(day, "d")}
-                        </span>
-
-                        <div className="flex flex-col gap-1 overflow-y-auto max-h-[100px] pr-1">
-                          {dayLeaves.map((leave, i) => (
-                            <div
-                              key={i}
-                              title={`${leave.name} - ${leave.type}`}
-                              className={`px-2 py-1.5 rounded-lg border flex flex-col gap-0.5 shadow-sm ${
-                                leave.type === "Sick Leave"
-                                  ? "bg-rose-50 border-rose-100 text-rose-700"
-                                  : leave.type === "Annual Leave"
-                                    ? "bg-emerald-50 border-emerald-100 text-emerald-700"
-                                    : "bg-blue-50 border-blue-100 text-blue-700"
-                              }`}
-                            >
-                              <span className="text-[9px] font-black uppercase truncate leading-none">
-                                {leave.name}
-                                {leave?.employeeCode
-                                  ? ` (${leave.employeeCode})`
-                                  : ""}{" "}
-                                - {leave.type}
+                      return (
+                        <div className="px-[2px] py-[1px]">
+                          <div
+                            className={`rounded-lg overflow-hidden transition-all duration-200 hover:scale-[1.02]
+         ${leaveTypeColors[type] || "bg-slate-500"}`}
+                          >
+                            <div className="px-2 py-1 flex items-center justify-center gap-1">
+                              <span className="text-[9px] font-black text-white uppercase truncate">
+                                {eventInfo.event.title}
                               </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
 
-                {/* LEGEND */}
-                <div className="mt-8 flex flex-wrap gap-8 px-6 py-4 bg-slate-50 rounded-2xl border border-slate-100">
-                  <div className="flex items-center gap-3">
-                    <div className="w-4 h-4 rounded-md bg-emerald-100 border border-emerald-200"></div>
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
-                      Annual Leave
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-4 h-4 rounded-md bg-rose-100 border border-rose-200"></div>
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
-                      Sick Leave
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-4 h-4 rounded-md bg-blue-100 border border-blue-200"></div>
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
-                      Casual / Other
-                    </span>
-                  </div>
+                              {employeeCode && (
+                                <span className="text-[9px] font-black text-white shrink-0">
+                                  ({employeeCode})
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
                 </div>
-              </div>
+                <div className="flex flex-wrap gap-4 mt-6">
+                  {[
+                    {
+                      label: "Earned Leave",
+                      color: "bg-violet-500",
+                    },
+                    {
+                      label: "Sick Leave",
+                      color: "bg-rose-500",
+                    },
+                    {
+                      label: "Bereavement Leave",
+                      color: "bg-slate-700",
+                    },
+                    {
+                      label: "Paternity Leave",
+                      color: "bg-green-500",
+                    },
+                    {
+                      label: "Maternity Leave",
+                      color: "bg-pink-500",
+                    },
+                    {
+                      label: "Casual Leave",
+                      color: "bg-blue-500",
+                    },
+                    {
+                      label: "Compensatory Off",
+                      color: "bg-amber-500",
+                    },
+                    {
+                      label: "LOP",
+                      color: "bg-red-700",
+                    },
+                  ].map((item) => (
+                    <div
+                      key={item.label}
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 shadow-sm"
+                    >
+                      <div className={`w-3 h-3 rounded-full ${item.color}`} />
+
+                      <span className="text-[10px] font-black uppercase tracking-wide text-slate-600">
+                        {item.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </div>
+
         )}
       </div>
     </div>

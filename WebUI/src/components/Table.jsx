@@ -3,7 +3,7 @@ import React from 'react';
 export default function Table({ columns, data, onRowClick, emptyMessage = "No records found" }) {
   return (
     /* Added custom-scrollbar and pb-2 here */
-    <div className="overflow-x-auto custom-scrollbar pb-2">
+    <div className="overflow-x-auto custom-scrollbar">
       <table className="w-full text-left border-collapse [&_th]:align-top [&_td]:align-top">
         <thead>
           <tr className="bg-slate-50/50 border-b-2 border-slate-100">

@@ -32,6 +32,7 @@ exports.createProject = async (req, res) => {
     emitDashboardUpdate(req);
     return res.status(201).json({ success: true, message: "Project created successfully", project });
   } catch (error) {
+    console.error(error)
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

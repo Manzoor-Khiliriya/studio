@@ -64,7 +64,7 @@ body {
 
 /* --- CORE FULLCALENDAR WRAPPER --- */
 .modern-calendar-wrapper {
-  @apply bg-white/90 backdrop-blur-xl border border-slate-200 p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/50;
+  @apply bg-white/90 backdrop-blur-xl border border-slate-200 p-8 rounded-[2rem] shadow-xl shadow-slate-200/50;
 }
 
 .modern-calendar-wrapper .fc {
@@ -175,4 +175,17 @@ body {
 
 .fc-daygrid-event-harness {
   @apply mb-1.5 px-1 ;
+}
+
+.fc-h-event {
+  background: transparent !important;
+  border: none !important;
+}
+
+.fc-daygrid-event {
+  margin: 0 !important;
+}
+
+.fc-daygrid-event-harness {
+  padding: 0 2px !important;
 }

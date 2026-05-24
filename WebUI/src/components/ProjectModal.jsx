@@ -23,7 +23,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
 
   const [formData, setFormData] = useState({
     projectCode: "",
-    projectType: "Standard Ext",
+    projectType: "Standard Exterior",
     title: "",
     clientName: "",
     startDate: "",
@@ -38,7 +38,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
     if (editProject && isOpen) {
       setFormData({
         projectCode: editProject.projectCode || "",
-        projectType: editProject.projectType || "Standard Ext",
+        projectType: editProject.projectType || "Standard Exterior",
         title: editProject.title || "",
         clientName: editProject.clientName || "",
         startDate: editProject.startDate ? new Date(editProject.startDate).toISOString().split('T')[0] : "",
@@ -51,7 +51,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
     } else if (isOpen) {
       setFormData({
         projectCode: "",
-        projectType: "Standard Ext",
+        projectType: "Standard Exterior",
         title: "",
         clientName: "",
         startDate: "",
@@ -111,7 +111,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
             <HiOutlineHashtag className="input-icon" />
             <input
               required
-              className="form-input uppercase placeholder:capitalize font-black text-orange-600 disabled:bg-slate-50 disabled:text-slate-400"
+              className="form-input placeholder:capitalize font-black text-orange-600 disabled:bg-slate-50 disabled:text-slate-400"
               placeholder="Enter project id/code"
               value={formData.projectCode}
               onChange={(e) => setFormData({ ...formData, projectCode: e.target.value })}
