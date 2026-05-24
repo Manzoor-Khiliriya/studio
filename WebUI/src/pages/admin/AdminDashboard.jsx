@@ -212,7 +212,7 @@ const AdminDashboard = () => {
                   <div className="flex items-center gap-1">
                     <div className="w-2 h-2 rounded-full bg-red-400" />
                     <span className="text-[8px] font-black text-red-400 uppercase tracking-widest">
-                      Remaining
+                      Difference
                     </span>
                   </div>
                 </div>
