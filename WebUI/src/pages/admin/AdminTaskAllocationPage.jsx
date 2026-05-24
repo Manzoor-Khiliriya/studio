@@ -126,13 +126,13 @@ export default function AdminTaskAllocationPage() {
                                                     </td>
                                                     <td className="w-2/5 px-2 py-2">
                                                         <div className="flex items-center gap-3 text-[10px] font-black">
-                                                            <span className="text-slate-700 w-[120px] shrink-0">
-                                                                {allocation.todayAllocatedFormatted || "0 Hrs 0 Mins 0 Secs"}
+                                                            <span className="text-slate-700 w-[65px] shrink-0">
+                                                                {allocation.todayAllocatedFormatted || "0h 0m 0s"}
                                                             </span>
                                                             {allocation.isOverWorked ? (
                                                                 <span className="text-rose-600">+ {allocation.overWorkedFormatted}</span>
                                                             ) : (
-                                                                <span className="text-emerald-600">{allocation.todayWorkedFormatted || "0 Hrs 0 Mins 0 Secs"}</span>
+                                                                <span className="text-emerald-600">{allocation.todayWorkedFormatted || "0h 0m 0s"}</span>
                                                             )}
                                                         </div>
                                                     </td>

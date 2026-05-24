@@ -365,23 +365,6 @@ module.exports = (io) => {
           await log.save();
         }
 
-        // 🔥 STOP ATTENDANCE
-        const records = await Attendance.find({
-          user: user._id,
-          clockOut: null
-        });
-
-        for (const record of records) {
-          const sessionSeconds = Math.floor(
-            (currentTime - new Date(record.lastResumeTime)) / 1000
-          );
-
-          record.clockOut = currentTime;
-          record.totalSecondsWorked += sessionSeconds;
-
-          await record.save();
-        }
-
         // 🔥 EMIT TO THAT USER (optional)
         io.to(user._id.toString()).emit("attendanceChanged");
       }

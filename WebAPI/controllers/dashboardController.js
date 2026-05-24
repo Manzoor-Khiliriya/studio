@@ -81,7 +81,7 @@ exports.getSummary = async (req, res) => {
           });
 
           const totalSeconds = allDayLogs.reduce(
-            (acc, curr) => acc + (curr.durationSeconds || 0),
+            (acc, curr) => acc + (curr.rawDurationSeconds || 0),
             0,
           );
 
