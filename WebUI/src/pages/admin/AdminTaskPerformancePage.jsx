@@ -260,7 +260,7 @@ const AdminTaskPerformancePage = () => {
                                   </div>
                                 </div>
 
-                                <div className="flex-1 flex items-center gap-4">
+                                <div className="w-2/4 flex items-center gap-4">
                                   <CustomProgressBar
                                     percentage={taskPerc}
                                     isOver={isTaskOver}
@@ -272,7 +272,7 @@ const AdminTaskPerformancePage = () => {
                                   </span>
                                 </div>
 
-                                <div className="flex items-center justify-end gap-5 border-l border-slate-100 pl-5">
+                                <div className="flex items-center gap-5 border-l border-slate-100 pl-5 flex-1">
                                   <Metric
                                     label="Done"
                                     value={`${(task.consumedHours || 0).toFixed(1)}h`}
