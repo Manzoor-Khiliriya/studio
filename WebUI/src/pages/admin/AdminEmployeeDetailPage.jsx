@@ -607,9 +607,9 @@ function MetricBox({ label, value, icon, color }) {
 function TaskSmallCard({ task, active, historical }) {
   return (
     <div
-      className={`h-18 p-3 rounded-xl border transition-all duration-200
+      className={`h-18 p-3 rounded-xl transition-all duration-200
         ${active
-          ? "bg-slate-50 border-slate-500/40 hover:border-slate-500"
+          ? "bg-slate-50"
           : historical
             ? "bg-slate-50 border-slate-100 opacity-70"
             : "bg-orange-50 border-orange-200"

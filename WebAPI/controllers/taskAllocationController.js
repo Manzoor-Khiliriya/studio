@@ -126,7 +126,7 @@ exports.getEmployeeAllocations = async (req, res) => {
       const m = Math.floor((todayWorkedSeconds % 3600) / 60);
       const s = todayWorkedSeconds % 60;
 
-      allocation._doc.todayWorkedFormatted = `${h} Hrs ${m} Mins ${s} Secs`;
+      allocation._doc.todayWorkedFormatted = `${h}h ${m}m ${s}s`;
       allocation._doc.todayWorkedHours = workedHours;
       const todayAllocation = allocation.dailyAllocations?.find(
         (d) => d.date === today,
@@ -153,10 +153,10 @@ exports.getEmployeeAllocations = async (req, res) => {
       const om = Math.floor((overWorkedSeconds % 3600) / 60);
       const os = overWorkedSeconds % 60;
 
-      allocation._doc.todayAllocatedFormatted = `${ah} Hrs ${am} Mins ${as_} Secs`;
+      allocation._doc.todayAllocatedFormatted = `${ah}h ${am}m ${as_}s`;
       allocation._doc.todayAllocatedSeconds = todayAllocatedSeconds;
       allocation._doc.isOverWorked = todayWorkedSeconds > todayAllocatedSeconds;
-      allocation._doc.overWorkedFormatted = `${oh} Hrs ${om} Mins ${os} Secs`;
+      allocation._doc.overWorkedFormatted = `${oh}h ${om}m ${os}s`;
 
       grouped[employeeId].tasks.push(allocation);
     });

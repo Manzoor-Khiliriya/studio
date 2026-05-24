@@ -633,7 +633,7 @@ exports.getMyTasks = async (req, res) => {
               role: allocation.role,
               priorityOrder: allocation.priorityOrder,
               todayAllocatedSeconds,
-              todayAllocatedFormatted: `${ah} Hrs ${am} Mins ${as_} Secs`,
+              todayAllocatedFormatted: `${ah}h ${am}m ${as_}s`,
             }
           : null,
       };
