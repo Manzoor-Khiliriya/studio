@@ -19,7 +19,7 @@ export default function StatCard({ icon, label, onClick, value, delay = 0, varia
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.4 }}
       onClick={onClick}
-      className={`p-6 rounded-[2.5rem] cursor-pointer border-2 flex items-center gap-5 transition-all duration-500 ${themes[variant]}`}
+      className={`p-6 rounded-[2rem] cursor-pointer border-2 flex items-center gap-5 transition-all duration-500 ${themes[variant]}`}
     >
       <div className={`p-4 rounded-2xl flex items-center justify-center ${iconThemes[variant]}`}>
         {icon}

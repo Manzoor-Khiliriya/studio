@@ -309,16 +309,18 @@ export default function MyTasksPage() {
         </div>
 
         {/* DATA TERMINAL */}
-        <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm overflow-visible flex flex-col">
+        <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-visible flex flex-col">
           <div className={isFetching ? "opacity-40" : "opacity-100"}>
-            <Table
-              columns={columns}
-              data={data?.tasks || []}
-              emptyMessage="No tasks found."
-            />
+            <div className="rounded-t-[2rem] overflow-hidden">
+              <Table
+                columns={columns}
+                data={data?.tasks || []}
+                emptyMessage="No tasks found."
+              />
+            </div>
           </div>
 
-          <div className="bg-slate-50/50 p-4 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="bg-slate-50/50 p-4 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6 rounded-b-[2rem]">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-sm">
                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-100 pr-3">

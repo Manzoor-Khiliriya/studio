@@ -26,6 +26,7 @@ exports.getSummary = async (req, res) => {
         allTasks,
         uniqueProjects,
         activeTimers,
+        attendanceToday,
       ] = await Promise.all([
         User.countDocuments({ status: "Enable", role: "Employee" }),
         Attendance.countDocuments({ date: todayStr, clockOut: null }),
@@ -42,6 +43,18 @@ exports.getSummary = async (req, res) => {
             path: "task",
             select: "title project",
             populate: { path: "project", select: "projectCode" },
+          })
+          .lean(),
+        Attendance.find({
+          date: todayStr,
+        })
+          .populate({
+            path: "user",
+            select: "name",
+            populate: {
+              path: "employee",
+              select: "employeeCode",
+            },
           })
           .lean(),
       ]);
@@ -88,12 +101,35 @@ exports.getSummary = async (req, res) => {
           const h = Math.floor(totalSeconds / 3600);
           const m = Math.floor((totalSeconds % 3600) / 60);
           const s = totalSeconds % 60;
+          const attendanceRecord = attendanceToday.find(
+            (a) =>
+              a.user?._id?.toString() === log.user?._id?.toString() &&
+              a.date === log.dateString,
+          );
+
+          const attendanceSeconds = attendanceRecord?.totalSecondsWorked || 0;
+          const attendanceHours = Math.floor(attendanceSeconds / 3600);
+          const attendanceMinutes = Math.floor((attendanceSeconds % 3600) / 60);
+          const as = attendanceSeconds % 60;
+          const attendanceWorked = `${attendanceHours} Hrs ${attendanceMinutes} Mins ${as} Secs`;
+          const productivity =
+            attendanceSeconds > 0
+              ? Math.round((totalSeconds / attendanceSeconds) * 100)
+              : 0;
+          const idleSeconds = Math.max(attendanceSeconds - totalSeconds, 0);
+          const idleHours = Math.floor(idleSeconds / 3600);
+          const idleMinutes = Math.floor((idleSeconds % 3600) / 60);
+          const idleSecs = idleSeconds % 60;
+          const idleFormatted = `${idleHours} Hrs ${idleMinutes} Mins ${idleSecs} Secs`;
 
           groupedActivity[groupKey] = {
             id: log._id,
             userName: log.user?.name,
             employeeCode: log.user?.employee?.employeeCode,
             totalDailyTime: `${h} Hrs ${m} Mins ${s} Secs`,
+            attendanceWorked,
+            productivity,
+            idleFormatted,
             dateString: log.dateString,
             lastActionAt: log.createdAt,
           };
@@ -120,6 +156,7 @@ exports.getSummary = async (req, res) => {
           projectCode: t.task?.project?.projectCode || "N/A",
           since: t.startTime,
         })),
+        attendanceToday,
         recentActivity,
       });
     }

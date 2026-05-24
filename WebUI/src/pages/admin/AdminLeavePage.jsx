@@ -489,11 +489,13 @@ export default function AdminLeavePage() {
           {isTabLoading || !leaves ? (
             <Loader message="Loading data..." />
           ) : (
-            <Table
-              columns={columns}
-              data={leaves}
-              emptyMessage="No records found."
-            />
+            <div className="rounded-t-[2rem] overflow-hidden">
+              <Table
+                columns={columns}
+                data={leaves}
+                emptyMessage="No records found."
+              />
+            </div>
           )}
         </div>
 

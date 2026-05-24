@@ -186,7 +186,7 @@ const TaskGridView = ({ tasks, userId }) => {
             </div>
           ))
         ) : (
-          <div className="col-span-full py-4 text-center bg-slate-50 rounded border-2 border-dashed border-slate-100">
+          <div className="col-span-full py-4 text-center ">
             <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">
               No performance logs found for this range
             </p>
@@ -216,6 +216,7 @@ export default function EmployeeDetailPage() {
   const itemsPerPage = 5;
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, type: null });
+  const [showAllPerformance, setShowAllPerformance] = useState(false);
 
   const { data: employee, isLoading: userLoading, refetch: refetchEmployee } = useGetEmployeeProfileQuery(id);
   const { data: taskData, isLoading: tasksLoading, refetch: refetchTasks } = useGetTasksByEmployeeQuery(id);
@@ -385,7 +386,7 @@ export default function EmployeeDetailPage() {
               />
 
               {lastActiveDay ? (
-                <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm h-[175px] overflow-hidden flex flex-col">
+                <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm min-h-[175px] overflow-hidden flex flex-col">
 
                   {/* Header */}
                   <div className="bg-slate-50 px-6 py-4 flex justify-between items-center border-b border-slate-100 shrink-0">
@@ -416,9 +417,12 @@ export default function EmployeeDetailPage() {
                   </div>
 
                   {/* Scroll Area */}
-                  <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-3">
-                    <div className="grid grid-cols-1 gap-x-10 gap-y-6">
-                      {lastActiveDay.tasks.map((task, idx) => {
+                  <div className="flex-1 px-6 py-3">
+                    <div className="grid grid-cols-1 gap-x-10 gap-y-3">
+                      {(showAllPerformance
+                        ? lastActiveDay.tasks
+                        : lastActiveDay.tasks.slice(0, 2)
+                      ).map((task, idx) => {
                         const percentage =
                           task.allocated > 0
                             ? Math.min((task.seconds / task.allocated) * 100, 100)
@@ -451,6 +455,20 @@ export default function EmployeeDetailPage() {
                         );
                       })}
                     </div>
+                    {lastActiveDay.tasks.length > 2 && (
+                      <div className="flex justify-end pt-2">
+                        <button
+                          onClick={() =>
+                            setShowAllPerformance((prev) => !prev)
+                          }
+                          className="text-[10px] font-black text-orange-600 hover:text-orange-700 tracking-wide transition-all cursor-pointer"
+                        >
+                          {showAllPerformance
+                            ? "Show Less"
+                            : `Show More`}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (

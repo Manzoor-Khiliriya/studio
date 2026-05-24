@@ -193,6 +193,29 @@ const AdminDashboard = () => {
             <div className="lg:col-span-7 bg-slate-900 rounded-[3rem] p-8 shadow-2xl border border-slate-800 flex flex-col h-[700px]">
               <div className="flex justify-between items-center mb-10 shrink-0 px-2">
                 <h3 className="font-black text-white text-sm uppercase tracking-widest">Log History</h3>
+                {/* Legend */}
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                    <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">
+                      Attendance
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full bg-orange-400" />
+                    <span className="text-[8px] font-black text-orange-400 uppercase tracking-widest">
+                      Task
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full bg-red-400" />
+                    <span className="text-[8px] font-black text-red-400 uppercase tracking-widest">
+                      Remaining
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar space-y-12">
@@ -231,11 +254,36 @@ const AdminDashboard = () => {
                                   <span className="font-black text-white text-xs uppercase tracking-tight">
                                     {log.userName} {`(${log.employeeCode || ''})`}
                                   </span>
-                                  <div className="flex items-center gap-2">
-                                    <BiTimeFive className="text-emerald-400" size={14} />
-                                    <span className="text-[11px] font-bold text-emerald-400 tracking-tighter tabular-nums">
-                                      Total : {log.totalDailyTime}
-                                    </span>
+                                  <div className="flex flex-col items-end gap-2">
+
+                                    {/* Values */}
+                                    <div className="flex items-center gap-3">
+
+                                      <span className="text-[10px] font-black text-emerald-400 tracking-tight tabular-nums flex items-center gap-1.5">
+                                        <BiTimeFive
+                                          className="text-emerald-400"
+                                          size={9}
+                                        />
+                                        {log.attendanceWorked}
+                                      </span>
+
+                                      <span className="text-[10px] font-black text-orange-400 tracking-tight tabular-nums flex items-center gap-1.5">
+                                        <BiTimeFive
+                                          className="text-orange-400"
+                                          size={9}
+                                        />
+                                        {log.totalDailyTime}
+                                      </span>
+
+                                      <span className="text-[10px] font-black text-red-400 tracking-tight tabular-nums flex items-center gap-1.5">
+                                        <BiTimeFive
+                                          className="text-red-400"
+                                          size={9}
+                                        />
+                                        {log.idleFormatted}
+                                      </span>
+
+                                    </div>
                                   </div>
                                 </div>
                               </div>
