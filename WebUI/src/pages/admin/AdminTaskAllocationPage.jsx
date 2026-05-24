@@ -66,10 +66,13 @@ export default function AdminTaskAllocationPage() {
                             className="bg-white border border-slate-300 shadow-sm overflow-hidden rounded-xl"
                         >
                             {/* EMPLOYEE NAME */}
-                            <div className="px-6 py-3 text-center border-b border-slate-300 bg-slate-200">
+                            <div className="px-2 py-3 text-center border-b border-slate-300 bg-slate-200 flex items-center justify-between gap-2">
                                 <h2 className="text-lg font-black uppercase text-slate-900">
                                     {group.employee?.user?.name} - ({group.employee?.employeeCode})
                                 </h2>
+                                <span className="text-[9px] font-black text-slate-800 uppercase tracking-widest">
+                                    {group.tasks.length} tasks
+                                </span>
                             </div>
 
                             {/* FIXED HEADER */}
