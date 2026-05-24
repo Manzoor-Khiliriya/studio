@@ -105,7 +105,7 @@ export default function AdminTaskAllocationPage() {
                                                         </p>
                                                     </td>
                                                     <td className="w-1/6 px-2 py-2">
-                                                        <p className="text-[10px] font-black text-slate-700 uppercase truncate">
+                                                        <p className="text-[10px] font-black text-slate-700 truncate">
                                                             {allocation.task?.project?.projectType}
                                                         </p>
                                                     </td>
