@@ -85,7 +85,7 @@ export default function AdminTaskAllocationPage() {
                                         <th className="w-1/9 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Priority</th>
                                         <th className="w-1/9 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Role</th>
                                         <th className="w-2/6 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Today</th>
-                                        <th className="w-1/12 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Action</th>
+                                        <th className="w-1/10 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Action</th>
                                     </tr>
                                 </thead>
                             </table>
@@ -145,7 +145,7 @@ export default function AdminTaskAllocationPage() {
                                                             )}
                                                         </div>
                                                     </td>
-                                                    <td className="w-1/12 px-2 py-2">
+                                                    <td className="w-1/10 px-2 py-2">
                                                         <button
                                                             onClick={() => setSelectedAllocation(allocation)}
                                                             className="text-yellow-500 hover:text-yellow-600 rounded-lg transition-all duration-200 active:scale-90 cursor-pointer"
