@@ -311,15 +311,15 @@ export default function AttendanceManagement() {
       {/* DATA VIEW CONTAINER */}
       <div className={` ${activeTab === "logs" ? "rounded-[2rem] overflow-visible border border-slate-100 bg-white shadow-sm" : "overflow-hidden"}`}>
         {activeTab === "logs" ? (
-          <>
-            <div className={isFetching ? "opacity-50" : ""}>
+          <div className="rounded-[2rem]">
+            <div className={`${isFetching ? "opacity-50" : ""} rounded-t-[2rem] overflow-hidden`}>
               <Table
                 columns={columns}
                 data={attendanceData}
                 emptyMessage="No attendance records found."
               />
             </div>
-            <div className="bg-slate-50/50 p-6 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="bg-slate-50/50 p-6 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6 rounded-b-[2rem]">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-3 bg-white px-5 py-2 rounded-2xl border border-slate-200 shadow-sm">
                   <span className="text-[9px] font-black text-slate-400 uppercase border-r pr-3">
@@ -349,7 +349,7 @@ export default function AttendanceManagement() {
                 label="Logs"
               />
             </div>
-          </>
+          </div>
         ) : (
           <div className="min-h-[600px]">
             {isLeaveLoading ? (
