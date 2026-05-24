@@ -34,13 +34,12 @@ const CustomProgressBar = ({ percentage, isOver }) => {
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${Math.min(percentage, 100)}%` }}
-          className={`h-full relative z-10 transition-colors duration-700 ${
-            isOver
+          className={`h-full relative z-10 transition-colors duration-700 ${isOver
               ? "bg-rose-500"
               : percentage > 75
                 ? "bg-orange-500"
                 : "bg-indigo-600"
-          }`}
+            }`}
         />
       </div>
       <div className="flex justify-between w-full px-0.5 mt-0.5 opacity-40 text-[6px] font-black uppercase tracking-tighter">
@@ -140,10 +139,10 @@ const AdminTaskPerformancePage = () => {
               const subDate = group.endDate ? new Date(group.endDate) : null;
               const formattedDate = subDate
                 ? subDate.toLocaleDateString("en-IN", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                  })
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })
                 : "N/A";
 
               return (
@@ -246,7 +245,7 @@ const AdminTaskPerformancePage = () => {
                                 key={task._id || `${group._id}-${task.title}`}
                                 className="bg-white p-3 rounded-xl border border-slate-200 flex flex-col md:flex-row md:items-center gap-4"
                               >
-                                <div className="md:w-1/4 min-w-0">
+                                <div className="md:w-1/3 min-w-0">
                                   <h4 className="font-black text-slate-900 text-[11px] uppercase truncate">
                                     {task.title} - {task?.description}
                                   </h4>
@@ -260,7 +259,7 @@ const AdminTaskPerformancePage = () => {
                                   </div>
                                 </div>
 
-                                <div className="w-2/4 flex items-center gap-4">
+                                <div className="w-[680px] flex items-center gap-4">
                                   <CustomProgressBar
                                     percentage={taskPerc}
                                     isOver={isTaskOver}
@@ -281,8 +280,8 @@ const AdminTaskPerformancePage = () => {
                                     label="Target"
                                     value={`${task.allocatedTime}h`}
                                   />
-                                  {isTaskOver && (
-                                    <div className="text-right bg-rose-50 px-2 py-0.5 rounded border border-rose-100">
+                                  {isTaskOver ? (
+                                    <div className="text-right bg-rose-50 px-2 rounded border border-rose-100">
                                       <span className="block text-[6px] font-black text-rose-500 uppercase italic">
                                         Over
                                       </span>
@@ -291,6 +290,18 @@ const AdminTaskPerformancePage = () => {
                                         {(
                                           task.consumedHours -
                                           task.allocatedTime
+                                        ).toFixed(1)}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <div className="text-right bg-emerald-50 px-2 rounded border border-emerald-100">
+                                      <span className="block text-[6px] font-black text-emerald-500 uppercase italic">
+                                        Balance
+                                      </span>
+                                      <span className="text-[10px] font-black text-emerald-600">
+                                        {(
+                                          task.allocatedTime -
+                                          task.consumedHours
                                         ).toFixed(1)}
                                       </span>
                                     </div>
