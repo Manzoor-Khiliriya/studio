@@ -123,7 +123,7 @@ const TaskGridView = ({ tasks, userId }) => {
         <div className="flex items-center my-auto text-black overflow-hidden">
           {/* Start Date */}
           <div className="relative hover:bg-slate-200 rounded-[2rem] transition-colors cursor-pointer px-4 py-1">
-            <span className="text-[11px] font-black uppercase tracking-wider whitespace-nowrap">
+            <span className="text-[10px] font-black uppercase tracking-wider whitespace-nowrap">
               {formatDateDisplay(dateRange.start)}
             </span>
             <input
@@ -139,7 +139,7 @@ const TaskGridView = ({ tasks, userId }) => {
 
           {/* End Date */}
           <div className="relative hover:bg-slate-200 rounded-[2rem] transition-colors cursor-pointer px-4 py-1">
-            <span className="text-[11px] font-black uppercase tracking-wider whitespace-nowrap">
+            <span className="text-[10px] font-black uppercase tracking-wider whitespace-nowrap">
               {formatDateDisplay(dateRange.end)}
             </span>
             <input
@@ -155,11 +155,11 @@ const TaskGridView = ({ tasks, userId }) => {
         {/* Stats Summary */}
         <div className="flex gap-10">
           <div className="text-center">
-            <p className="text-slate-900 font-black text-sm leading-none mb-1">{totalHoursStr}</p>
+            <p className="text-[10px] text-slate-900 font-black text-sm leading-none mb-1">{totalHoursStr}</p>
             <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest">Worked Hours</p>
           </div>
           <div className="text-center">
-            <p className="text-slate-900 font-black text-sm leading-none mb-1">{taskCount}</p>
+            <p className="text-[10px] text-slate-900 font-black text-sm leading-none mb-1">{taskCount}</p>
             <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest">Total Tasks</p>
           </div>
         </div>
@@ -410,7 +410,7 @@ export default function EmployeeDetailPage() {
                       </div>
                     </div>
 
-                    <span className="text-[10px] font-black text-orange-600">
+                    <span className="text-[11px] font-black text-black">
                       {formatToHrMin(lastActiveDay.totalDaySeconds)}
                     </span>
                   </div>
@@ -648,7 +648,7 @@ function TaskSmallCard({ task, active, historical }) {
         <span
           className={`text-[8px] font-black uppercase tracking-widest
             ${active
-              ? "text-orange-600"
+              ? "text-black"
               : historical
                 ? "text-slate-500"
                 : "text-orange-500"
@@ -660,7 +660,7 @@ function TaskSmallCard({ task, active, historical }) {
         <span
           className={`text-[8px] font-black uppercase tracking-widest
             ${active
-              ? "text-slate-900"
+              ? "text-black"
               : historical
                 ? "text-slate-500"
                 : "text-orange-500"
