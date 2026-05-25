@@ -358,7 +358,7 @@ export default function AdminTaskDetailPage() {
                   <HiOutlineClock className="text-orange-500" /> Performance
                   Analysis (All Records)
                 </h3>
-                <span className="text-[9px] font-black text-slate-400 uppercase bg-white px-3 py-1 rounded-full border border-slate-200 shadow-sm">
+                <span className="text-[11px] font-black text-black uppercase bg-white ">
                   {task.stats?.totalHistoricalContributors || 0} Total
                   Contributors
                 </span>

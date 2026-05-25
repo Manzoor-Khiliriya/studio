@@ -871,7 +871,7 @@ export default function AdminTasksPage() {
 
                   {activeTab === "live" &&
                     expandedProject === project.projectCode && (
-                      <div className="bg-white border-t border-slate-50">
+                      <div className="bg-white border-t border-slate-50 overflow-hidden rounded-b-lg">
                         {tasks.length > 0 ? (
                           <GroupedTaskTable
                             columns={columns}

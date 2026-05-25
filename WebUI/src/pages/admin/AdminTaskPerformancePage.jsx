@@ -148,7 +148,7 @@ const AdminTaskPerformancePage = () => {
               return (
                 <div
                   key={group._id}
-                  className={`bg-white rounded-[1.5rem] border transition-all duration-300 ${isExpanded ? "border-orange-500 shadow-md" : "border-slate-200"}`}
+                  className={`bg-white rounded-[1.5rem] border transition-all duration-300 ${isExpanded ? "border-orange-500 shadow-md overflow-hidden" : "border-slate-200"}`}
                 >
                   {/* MINI PROJECT HEADER */}
                   <div
@@ -271,7 +271,7 @@ const AdminTaskPerformancePage = () => {
                                   </span>
                                 </div>
 
-                                <div className="flex items-center justify-end gap-5 border-l border-slate-100 pl-5 flex-1">
+                                <div className="flex items-center justify-end gap-5 border-l border-slate-100 pl-5 w-1/4">
                                   <Metric
                                     label="Done"
                                     value={`${(task.consumedHours || 0).toFixed(1)}h`}
@@ -291,6 +291,7 @@ const AdminTaskPerformancePage = () => {
                                           task.consumedHours -
                                           task.allocatedTime
                                         ).toFixed(1)}
+                                        h
                                       </span>
                                     </div>
                                   ) : (
@@ -303,6 +304,7 @@ const AdminTaskPerformancePage = () => {
                                           task.allocatedTime -
                                           task.consumedHours
                                         ).toFixed(1)}
+                                        h
                                       </span>
                                     </div>
                                   )}
