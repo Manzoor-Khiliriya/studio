@@ -45,9 +45,7 @@ exports.getSummary = async (req, res) => {
             populate: { path: "project", select: "projectCode" },
           })
           .lean(),
-        Attendance.find({
-          date: todayStr,
-        })
+        Attendance.find()
           .populate({
             path: "user",
             select: "name",
