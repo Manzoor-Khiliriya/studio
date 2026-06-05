@@ -1,53 +1,60 @@
 const mongoose = require("mongoose");
 
-const userSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, "Name is required"],
-    trim: true,
+const userSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, "Name is required"],
+      trim: true,
+    },
+    email: {
+      type: String,
+      required: [true, "Email is required"],
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+    password: {
+      type: String,
+      required: [true, "Password is required"],
+      select: false,
+    },
+    plainPassword: { type: String, select: false },
+    role: {
+      type: String,
+      enum: ["Administrator", "Employee", "Manager", "HR"],
+      default: "Employee",
+      index: true,
+    },
+    designation: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Designation",
+    },
+    status: {
+      type: String,
+      enum: ["Enable", "Disable"],
+      default: "Enable",
+    },
+    lastActiveAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    resetPasswordToken: {
+      type: String,
+      default: null,
+    },
+    resetPasswordExpires: {
+      type: Date,
+      default: null,
+    },
   },
-  email: {
-    type: String,
-    required: [true, "Email is required"],
-    unique: true,
-    lowercase: true,
-    trim: true,
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   },
-  password: {
-    type: String,
-    required: [true, "Password is required"],
-    select: false,
-  },
-  plainPassword: { type: String, select: false },
-  role: {
-    type: String,
-    enum: ["Admin", "Employee"],
-    default: "Employee",
-    index: true,
-  },
-  status: {
-    type: String,
-    enum: ["Enable", "Disable"],
-    default: "Enable",
-  },
-  lastActiveAt: {
-    type: Date,
-    default: null,
-    index: true
-  },
-  resetPasswordToken: {
-    type: String,
-    default: null,
-  },
-  resetPasswordExpires: {
-    type: Date,
-    default: null,
-  },
-}, {
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true },
-});
+);
 
 userSchema.methods.isActive = function () {
   return this.status === "Enable";

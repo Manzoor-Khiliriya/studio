@@ -24,6 +24,8 @@ export const apiSlice = createApi({
     "Holiday",
     "Notification",
     "TaskAllocation",
+    "Department",
+    "Designation",
   ],
   endpoints: () => ({}),
 });

@@ -17,6 +17,8 @@ const notificationRoutes = require("./routes/notificationRoutes");
 const attendanceRoutes = require("./routes/attendanceRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const taskAllocationRoutes = require("./routes/taskAllocationRoutes");
+const departmentRoutes = require("./routes/departmentRoutes");
+const designationRoutes = require("./routes/designationRoutes");
 
 const app = express();
 
@@ -71,6 +73,8 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/task-allocations", taskAllocationRoutes);
+app.use("/api/departments", departmentRoutes);
+app.use("/api/designations", designationRoutes);
 
 const PORT = process.env.PORT || 5000;
 

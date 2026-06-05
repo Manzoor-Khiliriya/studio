@@ -51,7 +51,7 @@ function AppContent() {
 
     const interval = setInterval(() => {
       sendHeartbeat().unwrap().catch(() => { });
-    }, 10000);
+    }, 60000);
 
     return () => clearInterval(interval);
   }, [user?._id, sendHeartbeat]);

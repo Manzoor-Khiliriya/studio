@@ -349,7 +349,6 @@ export default function AdminTasksPage() {
               />
               <input
                 type="text"
-                placeholder="Search projects by code or title..."
                 placeholder={
                   activeTab === "live"
                     ? "Search projects by code or title..."

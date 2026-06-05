@@ -3,28 +3,63 @@ const User = require("../models/User");
 
 exports.getAllEmployees = async (req, res) => {
   try {
-    const { search = "", page = 1, limit = 10, status } = req.query;
+    const {
+      search = "",
+      page = 1,
+      limit = 10,
+      status,
+      role = "Employee",
+    } = req.query;
     const numericLimit = Number(limit);
     const numericPage = Number(page);
-    let userCriteria = { role: "Employee" };
+    let userCriteria = { role };
     if (search) {
       userCriteria.name = { $regex: search, $options: "i" };
     }
     if (status && status !== "All") {
       userCriteria.status = status === "Active" ? "Enable" : "Disable";
     }
+
+    if (role === "Administrator") {
+      const admins = await User.find(userCriteria)
+        .select("-password")
+        .sort({ createdAt: -1 })
+        .limit(numericLimit)
+        .skip((numericPage - 1) * numericLimit)
+        .lean();
+
+      const total = await User.countDocuments(userCriteria);
+
+      return res.json({
+        employees: admins.map((admin) => ({
+          _id: admin._id,
+          designation: admin.designation,
+          user: {
+            _id: admin._id,
+            name: admin.name,
+            email: admin.email,
+            status: admin.status,
+            role: admin.role,
+          },
+        })),
+        totalPages: Math.ceil(total / numericLimit),
+        currentPage: numericPage,
+        totalEmployees: total,
+      });
+    }
+
     const users = await User.find(userCriteria).select("_id");
-    console.log(users)
-    const userIds = users.map(u => u._id);
+    console.log(users);
+    const userIds = users.map((u) => u._id);
     const query = { user: { $in: userIds } };
-    console.log(userIds)
+    console.log(userIds);
     const employees = await Employee.find(query)
       .populate("user", "name email status +plainPassword")
       .sort({ createdAt: -1 })
       .limit(numericLimit)
       .skip((numericPage - 1) * numericLimit)
       .lean();
-    console.log(employees)
+    console.log(employees);
     const total = await Employee.countDocuments(query);
     res.json({
       employees,
@@ -54,7 +89,9 @@ exports.getEmployeeProfile = async (req, res) => {
 exports.getMyEmployeeProfile = async (req, res) => {
   try {
     const employee = await Employee.findOne({ user: req.user._id })
-      .select("-dailyWorkLimit -proficiency -createdAt -updatedAt -createdBy -updatedBy")
+      .select(
+        "-dailyWorkLimit -proficiency -createdAt -updatedAt -createdBy -updatedBy",
+      )
       .populate("user", "name email")
       .lean();
     if (!employee) {
@@ -71,7 +108,7 @@ exports.getActiveEmployeesList = async (req, res) => {
     const activeUsers = await User.find({ status: "Enable" })
       .select("name")
       .lean();
-    const userIds = activeUsers.map(u => u._id);
+    const userIds = activeUsers.map((u) => u._id);
     const employees = await Employee.find({ user: { $in: userIds } })
       .populate("user", "name")
       .select("employeeCode designation user")

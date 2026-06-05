@@ -50,14 +50,14 @@ async function runCleanupSafe() {
 
   const expiredProjects = await Project.find({
     deleteStatus: "Disable",
-    updatedAt: { $lt: cutoff }
+    updatedAt: { $lt: cutoff },
   }).select("_id");
 
   if (expiredProjects.length > 0) {
-    const pIds = expiredProjects.map(p => p._id);
+    const pIds = expiredProjects.map((p) => p._id);
 
     const tasks = await Task.find({ project: { $in: pIds } }).select("_id");
-    const tIds = tasks.map(t => t._id);
+    const tIds = tasks.map((t) => t._id);
 
     await TimeLog.deleteMany({ task: { $in: tIds } });
     await Task.deleteMany({ project: { $in: pIds } });
@@ -65,7 +65,7 @@ async function runCleanupSafe() {
   }
 
   await Attendance.deleteMany({
-    clockIn: { $lt: cutoff }
+    clockIn: { $lt: cutoff },
   });
 
   const oneMonthAgo = now();
@@ -73,15 +73,17 @@ async function runCleanupSafe() {
 
   const notificationResult = await Notification.deleteMany({
     createdAt: { $lt: oneMonthAgo },
-    read: true
+    read: true,
   });
 
-  console.log(`🗑 Deleted ${notificationResult.deletedCount} old read notifications.`);
+  console.log(
+    `🗑 Deleted ${notificationResult.deletedCount} old read notifications.`,
+  );
 
   await JobTracker.findOneAndUpdate(
     { name: "data-cleanup" },
     { lastRun: currentTime },
-    { upsert: true }
+    { upsert: true },
   );
 
   console.log("✅ Cleanup done");
@@ -120,19 +122,19 @@ async function runMonthlyAccrualSafe() {
       {
         user: user._id,
         year: currentYear,
-        type: "Earned Leave"
+        type: "Earned Leave",
       },
       {
-        $inc: { earned: rate }
+        $inc: { earned: rate },
       },
-      { upsert: true }
+      { upsert: true },
     );
   }
 
   await JobTracker.findOneAndUpdate(
     { name: "monthly-accrual" },
     { lastRun: currentTime },
-    { upsert: true }
+    { upsert: true },
   );
 
   console.log("✅ Monthly accrual done");
@@ -167,7 +169,7 @@ async function runYearlyCarryForwardSafe() {
     const balance = await LeaveBalance.findOne({
       user: user._id,
       year: currentYear,
-      type: "Earned Leave"
+      type: "Earned Leave",
     });
 
     const earned = balance?.earned || 0;
@@ -178,8 +180,8 @@ async function runYearlyCarryForwardSafe() {
       status: "Approved",
       startDate: {
         $gte: new Date(`${currentYear}-01-01`),
-        $lte: new Date(`${currentYear}-12-31`)
-      }
+        $lte: new Date(`${currentYear}-12-31`),
+      },
     });
 
     let taken = 0;
@@ -191,27 +193,27 @@ async function runYearlyCarryForwardSafe() {
 
     const carryForward = Math.min(
       Math.max(0, remaining),
-      setting?.carryForwardLimit || 0
+      setting?.carryForwardLimit || 0,
     );
 
     await LeaveBalance.findOneAndUpdate(
       {
         user: user._id,
         year: nextYear,
-        type: "Earned Leave"
+        type: "Earned Leave",
       },
       {
         earned: 0,
-        carriedForward: carryForward
+        carriedForward: carryForward,
       },
-      { upsert: true }
+      { upsert: true },
     );
   }
 
   await JobTracker.findOneAndUpdate(
     { name: "yearly-carry-forward" },
     { lastRun: currentTime },
-    { upsert: true }
+    { upsert: true },
   );
 
   console.log("✅ Carry forward done");
@@ -226,19 +228,21 @@ async function runMidnightShutdown() {
     console.log("🕛 Midnight shutdown started...");
     const employees = await Employee.find().select("user proficiency");
     const proficiencyMap = new Map(
-      employees.map(e => [e.user.toString(), e.proficiency ?? 100])
+      employees.map((e) => [e.user.toString(), e.proficiency ?? 100]),
     );
     const activeLogs = await TimeLog.find({ isRunning: true });
     const midnight = new Date(currentTime);
     midnight.setHours(0, 0, 0, 0);
     for (const log of activeLogs) {
       const startTime = new Date(log.startTime);
-      const proficiency =
-        Math.max(0, Math.min(proficiencyMap.get(log.user.toString()) ?? 100, 200));
+      const proficiency = Math.max(
+        0,
+        Math.min(proficiencyMap.get(log.user.toString()) ?? 100, 200),
+      );
       if (startTime >= midnight) {
         const rawSeconds = Math.max(
           0,
-          Math.floor((currentTime - startTime) / 1000)
+          Math.floor((currentTime - startTime) / 1000),
         );
 
         if (log.logType === "work") {
@@ -257,11 +261,13 @@ async function runMidnightShutdown() {
       }
       const firstPartSeconds = Math.max(
         0,
-        Math.floor((midnight - startTime) / 1000)
+        Math.floor((midnight - startTime) / 1000),
       );
 
       if (log.logType === "work") {
-        const adjustedSeconds = Math.round(firstPartSeconds * (proficiency / 100));
+        const adjustedSeconds = Math.round(
+          firstPartSeconds * (proficiency / 100),
+        );
         log.rawDurationSeconds = firstPartSeconds;
         log.durationSeconds = adjustedSeconds;
       } else {
@@ -273,7 +279,7 @@ async function runMidnightShutdown() {
       await log.save();
       const secondPartSeconds = Math.max(
         0,
-        Math.floor((currentTime - midnight) / 1000)
+        Math.floor((currentTime - midnight) / 1000),
       );
 
       let finalSeconds = secondPartSeconds;
@@ -291,7 +297,7 @@ async function runMidnightShutdown() {
         durationSeconds: finalSeconds,
         logType: log.logType,
         isRunning: false,
-        dateString: midnight.toISOString().split("T")[0]
+        dateString: midnight.toISOString().split("T")[0],
       });
     }
 
@@ -300,7 +306,7 @@ async function runMidnightShutdown() {
     const activeAttendance = await Attendance.find({ clockOut: null });
     for (const record of activeAttendance) {
       const sessionSeconds = Math.floor(
-        (currentTime - new Date(record.lastResumeTime)) / 1000
+        (currentTime - new Date(record.lastResumeTime)) / 1000,
       );
       record.clockOut = currentTime;
       record.totalSecondsWorked += sessionSeconds;
@@ -311,39 +317,42 @@ async function runMidnightShutdown() {
   } catch (err) {
     console.error("❌ Midnight shutdown failed:", err.message);
   }
-};
+}
 
 //
 // 🔥 CRON SCHEDULES (IST SAFE)
 //
-cron.schedule("0 0 * * *", async () => {
-  await runMidnightShutdown();
-  await runCleanupSafe();
-}, {
-  timezone: "Asia/Kolkata"
-});
+cron.schedule(
+  "0 0 * * *",
+  async () => {
+    await runMidnightShutdown();
+    await runCleanupSafe();
+  },
+  {
+    timezone: "Asia/Kolkata",
+  },
+);
 
 cron.schedule("0 0 1 * *", runMonthlyAccrualSafe, {
-  timezone: "Asia/Kolkata"
+  timezone: "Asia/Kolkata",
 });
 
 cron.schedule("0 1 1 1 *", runYearlyCarryForwardSafe, {
-  timezone: "Asia/Kolkata"
+  timezone: "Asia/Kolkata",
 });
 
 //
 // 🔥 5. HEARTBEAT AUTO STOP (NEW)
 //
 module.exports = (io) => {
-
   cron.schedule("* * * * *", async () => {
     try {
       const currentTime = now();
 
-      const threshold = new Date(currentTime.getTime() - 60000);
+      const threshold = new Date(currentTime.getTime() - 120000);
 
       const inactiveUsers = await User.find({
-        lastActiveAt: { $exists: true, $lt: threshold }
+        lastActiveAt: { $exists: true, $lt: threshold },
       });
 
       if (!inactiveUsers.length) return;
@@ -351,7 +360,7 @@ module.exports = (io) => {
       console.log(`⚡ Found ${inactiveUsers.length} inactive users`);
 
       for (const user of inactiveUsers) {
-
+        await User.updateOne({ _id: user._id }, { lastActiveAt: null });
         // 🔥 STOP TIMELOG
         const logs = await TimeLog.find({ user: user._id, isRunning: true });
 
@@ -374,12 +383,10 @@ module.exports = (io) => {
       io.emit("dashboardUpdate");
 
       console.log("✅ Heartbeat auto-stop done");
-
     } catch (err) {
       console.error("❌ Cron error:", err.message);
     }
   });
-
 };
 
 //

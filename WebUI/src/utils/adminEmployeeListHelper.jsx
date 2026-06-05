@@ -25,9 +25,13 @@ const PasswordCell = ({ emp }) => {
   );
 };
 
+// header: "Designated Partner",
+
+
 export const getEmployeeColumns = ({ onEdit, onDelete, onToggle }) => [
   {
     header: "Employee",
+
     render: (emp) => (
       <div className="flex items-start gap-3">
         <div className="relative">
@@ -59,6 +63,17 @@ export const getEmployeeColumns = ({ onEdit, onDelete, onToggle }) => [
           {emp.designation || "Field Staff"}
         </span>
       </div>
+    )
+  },
+  {
+    header: "Department",
+    render: (emp) => (
+      <span className="text-[10px] font-bold text-slate-500">
+        {emp.departments?.name ||
+          emp.departments ||
+          emp.employee?.departments?.name ||
+          "N/A"}
+      </span>
     )
   },
   {

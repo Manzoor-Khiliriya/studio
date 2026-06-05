@@ -34,7 +34,7 @@ export default function Table({ columns, data, onRowClick, emptyMessage = "No re
             ))
           ) : (
             <tr>
-              <td colSpan={columns.length} className="py-20 text-center">
+              <td colSpan={columns.length} className="py-15 text-center">
                 <p className="text-slate-300 font-black italic text-lg uppercase tracking-tighter">
                   {emptyMessage}
                 </p>
