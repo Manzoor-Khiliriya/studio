@@ -16,12 +16,12 @@ export const getDepartmentColumns = ({
             header: "Status",
             render: (dept) => (
                 <span
-                    className={`text-[9px] font-black uppercase tracking-wide ${dept.isActive
+                    className={`text-[9px] font-black uppercase tracking-wide ${dept.status === "Enable"
                             ? "text-emerald-700"
                             : "text-rose-700"
                         }`}
                 >
-                    {dept.isActive ? "Active" : "Inactive"}
+                    {dept.status === "Enable" ? "Active" : "Inactive"}
                 </span>
 
             ),
@@ -72,12 +72,12 @@ export const getDesignationColumns = ({
             header: "Status",
             render: (designation) => (
                 <span
-                    className={`text-[9px] font-black uppercase tracking-wide ${designation.isActive
+                    className={`text-[9px] font-black uppercase tracking-wide ${designation.status === "Enable"
                             ? "text-emerald-700"
                             : "text-rose-700"
                         }`}
                 >
-                    {designation.isActive ? "Active" : "Inactive"}
+                    {designation.status === "Enable" ? "Active" : "Inactive"}
                 </span>
             ),
         },

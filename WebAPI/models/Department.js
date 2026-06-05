@@ -8,12 +8,13 @@ const departmentSchema = new mongoose.Schema(
       trim: true,
       unique: true,
     },
-    isActive: {
-      type: Boolean,
-      default: true,
+    status: {
+      type: String,
+      enum: ["Enable", "Disable"],
+      default: "Enable",
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model("Department", departmentSchema);

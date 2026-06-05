@@ -41,7 +41,7 @@ exports.updateDesignation = async (req, res) => {
       req.params.id,
       {
         name: req.body.name?.trim(),
-        isActive: req.body.isActive,
+        status: req.body.status,
       },
       { new: true }
     );

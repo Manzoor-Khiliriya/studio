@@ -339,7 +339,7 @@ export default function EmployeeDetailPage() {
                   <StatusBadge status={employee?.user?.status} />
                   <span className="h-1 w-1 rounded-full bg-slate-300" />
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    {employee?.designation || "Field Operator"}
+                    {employee?.user?.designation?.name || "Field Operator"}
                   </span>
                 </div>
               </div>

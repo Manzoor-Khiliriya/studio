@@ -54,9 +54,15 @@ export default function CustomDropdown({
       >
         <span
           className="truncate text-left"
-          title={selectedLabel}
+          title={
+            typeof selectedLabel === "object"
+              ? selectedLabel?.name
+              : selectedLabel
+          }
         >
-          {selectedLabel}
+          {typeof selectedLabel === "object"
+            ? selectedLabel?.name
+            : selectedLabel}
         </span>
         <HiChevronDown className={`transition ${open ? "rotate-180" : ""}`} />
       </div>

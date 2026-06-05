@@ -6,6 +6,7 @@ import {
     useUpdateDepartmentMutation,
 } from "../services/settingsApi";
 import { HiOutlineBriefcase } from "react-icons/hi2";
+import CustomDropdown from "./CustomDropdown";
 
 export default function DepartmentModal({
     isOpen,
@@ -16,7 +17,7 @@ export default function DepartmentModal({
 
     const [formData, setFormData] = useState({
         name: "",
-        isActive: true,
+        status: "Enable",
     });
 
     const [createDepartment, { isLoading: isCreating }] =
@@ -29,12 +30,12 @@ export default function DepartmentModal({
         if (editData) {
             setFormData({
                 name: editData.name || "",
-                isActive: editData.isActive ?? true,
+                status: editData.status || "Enable",
             });
         } else {
             setFormData({
                 name: "",
-                isActive: true,
+                status: "Enable",
             });
         }
     }, [editData, isOpen]);
@@ -104,19 +105,31 @@ export default function DepartmentModal({
                     />
                 </InputGroup>
 
-                <label className="flex items-center gap-3 text-sm font-medium">
-                    <input
-                        type="checkbox"
-                        checked={formData.isActive}
-                        onChange={(e) =>
+                <InputGroup label="Status *">
+                    <HiOutlineBriefcase className="input-icon" />
+
+                    <CustomDropdown
+                        value={formData.status}
+                        onChange={(val) =>
                             setFormData({
                                 ...formData,
-                                isActive: e.target.checked,
+                                status: val,
                             })
                         }
+                        options={[
+                            {
+                                label: "Enable",
+                                value: "Enable",
+                            },
+                            {
+                                label: "Disable",
+                                value: "Disable",
+                            },
+                        ]}
+                        className="w-full"
+                        buttonClass="form-input text-xs font-bold pl-10"
                     />
-                    Active Department
-                </label>
+                </InputGroup>
             </div>
         </CommonModal>
     );

@@ -6,7 +6,7 @@ import {
   useChangeUserStatusMutation,
   useDeleteUserMutation,
 } from "../../services/userApi";
-import { HiOutlineMagnifyingGlass, HiOutlineXMark } from "react-icons/hi2";
+import { HiOutlineCog6Tooth, HiOutlineMagnifyingGlass, HiOutlineXMark } from "react-icons/hi2";
 import PageHeader from "../../components/PageHeader";
 import Table from "../../components/Table";
 import Loader from "../../components/Loader";
@@ -26,7 +26,7 @@ const addOptions = [
   { label: "Add Employee", value: "Employee" },
   { label: "Add Manager", value: "Manager" },
   { label: "Add HR", value: "HR" },
-  { label: "Add Admin", value: "Administrator" },
+  { label: "Add Admin", value: "Admin" },
 ];
 
 export default function EmployeeListPage() {
@@ -115,20 +115,27 @@ export default function EmployeeListPage() {
   const columns = useMemo(
     () =>
       getEmployeeColumns({
+        role: activeRole,
         onEdit: (emp) => {
           setSelectedEmp(emp);
           setIsEmployeeModalOpen(true);
         },
         onDelete: (emp) => {
           setSelectedEmp(emp);
-          setConfirmConfig({ isOpen: true, type: "delete" });
+          setConfirmConfig({
+            isOpen: true,
+            type: "delete",
+          });
         },
         onToggle: (emp) => {
           setSelectedEmp(emp);
-          setConfirmConfig({ isOpen: true, type: "toggle" });
+          setConfirmConfig({
+            isOpen: true,
+            type: "toggle",
+          });
         },
       }),
-    [],
+    [activeRole],
   );
 
   const departmentColumns = useMemo(
@@ -195,8 +202,7 @@ export default function EmployeeListPage() {
           { id: "Employee", label: "Employees" },
           { id: "Manager", label: "Managers" },
           { id: "HR", label: "HR" },
-          { id: "Administrator", label: "Admin" },
-          { id: "Settings", label: "Settings" },
+          { id: "Admin", label: "Admin" },
         ]}
         activeTab={activeRole}
         onTabChange={(role) => {
@@ -275,6 +281,14 @@ export default function EmployeeListPage() {
                   <span>CLEAR FILTERS</span>
                 </button>
               )}
+
+              <button
+                onClick={() => setActiveRole("Settings")}
+                title="Go to Settings"
+                className="p-4 bg-slate-900 text-white rounded-2xl hover:bg-orange-600 transition-all cursor-pointer shadow-lg shadow-slate-200"
+              >
+                <HiOutlineCog6Tooth size={18} />
+              </button>
             </div>
           </div>
         )}
@@ -288,8 +302,8 @@ export default function EmployeeListPage() {
                   key={tab}
                   onClick={() => setSettingsTab(tab)}
                   className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${settingsTab === tab
-                      ? "bg-orange-600 text-white shadow-lg"
-                      : "text-slate-400 hover:text-slate-600"
+                    ? "bg-orange-600 text-white shadow-lg"
+                    : "text-slate-400 hover:text-slate-600"
                     }`}
                 >
                   {tab}

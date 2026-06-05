@@ -163,7 +163,7 @@ exports.updateUser = async (req, res) => {
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find()
-      .select("-password")
+      .select("-password -plainPassword")
       .populate("employee")
       .sort({ createdAt: -1 });
 
@@ -176,7 +176,7 @@ exports.getAllUsers = async (req, res) => {
 exports.getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id)
-      .select("-password")
+      .select("-password -plainPassword")
       .populate("employee");
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json(sanitizeUser(user));

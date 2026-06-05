@@ -25,13 +25,11 @@ const PasswordCell = ({ emp }) => {
   );
 };
 
-// header: "Designated Partner",
 
 
-export const getEmployeeColumns = ({ onEdit, onDelete, onToggle }) => [
+export const getEmployeeColumns = ({ role, onEdit, onDelete, onToggle }) => [
   {
-    header: "Employee",
-
+    header: role === "Admin" ? "Designated Partner" : "Employee",
     render: (emp) => (
       <div className="flex items-start gap-3">
         <div className="relative">
@@ -58,23 +56,40 @@ export const getEmployeeColumns = ({ onEdit, onDelete, onToggle }) => [
     header: "Designation",
     render: (emp) => (
       <div className="flex items-center gap-2">
-        <HiOutlineIdentification size={14} className="text-orange-500" />
-        <span className="text-[10px] font-bold text-slate-500 capitalize tracking-widest">
-          {emp.designation || "Field Staff"}
+        <HiOutlineIdentification
+          size={14}
+          className="text-orange-500"
+        />
+        <span className="text-[10px] font-bold text-slate-500">
+          {emp.user?.designation?.name || "N/A"}
         </span>
       </div>
-    )
+    ),
   },
   {
-    header: "Department",
-    render: (emp) => (
-      <span className="text-[10px] font-bold text-slate-500">
-        {emp.departments?.name ||
-          emp.departments ||
-          emp.employee?.departments?.name ||
-          "N/A"}
-      </span>
-    )
+    header: role === "Manager" ? "Departments" : "Department",
+    render: (emp) => {
+      const departmentText = emp.departments?.length
+        ? emp.departments.map((d) => d.name).join(", ")
+        : "N/A";
+
+      return (
+        <div className="group relative flex items-center gap-2">
+          <HiOutlineIdentification
+            size={14}
+            className="text-orange-500 shrink-0"
+          />
+
+          <span
+            className="max-w-[150px] truncate text-[10px] font-bold text-slate-500 cursor-pointer"
+            title={departmentText}
+          >
+            {departmentText}
+          </span>
+
+        </div>
+      );
+    },
   },
   {
     header: "Email Address",
@@ -96,7 +111,18 @@ export const getEmployeeColumns = ({ onEdit, onDelete, onToggle }) => [
     render: (emp) => (
       <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500">
         <HiOutlineCalendarDays size={15} className="text-slate-400" />
-        <span>{emp.joinedDate ? new Date(emp.joinedDate).toLocaleDateString('en-IN') : "---"}</span>
+        <span>
+          {emp.joinedDate
+            ? new Date(emp.joinedDate).toLocaleDateString(
+              "en-IN",
+              {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              }
+            )
+            : "---"}
+        </span>
       </div>
     )
   },
@@ -159,4 +185,19 @@ export const getEmployeeColumns = ({ onEdit, onDelete, onToggle }) => [
       </div>
     )
   }
-];
+].filter((col) => {
+  if (
+    role === "Admin" &&
+    ["Employee Code", "Department", "Joining Date", "Proficiency"].includes(
+      col.header
+    )
+  ) {
+    return false;
+  }
+
+  if (role === "HR" && col.header === "Proficiency") {
+    return false;
+  }
+
+  return true;
+});
