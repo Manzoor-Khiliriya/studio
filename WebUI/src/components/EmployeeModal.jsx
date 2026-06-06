@@ -111,6 +111,8 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
             password: formData.password,
             designation: formData.designation,
             mobileNumber: formData.mobileNumber,
+            dateOfBirth: formData.dateOfBirth,
+            proficiency: 100,
           }
           : {
             ...formData,
@@ -132,7 +134,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
       );
       onClose();
     } catch (err) {
-      toast.error(err?.data?.message || "Operation failed", { id: loadingToast });
+      toast.error(err?.data?.message || "Operation failed");
     }
   };
 
@@ -156,7 +158,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
         }}
         className="space-y-4"
       >
-        <div className={`grid grid-cols-1 gap-4 ${role !== "Admin" ? "md:grid-cols-2" : "md:grid-cols-1"}`}>
+        <div className={`grid grid-cols-1 gap-4 md:grid-cols-2`}>
           <InputGroup label="Full Name *">
             <HiOutlineUser className="input-icon" />
             <input required name="name" value={formData.name} onChange={handleChange} className="form-input" placeholder="Enter Full Name" />
@@ -165,6 +167,12 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
             <InputGroup label="Employee Code *">
               <HiOutlineIdentification className="input-icon" />
               <input required name="employeeCode" value={formData.employeeCode} onChange={handleChange} className="form-input" placeholder="Enter Employee Code" />
+            </InputGroup>
+          )}
+          {role === "Admin" && (
+            <InputGroup label="Date of Birth">
+              <HiOutlineCake className="input-icon" />
+              <input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleChange} className="form-input" />
             </InputGroup>
           )}
         </div>

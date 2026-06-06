@@ -20,39 +20,6 @@ exports.getAllEmployees = async (req, res) => {
       userCriteria.status = status === "Active" ? "Enable" : "Disable";
     }
 
-    if (role === "Admin") {
-      const admins = await User.find(userCriteria)
-        .populate("designation", "name")
-        .select("-password  +plainPassword")
-        .sort({ createdAt: -1 })
-        .limit(numericLimit)
-        .skip((numericPage - 1) * numericLimit)
-        .lean();
-
-      const total = await User.countDocuments(userCriteria);
-
-      return res.json({
-        employees: admins.map((admin) => ({
-          _id: admin._id,
-          user: {
-            _id: admin._id,
-            name: admin.name,
-            email: admin.email,
-            status: admin.status,
-            role: admin.role,
-            designation: admin.designation,
-            plainPassword:
-              req.user._id.toString() === admin._id.toString()
-                ? admin.plainPassword
-                : null,
-          },
-        })),
-        totalPages: Math.ceil(total / numericLimit),
-        currentPage: numericPage,
-        totalEmployees: total,
-      });
-    }
-
     const users = await User.find(userCriteria)
       .populate("designation", "name")
       .select("_id");
@@ -73,8 +40,19 @@ exports.getAllEmployees = async (req, res) => {
       .skip((numericPage - 1) * numericLimit)
       .lean();
     const total = await Employee.countDocuments(query);
+    const sanitizedEmployees = employees.map((emp) => {
+      if (emp.user?.role === "Admin") {
+        emp.user.plainPassword =
+          emp.user._id.toString() === req.user._id.toString()
+            ? emp.user.plainPassword
+            : null;
+      }
+
+      return emp;
+    });
+
     res.json({
-      employees,
+      employees: sanitizedEmployees,
       totalPages: Math.ceil(total / numericLimit),
       currentPage: numericPage,
       totalEmployees: total,
@@ -86,24 +64,6 @@ exports.getAllEmployees = async (req, res) => {
 
 exports.getEmployeeProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.params.userId)
-      .populate("designation", "name")
-      .lean();
-
-    if (!user) {
-      return res.status(404).json({
-        message: "User not found",
-      });
-    }
-
-    if (user.role === "Admin") {
-      return res.json({
-        _id: user._id,
-        user,
-        departments: [],
-      });
-    }
-
     const employee = await Employee.findOne({
       user: req.params.userId,
     })
@@ -115,7 +75,6 @@ exports.getEmployeeProfile = async (req, res) => {
           select: "name",
         },
       })
-      .populate("departments", "name")
       .lean();
 
     if (!employee) {
@@ -138,7 +97,15 @@ exports.getMyEmployeeProfile = async (req, res) => {
       .select(
         "-dailyWorkLimit -proficiency -createdAt -updatedAt -createdBy -updatedBy",
       )
-      .populate("user", "name email designation")
+      .populate({
+        path: "user",
+        select: "name email designation",
+        populate: {
+          path: "designation",
+          select: "name",
+        },
+      })
+      .populate("departments", "name")
       .lean();
     if (!employee) {
       return res.status(404).json({ message: "Employee profile not found" });
@@ -149,26 +116,35 @@ exports.getMyEmployeeProfile = async (req, res) => {
   }
 };
 
-exports.getActiveEmployeesList = async (req, res) => {
+exports.getAssignableUsers = async (req, res) => {
   try {
-    const activeUsers = await User.find({ status: "Enable" })
-      .select("name")
-      .lean();
-    const userIds = activeUsers.map((u) => u._id);
-    const employees = await Employee.find({ user: { $in: userIds } })
-      .select("employeeCode designation user")
+    const employees = await Employee.find()
       .populate({
         path: "user",
-        select: "name designation",
+        match: {
+          status: "Enable",
+          role: {
+            $in: ["Employee", "Manager", "Admin"],
+          },
+        },
+        select: "name designation role",
         populate: {
           path: "designation",
           select: "name",
         },
       })
-      .sort({ "user.name": 1 })
+      .populate("departments", "name")
+      .select("employeeCode departments user")
       .lean();
-    res.json(employees);
+
+    const result = employees
+      .filter((e) => e.user)
+      .sort((a, b) => a.user.name.localeCompare(b.user.name));
+
+    res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      error: err.message,
+    });
   }
 };

@@ -36,11 +36,17 @@ exports.createUser = async (req, res) => {
     const existing = await User.findOne({ email: email.toLowerCase() });
     if (existing)
       return res.status(400).json({ message: "Email already exists" });
-    const existingCode = await Employee.findOne({
-      employeeCode: employeeCode.toUpperCase(),
-    });
-    if (existingCode)
-      return res.status(400).json({ message: "Employee code already exists" });
+    if (employeeCode) {
+      const existingCode = await Employee.findOne({
+        employeeCode: employeeCode.toUpperCase(),
+      });
+
+      if (existingCode) {
+        return res.status(400).json({
+          message: "Employee code already exists",
+        });
+      }
+    }
     const user = await User.create({
       name,
       email: email.toLowerCase(),
@@ -50,18 +56,28 @@ exports.createUser = async (req, res) => {
       designation: designation || "Junior Developer",
       status: "Enable",
     });
-    if (["Employee", "Manager", "HR"].includes(user.role)) {
+    if (["Admin", "Employee", "Manager", "HR"].includes(user.role)) {
       const employeeData = {
         user: user._id,
-        employeeCode: employeeCode.toUpperCase(),
-        departments: departments || "",
-        joinedDate: joinedDate || "",
         mobileNumber: mobileNumber || "",
         dateOfBirth: dateOfBirth || null,
       };
 
       if (["Employee", "Manager"].includes(user.role)) {
         employeeData.dailyWorkLimit = dailyWorkLimit || 9;
+        employeeData.proficiency = proficiency || 100;
+        employeeData.employeeCode = employeeCode?.toUpperCase();
+        employeeData.departments = departments || [];
+        employeeData.joinedDate = joinedDate || "";
+      }
+
+      if (user.role === "HR") {
+        employeeData.employeeCode = employeeCode?.toUpperCase();
+        employeeData.departments = departments || [];
+        employeeData.joinedDate = joinedDate || "";
+      }
+
+      if (user.role === "Admin") {
         employeeData.proficiency = proficiency || 100;
       }
 
@@ -114,26 +130,37 @@ exports.updateUser = async (req, res) => {
     } = req.body;
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: "User not found" });
+    if (email) {
+      const existing = await User.findOne({
+        email: email.toLowerCase(),
+        _id: { $ne: user._id },
+      });
+
+      if (existing) {
+        return res.status(400).json({
+          message: "Email already exists",
+        });
+      }
+    }
     if (employeeCode) {
       const existingCode = await Employee.findOne({
         employeeCode: employeeCode.toUpperCase(),
         user: { $ne: user._id },
       });
-      if (existingCode)
-        return res
-          .status(400)
-          .json({ message: "Employee code already exists" });
+
+      if (existingCode) {
+        return res.status(400).json({
+          message: "Employee code already exists",
+        });
+      }
     }
     if (name) user.name = name;
     if (email) user.email = email.toLowerCase();
     if (role) user.role = role;
     if (designation) user.designation = designation;
     await user.save();
-    if (["Employee", "Manager", "HR"].includes(user.role)) {
+    if (["Admin", "Employee", "Manager", "HR"].includes(user.role)) {
       const employeeData = {
-        employeeCode: employeeCode?.toUpperCase(),
-        departments: departments || [],
-        joinedDate,
         mobileNumber,
         dateOfBirth,
       };
@@ -141,6 +168,15 @@ exports.updateUser = async (req, res) => {
       if (["Employee", "Manager"].includes(user.role)) {
         employeeData.dailyWorkLimit = dailyWorkLimit;
         employeeData.proficiency = proficiency;
+        employeeData.employeeCode = employeeCode?.toUpperCase();
+        employeeData.departments = departments || [];
+        employeeData.joinedDate = joinedDate;
+      }
+
+      if (user.role === "HR") {
+        employeeData.employeeCode = employeeCode?.toUpperCase();
+        employeeData.departments = departments || [];
+        employeeData.joinedDate = joinedDate;
       }
 
       await Employee.findOneAndUpdate({ user: user._id }, employeeData, {

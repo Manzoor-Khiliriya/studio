@@ -9,14 +9,19 @@ const employeeSchema = new mongoose.Schema(
       unique: true,
       index: true,
     },
-    employeeCode: { type: String, trim: true, unique: true },
+    employeeCode: {
+      type: String,
+      trim: true,
+      unique: true,
+      sparse: true,
+    },
     departments: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Department",
       },
     ],
-    mobileNumber: { type: String, trim: true, default: "" },
+    mobileNumber: { type: String, trim: true },
     dateOfBirth: { type: Date },
     dailyWorkLimit: {
       type: Number,
@@ -28,7 +33,7 @@ const employeeSchema = new mongoose.Schema(
       min: 1,
       max: 100,
     },
-    joinedDate: { type: Date, default: Date.now },
+    joinedDate: { type: Date },
   },
   {
     timestamps: true,
