@@ -53,6 +53,14 @@ export const getEmployeeColumns = ({ role, onEdit, onDelete, onToggle }) => [
     )
   },
   {
+    header: "Role",
+    render: (emp) => (
+      <p className="text-[11px] font-black text-slate-600 tracking-wider">
+        {emp?.user?.role || "N/A"}
+      </p>
+    )
+  },
+  {
     header: "Designation",
     render: (emp) => (
       <div className="flex items-center gap-2">
@@ -133,7 +141,7 @@ export const getEmployeeColumns = ({ role, onEdit, onDelete, onToggle }) => [
       const score = emp.proficiency || "";
       return (
         <p className={`text-xs text-center font-black ${score > 80 ? 'text-emerald-600' : 'text-orange-500'}`}>
-          {score}%
+           {score ? `${score}%` : "N/A"}
         </p>
       );
     }
@@ -192,10 +200,6 @@ export const getEmployeeColumns = ({ role, onEdit, onDelete, onToggle }) => [
       col.header
     )
   ) {
-    return false;
-  }
-
-  if (role === "HR" && col.header === "Proficiency") {
     return false;
   }
 

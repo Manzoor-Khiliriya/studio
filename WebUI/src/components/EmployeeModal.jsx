@@ -15,7 +15,7 @@ import { HiOutlineMail } from "react-icons/hi";
 import CustomDropdown from "./CustomDropdown";
 import { useGetDepartmentsQuery, useGetDesignationsQuery } from "../services/settingsApi";
 
-export default function EmployeeModal({ isOpen, onClose, editData = null, role = "Employee" }) {
+export default function EmployeeModal({ isOpen, onClose, editData = null, role = "Employee", gadType = null, }) {
   const isEditing = !!editData;
   const [showPassword, setShowPassword] = useState(false);
   const [createUser, { isLoading: isCreating }] = useCreateUserMutation();
@@ -37,7 +37,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
   const getToday = () => new Date().toISOString().split("T")[0];
 
   const [formData, setFormData] = useState({
-    name: "", employeeCode: "", role,
+    name: "", employeeCode: "", role, gadType,
     email: "", password: "", designation: "", departments: [],
     proficiency: "100", joinedDate: getToday(), dailyWorkLimit: "9",
     mobileNumber: "",
@@ -54,6 +54,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
         name: editData.user?.name || editData.name || "",
         employeeCode: editData?.employeeCode || "",
         role: editData.user?.role || role,
+        gadType: editData.user?.gadType || gadType,
         email: editData.user?.email || editData.email || "",
         designation: editData?.user?.designation?._id || "",
         departments:
@@ -66,7 +67,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
       });
     } else if (isOpen) {
       setFormData({
-        name: "", employeeCode: "", role,
+        name: "", employeeCode: "", role, gadType,
         email: "", password: "", designation: "", departments: [],
         proficiency: "100", joinedDate: getToday(), dailyWorkLimit: "9",
         mobileNumber: "", dateOfBirth: ""
@@ -88,7 +89,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
     }
 
     if (
-      ["Employee", "HR"].includes(role) &&
+      ["Employee", "GAD"].includes(role) &&
       !formData.departments.length
     ) {
       return toast.error("Please select a department");
@@ -116,6 +117,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
           }
           : {
             ...formData,
+            gadType: formData.gadType,
             proficiency: Number(formData.proficiency),
             dailyWorkLimit: Number(formData.dailyWorkLimit),
             email: formData.email.toLowerCase(),
@@ -199,7 +201,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
               placeholder="Select Designation"
             />
           </InputGroup>
-          {["Employee", "HR"].includes(role) && (
+          {["Employee", "GAD"].includes(role) && (
             <InputGroup label="Department *">
               <HiOutlineBriefcase className="input-icon" />
 

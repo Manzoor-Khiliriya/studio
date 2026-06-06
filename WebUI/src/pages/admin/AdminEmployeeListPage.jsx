@@ -22,12 +22,41 @@ import { getDepartmentColumns, getDesignationColumns } from "../../utils/adminSe
 import DepartmentModal from "../../components/DepartmentModal";
 import DesignationModal from "../../components/DesignationModal";
 
-const addOptions = [
-  { label: "Add Employee", value: "Employee" },
-  { label: "Add Manager", value: "Manager" },
-  { label: "Add HR", value: "HR" },
-  { label: "Add Admin", value: "Admin" },
-];
+const addOptionsByTab = {
+  Employee: [
+    {
+      label: "Add Employee",
+      role: "Employee",
+      gadType: null,
+    },
+    {
+      label: "Add GAD Employee",
+      role: "GAD",
+      gadType: "Employee",
+    },
+  ],
+
+  Manager: [
+    {
+      label: "Add Manager",
+      role: "Manager",
+      gadType: null,
+    },
+    {
+      label: "Add GAD Manager",
+      role: "GAD",
+      gadType: "Manager",
+    },
+  ],
+
+  Admin: [
+    {
+      label: "Add Admin",
+      role: "Admin",
+      gadType: null,
+    }
+  ],
+};
 
 export default function EmployeeListPage() {
   const navigate = useNavigate();
@@ -47,6 +76,9 @@ export default function EmployeeListPage() {
   const [designationModalOpen, setDesignationModalOpen] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState(null);
   const [selectedDesignation, setSelectedDesignation] = useState(null);
+  const [gadType, setGadType] = useState(null);
+  const [selectedRole, setSelectedRole] = useState("Employee");
+  const [typeFilter, setTypeFilter] = useState("All");
 
   const debouncedSearch = useDebounce(
     searchTerm.length > 1 ? searchTerm : "",
@@ -56,6 +88,7 @@ export default function EmployeeListPage() {
     page: currentPage,
     limit: limit,
     role: activeRole,
+    type: typeFilter,
     status: statusFilter === "All" ? undefined : statusFilter,
     search: debouncedSearch,
   });
@@ -190,6 +223,12 @@ export default function EmployeeListPage() {
     }
   };
 
+  const handleAddUser = (role, gadType = null) => {
+    setSelectedEmp(null);
+    setGadType(gadType);
+    setSelectedRole(role); // new state
+    setIsEmployeeModalOpen(true);
+  };
   if (isLoading) return <Loader message="Accessing Workforce Database..." />;
 
   return (
@@ -201,19 +240,24 @@ export default function EmployeeListPage() {
         tabs={[
           { id: "Employee", label: "Employees" },
           { id: "Manager", label: "Managers" },
-          { id: "HR", label: "HR" },
           { id: "Admin", label: "Admin" },
         ]}
         activeTab={activeRole}
         onTabChange={(role) => {
           setActiveRole(role);
+          setTypeFilter("All");
+          setStatusFilter("All");
+          setSearchTerm("");
           setCurrentPage(1);
         }}
         actionLabel={
           activeRole === "Settings"
             ? `Add ${settingsTab}`
-            : `Add ${activeRole}`
+            : activeRole === "Admin"
+              ? "Add Admin"
+              : `Add ${activeRole}`
         }
+
         onAction={() => {
           if (activeRole === "Settings") {
             if (settingsTab === "Department") {
@@ -224,9 +268,24 @@ export default function EmployeeListPage() {
             return;
           }
 
-          setSelectedEmp(null);
-          setIsEmployeeModalOpen(true);
+          if (activeRole === "Admin") {
+            handleAddUser("Admin");
+          }
         }}
+
+        actionOptions={
+          activeRole !== "Settings" &&
+            activeRole !== "Admin"
+            ? addOptionsByTab[activeRole]?.map((item) => ({
+              label: item.label,
+              onClick: () =>
+                handleAddUser(
+                  item.role,
+                  item.gadType
+                ),
+            }))
+            : null
+        }
       />
 
       <main className="max-w-[1750px] mx-auto px-8 pb-10 -mt-10">
@@ -241,7 +300,7 @@ export default function EmployeeListPage() {
                 />
                 <input
                   type="text"
-                  placeholder="Search employee name..."
+                  placeholder="Search by name..."
                   className="w-full pl-12 pr-6 py-3.5 bg-white border border-slate-200 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/5 outline-none font-bold text-xs transition-all shadow-sm group"
                   value={searchTerm}
                   onChange={(e) => {
@@ -251,36 +310,63 @@ export default function EmployeeListPage() {
                 />
               </div>
 
-              <div className="flex bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/50 shadow-sm">
-                {["All", "Active", "Disabled"].map((status) => (
+              <CustomDropdown
+                value={statusFilter}
+                onChange={(val) => {
+                  setStatusFilter(val);
+                  setCurrentPage(1);
+                }}
+                options={[
+                  { value: "All", label: "All Status" },
+                  { value: "Active", label: "Active" },
+                  { value: "Disabled", label: "Disabled" },
+                ]}
+                placeholder="Filter by Status"
+                buttonClass="py-4 px-4 bg-slate-100/80 rounded-2xl border border-slate-200/50 shadow-sm text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer text-slate-500 hover:text-slate-800 min-w-[120px]"
+              />
+
+              {activeRole !== "Admin" && (
+                <CustomDropdown
+                  value={typeFilter}
+                  onChange={(val) => {
+                    setTypeFilter(val);
+                    setCurrentPage(1);
+                  }}
+                  options={
+                    activeRole === "Employee"
+                      ? [
+                          { value: "All", label: "All Types" },
+                          { value: "Employee", label: "Employee" },
+                          { value: "GAD", label: "GAD" }
+                        ]
+                      : [
+                          { value: "All", label: "All Types" },
+                          { value: "Manager", label: "Manager" },
+                          { value: "GAD", label: "GAD" }
+                        ]
+                  }
+                  buttonClass="py-4 px-4 bg-slate-100/80 rounded-2xl border border-slate-200/50 shadow-sm text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer text-slate-500 hover:text-slate-800 min-w-[120px]"
+                />
+              )}
+
+              {(
+                searchTerm ||
+                statusFilter !== "All" ||
+                (activeRole !== "Admin" && typeFilter !== "All")
+              ) && (
                   <button
-                    key={status}
                     onClick={() => {
-                      setStatusFilter(status);
+                      setSearchTerm("");
+                      setStatusFilter("All");
+                      setTypeFilter("All");
                       setCurrentPage(1);
                     }}
-                    className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${statusFilter === status
-                      ? "bg-white text-orange-600 shadow-md ring-1 ring-slate-200"
-                      : "text-slate-500 hover:text-slate-800"
-                      }`}
+                    className="flex items-center gap-2 px-6 py-4 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-2xl transition-all font-bold text-xs cursor-pointer"
                   >
-                    {status}
+                    <HiOutlineXMark size={18} strokeWidth={2.5} />
+                    <span>CLEAR FILTERS</span>
                   </button>
-                ))}
-              </div>
-
-              {(searchTerm || statusFilter !== "All") && (
-                <button
-                  onClick={() => {
-                    setSearchTerm("");
-                    setStatusFilter("All");
-                  }}
-                  className="flex items-center gap-2 px-6 py-3 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-2xl transition-all font-bold text-xs cursor-pointer"
-                >
-                  <HiOutlineXMark size={18} strokeWidth={2.5} />
-                  <span>CLEAR FILTERS</span>
-                </button>
-              )}
+                )}
 
               <button
                 onClick={() => setActiveRole("Settings")}
@@ -395,7 +481,8 @@ export default function EmployeeListPage() {
         isOpen={isEmployeeModalOpen}
         onClose={() => setIsEmployeeModalOpen(false)}
         editData={selectedEmp}
-        role={activeRole}
+        role={selectedRole || activeRole}
+        gadType={gadType}
       />
 
       <ConfirmModal

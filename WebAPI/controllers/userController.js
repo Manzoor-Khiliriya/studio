@@ -23,6 +23,7 @@ exports.createUser = async (req, res) => {
       name,
       employeeCode,
       role,
+      gadType,
       email,
       password,
       designation,
@@ -53,10 +54,11 @@ exports.createUser = async (req, res) => {
       password: await hashPassword(password),
       plainPassword: password,
       role: role || "Employee",
+      gadType: role === "GAD" ? gadType : null,
       designation: designation || "Junior Developer",
       status: "Enable",
     });
-    if (["Admin", "Employee", "Manager", "HR"].includes(user.role)) {
+    if (["Admin", "Employee", "Manager", "GAD"].includes(user.role)) {
       const employeeData = {
         user: user._id,
         mobileNumber: mobileNumber || "",
@@ -71,7 +73,7 @@ exports.createUser = async (req, res) => {
         employeeData.joinedDate = joinedDate || "";
       }
 
-      if (user.role === "HR") {
+      if (user.role === "GAD") {
         employeeData.employeeCode = employeeCode?.toUpperCase();
         employeeData.departments = departments || [];
         employeeData.joinedDate = joinedDate || "";
@@ -120,6 +122,7 @@ exports.updateUser = async (req, res) => {
       email,
       employeeCode,
       role,
+      gadType,
       designation,
       departments,
       dailyWorkLimit,
@@ -157,9 +160,10 @@ exports.updateUser = async (req, res) => {
     if (name) user.name = name;
     if (email) user.email = email.toLowerCase();
     if (role) user.role = role;
+    user.gadType = (role || user.role) === "GAD" ? gadType || null : null;
     if (designation) user.designation = designation;
     await user.save();
-    if (["Admin", "Employee", "Manager", "HR"].includes(user.role)) {
+    if (["Admin", "Employee", "Manager", "GAD"].includes(user.role)) {
       const employeeData = {
         mobileNumber,
         dateOfBirth,
@@ -173,7 +177,7 @@ exports.updateUser = async (req, res) => {
         employeeData.joinedDate = joinedDate;
       }
 
-      if (user.role === "HR") {
+      if (user.role === "GAD") {
         employeeData.employeeCode = employeeCode?.toUpperCase();
         employeeData.departments = departments || [];
         employeeData.joinedDate = joinedDate;

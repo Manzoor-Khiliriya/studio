@@ -9,10 +9,46 @@ exports.getAllEmployees = async (req, res) => {
       limit = 10,
       status,
       role = "Employee",
+      type = "All",
     } = req.query;
     const numericLimit = Number(limit);
     const numericPage = Number(page);
-    let userCriteria = { role };
+    let userCriteria = {};
+
+    if (role === "Employee") {
+      if (type === "Employee") {
+        userCriteria.role = "Employee";
+      } else if (type === "GAD") {
+        userCriteria.role = "GAD";
+        userCriteria.gadType = "Employee";
+      } else {
+        userCriteria.$or = [
+          { role: "Employee" },
+          {
+            role: "GAD",
+            gadType: "Employee",
+          },
+        ];
+      }
+    } else if (role === "Manager") {
+      if (type === "Manager") {
+        userCriteria.role = "Manager";
+      } else if (type === "GAD") {
+        userCriteria.role = "GAD";
+        userCriteria.gadType = "Manager";
+      } else {
+        userCriteria.$or = [
+          { role: "Manager" },
+          {
+            role: "GAD",
+            gadType: "Manager",
+          },
+        ];
+      }
+    } else if (role === "Admin") {
+      userCriteria.role = "Admin";
+    }
+
     if (search) {
       userCriteria.name = { $regex: search, $options: "i" };
     }
@@ -28,7 +64,7 @@ exports.getAllEmployees = async (req, res) => {
     const employees = await Employee.find(query)
       .populate({
         path: "user",
-        select: "name email status role designation +plainPassword",
+        select: "name email status role gadType designation +plainPassword",
         populate: {
           path: "designation",
           select: "name",

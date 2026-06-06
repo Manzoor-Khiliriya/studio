@@ -22,9 +22,14 @@ const userSchema = new mongoose.Schema(
     plainPassword: { type: String, select: false },
     role: {
       type: String,
-      enum: ["Admin", "Employee", "Manager", "HR"],
+      enum: ["Admin", "Employee", "Manager", "GAD"],
       default: "Employee",
       index: true,
+    },
+    gadType: {
+      type: String,
+      enum: ["Employee", "Manager"],
+      default: null,
     },
     designation: {
       type: mongoose.Schema.Types.ObjectId,
