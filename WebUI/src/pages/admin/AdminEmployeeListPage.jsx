@@ -322,7 +322,7 @@ export default function EmployeeListPage() {
                   { value: "Disabled", label: "Disabled" },
                 ]}
                 placeholder="Filter by Status"
-                buttonClass="py-4 px-4 bg-slate-100/80 rounded-2xl border border-slate-200/50 shadow-sm text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer text-slate-500 hover:text-slate-800 min-w-[120px]"
+                buttonClass="py-3.5 px-4 bg-slate-100/80 rounded-2xl border border-slate-200/50 shadow-sm text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer text-slate-500 hover:text-slate-800 min-w-[120px]"
               />
 
               {activeRole !== "Admin" && (
@@ -345,7 +345,7 @@ export default function EmployeeListPage() {
                           { value: "GAD", label: "GAD" }
                         ]
                   }
-                  buttonClass="py-4 px-4 bg-slate-100/80 rounded-2xl border border-slate-200/50 shadow-sm text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer text-slate-500 hover:text-slate-800 min-w-[120px]"
+                  buttonClass="py-3.5 px-4 bg-slate-100/80 rounded-2xl border border-slate-200/50 shadow-sm text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer text-slate-500 hover:text-slate-800 min-w-[120px]"
                 />
               )}
 
@@ -361,7 +361,7 @@ export default function EmployeeListPage() {
                       setTypeFilter("All");
                       setCurrentPage(1);
                     }}
-                    className="flex items-center gap-2 px-6 py-4 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-2xl transition-all font-bold text-xs cursor-pointer"
+                    className="flex items-center gap-2 px-6 py-3.5 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-2xl transition-all font-bold text-xs cursor-pointer"
                   >
                     <HiOutlineXMark size={18} strokeWidth={2.5} />
                     <span>CLEAR FILTERS</span>
@@ -371,7 +371,7 @@ export default function EmployeeListPage() {
               <button
                 onClick={() => setActiveRole("Settings")}
                 title="Go to Settings"
-                className="p-4 bg-slate-900 text-white rounded-2xl hover:bg-orange-600 transition-all cursor-pointer shadow-lg shadow-slate-200"
+                className="px-4 py-3.75 bg-slate-900 text-white rounded-2xl hover:bg-orange-600 transition-all cursor-pointer shadow-lg shadow-slate-200"
               >
                 <HiOutlineCog6Tooth size={18} />
               </button>
