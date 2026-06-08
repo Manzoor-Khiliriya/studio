@@ -1,5 +1,4 @@
 const Employee = require("../models/Employee");
-const Leave = require("../models/Leave");
 const User = require("../models/User");
 
 exports.getAllEmployees = async (req, res) => {
@@ -105,21 +104,14 @@ exports.getEmployeeProfile = async (req, res) => {
       });
     }
 
-    const approvedLeaveCount = await Leave.countDocuments({
-      user: req.params.userId,
-      status: "Approved",
-    });
-
-    return res.json({
-      ...employee,
-      approvedLeaveCount,
-    });
+    res.json(employee);
   } catch (err) {
-    return res.status(500).json({
+    res.status(500).json({
       error: err.message,
     });
   }
 };
+
 exports.getMyEmployeeProfile = async (req, res) => {
   try {
     const employee = await Employee.findOne({ user: req.user._id })
