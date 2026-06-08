@@ -401,7 +401,13 @@ export default function EmployeeDetailPage() {
                 <MetricBox label="Active Tasks" value={activeTasks.length} icon={<HiOutlineInboxStack />} color="text-slate-500" />
               )}
               {(role !== "Admin") && (
-                <MetricBox label="Department" value={employee?.departments?.[0]?.name || "N/A"} icon={<HiOutlineBuildingOffice />} color="text-slate-500" />
+                <MetricBox label={role === "Manager" ? "Departments" : "Department"}
+                  value={
+                    role === "Manager"
+                      ? employee?.departments?.map((d) => d.name).join(", ")
+                      : employee?.departments?.[0]?.name || "N/A"
+                  }
+                  icon={<HiOutlineBuildingOffice />} color="text-slate-500" />
               )}
             </div>
 
@@ -660,12 +666,25 @@ export default function EmployeeDetailPage() {
 
 function MetricBox({ label, value, icon, color }) {
   return (
-    <div className="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm">
+    <div className="group relative bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm">
       <div className="flex items-center gap-2 mb-2 text-slate-400">
         {React.cloneElement(icon, { size: 14 })}
-        <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
+        <span className="text-[9px] font-black uppercase tracking-widest">
+          {label}
+        </span>
       </div>
-      <p className={`text-xl font-black ${color}`}>{value}</p>
+
+      <p className={`text-xl font-black truncate ${color}`}>
+        {value}
+      </p>
+
+      {typeof value === "string" && value.length > 20 && (
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block z-50">
+          <div className="bg-slate-900 text-white text-xs font-semibold px-3 py-2 rounded-xl shadow-xl whitespace-normal max-w-[300px] break-words">
+            {value}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
