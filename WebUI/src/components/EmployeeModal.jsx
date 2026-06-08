@@ -15,7 +15,7 @@ import { HiOutlineMail } from "react-icons/hi";
 import CustomDropdown from "./CustomDropdown";
 import { useGetDepartmentsQuery, useGetDesignationsQuery } from "../services/settingsApi";
 
-export default function EmployeeModal({ isOpen, onClose, editData = null, role = "Employee", gadType = null, }) {
+export default function EmployeeModal({ isOpen, onClose, editData = null, role = "Employee" }) {
   const isEditing = !!editData;
   const [showPassword, setShowPassword] = useState(false);
   const [createUser, { isLoading: isCreating }] = useCreateUserMutation();
@@ -37,7 +37,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
   const getToday = () => new Date().toISOString().split("T")[0];
 
   const [formData, setFormData] = useState({
-    name: "", employeeCode: "", role, gadType,
+    name: "", employeeCode: "", role,
     email: "", password: "", designation: "", departments: [],
     proficiency: "100", joinedDate: getToday(), dailyWorkLimit: "9",
     mobileNumber: "",
@@ -54,7 +54,6 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
         name: editData.user?.name || editData.name || "",
         employeeCode: editData?.employeeCode || "",
         role: editData.user?.role || role,
-        gadType: editData.user?.gadType || gadType,
         email: editData.user?.email || editData.email || "",
         designation: editData?.user?.designation?._id || "",
         departments:
@@ -67,7 +66,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
       });
     } else if (isOpen) {
       setFormData({
-        name: "", employeeCode: "", role, gadType,
+        name: "", employeeCode: "", role,
         email: "", password: "", designation: "", departments: [],
         proficiency: "100", joinedDate: getToday(), dailyWorkLimit: "9",
         mobileNumber: "", dateOfBirth: ""
@@ -89,14 +88,14 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
     }
 
     if (
-      ["Employee", "GAD"].includes(role) &&
+      ["Employee", "GAD Employee"].includes(formData.role) &&
       !formData.departments.length
     ) {
       return toast.error("Please select a department");
     }
 
     if (
-      role === "Manager" &&
+      ["Manager", "GAD Manager"].includes(formData.role) &&
       !formData.departments.length
     ) {
       return toast.error("Please select at least one department");
@@ -104,7 +103,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
 
     try {
       const payload =
-        role === "Admin"
+        formData.role === "Admin"
           ? {
             name: formData.name,
             role: formData.role,
@@ -117,7 +116,6 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
           }
           : {
             ...formData,
-            gadType: formData.gadType,
             proficiency: Number(formData.proficiency),
             dailyWorkLimit: Number(formData.dailyWorkLimit),
             email: formData.email.toLowerCase(),
@@ -131,8 +129,8 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
 
       toast.success(
         isEditing
-          ? `${role} updated`
-          : `${role} created successfully`
+          ? `${formData.role} updated`
+          : `${formData.role} created successfully`
       );
       onClose();
     } catch (err) {
@@ -146,8 +144,8 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
       onClose={onClose}
       title={
         isEditing
-          ? `Update ${role}`
-          : `Create New ${role}`
+          ? `Update ${formData.role}`
+          : `Create New ${formData.role}`
       }
       maxWidth="max-w-2xl"
       onSubmit={handleSubmit}
@@ -160,27 +158,55 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
         }}
         className="space-y-4"
       >
-        <div className={`grid grid-cols-1 gap-4 md:grid-cols-2`}>
+        <div className={`grid grid-cols-1 gap-4 ${isEditing ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
           <InputGroup label="Full Name *">
             <HiOutlineUser className="input-icon" />
             <input required name="name" value={formData.name} onChange={handleChange} className="form-input" placeholder="Enter Full Name" />
           </InputGroup>
-          {role !== "Admin" && (
+          {formData.role !== "Admin" && (
             <InputGroup label="Employee Code *">
               <HiOutlineIdentification className="input-icon" />
               <input required name="employeeCode" value={formData.employeeCode} onChange={handleChange} className="form-input" placeholder="Enter Employee Code" />
             </InputGroup>
           )}
-          {role === "Admin" && (
+          {formData.role === "Admin" && (
             <InputGroup label="Date of Birth">
               <HiOutlineCake className="input-icon" />
               <input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleChange} className="form-input" />
             </InputGroup>
           )}
+
+          {isEditing && (
+            <InputGroup label="Role *">
+              <HiOutlineUser className="input-icon" />
+
+              <CustomDropdown
+                value={formData.role}
+                onChange={(val) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    role: val,
+                    departments: [],
+                    designation: "",
+                  }))
+                }
+                options={[
+                  { label: "Employee", value: "Employee" },
+                  { label: "Manager", value: "Manager" },
+                  { label: "GAD Employee", value: "GAD Employee" },
+                  { label: "GAD Manager", value: "GAD Manager" },
+                  { label: "Admin", value: "Admin" },
+                ]}
+                className="w-full"
+                buttonClass="form-input text-xs font-bold pl-10"
+                placeholder="Select Role"
+              />
+            </InputGroup>
+          )}
         </div>
 
         {/* ROW 2: EMAIL & MOBILE */}
-        <div className={`grid grid-cols-1 gap-4 ${role !== "Admin" ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
+        <div className={`grid grid-cols-1 gap-4 ${formData.role !== "Admin" ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
           <InputGroup label="Designation *">
             <HiOutlineBriefcase className="input-icon" />
             <CustomDropdown
@@ -201,12 +227,12 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
               placeholder="Select Designation"
             />
           </InputGroup>
-          {["Employee", "GAD"].includes(role) && (
+          {["Employee", "GAD Employee"].includes(formData.role) && (
             <InputGroup label="Department *">
               <HiOutlineBriefcase className="input-icon" />
 
               <CustomDropdown
-                value={formData.departments.length || ""}
+                value={formData.departments[0] || ""}
                 onChange={(val) =>
                   setFormData({
                     ...formData,
@@ -225,7 +251,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
             </InputGroup>
           )}
 
-          {role === "Manager" && (
+          {["Manager", "GAD Manager"].includes(formData.role) && (
             <InputGroup label="Departments *">
               <HiOutlineBriefcase className="input-icon" />
 
@@ -285,7 +311,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
 
         </div>
 
-        {role !== "Admin" && (
+        {formData.role !== "Admin" && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <InputGroup label="Date of Birth">
               <HiOutlineCake className="input-icon" />
@@ -299,7 +325,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
         )}
 
         {/* ROW 4: WORK LIMIT & proficiency */}
-        {["Employee", "Manager"].includes(role) && (
+        {["Employee", "Manager"].includes(formData.role) && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <InputGroup label="Daily Work Limit (Hrs) *">
               <HiOutlineClock className="input-icon" />

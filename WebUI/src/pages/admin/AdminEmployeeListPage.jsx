@@ -27,12 +27,10 @@ const addOptionsByTab = {
     {
       label: "ADD EMPLOYEE",
       role: "Employee",
-      gadType: null,
     },
     {
       label: "ADD GAD EMPLOYEE",
-      role: "GAD",
-      gadType: "Employee",
+      role: "GAD Employee",
     },
   ],
 
@@ -40,12 +38,10 @@ const addOptionsByTab = {
     {
       label: "ADD MANAGER",
       role: "Manager",
-      gadType: null,
     },
     {
       label: "ADD GAD MANAGER",
-      role: "GAD",
-      gadType: "Manager",
+      role: "GAD Manager",
     },
   ],
 
@@ -53,7 +49,6 @@ const addOptionsByTab = {
     {
       label: "Add Admin",
       role: "Admin",
-      gadType: null,
     }
   ],
 };
@@ -76,7 +71,6 @@ export default function EmployeeListPage() {
   const [designationModalOpen, setDesignationModalOpen] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState(null);
   const [selectedDesignation, setSelectedDesignation] = useState(null);
-  const [gadType, setGadType] = useState(null);
   const [selectedRole, setSelectedRole] = useState("Employee");
   const [typeFilter, setTypeFilter] = useState("All");
 
@@ -223,9 +217,8 @@ export default function EmployeeListPage() {
     }
   };
 
-  const handleAddUser = (role, gadType = null) => {
+  const handleAddUser = (role) => {
     setSelectedEmp(null);
-    setGadType(gadType);
     setSelectedRole(role); // new state
     setIsEmployeeModalOpen(true);
   };
@@ -281,7 +274,6 @@ export default function EmployeeListPage() {
               onClick: () =>
                 handleAddUser(
                   item.role,
-                  item.gadType
                 ),
             }))
             : null
@@ -482,7 +474,6 @@ export default function EmployeeListPage() {
         onClose={() => setIsEmployeeModalOpen(false)}
         editData={selectedEmp}
         role={selectedRole || activeRole}
-        gadType={gadType}
       />
 
       <ConfirmModal

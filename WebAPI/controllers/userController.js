@@ -23,7 +23,6 @@ exports.createUser = async (req, res) => {
       name,
       employeeCode,
       role,
-      gadType,
       email,
       password,
       designation,
@@ -54,37 +53,36 @@ exports.createUser = async (req, res) => {
       password: await hashPassword(password),
       plainPassword: password,
       role: role || "Employee",
-      gadType: role === "GAD" ? gadType : null,
       designation: designation || "Junior Developer",
       status: "Enable",
     });
-    if (["Admin", "Employee", "Manager", "GAD"].includes(user.role)) {
-      const employeeData = {
-        user: user._id,
-        mobileNumber: mobileNumber || "",
-        dateOfBirth: dateOfBirth || null,
-      };
 
-      if (["Employee", "Manager"].includes(user.role)) {
-        employeeData.dailyWorkLimit = dailyWorkLimit || 9;
-        employeeData.proficiency = proficiency || 100;
-        employeeData.employeeCode = employeeCode?.toUpperCase();
-        employeeData.departments = departments || [];
-        employeeData.joinedDate = joinedDate || "";
-      }
+    const employeeData = {
+      user: user._id,
+      mobileNumber: mobileNumber || "",
+      dateOfBirth: dateOfBirth || null,
+    };
 
-      if (user.role === "GAD") {
-        employeeData.employeeCode = employeeCode?.toUpperCase();
-        employeeData.departments = departments || [];
-        employeeData.joinedDate = joinedDate || "";
-      }
-
-      if (user.role === "Admin") {
-        employeeData.proficiency = proficiency || 100;
-      }
-
-      await Employee.create(employeeData);
+    if (["Employee", "Manager"].includes(user.role)) {
+      employeeData.dailyWorkLimit = dailyWorkLimit || 9;
+      employeeData.proficiency = proficiency || 100;
+      employeeData.employeeCode = employeeCode?.toUpperCase();
+      employeeData.departments = departments || [];
+      employeeData.joinedDate = joinedDate || "";
     }
+
+    if (user.role === "GAD Employee" || user.role === "GAD Manager") {
+      employeeData.employeeCode = employeeCode?.toUpperCase();
+      employeeData.departments = departments || [];
+      employeeData.joinedDate = joinedDate || "";
+    }
+
+    if (user.role === "Admin") {
+      employeeData.proficiency = proficiency || 100;
+    }
+
+    await Employee.create(employeeData);
+
     const result = await User.findById(user._id).populate("employee");
     try {
       const io = req.app.get("socketio");
@@ -160,34 +158,31 @@ exports.updateUser = async (req, res) => {
     if (name) user.name = name;
     if (email) user.email = email.toLowerCase();
     if (role) user.role = role;
-    user.gadType = (role || user.role) === "GAD" ? gadType || null : null;
     if (designation) user.designation = designation;
     await user.save();
-    if (["Admin", "Employee", "Manager", "GAD"].includes(user.role)) {
-      const employeeData = {
-        mobileNumber,
-        dateOfBirth,
-      };
+    const employeeData = {
+      mobileNumber,
+      dateOfBirth,
+    };
 
-      if (["Employee", "Manager"].includes(user.role)) {
-        employeeData.dailyWorkLimit = dailyWorkLimit;
-        employeeData.proficiency = proficiency;
-        employeeData.employeeCode = employeeCode?.toUpperCase();
-        employeeData.departments = departments || [];
-        employeeData.joinedDate = joinedDate;
-      }
-
-      if (user.role === "GAD") {
-        employeeData.employeeCode = employeeCode?.toUpperCase();
-        employeeData.departments = departments || [];
-        employeeData.joinedDate = joinedDate;
-      }
-
-      await Employee.findOneAndUpdate({ user: user._id }, employeeData, {
-        new: true,
-        upsert: true,
-      });
+    if (["Employee", "Manager"].includes(user.role)) {
+      employeeData.dailyWorkLimit = dailyWorkLimit;
+      employeeData.proficiency = proficiency;
+      employeeData.employeeCode = employeeCode?.toUpperCase();
+      employeeData.departments = departments || [];
+      employeeData.joinedDate = joinedDate;
     }
+
+    if (user.role === "GAD Employee" || user.role === "GAD Manager") {
+      employeeData.employeeCode = employeeCode?.toUpperCase();
+      employeeData.departments = departments || [];
+      employeeData.joinedDate = joinedDate;
+    }
+
+    await Employee.findOneAndUpdate({ user: user._id }, employeeData, {
+      new: true,
+      upsert: true,
+    });
     const updated = await User.findById(user._id).populate("employee").lean();
     emitEvent(req, "employeeChanged", sanitizeUser(updated));
     emitDashboardUpdate(req);
