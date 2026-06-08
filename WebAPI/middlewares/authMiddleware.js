@@ -23,8 +23,10 @@ exports.authenticate = async (req, res, next) => {
       return res.status(401).json({ message: "Invalid session" });
     }
 
-    if (!user.isActive()) {
-      return res.status(403).json({ message: "Account disabled. Contact admin." });
+    if (user.status !== "Enable") {
+      return res
+        .status(403)
+        .json({ message: "Account disabled. Contact admin." });
     }
 
     req.user = user;
@@ -44,11 +46,17 @@ exports.authenticate = async (req, res, next) => {
  * AUTHORIZE ROLES
  */
 exports.authorize = (...roles) => {
-  const allowed = roles.map(r => r.toLowerCase());
+  const allowed = roles.map((r) => r.toLowerCase());
 
   return (req, res, next) => {
     if (!req.user) {
       return res.status(500).json({ message: "Authentication flow error" });
+    }
+
+    if (req.user.status !== "Enable") {
+      return res.status(403).json({
+        message: "Account disabled",
+      });
     }
 
     if (!allowed.includes(req.user.role.toLowerCase())) {

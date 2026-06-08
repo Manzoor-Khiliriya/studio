@@ -13,6 +13,7 @@ import {
   HiOutlinePhone,
   HiOutlinePencilSquare,
   HiOutlineTrash,
+  HiOutlineBuildingOffice,
 } from "react-icons/hi2";
 import { useGetEmployeeProfileQuery } from "../../services/employeeApi";
 import { useGetTasksByEmployeeQuery } from "../../services/taskApi";
@@ -393,14 +394,14 @@ export default function EmployeeDetailPage() {
               {(role === "Employee" || role === "Manager") && (
                 <MetricBox label="Proficiency" value={`${employee?.proficiency || ""}%`} icon={<HiOutlineLightningBolt />} color="text-orange-500" />
               )}
-              {(role === "Employee" || role === "Manager") && (
+              {(role !== "Admin") && (
                 <MetricBox label="Shift Capacity" value={`${effectiveHours}h`} icon={<HiOutlineClock />} color="text-slate-500" />
               )}
               {(role === "Employee" || role === "Manager" || role === "Admin") && (
                 <MetricBox label="Active Tasks" value={activeTasks.length} icon={<HiOutlineInboxStack />} color="text-slate-500" />
               )}
               {(role !== "Admin") && (
-                <MetricBox label="Leaves Taken" value={employee?.leaves?.length || 0} icon={<HiOutlineCalendarDays />} color="text-slate-500" />
+                <MetricBox label="Department" value={employee?.departments?.[0]?.name || "N/A"} icon={<HiOutlineBuildingOffice />} color="text-slate-500" />
               )}
             </div>
 

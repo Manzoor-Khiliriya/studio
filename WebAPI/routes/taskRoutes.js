@@ -2,19 +2,20 @@ const express = require("express");
 const router = express.Router();
 const taskController = require("../controllers/taskController");
 const { authenticate, authorize } = require("../middlewares/authMiddleware");
+const { ROLE } = require("../utils/constant");
 
 router.use(authenticate);
 
 /* ================= ADMIN ROUTES ================= */
-router.post("/", authorize("Admin"), taskController.createTask);
-router.get("/all", authorize("Admin"), taskController.getAllTasks);
-router.put("/:id", authorize("Admin"), taskController.updateTask);
-router.patch("/:id/status", authorize("Admin"), taskController.updateTaskStatus);
-router.delete("/:id", authorize("Admin"), taskController.deleteTask);
-router.get("/employee-tasks/:userId", authorize("Admin"), taskController.getTasksByEmployee);
+router.post("/", authorize(ROLE.ADMIN), taskController.createTask);
+router.get("/all", authorize(ROLE.ADMIN), taskController.getAllTasks);
+router.put("/:id", authorize(ROLE.ADMIN), taskController.updateTask);
+router.patch("/:id/status", authorize(ROLE.ADMIN), taskController.updateTaskStatus);
+router.delete("/:id", authorize(ROLE.ADMIN), taskController.deleteTask);
+router.get("/employee-tasks/:userId", authorize(ROLE.ADMIN, ROLE.MANAGER), taskController.getTasksByEmployee);
 
 /* ================= SHARED ROUTES ================= */
-router.get("/detail/:id", authorize("Admin"), taskController.getTaskDetail);
+router.get("/detail/:id", authorize(ROLE.ADMIN), taskController.getTaskDetail);
 
 /* ================= EMPLOYEE ROUTES ================= */
 router.get("/my-tasks", taskController.getMyTasks);

@@ -21,8 +21,10 @@ exports.login = async (req, res) => {
     if (!user || !(await comparePassword(password, user.password))) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
-    if (!user.isActive()) {
-      return res.status(403).json({ message: "Account disabled. Contact admin." });
+    if (user.status !== "Enable") {
+      return res
+        .status(403)
+        .json({ message: "Account disabled. Contact admin." });
     }
     const token = generateToken(user);
     const io = req.app.get("socketio");
@@ -72,7 +74,7 @@ exports.forgotPassword = async (req, res) => {
         otp: otp,
         message: `Your password reset code is ${otp}. It will expire in 15 minutes.`,
       },
-      req.app.get("socketio")
+      req.app.get("socketio"),
     );
     res.json({ message: "Verification code sent to your email" });
   } catch (err) {

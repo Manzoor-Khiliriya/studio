@@ -9,6 +9,7 @@ const { calculateEstimatedHours } = require("../utils/taskHelpers");
 const { emitDashboardUpdate } = require("../utils/socket");
 const { getToday } = require("../utils/dateHelper");
 const User = require("../models/User");
+const { ROLE, STATUS } = require("../utils/constant");
 
 const emitEvent = (req, event, data, userIds = []) => {
   const io = req.app.get("socketio");
@@ -21,6 +22,8 @@ const emitEvent = (req, event, data, userIds = []) => {
     io.emit(event, data);
   }
 };
+
+const allowedRoles = [ROLE.ADMIN, ROLE.MANAGER];
 
 exports.createTask = async (req, res) => {
   try {
@@ -456,19 +459,37 @@ exports.getTaskDetail = async (req, res) => {
 
 exports.getTasksByEmployee = async (req, res) => {
   try {
-    const employee = await Employee.findOne({ user: req.params.userId });
+    const employee = await Employee.findOne({
+      user: req.params.userId,
+    });
+
     if (!employee) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Employee not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Employee not found",
+      });
     }
+
+    const user = await User.findById(req.params.userId);
+
+    if (!user || !["Employee", "Manager", "Admin"].includes(user.role)) {
+      return res.status(200).json({
+        success: true,
+        currentlyAssigned: [],
+        workedAndAssigned: [],
+      });
+    }
+
     const tasksWithLogs = await TimeLog.distinct("task", {
       user: req.params.userId,
     });
+
     const { liveStatus: filterStatus } = req.query;
+
     const query = {
       $or: [{ assignedTo: employee._id }, { _id: { $in: tasksWithLogs } }],
     };
+
     const allRelatedTasks = await Task.find(query)
       .populate("project", "title projectCode")
       .populate("timeLogs")
@@ -488,8 +509,13 @@ exports.getTasksByEmployee = async (req, res) => {
       );
 
       let status = "To be started";
-      if (isRunning) status = "In progress";
-      else if (hasWorked) status = "Started";
+
+      if (isRunning) {
+        status = "In progress";
+      } else if (hasWorked) {
+        status = "Started";
+      }
+
       return {
         ...task.toObject(),
         liveStatus: status,
@@ -500,19 +526,10 @@ exports.getTasksByEmployee = async (req, res) => {
 
     if (filterStatus && filterStatus !== "All") {
       const allowed = filterStatus.split(",");
-      finalTasks = tasksWithStatus.filter((task) =>
+
+      finalTasks = finalTasks.filter((task) =>
         allowed.includes(task.liveStatus),
       );
-    }
-
-    const user = await User.findById(req.params.userId);
-
-    if (!user || !["Employee", "Manager", "Admin"].includes(user.role)) {
-      return res.status(200).json({
-        success: true,
-        currentlyAssigned: [],
-        workedAndAssigned: [],
-      });
     }
 
     const currentlyAssigned = finalTasks.filter((task) =>
@@ -524,10 +541,11 @@ exports.getTasksByEmployee = async (req, res) => {
       currentlyAssigned,
       workedAndAssigned: finalTasks,
     });
-  } catch (err) {
-    return res
-      .status(500)
-      .json({ success: false, message: "Internal server error" });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };
 

@@ -72,6 +72,7 @@ exports.createUser = async (req, res) => {
     }
 
     if (user.role === "GAD Employee" || user.role === "GAD Manager") {
+      employeeData.dailyWorkLimit = dailyWorkLimit || 9;
       employeeData.employeeCode = employeeCode?.toUpperCase();
       employeeData.departments = departments || [];
       employeeData.joinedDate = joinedDate || "";
@@ -161,22 +162,23 @@ exports.updateUser = async (req, res) => {
     if (designation) user.designation = designation;
     await user.save();
     const employeeData = {
-      mobileNumber,
-      dateOfBirth,
+      mobileNumber: mobileNumber || "",
+      dateOfBirth: dateOfBirth || null,
     };
 
     if (["Employee", "Manager"].includes(user.role)) {
-      employeeData.dailyWorkLimit = dailyWorkLimit;
-      employeeData.proficiency = proficiency;
+      employeeData.dailyWorkLimit = dailyWorkLimit || 9;
+      employeeData.proficiency = proficiency || 100;
       employeeData.employeeCode = employeeCode?.toUpperCase();
       employeeData.departments = departments || [];
-      employeeData.joinedDate = joinedDate;
+      employeeData.joinedDate = joinedDate || "";
     }
 
     if (user.role === "GAD Employee" || user.role === "GAD Manager") {
+      employeeData.dailyWorkLimit = dailyWorkLimit || 9;
       employeeData.employeeCode = employeeCode?.toUpperCase();
       employeeData.departments = departments || [];
-      employeeData.joinedDate = joinedDate;
+      employeeData.joinedDate = joinedDate || "";
     }
 
     await Employee.findOneAndUpdate({ user: user._id }, employeeData, {
