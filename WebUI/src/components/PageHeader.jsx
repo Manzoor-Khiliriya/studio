@@ -51,8 +51,8 @@ const PageHeader = ({
                     key={tab.id}
                     onClick={() => onTabChange?.(tab.id)}
                     className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${activeTab === tab.id
-                        ? "bg-orange-600 text-white shadow-lg"
-                        : "text-slate-400 hover:text-slate-600"
+                      ? "bg-orange-600 text-white shadow-lg"
+                      : "text-slate-400 hover:text-slate-600"
                       }`}
                   >
                     {tab.label}
@@ -62,40 +62,37 @@ const PageHeader = ({
             )}
 
             {/* ACTION BUTTONS */}
-            <div className="flex items-center gap-4">
+           
+            <div className="flex items-center gap-2">
               {secondaryActionLabel && (
                 <button
                   onClick={onSecondaryAction}
                   className="flex items-center justify-center gap-2 bg-slate-900 hover:bg-orange-600 text-white px-7 py-4 rounded-2xl font-bold transition-all shadow-xl shadow-slate-200 active:scale-95 cursor-pointer"
                 >
-                  <HiOutlinePlus strokeWidth={3} size={18} />
                   <span className="uppercase tracking-tight text-sm">{secondaryActionLabel}</span>
                 </button>
               )}
 
               {actionOptions?.length ? (
-                <CustomDropdown
-                  placeholder={actionLabel}
-                  options={actionOptions.map((o) => ({
-                    label: o.label,
-                    value: o.label,
-                  }))}
-                  onChange={(label) => {
-                    const selected = actionOptions.find(
-                      (o) => o.label === label
-                    );
-
-                    selected?.onClick?.();
-                  }}
-                  buttonClass="bg-slate-900 hover:bg-orange-600 text-white px-7 py-4 rounded-2xl font-bold shadow-xl shadow-slate-200 text-sm min-w-[220px]"
-                />
+                actionOptions.map((option) => (
+                  <button
+                    key={option.label}
+                    onClick={option.onClick}
+                    className="flex items-center justify-center gap-2 bg-slate-900 hover:bg-orange-600 text-white px-7 py-4 rounded-2xl font-bold transition-all shadow-xl shadow-slate-200 active:scale-95 cursor-pointer"
+                  >
+                    <HiOutlinePlus strokeWidth={3} />
+                    <span className="uppercase tracking-tight text-sm">
+                      {option.label}
+                    </span>
+                  </button>
+                ))
               ) : (
                 actionLabel && (
                   <button
                     onClick={onAction}
                     className="flex items-center justify-center gap-2 bg-slate-900 hover:bg-orange-600 text-white px-7 py-4 rounded-2xl font-bold transition-all shadow-xl shadow-slate-200 active:scale-95 cursor-pointer"
                   >
-                    <HiOutlinePlus strokeWidth={3} size={18} />
+                    <HiOutlinePlus strokeWidth={3} />
                     <span className="uppercase tracking-tight text-sm">
                       {actionLabel}
                     </span>

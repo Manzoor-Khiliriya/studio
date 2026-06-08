@@ -25,12 +25,12 @@ import DesignationModal from "../../components/DesignationModal";
 const addOptionsByTab = {
   Employee: [
     {
-      label: "Add Employee",
+      label: "ADD EMPLOYEE",
       role: "Employee",
       gadType: null,
     },
     {
-      label: "Add GAD Employee",
+      label: "ADD GAD EMPLOYEE",
       role: "GAD",
       gadType: "Employee",
     },
@@ -38,12 +38,12 @@ const addOptionsByTab = {
 
   Manager: [
     {
-      label: "Add Manager",
+      label: "ADD MANAGER",
       role: "Manager",
       gadType: null,
     },
     {
-      label: "Add GAD Manager",
+      label: "ADD GAD MANAGER",
       role: "GAD",
       gadType: "Manager",
     },
@@ -255,7 +255,7 @@ export default function EmployeeListPage() {
             ? `Add ${settingsTab}`
             : activeRole === "Admin"
               ? "Add Admin"
-              : `Add ${activeRole}`
+              : `ADD ${activeRole.toUpperCase()}`
         }
 
         onAction={() => {
@@ -335,15 +335,15 @@ export default function EmployeeListPage() {
                   options={
                     activeRole === "Employee"
                       ? [
-                          { value: "All", label: "All Types" },
-                          { value: "Employee", label: "Employee" },
-                          { value: "GAD", label: "GAD" }
-                        ]
+                        { value: "All", label: "All Types" },
+                        { value: "Employee", label: "Employee" },
+                        { value: "GAD", label: "GAD" }
+                      ]
                       : [
-                          { value: "All", label: "All Types" },
-                          { value: "Manager", label: "Manager" },
-                          { value: "GAD", label: "GAD" }
-                        ]
+                        { value: "All", label: "All Types" },
+                        { value: "Manager", label: "Manager" },
+                        { value: "GAD", label: "GAD" }
+                      ]
                   }
                   buttonClass="py-3.5 px-4 bg-slate-100/80 rounded-2xl border border-slate-200/50 shadow-sm text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer text-slate-500 hover:text-slate-800 min-w-[120px]"
                 />
