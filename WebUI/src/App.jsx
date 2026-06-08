@@ -87,13 +87,23 @@ function AppContent() {
               </Route>
             </Route>
 
-            <Route element={<ProtectedRoute allowedRoles={["Employee"]} />}>
+            <Route element={<ProtectedRoute allowedRoles={["Employee", "Manager", "GAD Employee", "GAD Manager"]} />}>
               <Route element={<Layout />}>
                 <Route path="/employee" element={<EmployeeDashboard />} />
                 <Route path="/my-profile" element={<EmployeeProfilePage />} />
-                <Route path="/my-tasks" element={<MyTasksPage />} />
-                <Route path="/my-leaves" element={<EmployeeLeavePage />} />
                 <Route path="/public-holidays" element={<EmployeeHolidayPage />} />
+              </Route>
+            </Route>
+
+            <Route element={<ProtectedRoute allowedRoles={["Employee", "Manager"]} />}>
+              <Route element={<Layout />}>
+                <Route path="/my-tasks" element={<MyTasksPage />} />
+              </Route>
+            </Route>
+
+            <Route element={<ProtectedRoute allowedRoles={["GAD Manager"]} />}>
+              <Route element={<Layout />}>
+                <Route path="/my-leaves" element={<EmployeeLeavePage />} />
               </Route>
             </Route>
 

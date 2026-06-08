@@ -140,8 +140,15 @@ export const getEmployeeColumns = ({ role, onEdit, onDelete, onToggle }) => [
     render: (emp) => {
       const score = emp.proficiency || "";
       return (
-        <p className={`text-xs text-center font-black ${score > 80 ? 'text-emerald-600' : 'text-orange-500'}`}>
-           {score ? `${score}%` : "N/A"}
+        <p
+          className={`text-xs text-center font-black ${score > 80 ? "text-emerald-600" : "text-orange-500"
+            }`}
+        >
+          {["GAD Employee", "GAD Manager"].includes(emp.user?.role)
+            ? "N/A"
+            : score != null
+              ? `${score}%`
+              : "N/A"}
         </p>
       );
     }

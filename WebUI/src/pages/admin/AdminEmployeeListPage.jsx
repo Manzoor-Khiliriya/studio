@@ -310,12 +310,12 @@ export default function EmployeeListPage() {
                       ? [
                         { value: "All", label: "All Types" },
                         { value: "Employee", label: "Employee" },
-                        { value: "GAD", label: "GAD" }
+                        { value: "GAD Employee", label: "GAD Employee" }
                       ]
                       : [
                         { value: "All", label: "All Types" },
                         { value: "Manager", label: "Manager" },
-                        { value: "GAD", label: "GAD" }
+                        { value: "GAD Manager", label: "GAD Manager" }
                       ]
                   }
                   buttonClass="py-3.5 px-4 bg-slate-100/80 rounded-xl border border-slate-200/50 shadow-sm text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer text-slate-500 hover:text-slate-800 min-w-[120px]"

@@ -65,7 +65,11 @@ exports.getEmployeeAllocations = async (req, res) => {
         path: "employee",
         populate: {
           path: "user",
-          select: "name",
+          select: "name role designation",
+          populate: {
+            path: "designation",
+            select: "name",
+          },
         },
       })
       .populate({
