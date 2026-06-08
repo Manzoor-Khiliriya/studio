@@ -8,6 +8,7 @@ const sendTaskNotification = require("../utils/notifier");
 const { calculateEstimatedHours } = require("../utils/taskHelpers");
 const { emitDashboardUpdate } = require("../utils/socket");
 const { getToday } = require("../utils/dateHelper");
+const User = require("../models/User");
 
 const emitEvent = (req, event, data, userIds = []) => {
   const io = req.app.get("socketio");
@@ -504,9 +505,20 @@ exports.getTasksByEmployee = async (req, res) => {
       );
     }
 
+    const user = await User.findById(req.params.userId);
+
+    if (!user || !["Employee", "Manager", "Admin"].includes(user.role)) {
+      return res.status(200).json({
+        success: true,
+        currentlyAssigned: [],
+        workedAndAssigned: [],
+      });
+    }
+
     const currentlyAssigned = finalTasks.filter((task) =>
       task.assignedTo?.some((id) => id.toString() === employee._id.toString()),
     );
+
     return res.status(200).json({
       success: true,
       currentlyAssigned,

@@ -219,10 +219,27 @@ export default function EmployeeDetailPage() {
   const [showAllPerformance, setShowAllPerformance] = useState(false);
 
   const { data: employee, isLoading: userLoading, refetch: refetchEmployee } = useGetEmployeeProfileQuery(id);
-  const { data: taskData, isLoading: tasksLoading, refetch: refetchTasks } = useGetTasksByEmployeeQuery(id);
 
+  const role = employee?.user?.role;
+  const shouldFetchTasks = [
+    "Employee",
+    "Manager",
+    "Admin",
+  ].includes(role);
+
+  const { data: taskData, isLoading: tasksLoading, refetch: refetchTasks } =
+    useGetTasksByEmployeeQuery(id, {
+      skip: !shouldFetchTasks,
+    });
   const currentlyAssigned = taskData?.currentlyAssigned || [];
   const workedAndAssigned = taskData?.workedAndAssigned || [];
+
+  const showTaskSections =
+    role === "Employee" ||
+    role === "Manager" ||
+    (role === "Admin" &&
+      (currentlyAssigned.length > 0 ||
+        workedAndAssigned.length > 0));
 
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
   const userId = employee?.user?._id;
@@ -230,14 +247,21 @@ export default function EmployeeDetailPage() {
   useSocketEvents({
     onEmployeeChange: () => {
       refetchEmployee();
-      refetchTasks();
+
+      if (shouldFetchTasks) {
+        refetchTasks();
+      }
     },
     onTaskChange: () => {
-      refetchTasks();
+      if (shouldFetchTasks) {
+        refetchTasks();
+      }
     },
     onTimeLogChange: () => {
-      refetchTasks();
-    }
+      if (shouldFetchTasks) {
+        refetchTasks();
+      }
+    },
   });
 
   const { lastActiveDay } = useMemo(() => {
@@ -366,200 +390,221 @@ export default function EmployeeDetailPage() {
         <div className="grid lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8 space-y-10">
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-              <MetricBox label="Proficiency" value={`${employee?.proficiency || ""}%`} icon={<HiOutlineLightningBolt />} color="text-orange-500" />
-              <MetricBox label="Shift Capacity" value={`${effectiveHours}h`} icon={<HiOutlineClock />} color="text-slate-500" />
-              <MetricBox label="Active Tasks" value={activeTasks.length} icon={<HiOutlineInboxStack />} color="text-slate-500" />
-              <MetricBox label="Leaves Taken" value={employee?.leaves?.length || 0} icon={<HiOutlineCalendarDays />} color="text-slate-500" />
-            </div>
-
-            <SectionHeader title="Record Book" />
-            <TaskGridView tasks={workedAndAssigned} userId={userId} />
-
-            <div className="space-y-5">
-              {/* Dynamic Header based on date */}
-              <SectionHeader
-                title={
-                  lastActiveDay?.date === new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
-                    ? "Today's Performance Output"
-                    : "Latest Recorded Activity"
-                }
-              />
-
-              {lastActiveDay ? (
-                <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm min-h-[175px] overflow-hidden flex flex-col">
-
-                  {/* Header */}
-                  <div className="bg-slate-50 px-6 py-4 flex justify-between items-center border-b border-slate-100 shrink-0">
-                    <div className="flex items-center gap-3">
-                      <HiOutlineCalendarDays className="text-orange-500" size={18} />
-
-                      <div className="flex flex-col">
-                        <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest">
-                          {lastActiveDay.date}
-                        </span>
-
-                        <span className="text-[8px] font-bold text-slate-700 uppercase">
-                          {lastActiveDay.date ===
-                            new Date().toLocaleDateString("en-IN", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                            })
-                            ? "Current Session"
-                            : "Last Active Session"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <span className="text-[11px] font-black text-black">
-                      {formatToHrMin(lastActiveDay.totalDaySeconds)}
-                    </span>
-                  </div>
-
-                  {/* Scroll Area */}
-                  <div className="flex-1 px-6 py-3">
-                    <div className="grid grid-cols-1 gap-x-10 gap-y-3">
-                      {(showAllPerformance
-                        ? lastActiveDay.tasks
-                        : lastActiveDay.tasks.slice(0, 2)
-                      ).map((task, idx) => {
-                        const percentage =
-                          task.allocated > 0
-                            ? Math.min((task.seconds / task.allocated) * 100, 100)
-                            : 0;
-
-                        const taskColor = getTaskColor(task.id);
-
-                        return (
-                          <div key={idx} className="space-y-2">
-                            <div className="flex justify-between items-end">
-                              <h4 className="text-[10px] font-black uppercase text-slate-800 truncate">
-                                {task.title}{" "}
-                                <span className="text-slate-800">
-                                  ({task.projectTitle})
-                                </span>
-                              </h4>
-
-                              <span className="text-[9px] font-bold text-slate-500 ml-2 shrink-0">
-                                {formatToHrMin(task.seconds)}
-                              </span>
-                            </div>
-
-                            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                              <div
-                                className={`${taskColor} h-full rounded-full transition-all duration-700`}
-                                style={{ width: `${percentage}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {lastActiveDay.tasks.length > 2 && (
-                      <div className="flex justify-end pt-2">
-                        <button
-                          onClick={() =>
-                            setShowAllPerformance((prev) => !prev)
-                          }
-                          className="text-[10px] font-black text-orange-600 hover:text-orange-700 tracking-wide transition-all cursor-pointer"
-                        >
-                          {showAllPerformance
-                            ? "Show Less"
-                            : `Show More`}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <EmptyState message="No personal activity recorded yet" />
+              {(role === "Employee" || role === "Manager") && (
+                <MetricBox label="Proficiency" value={`${employee?.proficiency || ""}%`} icon={<HiOutlineLightningBolt />} color="text-orange-500" />
+              )}
+              {(role === "Employee" || role === "Manager") && (
+                <MetricBox label="Shift Capacity" value={`${effectiveHours}h`} icon={<HiOutlineClock />} color="text-slate-500" />
+              )}
+              {(role === "Employee" || role === "Manager" || role === "Admin") && (
+                <MetricBox label="Active Tasks" value={activeTasks.length} icon={<HiOutlineInboxStack />} color="text-slate-500" />
+              )}
+              {(role !== "Admin") && (
+                <MetricBox label="Leaves Taken" value={employee?.leaves?.length || 0} icon={<HiOutlineCalendarDays />} color="text-slate-500" />
               )}
             </div>
+
+            {showTaskSections && (
+              <>
+                <SectionHeader title="Record Book" />
+                <TaskGridView
+                  tasks={workedAndAssigned}
+                  userId={userId}
+                />
+              </>
+            )}
+
+            {showTaskSections && (
+              <div className="space-y-5">
+                {/* Dynamic Header based on date */}
+                <SectionHeader
+                  title={
+                    lastActiveDay?.date === new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+                      ? "Today's Performance Output"
+                      : "Latest Recorded Activity"
+                  }
+                />
+
+                {lastActiveDay ? (
+                  <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm min-h-[175px] overflow-hidden flex flex-col">
+
+                    {/* Header */}
+                    <div className="bg-slate-50 px-6 py-4 flex justify-between items-center border-b border-slate-100 shrink-0">
+                      <div className="flex items-center gap-3">
+                        <HiOutlineCalendarDays className="text-orange-500" size={18} />
+
+                        <div className="flex flex-col">
+                          <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest">
+                            {lastActiveDay.date}
+                          </span>
+
+                          <span className="text-[8px] font-bold text-slate-700 uppercase">
+                            {lastActiveDay.date ===
+                              new Date().toLocaleDateString("en-IN", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                              })
+                              ? "Current Session"
+                              : "Last Active Session"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <span className="text-[11px] font-black text-black">
+                        {formatToHrMin(lastActiveDay.totalDaySeconds)}
+                      </span>
+                    </div>
+
+                    {/* Scroll Area */}
+                    <div className="flex-1 px-6 py-3">
+                      <div className="grid grid-cols-1 gap-x-10 gap-y-3">
+                        {(showAllPerformance
+                          ? lastActiveDay.tasks
+                          : lastActiveDay.tasks.slice(0, 2)
+                        ).map((task, idx) => {
+                          const percentage =
+                            task.allocated > 0
+                              ? Math.min((task.seconds / task.allocated) * 100, 100)
+                              : 0;
+
+                          const taskColor = getTaskColor(task.id);
+
+                          return (
+                            <div key={idx} className="space-y-2">
+                              <div className="flex justify-between items-end">
+                                <h4 className="text-[10px] font-black uppercase text-slate-800 truncate">
+                                  {task.title}{" "}
+                                  <span className="text-slate-800">
+                                    ({task.projectTitle})
+                                  </span>
+                                </h4>
+
+                                <span className="text-[9px] font-bold text-slate-500 ml-2 shrink-0">
+                                  {formatToHrMin(task.seconds)}
+                                </span>
+                              </div>
+
+                              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                                <div
+                                  className={`${taskColor} h-full rounded-full transition-all duration-700`}
+                                  style={{ width: `${percentage}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {lastActiveDay.tasks.length > 2 && (
+                        <div className="flex justify-end pt-2">
+                          <button
+                            onClick={() =>
+                              setShowAllPerformance((prev) => !prev)
+                            }
+                            className="text-[10px] font-black text-orange-600 hover:text-orange-700 tracking-wide transition-all cursor-pointer"
+                          >
+                            {showAllPerformance
+                              ? "Show Less"
+                              : `Show More`}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <EmptyState message="No personal activity recorded yet" />
+                )}
+              </div>
+            )}
           </div>
 
           <div className="lg:col-span-4 space-y-8">
-            <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-                <h3 className="text-[10px] font-black text-slate-200 uppercase tracking-[0.2em]">Live Tasks</h3>
-              </div>
-              <div className="space-y-3">
-                {liveTasks.length > 0 ? (
-                  liveTasks.map((t) => (
-                    <div
-                      key={t._id}
-                      className="h-18 p-3 transition-all"
-                    >
-                      <div className="flex justify-between items-start gap-2">
-                        <p className="text-[11px] font-black uppercase tracking-tight text-white">
-                          {t.title}{" "}
-                          {t?.project?.title && `(${t.project.title})`}
-                        </p>
+            {showTaskSections && (
+              <>
+                <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                    <h3 className="text-[10px] font-black text-slate-200 uppercase tracking-[0.2em]">Live Tasks</h3>
+                  </div>
+                  <div className="space-y-3">
+                    {liveTasks.length > 0 ? (
+                      liveTasks.map((t) => (
+                        <div
+                          key={t._id}
+                          className="h-18 p-3 transition-all"
+                        >
+                          <div className="flex justify-between items-start gap-2">
+                            <p className="text-[11px] font-black uppercase tracking-tight text-white">
+                              {t.title}{" "}
+                              {t?.project?.title && `(${t.project.title})`}
+                            </p>
 
-                        <span className="text-[7px] font-black uppercase px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">
-                          Live
-                        </span>
-                      </div>
+                            <span className="text-[7px] font-black uppercase px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                              Live
+                            </span>
+                          </div>
 
-                      <div className="flex justify-between items-end mt-2">
-                        <span className="text-[8px] font-black uppercase tracking-widest text-orange-400">
-                          {t.liveStatus}
-                        </span>
+                          <div className="flex justify-between items-end mt-2">
+                            <span className="text-[8px] font-black uppercase tracking-widest text-orange-400">
+                              {t.liveStatus}
+                            </span>
 
-                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-200">
-                          {t.status}
-                        </span>
+                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-200">
+                              {t.status}
+                            </span>
 
-                        <span className="text-[10px] font-black text-white">
-                          {t.allocatedTime || 0}H ALLOC
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-[10px] font-bold text-slate-500 uppercase italic h-18 flex items-center justify-center">
-                    No Live Tasks Found
-                  </p>
-                )}
-              </div>
-            </div>
+                            <span className="text-[10px] font-black text-white">
+                              {t.allocatedTime || 0}H ALLOC
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-[10px] font-bold text-slate-500 uppercase italic h-18 flex items-center justify-center">
+                        No Live Tasks Found
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                      Full Task History
+                    </h3>
+                  </div>
+
+                  {/* 👇 Scroll container */}
+                  <div className="space-y-3 h-[325px] overflow-y-auto pr-2 custom-scrollbar">
+                    {[
+                      // Current assigned first
+                      ...workedAndAssigned.filter((t) =>
+                        currentlyAssigned.some((a) => a._id === t._id)
+                      ),
+
+                      // Historical last
+                      ...workedAndAssigned.filter(
+                        (t) => !currentlyAssigned.some((a) => a._id === t._id)
+                      ),
+                    ].map((t) => {
+                      const isAssigned = currentlyAssigned.some((a) => a._id === t._id);
+
+                      return (
+                        <TaskSmallCard
+                          key={t._id}
+                          task={t}
+                          active={isAssigned}
+                          historical={!isAssigned}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                  Full Task History
-                </h3>
-              </div>
-
-              {/* 👇 Scroll container */}
-              <div className="space-y-3 h-[325px] overflow-y-auto pr-2 custom-scrollbar">
-                {[
-                  // Current assigned first
-                  ...workedAndAssigned.filter((t) =>
-                    currentlyAssigned.some((a) => a._id === t._id)
-                  ),
-
-                  // Historical last
-                  ...workedAndAssigned.filter(
-                    (t) => !currentlyAssigned.some((a) => a._id === t._id)
-                  ),
-                ].map((t) => {
-                  const isAssigned = currentlyAssigned.some((a) => a._id === t._id);
-
-                  return (
-                    <TaskSmallCard
-                      key={t._id}
-                      task={t}
-                      active={isAssigned}
-                      historical={!isAssigned}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-8">Secure Contact</h3>
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-8">Contact Details</h3>
               <div className="space-y-6">
                 <ContactItem icon={<HiOutlineEnvelope />} label="Work Email" value={employee?.user?.email} />
                 <ContactItem icon={<HiOutlinePhone />} label="Mobile Number" value={employee?.mobileNumber} />
@@ -575,18 +620,20 @@ export default function EmployeeDetailPage() {
                     })
                   }
                 />
-                <ContactItem
-                  icon={<HiOutlineCalendarDays />}
-                  label="Date of Joining"
-                  value={
-                    employee?.joinedDate &&
-                    new Date(employee.joinedDate).toLocaleDateString("en-IN", {
-                      day: "2-digit",
-                      month: "long",
-                      year: "numeric",
-                    })
-                  }
-                />
+                {role !== "Admin" && (
+                  <ContactItem
+                    icon={<HiOutlineCalendarDays />}
+                    label="Date of Joining"
+                    value={
+                      employee?.joinedDate &&
+                      new Date(employee.joinedDate).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "long",
+                        year: "numeric",
+                      })
+                    }
+                  />
+                )}
               </div>
             </div>
           </div>

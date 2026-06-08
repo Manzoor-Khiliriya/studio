@@ -22,7 +22,10 @@ export const settingApiSlice = apiSlice.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: [{ type: "Department", id: "LIST" }],
+      invalidatesTags: [
+        { type: "Department", id: "LIST" },
+        { type: "Employee", id: "LIST" },
+      ],
     }),
 
     updateDepartment: builder.mutation({
@@ -34,6 +37,7 @@ export const settingApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, { id }) => [
         { type: "Department", id },
         { type: "Department", id: "LIST" },
+        { type: "Employee", id: "LIST" },
       ],
     }),
 
@@ -42,7 +46,10 @@ export const settingApiSlice = apiSlice.injectEndpoints({
         url: `/departments/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [{ type: "Department", id: "LIST" }],
+      invalidatesTags: [
+        { type: "Department", id: "LIST" },
+        { type: "Employee", id: "LIST" },
+      ],
     }),
 
     getDesignations: builder.query({

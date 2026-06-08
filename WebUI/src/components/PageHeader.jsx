@@ -8,7 +8,6 @@ const PageHeader = ({
   iconText = "P",
   actionLabel,
   onAction,
-  actionOptions,
   secondaryActionLabel,
   onSecondaryAction,
   tabs,
@@ -73,27 +72,14 @@ const PageHeader = ({
                 </button>
               )}
 
-              {actionOptions?.length ? (
-                actionOptions.map((option) => (
-                  <button
-                    key={option.label}
-                    onClick={option.onClick}
-                    className="flex items-center gap-2 mx-1.5 px-3.5 py-2.5 bg-slate-50 border border-slate-100 text-[10px] font-black hover:bg-orange-600 hover:text-white rounded-xl transition-all uppercase tracking-widest shadow-lg shadow-orange-200 cursor-pointer active:scale-95"
-                  >
-                    <HiOutlinePlusCircle size={18} />
-                    <span> {option.label}</span>
-                  </button>
-                ))
-              ) : (
-                actionLabel && (
-                  <button
-                    onClick={onAction}
-                    className="flex items-center gap-2 mx-1.5 px-3.5 py-2.5 bg-slate-50 border border-slate-100 text-[10px] font-black hover:bg-orange-600 hover:text-white rounded-xl transition-all uppercase tracking-widest shadow-lg shadow-orange-200 cursor-pointer active:scale-95"
-                  >
-                    <HiOutlinePlusCircle size={18} />
-                    <span>{actionLabel}</span>
-                  </button>
-                )
+              {actionLabel && (
+                <button
+                  onClick={onAction}
+                  className="flex items-center gap-2 mx-1.5 px-3.5 py-2.5 bg-slate-50 border border-slate-100 text-[10px] font-black hover:bg-orange-600 hover:text-white rounded-xl transition-all uppercase tracking-widest shadow-lg shadow-orange-200 cursor-pointer active:scale-95"
+                >
+                  <HiOutlinePlusCircle size={18} />
+                  <span>{actionLabel}</span>
+                </button>
               )}
             </div>
 

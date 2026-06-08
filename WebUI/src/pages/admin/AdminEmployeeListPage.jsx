@@ -6,7 +6,7 @@ import {
   useChangeUserStatusMutation,
   useDeleteUserMutation,
 } from "../../services/userApi";
-import { HiOutlineCog6Tooth, HiOutlineMagnifyingGlass, HiOutlineXMark } from "react-icons/hi2";
+import { HiOutlineCog6Tooth, HiOutlineMagnifyingGlass, HiOutlinePlusCircle, HiOutlineXMark } from "react-icons/hi2";
 import PageHeader from "../../components/PageHeader";
 import Table from "../../components/Table";
 import Loader from "../../components/Loader";
@@ -244,11 +244,7 @@ export default function EmployeeListPage() {
           setCurrentPage(1);
         }}
         actionLabel={
-          activeRole === "Settings"
-            ? `Add ${settingsTab}`
-            : activeRole === "Admin"
-              ? "Add Admin"
-              : `ADD ${activeRole.toUpperCase()}`
+          activeRole === "Settings" && (`Add ${settingsTab}`)
         }
 
         onAction={() => {
@@ -261,23 +257,8 @@ export default function EmployeeListPage() {
             return;
           }
 
-          if (activeRole === "Admin") {
-            handleAddUser("Admin");
-          }
         }}
 
-        actionOptions={
-          activeRole !== "Settings" &&
-            activeRole !== "Admin"
-            ? addOptionsByTab[activeRole]?.map((item) => ({
-              label: item.label,
-              onClick: () =>
-                handleAddUser(
-                  item.role,
-                ),
-            }))
-            : null
-        }
       />
 
       <main className="max-w-[1750px] mx-auto px-8 pb-10 -mt-10">
@@ -314,7 +295,7 @@ export default function EmployeeListPage() {
                   { value: "Disabled", label: "Disabled" },
                 ]}
                 placeholder="Filter by Status"
-                buttonClass="py-3.5 px-4 bg-slate-100/80 rounded-2xl border border-slate-200/50 shadow-sm text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer text-slate-500 hover:text-slate-800 min-w-[120px]"
+                buttonClass="py-3.5 px-4 bg-slate-100/80 rounded-xl border border-slate-200/50 shadow-sm text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer text-slate-500 hover:text-slate-800 min-w-[120px]"
               />
 
               {activeRole !== "Admin" && (
@@ -337,7 +318,7 @@ export default function EmployeeListPage() {
                         { value: "GAD", label: "GAD" }
                       ]
                   }
-                  buttonClass="py-3.5 px-4 bg-slate-100/80 rounded-2xl border border-slate-200/50 shadow-sm text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer text-slate-500 hover:text-slate-800 min-w-[120px]"
+                  buttonClass="py-3.5 px-4 bg-slate-100/80 rounded-xl border border-slate-200/50 shadow-sm text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer text-slate-500 hover:text-slate-800 min-w-[120px]"
                 />
               )}
 
@@ -353,12 +334,25 @@ export default function EmployeeListPage() {
                       setTypeFilter("All");
                       setCurrentPage(1);
                     }}
-                    className="flex items-center gap-2 px-6 py-3.5 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-2xl transition-all font-bold text-xs cursor-pointer"
+                    className="flex items-center gap-2 px-6 py-3.5 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all font-bold text-xs cursor-pointer"
                   >
                     <HiOutlineXMark size={18} strokeWidth={2.5} />
                     <span>CLEAR FILTERS</span>
                   </button>
                 )}
+
+              <div className="flex gap-2">
+                {addOptionsByTab[activeRole]?.map((item) => (
+                  <button
+                    key={item.role}
+                    onClick={() => handleAddUser(item.role)}
+                    className="flex items-center gap-2 mx-1.5 px-3.5 py-3.5 bg-slate-50 border border-slate-100 text-[10px] font-black hover:bg-orange-600 hover:text-white rounded-xl transition-all uppercase tracking-widest shadow-lg shadow-orange-200 cursor-pointer"
+                  >
+                    <HiOutlinePlusCircle size={18} />
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </div>
 
               <button
                 onClick={() => setActiveRole("Settings")}
