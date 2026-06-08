@@ -206,7 +206,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
               <HiOutlineBriefcase className="input-icon" />
 
               <CustomDropdown
-                value={formData.departments[0] || ""}
+                value={formData.departments.length || ""}
                 onChange={(val) =>
                   setFormData({
                     ...formData,

@@ -1,5 +1,5 @@
 import React from "react";
-import { HiOutlinePlus } from "react-icons/hi2";
+import { HiOutlinePlus, HiOutlinePlusCircle } from "react-icons/hi2";
 import CustomDropdown from "./CustomDropdown";
 
 const PageHeader = ({
@@ -62,7 +62,7 @@ const PageHeader = ({
             )}
 
             {/* ACTION BUTTONS */}
-           
+
             <div className="flex items-center gap-2">
               {secondaryActionLabel && (
                 <button
@@ -78,24 +78,20 @@ const PageHeader = ({
                   <button
                     key={option.label}
                     onClick={option.onClick}
-                    className="flex items-center justify-center gap-2 bg-slate-900 hover:bg-orange-600 text-white px-7 py-4 rounded-2xl font-bold transition-all shadow-xl shadow-slate-200 active:scale-95 cursor-pointer"
+                    className="flex items-center gap-2 mx-1.5 px-3.5 py-2.5 bg-slate-50 border border-slate-100 text-[10px] font-black hover:bg-orange-600 hover:text-white rounded-xl transition-all uppercase tracking-widest shadow-lg shadow-orange-200 cursor-pointer active:scale-95"
                   >
-                    <HiOutlinePlus strokeWidth={3} />
-                    <span className="uppercase tracking-tight text-sm">
-                      {option.label}
-                    </span>
+                    <HiOutlinePlusCircle size={18} />
+                    <span> {option.label}</span>
                   </button>
                 ))
               ) : (
                 actionLabel && (
                   <button
                     onClick={onAction}
-                    className="flex items-center justify-center gap-2 bg-slate-900 hover:bg-orange-600 text-white px-7 py-4 rounded-2xl font-bold transition-all shadow-xl shadow-slate-200 active:scale-95 cursor-pointer"
+                    className="flex items-center gap-2 mx-1.5 px-3.5 py-2.5 bg-slate-50 border border-slate-100 text-[10px] font-black hover:bg-orange-600 hover:text-white rounded-xl transition-all uppercase tracking-widest shadow-lg shadow-orange-200 cursor-pointer active:scale-95"
                   >
-                    <HiOutlinePlus strokeWidth={3} />
-                    <span className="uppercase tracking-tight text-sm">
-                      {actionLabel}
-                    </span>
+                    <HiOutlinePlusCircle size={18} />
+                    <span>{actionLabel}</span>
                   </button>
                 )
               )}
