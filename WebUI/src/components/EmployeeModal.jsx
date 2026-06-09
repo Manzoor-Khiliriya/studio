@@ -193,6 +193,8 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
                 options={[
                   { label: "Employee", value: "Employee" },
                   { label: "Manager", value: "Manager" },
+                  { label: "Hr Employee", value: "Hr Employee" },
+                  { label: "Hr Manager", value: "Hr Manager" },
                   { label: "GAD Employee", value: "GAD Employee" },
                   { label: "GAD Manager", value: "GAD Manager" },
                   { label: "Admin", value: "Admin" },
@@ -227,7 +229,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
               placeholder="Select Designation"
             />
           </InputGroup>
-          {["Employee", "GAD Employee"].includes(formData.role) && (
+          {["Employee", "GAD Employee", "Hr Employee"].includes(formData.role) && (
             <InputGroup label="Department *">
               <HiOutlineBriefcase className="input-icon" />
 
@@ -251,7 +253,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
             </InputGroup>
           )}
 
-          {["Manager", "GAD Manager"].includes(formData.role) && (
+          {["Manager", "GAD Manager", "Hr Manager"].includes(formData.role) && (
             <InputGroup label="Departments *">
               <HiOutlineBriefcase className="input-icon" />
 

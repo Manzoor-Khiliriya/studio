@@ -1,4 +1,5 @@
 import React from "react";
+import { HiOutlineLockClosed } from "react-icons/hi";
 import {
   HiOutlineCalendar,
   HiOutlineCheckCircle,
@@ -64,7 +65,7 @@ const renderQuotaCell = (balance, colorClass = "text-slate-900", isAccrual = fal
   );
 };
 
-export const getAdminLeaveColumns = (role, onAction, onEdit, onDelete) => [
+export const getAdminLeaveColumns = (role, userId, onAction, onEdit, onDelete) => [
   {
     header: "Employee",
     render: (req) => (
@@ -119,36 +120,110 @@ export const getAdminLeaveColumns = (role, onAction, onEdit, onDelete) => [
     render: (req) => <p className=" text-center text-slate-700 text-[10px] uppercase font-black">{req.duration || 0} days</p>
   },
   {
+    header: "Approval Flow",
+    className: "text-center",
+    render: (req) => (
+      <div className="flex flex-col gap-1 text-left">
+        {req.approvalFlow?.map((step, index) => (
+          <div
+            key={index}
+            className="flex items-center gap-2 text-[9px] font-black uppercase"
+          >
+            <span className="min-w-[90px]">
+              {step.role}
+            </span>
+
+            {step.status === "Approved" && (
+              <>
+                <span className="text-emerald-600">
+                  Approved
+                </span>
+
+                {step.approvedAt && (
+                  <span className="text-slate-700">
+                    {new Date(step.approvedAt).toLocaleDateString('en-IN')}
+                  </span>
+                )}
+              </>
+            )}
+
+            {step.status === "Rejected" && (
+              <span className="text-red-600">
+                Rejected
+              </span>
+            )}
+
+            {step.status === "Pending" && (
+              <span className="text-orange-600">
+                Pending
+              </span>
+            )}
+
+            {step.status === "Waiting" && (
+              <span className="text-slate-400">
+                Waiting
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    ),
+  },
+  {
     header: "Status",
     className: "text-center",
     render: (req) => <div className="text-center"><StatusBadge status={req.status} /></div>,
   },
   {
     header: "Actions",
-    render: (req) => (
-      <div className="flex items-start gap-2">
-        {req.status === "Pending" && (
-          <>
-            <button onClick={() => onAction(req._id, "Approved", req)} className="text-emerald-500 hover:scale-110 transition-transform cursor-pointer" title="Approve Leave">
-              <HiOutlineCheckCircle size={20} />
+    render: (req) => {
+      const currentStep = req.approvalFlow?.find(step => {
+        if (step.approver) {
+          return String(step.approver) === String(userId);
+        }
+
+        return step.role === role;
+      });
+
+      return (
+        <div className="flex items-start gap-2">
+          {currentStep?.status === "Pending" ? (
+            <>
+              <button
+                onClick={() => onAction(req._id, "Approved", req)}
+                className="text-emerald-500 hover:scale-110 transition-transform cursor-pointer"
+                title="Approve Leave"
+              >
+                <HiOutlineCheckCircle size={20} />
+              </button>
+
+              <button
+                onClick={() => onAction(req._id, "Rejected", req)}
+                className="text-rose-500 hover:scale-110 transition-transform cursor-pointer"
+                title="Reject Leave"
+              >
+                <HiOutlineXCircle size={20} />
+              </button>
+            </>
+          ) : (
+            <button className="text-slate-500 hover:text-slate-600  transition-all cursor-not-allowed">
+              <HiOutlineLockClosed size={18} />
             </button>
-            <button onClick={() => onAction(req._id, "Rejected", req)} className="text-rose-500 hover:scale-110 transition-transform cursor-pointer" title="Reject Leave">
-              <HiOutlineXCircle size={20} />
-            </button>
-          </>
-        )}
-        {role === "Admin" || role === "GAD Manager" && (
-          <>
-            <button onClick={() => onEdit(req)} className="text-yellow-500 hover:text-yellow-600 hover:scale-110 transition-transform cursor-pointer" title="Update Leave Details">
-              <HiOutlinePencilSquare size={18} />
-            </button>
-            <button onClick={() => onDelete(req._id)} className="text-red-500 hover:text-red-600 hover:scale-110 transition-transform cursor-pointer" title="Delete Permanent">
-              <HiOutlineTrash size={18} />
-            </button>
-          </>
-        )}
-      </div>
-    ),
+          )}
+
+          {(role === "Admin" || role === "Hr Manager") && (
+            <>
+              <button onClick={() => onEdit(req)} className="text-yellow-500 hover:text-yellow-600 hover:scale-110 transition-transform cursor-pointer" title="Update Leave Details">
+                <HiOutlinePencilSquare size={18} />
+              </button>
+              <button onClick={() => onDelete(req._id)} className="text-red-500 hover:text-red-600 hover:scale-110 transition-transform cursor-pointer" title="Delete Permanent">
+                <HiOutlineTrash size={18} />
+              </button>
+            </>
+          )}
+        </div>
+      )
+    }
   },
 ];
 

@@ -141,6 +141,56 @@ export default function EmployeeLeavePage() {
       ),
     },
     {
+      header: "Approval Flow",
+      className: "text-center",
+      render: (req) => (
+        <div className="flex flex-col gap-1 text-left">
+          {req.approvalFlow?.map((step, index) => (
+            <div
+              key={index}
+              className="flex items-center gap-2 text-[9px] font-black uppercase"
+            >
+              <span className="min-w-[90px]">
+                {step.role}
+              </span>
+
+              {step.status === "Approved" && (
+                <>
+                  <span className="text-emerald-600">
+                    Approved
+                  </span>
+
+                  {step.approvedAt && (
+                    <span className="text-slate-700">
+                      {new Date(step.approvedAt).toLocaleDateString("en-IN")}
+                    </span>
+                  )}
+                </>
+              )}
+
+              {step.status === "Rejected" && (
+                <span className="text-red-600">
+                  Rejected
+                </span>
+              )}
+
+              {step.status === "Pending" && (
+                <span className="text-orange-600">
+                  Pending
+                </span>
+              )}
+
+              {step.status === "Waiting" && (
+                <span className="text-slate-400">
+                  Waiting
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      ),
+    },
+    {
       header: "Status",
       className: "text-center",
       render: (req) => (
@@ -243,8 +293,8 @@ export default function EmployeeLeavePage() {
                   setPage(1);
                 }}
                 className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === s
-                    ? "bg-white text-orange-600 shadow-md ring-1 ring-slate-200"
-                    : "text-slate-500 hover:text-slate-800 cursor-pointer"
+                  ? "bg-white text-orange-600 shadow-md ring-1 ring-slate-200"
+                  : "text-slate-500 hover:text-slate-800 cursor-pointer"
                   }`}
               >
                 {s === "Pending"

@@ -8,16 +8,13 @@ const moment = require("moment");
 const User = require("../models/User");
 const Project = require("../models/Project");
 const TaskAllocation = require("../models/TaskAllocation");
-const { getToday } = require("../utils/dateHelper");
+const { getToday, now } = require("../utils/dateHelper");
 
 exports.getSummary = async (req, res) => {
   try {
     const userId = req.user._id;
     const todayStr = moment().format("YYYY-MM-DD");
 
-    /* =============================================================
-        ADMIN DASHBOARD
-    ============================================================= */
     if (isActiveAdmin(req.user)) {
       const [
         totalActiveEmployees,
@@ -163,91 +160,133 @@ exports.getSummary = async (req, res) => {
         EMPLOYEE DASHBOARD
     ============================================================= */
 
-    const employeeProfile = await Employee.findOne({ user: userId }).lean();
+    if (["Employee", "Manager"].includes(req.user.role)) {
+      const employeeProfile = await Employee.findOne({ user: userId }).lean();
 
-    const [assignedTasks, approvedLeavesCount, runningTimer] =
-      await Promise.all([
-        Task.find({
-          assignedTo: employeeProfile._id,
-          status: { $ne: "Completed" },
-        })
-          .populate("project", "title projectCode")
-          .populate("timeLogs"),
-
-        Leave.countDocuments({ user: userId, status: "Approved" }),
-
-        TimeLog.findOne({ user: userId, isRunning: true })
-          .populate({
-            path: "task",
-            select: "title project",
-            populate: { path: "project", select: "projectCode" },
+      const [assignedTasks, approvedLeavesCount, runningTimer] =
+        await Promise.all([
+          Task.find({
+            assignedTo: employeeProfile._id,
+            status: { $ne: "Completed" },
           })
-          .lean(),
-      ]);
+            .populate("project", "title projectCode")
+            .populate("timeLogs"),
 
-    const allocations = await TaskAllocation.find({
-      employee: employeeProfile._id,
-    });
+          Leave.countDocuments({ user: userId, status: "Approved" }),
 
-    const allocationMap = {};
-    allocations.forEach((a) => {
-      allocationMap[a.task.toString()] = a;
-    });
+          TimeLog.findOne({ user: userId, isRunning: true })
+            .populate({
+              path: "task",
+              select: "title project",
+              populate: { path: "project", select: "projectCode" },
+            })
+            .lean(),
+        ]);
 
-    const today = getToday();
+      const allocations = await TaskAllocation.find({
+        employee: employeeProfile._id,
+      });
 
-    return res.json({
-      role: "Employee",
-      activeTimer: runningTimer
-        ? {
-            logId: runningTimer._id,
-            task: runningTimer.task?.title,
-            projectCode: runningTimer.task?.project?.projectCode || "N/A",
-            startedAt: runningTimer.startTime,
-            type: runningTimer.logType,
-          }
-        : null,
+      const allocationMap = {};
+      allocations.forEach((a) => {
+        allocationMap[a.task.toString()] = a;
+      });
 
-      taskSnapshot: assignedTasks
-        .map((t) => {
-          const task = t.toObject();
-          const allocation = allocationMap[task._id.toString()];
+      const today = getToday();
 
-          const todayAllocation = allocation?.dailyAllocations?.find(
-            (d) => d.date === today,
-          );
-          const todayAllocatedSeconds = todayAllocation?.allocatedSeconds ?? 0;
-          const ah = Math.floor(todayAllocatedSeconds / 3600);
-          const am = Math.floor((todayAllocatedSeconds % 3600) / 60);
-          const as_ = todayAllocatedSeconds % 60;
+      return res.json({
+        role: "Employee",
+        activeTimer: runningTimer
+          ? {
+              logId: runningTimer._id,
+              task: runningTimer.task?.title,
+              projectCode: runningTimer.task?.project?.projectCode || "N/A",
+              startedAt: runningTimer.startTime,
+              type: runningTimer.logType,
+            }
+          : null,
 
-          return {
-            id: task._id,
-            projectTitle: task?.project?.title,
-            projectCode: task?.project?.projectCode || "N/A",
-            title: task?.title,
-            deadline: task.endDate,
-            priority: task.priority,
-            status: task.liveStatus,
-            description: task.description,
-            updatedAt: task.updatedAt,
-            allocation: allocation
-              ? {
-                  role: allocation.role,
-                  priorityOrder: allocation.priorityOrder,
-                  todayAllocatedSeconds,
-                  todayAllocatedFormatted: `${ah} Hrs ${am} Mins ${as_} Secs`,
-                }
-              : null,
-          };
-        })
-        .sort((a, b) => {
-          const aPriority = a.allocation?.priorityOrder || 9999;
-          const bPriority = b.allocation?.priorityOrder || 9999;
-          return aPriority - bPriority;
-        }),
-      approvedLeavesCount,
-    });
+        taskSnapshot: assignedTasks
+          .map((t) => {
+            const task = t.toObject();
+            const allocation = allocationMap[task._id.toString()];
+
+            const todayAllocation = allocation?.dailyAllocations?.find(
+              (d) => d.date === today,
+            );
+            const todayAllocatedSeconds =
+              todayAllocation?.allocatedSeconds ?? 0;
+            const ah = Math.floor(todayAllocatedSeconds / 3600);
+            const am = Math.floor((todayAllocatedSeconds % 3600) / 60);
+            const as_ = todayAllocatedSeconds % 60;
+
+            return {
+              id: task._id,
+              projectTitle: task?.project?.title,
+              projectCode: task?.project?.projectCode || "N/A",
+              title: task?.title,
+              deadline: task.endDate,
+              priority: task.priority,
+              status: task.liveStatus,
+              description: task.description,
+              updatedAt: task.updatedAt,
+              allocation: allocation
+                ? {
+                    role: allocation.role,
+                    priorityOrder: allocation.priorityOrder,
+                    todayAllocatedSeconds,
+                    todayAllocatedFormatted: `${ah} Hrs ${am} Mins ${as_} Secs`,
+                  }
+                : null,
+            };
+          })
+          .sort((a, b) => {
+            const aPriority = a.allocation?.priorityOrder || 9999;
+            const bPriority = b.allocation?.priorityOrder || 9999;
+            return aPriority - bPriority;
+          }),
+        approvedLeavesCount,
+      });
+    }
+
+    if (
+      ["GAD Employee", "GAD Manager", "Hr Employee", "Hr Manager"].includes(
+        req.user.role,
+      )
+    ) {
+      const [pendingLeavesCount, attendanceToday, upcomingLeavesCount] =
+        await Promise.all([
+          Leave.countDocuments({
+            user: userId,
+            status: "Pending",
+          }),
+
+          Attendance.findOne({
+            user: userId,
+            date: todayStr,
+          }).lean(),
+
+          Leave.countDocuments({
+            user: userId,
+            startDate: { $gte: now() },
+            status: "Approved",
+          }),
+        ]);
+
+      return res.json({
+        role: req.user.role,
+        pendingLeavesCount,
+        attendanceCount: attendanceToday
+          ? {
+              clockIn: attendanceToday.clockIn,
+              clockOut: attendanceToday.clockOut,
+              totalSecondsWorked: attendanceToday.totalSecondsWorked,
+            }
+          : null,
+
+        upcomingLeavesCount,
+      });
+    }
   } catch (err) {
     res.status(500).json({ error: "Internal server error" });
   }

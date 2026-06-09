@@ -8,6 +8,10 @@ const departmentSchema = new mongoose.Schema(
       trim: true,
       unique: true,
     },
+    manager: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
     status: {
       type: String,
       enum: ["Enable", "Disable"],

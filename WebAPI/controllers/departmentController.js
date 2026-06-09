@@ -3,6 +3,7 @@ const Department = require("../models/Department");
 exports.getDepartments = async (req, res) => {
   try {
     const departments = await Department.find()
+      .populate("manager", "name role")
       .sort({ name: 1 });
     res.json(departments);
   } catch (err) {
@@ -12,7 +13,7 @@ exports.getDepartments = async (req, res) => {
 
 exports.createDepartment = async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, manager } = req.body;
 
     const exists = await Department.findOne({
       name: name.trim(),
@@ -26,6 +27,7 @@ exports.createDepartment = async (req, res) => {
 
     const department = await Department.create({
       name: name.trim(),
+      manager,
     });
 
     res.status(201).json(department);
@@ -40,9 +42,10 @@ exports.updateDepartment = async (req, res) => {
       req.params.id,
       {
         name: req.body.name?.trim(),
+        manager: req.body.manager,
         status: req.body.status,
       },
-      { new: true }
+      { new: true },
     );
 
     if (!department) {
@@ -59,9 +62,7 @@ exports.updateDepartment = async (req, res) => {
 
 exports.deleteDepartment = async (req, res) => {
   try {
-    const department = await Department.findByIdAndDelete(
-      req.params.id
-    );
+    const department = await Department.findByIdAndDelete(req.params.id);
 
     if (!department) {
       return res.status(404).json({

@@ -4,6 +4,8 @@ const ROLE = {
   EMPLOYEE: "Employee",
   GAD_EMPLOYEE: "GAD Employee",
   GAD_MANAGER: "GAD Manager",
+  HR_EMPLOYEE: "Hr Employee",
+  HR_MANAGER: "Hr Manager",
 };
 
 const STATUS = {

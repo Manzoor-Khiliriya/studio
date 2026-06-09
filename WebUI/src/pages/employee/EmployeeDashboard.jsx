@@ -14,8 +14,10 @@ import PageHeader from "../../components/PageHeader";
 import StatCard from "../../components/StatCard";
 import { useSocketEvents } from "../../hooks/useSocketEvents";
 import ConfirmModal from "../../components/ConfirmModal";
+import { useSelector } from "react-redux";
 
 export default function EmployeeDashboard() {
+  const { user } = useSelector((state) => state.auth);
   const timerRef = useRef(null);
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
@@ -164,6 +166,8 @@ export default function EmployeeDashboard() {
     return `${h}h ${m}m ${s}s`;
   };
 
+  const isTaskUser = ["Employee", "Manager"].includes(user?.role);
+
   if (attendanceLoading || summaryLoading) return <Loader message="Syncing Systems..." />;
 
   return (
@@ -230,92 +234,96 @@ export default function EmployeeDashboard() {
           </div>
 
           {/* --- MAIN CONTENT AREA --- */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {!isOnShift ? (
-              /* LOCKED STATE OVERLAY */
-              <div className="col-span-12 py-20 flex items-center justify-center text-center">
-                <motion.div
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="bg-white p-12 rounded-[3rem] border-2 border-slate-50 shadow-2xl shadow-slate-200/50 max-w-md w-full"
-                >
-                  <div className="w-24 h-24 bg-orange-50 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
-                    <FiLock size={44} />
+          {isTaskUser && (
+            <>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {!isOnShift ? (
+                  /* LOCKED STATE OVERLAY */
+                  <div className="col-span-12 py-20 flex items-center justify-center text-center">
+                    <motion.div
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="bg-white p-12 rounded-[3rem] border-2 border-slate-50 shadow-2xl shadow-slate-200/50 max-w-md w-full"
+                    >
+                      <div className="w-24 h-24 bg-orange-50 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
+                        <FiLock size={44} />
+                      </div>
+                      <h4 className="text-3xl font-black text-slate-800 mb-3 tracking-tighter">Missions Locked</h4>
+                      <p className="text-slate-500 text-sm mb-10 leading-relaxed">
+                        Please clock in using the attendance card above to access your live objectives and tracking systems.
+                      </p>
+
+                    </motion.div>
                   </div>
-                  <h4 className="text-3xl font-black text-slate-800 mb-3 tracking-tighter">Missions Locked</h4>
-                  <p className="text-slate-500 text-sm mb-10 leading-relaxed">
-                    Please clock in using the attendance card above to access your live objectives and tracking systems.
-                  </p>
-
-                </motion.div>
-              </div>
-            ) : (
-              /* ACTIVE STATE CONTENT */
-              <>
-                {/* SIDEBAR: PROJECT CHRONOMETER */}
-                <div className="lg:col-span-4">
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="bg-[#0f1115] p-8 rounded-[3rem] shadow-2xl relative overflow-hidden group"
-                  >
-                    <ClockInOut
-                      taskList={allActiveTasks}
-                      forceStopSignal={forceStopSignal}
-                      totalSeconds={liveSeconds}
-                    />
-                  </motion.div>
-                </div>
-
-                {/* MAIN: ACTIVE OBJECTIVES */}
-                <div className="lg:col-span-8">
-                  <motion.div
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="space-y-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-black text-slate-800 text-lg flex items-center gap-2">
-                        <HiOutlineBolt className="text-orange-500" /> Active Objectives
-                      </h3>
+                ) : (
+                  /* ACTIVE STATE CONTENT */
+                  <>
+                    {/* SIDEBAR: PROJECT CHRONOMETER */}
+                    <div className="lg:col-span-4">
+                      <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="bg-[#0f1115] p-8 rounded-[3rem] shadow-2xl relative overflow-hidden group"
+                      >
+                        <ClockInOut
+                          taskList={allActiveTasks}
+                          forceStopSignal={forceStopSignal}
+                          totalSeconds={liveSeconds}
+                        />
+                      </motion.div>
                     </div>
 
-                    <div className="min-h-[500px] space-y-2">
-                      <AnimatePresence mode="popLayout">
-                        {paginatedMissions.length > 0 ? (
-                          paginatedMissions.map((task) => (
-                            <TaskCard
-                              key={task.id}
-                              task={task}
-                              isTracking={runningTask === task.title && !isOnBreak}
+                    {/* MAIN: ACTIVE OBJECTIVES */}
+                    <div className="lg:col-span-8">
+                      <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="space-y-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-black text-slate-800 text-lg flex items-center gap-2">
+                            <HiOutlineBolt className="text-orange-500" /> Active Objectives
+                          </h3>
+                        </div>
+
+                        <div className="min-h-[500px] space-y-2">
+                          <AnimatePresence mode="popLayout">
+                            {paginatedMissions.length > 0 ? (
+                              paginatedMissions.map((task) => (
+                                <TaskCard
+                                  key={task.id}
+                                  task={task}
+                                  isTracking={runningTask === task.title && !isOnBreak}
+                                />
+                              ))
+                            ) : (
+                              <div className="h-[400px] flex flex-col items-center justify-center bg-white rounded-[3rem] border-2 border-dashed border-slate-200">
+                                <FiBriefcase size={40} className="text-slate-200 mb-4" />
+                                <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">No assigned missions</p>
+                              </div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+
+                        {allActiveTasks.length > itemsPerPage && (
+                          <div className="bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm mt-6">
+                            <Pagination
+                              pagination={{
+                                current: currentPage,
+                                total: Math.ceil(allActiveTasks.length / itemsPerPage),
+                                count: allActiveTasks.length
+                              }}
+                              onPageChange={setCurrentPage}
                             />
-                          ))
-                        ) : (
-                          <div className="h-[400px] flex flex-col items-center justify-center bg-white rounded-[3rem] border-2 border-dashed border-slate-200">
-                            <FiBriefcase size={40} className="text-slate-200 mb-4" />
-                            <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">No assigned missions</p>
                           </div>
                         )}
-                      </AnimatePresence>
+                      </motion.div>
                     </div>
-
-                    {allActiveTasks.length > itemsPerPage && (
-                      <div className="bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm mt-6">
-                        <Pagination
-                          pagination={{
-                            current: currentPage,
-                            total: Math.ceil(allActiveTasks.length / itemsPerPage),
-                            count: allActiveTasks.length
-                          }}
-                          onPageChange={setCurrentPage}
-                        />
-                      </div>
-                    )}
-                  </motion.div>
-                </div>
-              </>
-            )}
-          </div>
+                  </>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
       <ConfirmModal

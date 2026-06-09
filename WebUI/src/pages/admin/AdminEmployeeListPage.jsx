@@ -32,6 +32,10 @@ const addOptionsByTab = {
       label: "ADD GAD EMPLOYEE",
       role: "GAD Employee",
     },
+     {
+      label: "ADD Hr EMPLOYEE",
+      role: "Hr Employee",
+    },
   ],
 
   Manager: [
@@ -42,6 +46,10 @@ const addOptionsByTab = {
     {
       label: "ADD GAD MANAGER",
       role: "GAD Manager",
+    },
+    {
+      label: "ADD Hr MANAGER",
+      role: "Hr Manager",
     },
   ],
 
@@ -310,11 +318,13 @@ export default function EmployeeListPage() {
                       ? [
                         { value: "All", label: "All Types" },
                         { value: "Employee", label: "Employee" },
+                        { value: "Hr Employee", label: "Hr Employee" },
                         { value: "GAD Employee", label: "GAD Employee" }
                       ]
                       : [
                         { value: "All", label: "All Types" },
                         { value: "Manager", label: "Manager" },
+                        { value: "Hr Manager", label: "Hr Manager" },
                         { value: "GAD Manager", label: "GAD Manager" }
                       ]
                   }

@@ -45,7 +45,7 @@ const leaveSchema = new mongoose.Schema(
       enum: ["Pending", "Approved", "Rejected"],
       default: "Pending",
     },
-    
+
     approvedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -62,7 +62,12 @@ const leaveSchema = new mongoose.Schema(
       {
         role: {
           type: String,
-          enum: ["Manager", "Admin", "GAD Employee", "GAD Manager"],
+          enum: ["Manager", "Admin", "Hr Manager", "GAD Manager"],
+        },
+
+        approver: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
         },
 
         status: {

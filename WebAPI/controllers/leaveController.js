@@ -10,6 +10,8 @@ const { emitDashboardUpdate } = require("../utils/socket");
 const LeaveBalance = require("../models/LeaveBalance");
 const { now } = require("../utils/dateHelper");
 const { buildApprovalFlow } = require("../utils/leaveApprovalFlow");
+const Employee = require("../models/Employee");
+const Department = require("../models/Department");
 
 const emitEvent = (req, event, data, userId = null) => {
   const io = req.app.get("socketio");
@@ -190,10 +192,7 @@ exports.applyLeave = async (req, res) => {
           message: `Insufficient Earned Leave balance. Available ${totalAvailable - taken} Leaves`,
         });
       }
-    }
-
-    // 🔥 OTHER LEAVES
-    else if (!["LOP"].includes(type)) {
+    } else if (!["LOP"].includes(type)) {
       const taken = await getTakenDays(userId, type, true);
       const quota = setting?.yearlyQuota || 10;
 
@@ -204,7 +203,16 @@ exports.applyLeave = async (req, res) => {
       }
     }
 
-    const approvalFlow = buildApprovalFlow(req.user.role);
+    const employee = await Employee.findOne({
+      user: userId,
+    }).populate("departments");
+
+    const department = await Department.findById(employee.departments[0]);
+
+    const managerId = department.manager;
+
+    const approvalFlow = buildApprovalFlow(req.user.role, managerId);
+
     const leave = await Leave.create({
       user: userId,
       type,
@@ -216,12 +224,22 @@ exports.applyLeave = async (req, res) => {
       status: "Pending",
     });
 
-    const firstRole = approvalFlow[0]?.role;
+    const firstStep = approvalFlow[0];
 
-    const approvers = await User.find({
-      role: firstRole,
-      status: "Enable",
-    });
+    let approvers = [];
+
+    if (firstStep.approver) {
+      const manager = await User.findById(firstStep.approver);
+
+      if (manager) {
+        approvers.push(manager);
+      }
+    } else {
+      approvers = await User.find({
+        role: firstStep.role,
+        status: "Enable",
+      });
+    }
 
     const io = req.app.get("socketio");
 
@@ -260,7 +278,10 @@ exports.getAllLeaves = async (req, res) => {
 
     const role = req.user?.role;
 
-    if (role === "Manager" && !["my-leaves", "requests"].includes(view)) {
+    if (
+      !["Admin", "Hr Manager"].includes(role) &&
+      !["my-leaves", "requests"].includes(view)
+    ) {
       return res.status(403).json({
         success: false,
         message: "Access denied",
@@ -375,14 +396,26 @@ exports.getAllLeaves = async (req, res) => {
 
     // --- VIEW 1: REQUESTS (Filtered & Sorted by CREATED date) ---
     if (view === "requests") {
-      let query = {
-        approvalFlow: {
-          $elemMatch: {
-            role: req.user.role,
-            status: "Pending",
+      let query;
+      if (req.user.role === "Hr Employee") {
+        query = {};
+      } else if (["Manager", "GAD Manager"].includes(req.user.role)) {
+        query = {
+          approvalFlow: {
+            $elemMatch: {
+              approver: req.user._id,
+            },
           },
-        },
-      };
+        };
+      } else {
+        query = {
+          approvalFlow: {
+            $elemMatch: {
+              role: req.user.role,
+            },
+          },
+        };
+      }
 
       if (filterStart && filterEnd) {
         query.createdAt = { $gte: filterStart, $lte: filterEnd };
@@ -518,7 +551,7 @@ exports.getAllLeaves = async (req, res) => {
     // --- VIEW 3: QUOTA ---
     if (view === "quota") {
       const userQuery = {
-        role: { $in: ["Employee", "Manager", "GAD Employee", "GAD Manager"] },
+        role: { $in: ["Employee", "Manager", "Hr Manager"] },
       };
       if (search) {
         userQuery.name = { $regex: search, $options: "i" };
@@ -700,11 +733,20 @@ exports.processLeave = async (req, res) => {
       });
     }
 
-    const currentStep = leave?.approvalFlow[leave.currentLevel];
-    if (currentStep.role !== req.user.role) {
-      return res.status(403).json({
-        message: "Not your approval stage",
-      });
+    const currentStep = leave.approvalFlow[leave.currentLevel];
+
+    if (currentStep.approver) {
+      if (currentStep.approver.toString() !== req.user._id.toString()) {
+        return res.status(403).json({
+          message: "Not your approval stage",
+        });
+      }
+    } else {
+      if (currentStep.role !== req.user.role) {
+        return res.status(403).json({
+          message: "Not your approval stage",
+        });
+      }
     }
 
     if (newStatus === "Rejected") {
@@ -713,8 +755,7 @@ exports.processLeave = async (req, res) => {
       currentStep.approvedAt = now();
       leave.status = "Rejected";
       await leave.save();
-      emitEvent(req, "leaveChanged");
-      emitDashboardUpdate(req);
+
       const io = req.app.get("socketio");
 
       const employee = await User.findById(leave.user);
@@ -727,6 +768,10 @@ exports.processLeave = async (req, res) => {
         },
         io,
       );
+
+      emitEvent(req, "leaveChanged", leave);
+      emitEvent(req, "leaveChanged", leave, leave.user);
+      emitDashboardUpdate(req);
       return res.json(leave);
     }
 
@@ -909,9 +954,9 @@ exports.updateLeave = async (req, res) => {
 
     const isOwner = leave.user.toString() === req.user._id.toString();
     const isAdmin = req.user.role === "Admin";
-    const isGadManager = req.user.role === "GAD Manager";
+    const isHrManager = req.user.role === "Hr Manager";
 
-    if (!isOwner && !isAdmin && !isGadManager) {
+    if (!isOwner && !isAdmin && !isHrManager) {
       return res.status(403).json({ message: "Unauthorized Access!" });
     }
 
@@ -1010,7 +1055,13 @@ exports.updateLeave = async (req, res) => {
       }
     }
     Object.assign(leave, updatedLeave);
-    leave.approvalFlow = buildApprovalFlow(req.user.role);
+    const employee = await Employee.findOne({
+      user: leave.user,
+    }).populate("departments");
+    const department = await Department.findById(employee.departments[0]);
+    const managerId = department.manager;
+    const user = await User.findById(leave.user);
+    leave.approvalFlow = buildApprovalFlow(user.role, managerId);
     leave.currentLevel = 0;
     leave.status = "Pending";
     await leave.save();
@@ -1031,9 +1082,9 @@ exports.deleteLeave = async (req, res) => {
     }
     const isOwner = leave.user.toString() === req.user._id.toString();
     const isAdmin = req.user.role === "Admin";
-    const isGadManager = req.user.role === "GAD Manager";
+    const isHrManager = req.user.role === "Hr Manager";
 
-    if (isAdmin || isGadManager) {
+    if (isAdmin || isHrManager) {
       await Leave.findByIdAndDelete(req.params.id);
     } else if (isOwner) {
       if (leave.status !== "Pending") {

@@ -69,11 +69,16 @@ function AppContent() {
                 <Route path="/employees/:id" element={<AdminEmployeeDetailPage />} />
                 <Route path="/projects" element={<AdminTaskListPage />} />
                 <Route path="/projects/:id" element={<AdminTaskDetailPage />} />
-                <Route path="/holidays" element={<AdminHolidayPage />} />
                 <Route path="/performance" element={<AdminTaskPerformancePage />} />
                 <Route path="/projects-calender" element={<AdminProjectCalendar />} />
-                <Route path="/attendance" element={<AdminAttendanceListPage />} />
                 <Route path="/task-history" element={<AdminTaskAllocationPage />} />
+              </Route>
+            </Route>
+
+            <Route element={<ProtectedRoute allowedRoles={["Admin", "Hr Manager"]} />}>
+              <Route element={<Layout />}>
+                <Route path="/holidays" element={<AdminHolidayPage />} />
+                <Route path="/attendance" element={<AdminAttendanceListPage />} />
               </Route>
             </Route>
 
@@ -85,6 +90,8 @@ function AppContent() {
                     "Manager",
                     "GAD Employee",
                     "GAD Manager",
+                    "Hr Employee",
+                    "Hr Manager",
                   ]}
                 />
               }
@@ -92,6 +99,23 @@ function AppContent() {
               <Route element={<Layout />}>
                 <Route path="/employee" element={<EmployeeDashboard />} />
                 <Route path="/my-profile" element={<EmployeeProfilePage />} />
+              </Route>
+            </Route>
+
+            <Route
+              element={
+                <ProtectedRoute
+                  allowedRoles={[
+                    "Employee",
+                    "Manager",
+                    "GAD Employee",
+                    "GAD Manager",
+                    "Hr Employee",
+                  ]}
+                />
+              }
+            >
+              <Route element={<Layout />}>
                 <Route path="/public-holidays" element={<EmployeeHolidayPage />} />
               </Route>
             </Route>
@@ -112,7 +136,7 @@ function AppContent() {
               element={
                 <ProtectedRoute
                   allowedRoles={[
-                    "Employee",
+                    "Employee", "GAD Employee"
                   ]}
                 />
               }
@@ -125,7 +149,7 @@ function AppContent() {
             <Route
               element={
                 <ProtectedRoute
-                  allowedRoles={["Admin", "Manager", "GAD Manager", "GAD Employee"]}
+                  allowedRoles={["Admin", "Manager", "GAD Manager", "Hr Employee", "Hr Manager"]}
                 />
               }
             >

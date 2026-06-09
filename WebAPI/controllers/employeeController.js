@@ -19,19 +19,23 @@ exports.getAllEmployees = async (req, res) => {
       if (role === "Employee") {
         if (type === "GAD Employee") {
           userCriteria.role = "GAD Employee";
+        } else if (type === "Hr Employee") {
+          userCriteria.role = "Hr Employee";
         } else if (type === "Employee") {
           userCriteria.role = "Employee";
         } else {
-          userCriteria.$or = [{ role: "Employee" }, { role: "GAD Employee" }];
+          userCriteria.$or = [{ role: "Employee" }, { role: "GAD Employee" }, {role: "Hr Employee"}];
         }
       }
     } else if (role === "Manager") {
       if (type === "GAD Manager") {
         userCriteria.role = "GAD Manager";
+      } else if (type === "Hr Manager") {
+        userCriteria.role = "Hr Manager";
       } else if (type === "Manager") {
         userCriteria.role = "Manager";
       } else {
-        userCriteria.$or = [{ role: "Manager" }, { role: "GAD Manager" }];
+        userCriteria.$or = [{ role: "Manager" }, { role: "GAD Manager" }, {role: "Hr Manager"}];
       }
     } else if (role === "Admin") {
       userCriteria.role = "Admin";

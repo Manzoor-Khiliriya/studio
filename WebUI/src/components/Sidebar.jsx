@@ -63,7 +63,7 @@ export default function Sidebar() {
   const gadEmployeeLinks = [
     { to: "/employee", label: "Overview", icon: <HiOutlineViewColumns /> },
     { to: "/my-profile", label: "Profile", icon: <HiOutlineUser /> },
-    { to: "/leaves", label: "Leave Management", icon: <HiOutlineCalendar /> },
+    { to: "/my-leaves", label: "Leave", icon: <HiOutlineCalendar /> },
     { to: "/public-holidays", label: "Calendar", icon: <HiOutlineFlag /> },
   ];
 
@@ -72,6 +72,21 @@ export default function Sidebar() {
     { to: "/my-profile", label: "Profile", icon: <HiOutlineUser /> },
     { to: "/leaves", label: "Leave Management", icon: <HiOutlineCalendar /> },
     { to: "/public-holidays", label: "Calendar", icon: <HiOutlineFlag /> },
+  ];
+
+  const hrEmployeeLinks = [
+    { to: "/employee", label: "Overview", icon: <HiOutlineViewColumns /> },
+    { to: "/my-profile", label: "Profile", icon: <HiOutlineUser /> },
+    { to: "/leaves", label: "Leave Management", icon: <HiOutlineCalendar /> },
+    { to: "/public-holidays", label: "Calendar", icon: <HiOutlineFlag /> },
+  ];
+
+  const hrManagerLinks = [
+    { to: "/employee", label: "Overview", icon: <HiOutlineViewColumns /> },
+    { to: "/my-profile", label: "Profile", icon: <HiOutlineUser /> },
+    { to: "/leaves", label: "Leave Management", icon: <HiOutlineCalendar /> },
+    { to: "/attendance", label: "Attendance", icon: <HiOutlineViewColumns /> },
+    { to: '/holidays', label: 'Holidays', icon: <HiOutlineFlag /> },
   ];
 
   let links;
@@ -87,6 +102,14 @@ export default function Sidebar() {
 
     case "Manager":
       links = managerLinks;
+      break;
+
+    case "Hr Employee":
+      links = hrEmployeeLinks;
+      break;
+
+    case "Hr Manager":
+      links = hrManagerLinks;
       break;
 
     case "GAD Employee":

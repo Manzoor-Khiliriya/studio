@@ -22,7 +22,7 @@ const userSchema = new mongoose.Schema(
     plainPassword: { type: String, select: false },
     role: {
       type: String,
-      enum: ["Admin", "Employee", "Manager", "GAD Employee", "GAD Manager"],
+      enum: ["Admin", "Employee", "Manager","Hr Employee", "Hr Manager" ,"GAD Employee", "GAD Manager"],
       default: "Employee",
       index: true,
     },

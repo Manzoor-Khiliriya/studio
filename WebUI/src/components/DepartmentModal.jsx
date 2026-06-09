@@ -7,6 +7,7 @@ import {
 } from "../services/settingsApi";
 import { HiOutlineBriefcase } from "react-icons/hi2";
 import CustomDropdown from "./CustomDropdown";
+import { useGetAllUsersQuery } from "../services/userApi";
 
 export default function DepartmentModal({
     isOpen,
@@ -17,6 +18,7 @@ export default function DepartmentModal({
 
     const [formData, setFormData] = useState({
         name: "",
+        manager: "",
         status: "Enable",
     });
 
@@ -26,15 +28,19 @@ export default function DepartmentModal({
     const [updateDepartment, { isLoading: isUpdating }] =
         useUpdateDepartmentMutation();
 
+    const { data: users = [] } = useGetAllUsersQuery();
+
     useEffect(() => {
         if (editData) {
             setFormData({
                 name: editData.name || "",
+                manager: editData.manager?._id || editData.manager || "",
                 status: editData.status || "Enable",
             });
         } else {
             setFormData({
                 name: "",
+                manager: "",
                 status: "Enable",
             });
         }
@@ -102,6 +108,30 @@ export default function DepartmentModal({
                         }
                         className="form-input"
                         placeholder="Enter department name"
+                    />
+                </InputGroup>
+
+                <InputGroup label="Manager *">
+                    <HiOutlineBriefcase className="input-icon" />
+
+                    <CustomDropdown
+                        value={formData.manager}
+                        onChange={(val) =>
+                            setFormData({
+                                ...formData,
+                                manager: val,
+                            })
+                        }
+                        options={users
+                            .filter((u) =>
+                                ["Manager", "GAD Manager", "Hr Manager"].includes(u.role)
+                            )
+                            .map((u) => ({
+                                label: `${u.name} (${u.role})`,
+                                value: u._id,
+                            }))}
+                        className="w-full"
+                        buttonClass="form-input text-xs font-bold pl-10"
                     />
                 </InputGroup>
 

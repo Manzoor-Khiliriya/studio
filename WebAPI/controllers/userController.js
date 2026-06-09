@@ -71,7 +71,7 @@ exports.createUser = async (req, res) => {
       employeeData.joinedDate = joinedDate || "";
     }
 
-    if (user.role === "GAD Employee" || user.role === "GAD Manager") {
+    if (["GAD Employee", "GAD Manager", "Hr Manager", "Hr Employee"].includes(user.role)) {
       employeeData.dailyWorkLimit = dailyWorkLimit || 9;
       employeeData.employeeCode = employeeCode?.toUpperCase();
       employeeData.departments = departments || [];
@@ -174,7 +174,7 @@ exports.updateUser = async (req, res) => {
       employeeData.joinedDate = joinedDate || "";
     }
 
-    if (user.role === "GAD Employee" || user.role === "GAD Manager") {
+    if (["GAD Employee", "GAD Manager", "Hr Manager", "Hr Employee"].includes(user.role)) {
       employeeData.dailyWorkLimit = dailyWorkLimit || 9;
       employeeData.employeeCode = employeeCode?.toUpperCase();
       employeeData.departments = departments || [];

@@ -161,11 +161,9 @@ export default function MyLeaveSection() {
                                         Approved
                                     </span>
 
-                                    {step.approvedAt && (
-                                        <span className="text-slate-400">
-                                            {new Date(step.approvedAt).toLocaleDateString()}
-                                        </span>
-                                    )}
+                                    <span className="text-slate-700">
+                                        {new Date(step.approvedAt).toLocaleDateString("en-IN")}
+                                    </span>
                                 </>
                             )}
 

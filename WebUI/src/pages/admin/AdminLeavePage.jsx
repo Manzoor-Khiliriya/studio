@@ -64,7 +64,7 @@ export default function AdminLeavePage() {
           },
         ];
 
-      case "GAD Manager":
+      case "Hr Manager":
         return [
           {
             id: "my-leaves",
@@ -94,7 +94,8 @@ export default function AdminLeavePage() {
         ];
 
       case "Manager":
-      case "GAD Employee":
+      case "Hr Employee":
+      case "GAD Manager":
         return [
           {
             id: "my-leaves",
@@ -109,6 +110,7 @@ export default function AdminLeavePage() {
         ];
 
       case "Employee":
+      case "GAD Employee":
       default:
         return [
           {
@@ -371,6 +373,7 @@ export default function AdminLeavePage() {
     if (activeTab === "requests")
       return getAdminLeaveColumns(
         user?.role,
+        user?.id,
         handleOpenConfirm,
         handleOpenEdit,
         handleOpenDelete,

@@ -12,7 +12,6 @@ const NotificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    // ADDED 'reset' HERE to match your sendNotification utility
     enum: ["task", "leave", "status", "system", "reset"], 
     default: "task",
   },
