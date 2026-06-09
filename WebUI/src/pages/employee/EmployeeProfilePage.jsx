@@ -42,10 +42,21 @@ export default function EmployeeProfilePage() {
                     {/* BASIC INFO */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <Field label="Full Name" value={user?.name} />
-                        <Field label="Email Address" value={user?.email} />
                         <Field label="Employee Code" value={data.employeeCode} />
-                        <Field label="Designation" value={data.designation} />
-
+                        <Field label="Email Address" value={user?.email} />
+                        <Field label="Designation" value={user?.designation?.name} />
+                        <Field
+                            label={
+                                ["Manager", "GAD Manager"].includes(user.role)
+                                    ? "Departments"
+                                    : "Department"
+                            }
+                            value={
+                                ["Manager", "GAD Manager"].includes(user.role)
+                                    ? data?.departments?.map((d) => d.name).join(", ")
+                                    : data?.departments?.[0]?.name
+                            }
+                        />
                         {/* PERSONAL INFO */}
                         <Field
                             label="Date of Birth"

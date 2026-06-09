@@ -2,18 +2,12 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Provider, useSelector } from "react-redux";
 import { store } from "./config/store";
 import { Toaster } from "react-hot-toast";
-
-// Components & Layout
 import Layout from "./components/Layout";
 import ProtectedRoute from "./pages/ProtectedRoute";
 import NotificationHandler from "./components/NotificationHandler";
-
-// Public Pages
 import LoginPage from "./pages/LoginPage";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage"; // <-- IMPORT THIS
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
-
-// Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminEmployeeListPage from "./pages/admin/AdminEmployeeListPage";
 import AdminEmployeeDetailPage from "./pages/admin/AdminEmployeeDetailPage";
@@ -24,8 +18,6 @@ import AdminHolidayPage from "./pages/admin/AdminHolidayPage";
 import AdminTaskPerformancePage from "./pages/admin/AdminTaskPerformancePage";
 import AdminProjectCalendar from "./pages/admin/AdminProjectCalender";
 import AdminAttendanceListPage from "./pages/admin/AdminAttendanceListPage";
-
-// Employee Pages
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
 import MyTasksPage from "./pages/employee/EmployeeTasksPage";
 import EmployeeLeavePage from "./pages/employee/EmployeeLeavePage";
@@ -68,7 +60,6 @@ function AppContent() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
-
             <Route path="/home" element={<Navigate to="/login" replace />} />
 
             <Route element={<ProtectedRoute allowedRoles={["Admin"]} />}>
@@ -78,7 +69,6 @@ function AppContent() {
                 <Route path="/employees/:id" element={<AdminEmployeeDetailPage />} />
                 <Route path="/projects" element={<AdminTaskListPage />} />
                 <Route path="/projects/:id" element={<AdminTaskDetailPage />} />
-                <Route path="/leaves" element={<AdminLeavePage />} />
                 <Route path="/holidays" element={<AdminHolidayPage />} />
                 <Route path="/performance" element={<AdminTaskPerformancePage />} />
                 <Route path="/projects-calender" element={<AdminProjectCalendar />} />
@@ -87,7 +77,18 @@ function AppContent() {
               </Route>
             </Route>
 
-            <Route element={<ProtectedRoute allowedRoles={["Employee", "Manager", "GAD Employee", "GAD Manager"]} />}>
+            <Route
+              element={
+                <ProtectedRoute
+                  allowedRoles={[
+                    "Employee",
+                    "Manager",
+                    "GAD Employee",
+                    "GAD Manager",
+                  ]}
+                />
+              }
+            >
               <Route element={<Layout />}>
                 <Route path="/employee" element={<EmployeeDashboard />} />
                 <Route path="/my-profile" element={<EmployeeProfilePage />} />
@@ -95,15 +96,41 @@ function AppContent() {
               </Route>
             </Route>
 
-            <Route element={<ProtectedRoute allowedRoles={["Employee", "Manager"]} />}>
+            <Route
+              element={
+                <ProtectedRoute
+                  allowedRoles={["Employee", "Manager"]}
+                />
+              }
+            >
               <Route element={<Layout />}>
                 <Route path="/my-tasks" element={<MyTasksPage />} />
               </Route>
             </Route>
 
-            <Route element={<ProtectedRoute allowedRoles={["GAD Manager"]} />}>
+            <Route
+              element={
+                <ProtectedRoute
+                  allowedRoles={[
+                    "Employee",
+                  ]}
+                />
+              }
+            >
               <Route element={<Layout />}>
                 <Route path="/my-leaves" element={<EmployeeLeavePage />} />
+              </Route>
+            </Route>
+
+            <Route
+              element={
+                <ProtectedRoute
+                  allowedRoles={["Admin", "Manager", "GAD Manager", "GAD Employee"]}
+                />
+              }
+            >
+              <Route element={<Layout />}>
+                <Route path="/leaves" element={<AdminLeavePage />} />
               </Route>
             </Route>
 

@@ -31,9 +31,98 @@ import {
 import { useSocketEvents } from "../../hooks/useSocketEvents";
 import CustomDropdown from "../../components/CustomDropdown";
 import useDebounce from "../../hooks/useDebounce";
+import { useSelector } from "react-redux";
+import EmployeeLeavePage from "../employee/EmployeeLeavePage";
+import MyLeaveSection from "../../components/MyLeaveSection";
 
 export default function AdminLeavePage() {
-  const [activeTab, setActiveTab] = useState("requests");
+  const { user } = useSelector((state) => state.auth);
+
+  const getTabsByRole = (role) => {
+    switch (role) {
+      case "Admin":
+        return [
+          {
+            id: "requests",
+            label: "Leave Requests",
+            icon: <HiOutlineClipboardDocumentList size={16} />,
+          },
+          {
+            id: "quota",
+            label: "Leave Quotas",
+            icon: <HiOutlineUserCircle size={16} />,
+          },
+          {
+            id: "casual-lop",
+            label: "LOP/LWP Leaves",
+            icon: <HiOutlineCalendarDays size={16} />,
+          },
+          {
+            id: "compensatory-off",
+            label: "Compensatory Off",
+            icon: <HiOutlineCalendarDays size={16} />,
+          },
+        ];
+
+      case "GAD Manager":
+        return [
+          {
+            id: "my-leaves",
+            label: "My Leaves",
+            icon: <HiOutlineUserCircle size={16} />,
+          },
+          {
+            id: "requests",
+            label: "Leave Requests",
+            icon: <HiOutlineClipboardDocumentList size={16} />,
+          },
+          {
+            id: "quota",
+            label: "Leave Quotas",
+            icon: <HiOutlineUserCircle size={16} />,
+          },
+          {
+            id: "casual-lop",
+            label: "LOP/LWP Leaves",
+            icon: <HiOutlineCalendarDays size={16} />,
+          },
+          {
+            id: "compensatory-off",
+            label: "Compensatory Off",
+            icon: <HiOutlineCalendarDays size={16} />,
+          },
+        ];
+
+      case "Manager":
+      case "GAD Employee":
+        return [
+          {
+            id: "my-leaves",
+            label: "My Leaves",
+            icon: <HiOutlineUserCircle size={16} />,
+          },
+          {
+            id: "requests",
+            label: "Leave Requests",
+            icon: <HiOutlineClipboardDocumentList size={16} />,
+          },
+        ];
+
+      case "Employee":
+      default:
+        return [
+          {
+            id: "my-leaves",
+            label: "My Leaves",
+            icon: <HiOutlineUserCircle size={16} />,
+          },
+        ];
+    }
+  };
+
+  const tabs = getTabsByRole(user?.role);
+
+  const [activeTab, setActiveTab] = useState(user?.role === "Admin" ? "requests" : "my-leaves");
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -281,6 +370,7 @@ export default function AdminLeavePage() {
   const columns = useMemo(() => {
     if (activeTab === "requests")
       return getAdminLeaveColumns(
+        user?.role,
         handleOpenConfirm,
         handleOpenEdit,
         handleOpenDelete,
@@ -311,28 +401,7 @@ export default function AdminLeavePage() {
         </div>
 
         <div className="flex bg-white p-1 rounded-2xl border border-slate-200 shadow-sm">
-          {[
-            {
-              id: "requests",
-              label: "Leave Requests",
-              icon: <HiOutlineClipboardDocumentList size={16} />,
-            },
-            {
-              id: "quota",
-              label: "Leave Quotas",
-              icon: <HiOutlineUserCircle size={16} />,
-            },
-            {
-              id: "casual-lop",
-              label: "LOP/LWP Leaves",
-              icon: <HiOutlineCalendarDays size={16} />,
-            },
-            {
-              id: "compensatory-off",
-              label: "Compensatory Off",
-              icon: <HiOutlineCalendarDays size={16} />,
-            },
-          ].map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => {
@@ -349,197 +418,203 @@ export default function AdminLeavePage() {
       </div>
 
       {/* FILTERS */}
-      <div className="flex flex-col gap-4 mb-8">
-        <div className="flex flex-col md:flex-row items-center gap-3">
-          <div className="relative flex-1 group w-full">
-            <HiOutlineMagnifyingGlass
-              className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors"
-              size={18}
-            />
-            <input
-              type="text"
-              placeholder="Search employee by name..."
-              className="w-full pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl focus:border-orange-500 outline-none font-bold text-xs transition-all shadow-sm"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setPage(1);
-              }}
-            />
-          </div>
+      {activeTab !== "my-leaves" && (
+        <div className="flex flex-col gap-4 mb-8">
+          <div className="flex flex-col md:flex-row items-center gap-3">
+            <div className="relative flex-1 group w-full">
+              <HiOutlineMagnifyingGlass
+                className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors"
+                size={18}
+              />
+              <input
+                type="text"
+                placeholder="Search employee by name..."
+                className="w-full pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl focus:border-orange-500 outline-none font-bold text-xs transition-all shadow-sm"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
 
-          {activeTab !== "quota" && (
-            <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm w-full md:w-auto">
-              {activeTab === "requests" && (
+            {activeTab !== "quota" && (
+              <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm w-full md:w-auto">
+                {activeTab === "requests" && (
+                  <CustomDropdown
+                    value={statusFilter}
+                    onChange={(val) => {
+                      setStatusFilter(val);
+                      setPage(1);
+                    }}
+                    options={[
+                      { label: "All Status", value: "All" },
+                      { label: "Pending", value: "Pending" },
+                      { label: "Approved", value: "Approved" },
+                      { label: "Declined", value: "Rejected" },
+                    ]}
+                    className="min-w-[140px]"
+                    buttonClass="shadow-sm bg-slate-50 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl text-slate-700 border border-slate-100"
+                  />
+                )}
+
                 <CustomDropdown
-                  value={statusFilter}
+                  value={dateRange}
                   onChange={(val) => {
-                    setStatusFilter(val);
+                    setDateRange(val);
                     setPage(1);
+                    if (val !== "custom") setCustomDates({ start: "", end: "" });
                   }}
                   options={[
-                    { label: "All Status", value: "All" },
-                    { label: "Pending", value: "Pending" },
-                    { label: "Approved", value: "Approved" },
-                    { label: "Declined", value: "Rejected" },
+                    { label: "All", value: "all" },
+                    { label: "Today", value: "today" },
+                    { label: "Upcoming Leaves", value: "upcoming" },
+                    { label: "Current Week", value: "current-week" },
+                    { label: "Last Week", value: "last-week" },
+                    { label: "Current Month", value: "current-month" },
+                    { label: "Last Month", value: "last-month" },
+                    { label: "Custom Range", value: "custom" },
                   ]}
-                  className="min-w-[140px]"
-                  buttonClass="bg-slate-50 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl text-slate-700 border border-slate-100"
+                  className="min-w-[160px]"
+                  buttonClass="shadow-sm bg-slate-50 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl text-slate-700 border border-slate-100"
                 />
-              )}
 
-              <CustomDropdown
-                value={dateRange}
-                onChange={(val) => {
-                  setDateRange(val);
-                  setPage(1);
-                  if (val !== "custom") setCustomDates({ start: "", end: "" });
-                }}
-                options={[
-                  { label: "All", value: "all" },
-                  { label: "Today", value: "today" },
-                  { label: "Upcoming Leaves", value: "upcoming" },
-                  { label: "Current Week", value: "current-week" },
-                  { label: "Last Week", value: "last-week" },
-                  { label: "Current Month", value: "current-month" },
-                  { label: "Last Month", value: "last-month" },
-                  { label: "Custom Range", value: "custom" },
-                ]}
-                className="min-w-[160px]"
-                buttonClass="bg-slate-50 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl text-slate-700 border border-slate-100"
-              />
+                {/* Reset Button - Modified to reset to "current-week" */}
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setStatusFilter("All");
+                    setDateRange("current-week");
+                    setCustomDates({ start: "", end: "" });
+                    setPage(1);
+                  }}
+                  className="cursor-pointer p-2.5 text-orange-400 hover:text-orange-600 transition-colors"
+                  title="Reset Filters"
+                >
+                  <HiOutlineArrowPath size={18} />
+                </button>
+              </div>
+            )}
 
-              {/* Reset Button - Modified to reset to "current-week" */}
+            <div className="flex gap-2">
               <button
-                onClick={() => {
-                  setSearchQuery("");
-                  setStatusFilter("All");
-                  setDateRange("current-week");
-                  setCustomDates({ start: "", end: "" });
-                  setPage(1);
-                }}
-                className="cursor-pointer p-2.5 text-orange-400 hover:text-orange-600 transition-colors"
-                title="Reset Filters"
+                onClick={handleExportCSV}
+                className="p-4 bg-white text-slate-900 border border-slate-200 rounded-2xl hover:text-orange-600 transition-all cursor-pointer shadow-sm"
+                title="Export to CSV"
               >
-                <HiOutlineArrowPath size={18} />
+                <HiOutlineArrowDownTray size={18} />
+              </button>
+              <button
+                onClick={() => setIsSettingsOpen(true)}
+                className="p-4 bg-slate-900 text-white rounded-2xl hover:bg-orange-600 transition-all cursor-pointer shadow-lg shadow-slate-200"
+              >
+                <HiOutlineCog6Tooth size={18} />
               </button>
             </div>
+          </div>
+
+          {/* --- CUSTOM DATE INPUTS --- */}
+          {dateRange === "custom" && activeTab !== "quota" && (
+            <div className="flex flex-wrap items-center gap-3 p-4 bg-orange-50 border border-orange-100 rounded-[1.5rem] animate-in slide-in-from-top-2 duration-300">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase text-orange-600 ml-2">
+                  From:
+                </span>
+                <input
+                  type="date"
+                  className="bg-white px-4 py-2 rounded-xl border border-orange-200 text-xs font-bold outline-none focus:border-orange-500"
+                  value={customDates.start}
+                  onChange={(e) =>
+                    setCustomDates((prev) => ({ ...prev, start: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase text-orange-600">
+                  To:
+                </span>
+                <input
+                  type="date"
+                  className="bg-white px-4 py-2 rounded-xl border border-orange-200 text-xs font-bold outline-none focus:border-orange-500"
+                  value={customDates.end}
+                  onChange={(e) =>
+                    setCustomDates((prev) => ({ ...prev, end: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="ml-auto flex items-center gap-2 pr-4">
+                <p className="text-[9px] font-bold text-orange-400 italic ml-auto mr-4">
+                  {activeTab === "requests"
+                    ? "Filtering by submission date"
+                    : "Filtering by leave start date"}
+                </p>
+              </div>
+            </div>
           )}
-
-          <div className="flex gap-2">
-            <button
-              onClick={handleExportCSV}
-              className="p-4 bg-white text-slate-900 border border-slate-200 rounded-2xl hover:text-orange-600 transition-all cursor-pointer shadow-sm"
-              title="Export to CSV"
-            >
-              <HiOutlineArrowDownTray size={18} />
-            </button>
-            <button
-              onClick={() => setIsSettingsOpen(true)}
-              className="p-4 bg-slate-900 text-white rounded-2xl hover:bg-orange-600 transition-all cursor-pointer shadow-lg shadow-slate-200"
-            >
-              <HiOutlineCog6Tooth size={18} />
-            </button>
-          </div>
         </div>
-
-        {/* --- CUSTOM DATE INPUTS --- */}
-        {dateRange === "custom" && activeTab !== "quota" && (
-          <div className="flex flex-wrap items-center gap-3 p-4 bg-orange-50 border border-orange-100 rounded-[1.5rem] animate-in slide-in-from-top-2 duration-300">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black uppercase text-orange-600 ml-2">
-                From:
-              </span>
-              <input
-                type="date"
-                className="bg-white px-4 py-2 rounded-xl border border-orange-200 text-xs font-bold outline-none focus:border-orange-500"
-                value={customDates.start}
-                onChange={(e) =>
-                  setCustomDates((prev) => ({ ...prev, start: e.target.value }))
-                }
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black uppercase text-orange-600">
-                To:
-              </span>
-              <input
-                type="date"
-                className="bg-white px-4 py-2 rounded-xl border border-orange-200 text-xs font-bold outline-none focus:border-orange-500"
-                value={customDates.end}
-                onChange={(e) =>
-                  setCustomDates((prev) => ({ ...prev, end: e.target.value }))
-                }
-              />
-            </div>
-            <div className="ml-auto flex items-center gap-2 pr-4">
-              <p className="text-[9px] font-bold text-orange-400 italic ml-auto mr-4">
-                {activeTab === "requests"
-                  ? "Filtering by submission date"
-                  : "Filtering by leave start date"}
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* TABLE */}
-      <div className="border border-slate-200 rounded-[2rem] overflow-visible bg-white shadow-xl shadow-slate-200/50">
-        <div className={isFetching ? "opacity-50" : "opacity-100"}>
-          {isTabLoading || !leaves ? (
-            <Loader message="Loading data..." />
-          ) : (
-            <div className="rounded-t-[2rem] overflow-hidden">
-              <Table
-                columns={columns}
-                data={leaves}
-                emptyMessage="No records found."
-              />
-            </div>
-          )}
-        </div>
-
-        <div className="bg-white p-6 border-t border-slate-200 rounded-b-[2rem] flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100 shadow-sm">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200 pr-3">
-                Page Limit
-              </span>
-              <CustomDropdown
-                value={limit.toString()}
-                onChange={(val) => {
-                  setLimit(Number(val));
-                  setCurrentPage(1);
-                }}
-                options={[5, 10, 25, 50].map((v) => ({
-                  label: `${v}`,
-                  value: v.toString(),
-                }))}
-                className="w-10"
-                buttonClass="w-full p-1 bg-transparent text-[9px] font-black cursor-pointer text-slate-700 flex items-center gap-2"
-              />
-            </div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase">
-              Total {paginationData.totalLeaves} Records
-            </span>
+      {activeTab === "my-leaves" ? (
+        <MyLeaveSection />
+      ) : (
+        <div className="border border-slate-200 rounded-[2rem] overflow-visible bg-white shadow-xl shadow-slate-200/50">
+          <div className={isFetching ? "opacity-50" : "opacity-100"}>
+            {isTabLoading || !leaves ? (
+              <Loader message="Loading data..." />
+            ) : (
+              <div className="rounded-t-[2rem] overflow-hidden">
+                <Table
+                  columns={columns}
+                  data={leaves}
+                  emptyMessage="No records found."
+                />
+              </div>
+            )}
           </div>
 
-          <Pagination
-            pagination={{
-              current: page,
-              total: paginationData.totalPages,
-              count: paginationData.totalLeaves,
-              limit,
-            }}
-            onPageChange={(p) => {
-              setPage(p);
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-            loading={isFetching}
-            label="Leaves"
-          />
+          <div className="bg-white p-6 border-t border-slate-200 rounded-b-[2rem] flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100 shadow-sm">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200 pr-3">
+                  Page Limit
+                </span>
+                <CustomDropdown
+                  value={limit.toString()}
+                  onChange={(val) => {
+                    setLimit(Number(val));
+                    setCurrentPage(1);
+                  }}
+                  options={[5, 10, 25, 50].map((v) => ({
+                    label: `${v}`,
+                    value: v.toString(),
+                  }))}
+                  className="w-10"
+                  buttonClass="w-full p-1 bg-transparent text-[9px] font-black cursor-pointer text-slate-700 flex items-center gap-2"
+                />
+              </div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase">
+                Total {paginationData.totalLeaves} Records
+              </span>
+            </div>
+
+            <Pagination
+              pagination={{
+                current: page,
+                total: paginationData.totalPages,
+                count: paginationData.totalLeaves,
+                limit,
+              }}
+              onPageChange={(p) => {
+                setPage(p);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              loading={isFetching}
+              label="Leaves"
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* --- MODALS --- */}
       <LeaveModal

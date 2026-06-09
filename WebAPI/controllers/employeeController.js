@@ -124,7 +124,7 @@ exports.getMyEmployeeProfile = async (req, res) => {
       )
       .populate({
         path: "user",
-        select: "name email designation",
+        select: "name email role designation",
         populate: {
           path: "designation",
           select: "name",

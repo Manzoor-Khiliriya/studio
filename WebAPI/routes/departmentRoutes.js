@@ -7,12 +7,13 @@ const {
   deleteDepartment,
 } = require("../controllers/departmentController");
 const { authenticate, authorize } = require("../middlewares/authMiddleware");
+const { ROLE } = require("../utils/constant");
 
 router.use(authenticate);
 
-router.get("/", authorize("Admin"), getDepartments);
-router.post("/", authorize("Admin"), createDepartment);
-router.put("/:id", authorize("Admin"), updateDepartment);
-router.delete("/:id", authorize("Admin"), deleteDepartment);
+router.get("/", authorize(ROLE.ADMIN), getDepartments);
+router.post("/", authorize(ROLE.ADMIN), createDepartment);
+router.put("/:id", authorize(ROLE.ADMIN), updateDepartment);
+router.delete("/:id", authorize(ROLE.ADMIN), deleteDepartment);
 
 module.exports = router;

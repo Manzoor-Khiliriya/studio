@@ -6,34 +6,29 @@ const {
   getEstimate,
   updateProject,
   deleteProject,
-  getProjectCalendarStacks, // <--- Import the new controller function
-  getTaskPerformanceReport
+  getProjectCalendarStacks,
+  getTaskPerformanceReport,
 } = require("../controllers/projectController");
-
 const { authenticate, authorize } = require("../middlewares/authMiddleware");
+const { ROLE } = require("../utils/constant");
 
-// 1. Base Project Routes
-router.route("/")
-  .get(authenticate, getAllProjects)
-  .post(authenticate, authorize("Admin"), createProject);
+router.use(authenticate);
 
-// 2. Calendar Aggregation Route (Place this BEFORE /:id)
-// Matches: GET /api/projects/calendar?search=PROJ-101
-router.get("/calendar", authenticate, getProjectCalendarStacks);
+router
+  .route("/")
+  .get(authorize(ROLE.ADMIN), getAllProjects)
+  .post(authorize(ROLE.ADMIN), createProject);
+router.get("/calendar", authorize(ROLE.ADMIN), getProjectCalendarStacks);
 router.get(
-  "/reports/performance", 
-  authenticate,
-  authorize("Admin"), 
-  getTaskPerformanceReport
+  "/reports/performance",
+  authorize(ROLE.ADMIN),
+  getTaskPerformanceReport,
 );
-
-// 3. Specific Project ID Routes
-router.route("/:id")
-  .put(authenticate, authorize("Admin"), updateProject)
-  .delete(authenticate, authorize("Admin"), deleteProject);
+router
+  .route("/:id")
+  .put(authorize(ROLE.ADMIN), updateProject)
+  .delete(authorize(ROLE.ADMIN), deleteProject);
 
 router.get("/:id/calculate-estimate", authenticate, getEstimate);
-
-
 
 module.exports = router;

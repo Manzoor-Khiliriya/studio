@@ -64,7 +64,7 @@ const renderQuotaCell = (balance, colorClass = "text-slate-900", isAccrual = fal
   );
 };
 
-export const getAdminLeaveColumns = (onAction, onEdit, onDelete) => [
+export const getAdminLeaveColumns = (role, onAction, onEdit, onDelete) => [
   {
     header: "Employee",
     render: (req) => (
@@ -137,12 +137,16 @@ export const getAdminLeaveColumns = (onAction, onEdit, onDelete) => [
             </button>
           </>
         )}
-        <button onClick={() => onEdit(req)} className="text-yellow-500 hover:text-yellow-600 hover:scale-110 transition-transform cursor-pointer" title="Update Leave Details">
-          <HiOutlinePencilSquare size={18} />
-        </button>
-        <button onClick={() => onDelete(req._id)} className="text-red-500 hover:text-red-600 hover:scale-110 transition-transform cursor-pointer" title="Delete Permanent">
-          <HiOutlineTrash size={18} />
-        </button>
+        {role === "Admin" || role === "GAD Manager" && (
+          <>
+            <button onClick={() => onEdit(req)} className="text-yellow-500 hover:text-yellow-600 hover:scale-110 transition-transform cursor-pointer" title="Update Leave Details">
+              <HiOutlinePencilSquare size={18} />
+            </button>
+            <button onClick={() => onDelete(req._id)} className="text-red-500 hover:text-red-600 hover:scale-110 transition-transform cursor-pointer" title="Delete Permanent">
+              <HiOutlineTrash size={18} />
+            </button>
+          </>
+        )}
       </div>
     ),
   },

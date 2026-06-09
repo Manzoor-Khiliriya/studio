@@ -2,33 +2,21 @@ const express = require("express");
 const router = express.Router();
 const timeLogController = require("../controllers/timeLogController");
 const { authenticate, authorize } = require("../middlewares/authMiddleware");
+const { ROLE } = require("../utils/constant");
 
-// All time tracking routes require authentication
 router.use(authenticate);
 
-/* =========================================================
-   EMPLOYEE ACTIONS (Self Time Tracking)
-   ========================================================= */
-
-// Start/Resume work on a task
-router.post("/start", timeLogController.startTimer);
-
-// Toggle between 'work' and 'break'
-router.post("/pause", timeLogController.togglePause);
-
-// Stop current active timer
-router.post("/stop", timeLogController.stopTimer);
-
-// Get today’s logs + active status for the dashboard
-router.get("/my", timeLogController.getMyLogs);
+router.post("/start", authorize(ROLE.ADMIN, ROLE.EMPLOYEE, ROLE.MANAGER), timeLogController.startTimer);
+router.post("/pause", authorize(ROLE.ADMIN, ROLE.EMPLOYEE, ROLE.MANAGER), timeLogController.togglePause);
+router.post("/stop", authorize(ROLE.ADMIN, ROLE.EMPLOYEE, ROLE.MANAGER), timeLogController.stopTimer);
+router.get("/my", authorize(ROLE.ADMIN, ROLE.EMPLOYEE, ROLE.MANAGER), timeLogController.getMyLogs);
 
 router.post(
   "/stop-all",
-  authorize("Admin"),
+  authorize(ROLE.ADMIN),
   timeLogController.stopAllLiveSessions,
 );
 
-// Archive/Clear logs from the active admin view
-router.post("/clear-all", authorize("Admin"), timeLogController.clearLogs);
+router.post("/clear-all", authorize(ROLE.ADMIN), timeLogController.clearLogs);
 
 module.exports = router;

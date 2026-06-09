@@ -79,7 +79,7 @@ const LeaveModal = ({ isOpen, onClose, initialData }) => {
               setFormData({ ...formData, type: val })
             }
             options={[
-              "Annual Leave",
+              "Earned Leave",
               "Sick Leave",
               "Casual Leave",
               "Maternity Leave",

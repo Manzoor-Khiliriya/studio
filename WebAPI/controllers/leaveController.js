@@ -1,11 +1,15 @@
 const Leave = require("../models/Leave");
 const User = require("../models/User");
 const LeaveSetting = require("../models/LeaveSetting");
-const { calculateLeaveDays, hasLeaveOverlap } = require("../utils/leaveHelpers");
+const {
+  calculateLeaveDays,
+  hasLeaveOverlap,
+} = require("../utils/leaveHelpers");
 const sendNotification = require("../utils/notifier");
 const { emitDashboardUpdate } = require("../utils/socket");
 const LeaveBalance = require("../models/LeaveBalance");
 const { now } = require("../utils/dateHelper");
+const { buildApprovalFlow } = require("../utils/leaveApprovalFlow");
 
 const emitEvent = (req, event, data, userId = null) => {
   const io = req.app.get("socketio");
@@ -25,7 +29,7 @@ const getTakenDays = async (userId, type, currentYearOnly = true) => {
     const year = new Date().getFullYear();
     query.startDate = {
       $gte: new Date(`${year}-01-01`),
-      $lte: new Date(`${year}-12-31`)
+      $lte: new Date(`${year}-12-31`),
     };
   }
 
@@ -52,14 +56,14 @@ exports.getMyLeaves = async (req, res) => {
 
     // 🔥 Earned LEAVE (UPDATED LOGIC)
     const t = "Earned Leave";
-    const setting = settings.find(s => s.leaveType === t);
+    const setting = settings.find((s) => s.leaveType === t);
 
     const currentYear = new Date().getFullYear();
 
     let balance = await LeaveBalance.findOne({
       user: userId,
       year: currentYear,
-      type: "Earned Leave"
+      type: "Earned Leave",
     });
 
     // ✅ create if not exists
@@ -67,7 +71,7 @@ exports.getMyLeaves = async (req, res) => {
       balance = await LeaveBalance.create({
         user: userId,
         year: currentYear,
-        type: "Earned Leave"
+        type: "Earned Leave",
       });
     }
 
@@ -76,15 +80,13 @@ exports.getMyLeaves = async (req, res) => {
 
     const carryForwardLimited = Math.min(
       carryForward,
-      setting?.carryForwardLimit || 0
+      setting?.carryForwardLimit || 0,
     );
 
     const taken = await getTakenDays(userId, t, false);
 
     const totalAvailable =
-      earned +
-      carryForwardLimited +
-      (balance.initialAdjustment || 0);
+      earned + carryForwardLimited + (balance.initialAdjustment || 0);
 
     const balances = {
       "Earned Leave": {
@@ -92,8 +94,8 @@ exports.getMyLeaves = async (req, res) => {
         taken,
         remaining: +(totalAvailable - taken).toFixed(1),
         carryForward: carryForwardLimited,
-        type: "accrual"
-      }
+        type: "accrual",
+      },
     };
 
     // 🔍 FILTERS (UNCHANGED)
@@ -111,23 +113,22 @@ exports.getMyLeaves = async (req, res) => {
     const history = await Promise.all(
       leaves.map(async (l) => ({
         ...l.toObject(),
-        businessDays: await calculateLeaveDays(l.startDate, l.endDate)
-      }))
+        businessDays: await calculateLeaveDays(l.startDate, l.endDate),
+      })),
     );
 
     // 📦 RESPONSE (UNCHANGED STRUCTURE)
     res.json({
       history,
       balances: {
-        earnedLeave: balances["Earned Leave"]
+        earnedLeave: balances["Earned Leave"],
       },
       pagination: {
         totalLeaves,
         totalPages: Math.ceil(totalLeaves / parseInt(limit)),
-        currentPage: parseInt(page)
-      }
+        currentPage: parseInt(page),
+      },
     });
-
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -143,7 +144,10 @@ exports.applyLeave = async (req, res) => {
 
     const requestedDays = await calculateLeaveDays(startDate, endDate);
 
-    const existing = await Leave.find({ user: userId, status: { $ne: "Rejected" } });
+    const existing = await Leave.find({
+      user: userId,
+      status: { $ne: "Rejected" },
+    });
     if (hasLeaveOverlap(existing, startDate, endDate)) {
       return res.status(400).json({ message: "Overlap with existing leave." });
     }
@@ -157,14 +161,14 @@ exports.applyLeave = async (req, res) => {
       let balance = await LeaveBalance.findOne({
         user: userId,
         year: currentYear,
-        type: "Earned Leave"
+        type: "Earned Leave",
       });
 
       if (!balance) {
         balance = await LeaveBalance.create({
           user: userId,
           year: currentYear,
-          type: "Earned Leave"
+          type: "Earned Leave",
         });
       }
 
@@ -173,19 +177,17 @@ exports.applyLeave = async (req, res) => {
 
       const carryForwardLimited = Math.min(
         carryForward,
-        setting?.carryForwardLimit || 0
+        setting?.carryForwardLimit || 0,
       );
 
       const taken = await getTakenDays(userId, "Earned Leave", false);
 
       const totalAvailable =
-        earned +
-        carryForwardLimited +
-        (balance.initialAdjustment || 0);
+        earned + carryForwardLimited + (balance.initialAdjustment || 0);
 
-      if (requestedDays > (totalAvailable - taken)) {
+      if (requestedDays > totalAvailable - taken) {
         return res.status(400).json({
-          message: `Insufficient Earned Leave balance. Available ${totalAvailable - taken} Leaves`
+          message: `Insufficient Earned Leave balance. Available ${totalAvailable - taken} Leaves`,
         });
       }
     }
@@ -197,24 +199,47 @@ exports.applyLeave = async (req, res) => {
 
       if (taken + requestedDays > quota) {
         return res.status(400).json({
-          message: `Insufficient ${type} balance. Available: ${quota - taken} Leaves`
+          message: `Insufficient ${type} balance. Available: ${quota - taken} Leaves`,
         });
       }
     }
 
+    const approvalFlow = buildApprovalFlow(req.user.role);
     const leave = await Leave.create({
       user: userId,
       type,
       startDate,
       endDate,
-      reason
+      reason,
+      approvalFlow,
+      currentLevel: 0,
+      status: "Pending",
     });
+
+    const firstRole = approvalFlow[0]?.role;
+
+    const approvers = await User.find({
+      role: firstRole,
+      status: "Enable",
+    });
+
+    const io = req.app.get("socketio");
+
+    for (const approver of approvers) {
+      await sendNotification(
+        approver,
+        {
+          type: "leave",
+          message: `New ${type} leave request requires your approval`,
+        },
+        io,
+      );
+    }
 
     emitEvent(req, "leaveChanged");
     emitDashboardUpdate(req);
 
     res.status(201).json(leave);
-
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -230,8 +255,17 @@ exports.getAllLeaves = async (req, res) => {
       view = "requests",
       dateRange,
       startDate: customStart,
-      endDate: customEnd
+      endDate: customEnd,
     } = req.query;
+
+    const role = req.user?.role;
+
+    if (role === "Manager" && !["my-leaves", "requests"].includes(view)) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied",
+      });
+    }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
@@ -246,13 +280,11 @@ exports.getAllLeaves = async (req, res) => {
       if (dateRange === "today") {
         start.setHours(0, 0, 0, 0);
         end.setHours(23, 59, 59, 999);
-      }
-      else if (dateRange === "upcoming") {
+      } else if (dateRange === "upcoming") {
         start.setDate(start.getDate() + 1);
         start.setHours(0, 0, 0, 0);
         end.setFullYear(currentTime.getFullYear() + 2);
-      }
-      else if (dateRange === "current-week") {
+      } else if (dateRange === "current-week") {
         // Logic: Monday to Sunday
         const day = currentTime.getDay();
         const diff = currentTime.getDate() - day + (day === 0 ? -6 : 1);
@@ -261,8 +293,7 @@ exports.getAllLeaves = async (req, res) => {
 
         end.setDate(start.getDate() + 6);
         end.setHours(23, 59, 59, 999);
-      }
-      else if (dateRange === "last-week") {
+      } else if (dateRange === "last-week") {
         // Previous Monday to Previous Sunday
         const day = currentTime.getDay();
         const diff = currentTime.getDate() - day + (day === 0 ? -6 : 1) - 7;
@@ -271,20 +302,17 @@ exports.getAllLeaves = async (req, res) => {
 
         end.setDate(start.getDate() + 6);
         end.setHours(23, 59, 59, 999);
-      }
-      else if (dateRange === "current-month") {
+      } else if (dateRange === "current-month") {
         start.setDate(1); // First of this month
         start.setHours(0, 0, 0, 0);
         end.setMonth(currentTime.getMonth() + 1, 0); // Last day of this month
         end.setHours(23, 59, 59, 999);
-      }
-      else if (dateRange === "last-month") {
+      } else if (dateRange === "last-month") {
         start.setMonth(currentTime.getMonth() - 1, 1); // First of last month
         start.setHours(0, 0, 0, 0);
         end.setMonth(currentTime.getMonth(), 0); // Last day of last month
         end.setHours(23, 59, 59, 999);
-      }
-      else if (dateRange === "custom" && customStart && customEnd) {
+      } else if (dateRange === "custom" && customStart && customEnd) {
         start.setTime(new Date(customStart).getTime());
         start.setHours(0, 0, 0, 0);
         end.setTime(new Date(customEnd).getTime());
@@ -295,16 +323,76 @@ exports.getAllLeaves = async (req, res) => {
       filterEnd = end;
     }
 
+    if (view === "my-leaves") {
+      let query = {
+        user: req.user._id,
+      };
+
+      if (status && status !== "All") {
+        query.status = status;
+      }
+
+      if (filterStart && filterEnd) {
+        query.createdAt = {
+          $gte: filterStart,
+          $lte: filterEnd,
+        };
+      }
+
+      const totalLeaves = await Leave.countDocuments(query);
+
+      const leaves = await Leave.find(query)
+        .populate({
+          path: "user",
+          select: "name email designation",
+          populate: {
+            path: "employee",
+            select: "employeeCode",
+          },
+        })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean();
+
+      const processedLeaves = await Promise.all(
+        leaves.map(async (leave) => ({
+          ...leave,
+          duration: await calculateLeaveDays(leave.startDate, leave.endDate),
+        })),
+      );
+
+      return res.json({
+        view: "my-leaves",
+        leaves: processedLeaves,
+        pagination: {
+          totalLeaves,
+          totalPages: Math.ceil(totalLeaves / parseInt(limit)),
+          currentPage: parseInt(page),
+        },
+      });
+    }
+
     // --- VIEW 1: REQUESTS (Filtered & Sorted by CREATED date) ---
     if (view === "requests") {
-      let query = {};
+      let query = {
+        approvalFlow: {
+          $elemMatch: {
+            role: req.user.role,
+            status: "Pending",
+          },
+        },
+      };
+
       if (filterStart && filterEnd) {
         query.createdAt = { $gte: filterStart, $lte: filterEnd };
       }
 
       if (status && status !== "All") query.status = status;
       if (search) {
-        const users = await User.find({ name: { $regex: search, $options: "i" } }).select("_id");
+        const users = await User.find({
+          name: { $regex: search, $options: "i" },
+        }).select("_id");
         query.user = { $in: users.map((u) => u._id) };
       }
 
@@ -312,24 +400,29 @@ exports.getAllLeaves = async (req, res) => {
       const leaves = await Leave.find(query)
         .populate({
           path: "user",
-          select: "name email",
-          populate: { path: "employee", select: "employeeCode designation" }
+          select: "name email designation",
+          populate: { path: "employee", select: "employeeCode" },
         })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit))
         .lean();
 
-      const processedLeaves = await Promise.all(leaves.map(async (l) => ({
-        ...l,
-        duration: await calculateLeaveDays(l.startDate, l.endDate)
-      })));
-
+      const processedLeaves = await Promise.all(
+        leaves.map(async (l) => ({
+          ...l,
+          duration: await calculateLeaveDays(l.startDate, l.endDate),
+        })),
+      );
 
       return res.json({
         view: "requests",
         leaves: processedLeaves,
-        pagination: { totalLeaves, totalPages: Math.ceil(totalLeaves / parseInt(limit)), currentPage: parseInt(page) }
+        pagination: {
+          totalLeaves,
+          totalPages: Math.ceil(totalLeaves / parseInt(limit)),
+          currentPage: parseInt(page),
+        },
       });
     }
 
@@ -342,7 +435,9 @@ exports.getAllLeaves = async (req, res) => {
       }
 
       if (search) {
-        const users = await User.find({ name: { $regex: search, $options: "i" } }).select("_id");
+        const users = await User.find({
+          name: { $regex: search, $options: "i" },
+        }).select("_id");
         query.user = { $in: users.map((u) => u._id) };
       }
 
@@ -350,23 +445,29 @@ exports.getAllLeaves = async (req, res) => {
       const leavesRaw = await Leave.find(query)
         .populate({
           path: "user",
-          select: "name email",
-          populate: { path: "employee", select: "employeeCode designation" }
+          select: "name email designation",
+          populate: { path: "employee", select: "employeeCode" },
         })
         .sort({ startDate: -1 }) // Sort by when the leave actually happens
         .skip(skip)
         .limit(parseInt(limit))
         .lean();
 
-      const leaves = await Promise.all(leavesRaw.map(async (l) => ({
-        ...l,
-        duration: await calculateLeaveDays(l.startDate, l.endDate)
-      })));
+      const leaves = await Promise.all(
+        leavesRaw.map(async (l) => ({
+          ...l,
+          duration: await calculateLeaveDays(l.startDate, l.endDate),
+        })),
+      );
 
       return res.json({
         view: "casual-lop",
         leaves,
-        pagination: { totalLeaves, totalPages: Math.ceil(totalLeaves / parseInt(limit)), currentPage: parseInt(page) }
+        pagination: {
+          totalLeaves,
+          totalPages: Math.ceil(totalLeaves / parseInt(limit)),
+          currentPage: parseInt(page),
+        },
       });
     }
 
@@ -378,7 +479,9 @@ exports.getAllLeaves = async (req, res) => {
       }
 
       if (search) {
-        const users = await User.find({ name: { $regex: search, $options: "i" } }).select("_id");
+        const users = await User.find({
+          name: { $regex: search, $options: "i" },
+        }).select("_id");
         query.user = { $in: users.map((u) => u._id) };
       }
 
@@ -386,30 +489,37 @@ exports.getAllLeaves = async (req, res) => {
       const leavesRaw = await Leave.find(query)
         .populate({
           path: "user",
-          select: "name email",
-          populate: { path: "employee", select: "employeeCode designation" }
+          select: "name email designation",
+          populate: { path: "employee", select: "employeeCode" },
         })
         .sort({ startDate: -1 }) // Sort by when the leave actually happens
         .skip(skip)
         .limit(parseInt(limit))
         .lean();
 
-      const leaves = await Promise.all(leavesRaw.map(async (l) => ({
-        ...l,
-        duration: await calculateLeaveDays(l.startDate, l.endDate)
-      })));
+      const leaves = await Promise.all(
+        leavesRaw.map(async (l) => ({
+          ...l,
+          duration: await calculateLeaveDays(l.startDate, l.endDate),
+        })),
+      );
 
       return res.json({
         view: "compensatory-off",
         leaves,
-        pagination: { totalLeaves, totalPages: Math.ceil(totalLeaves / parseInt(limit)), currentPage: parseInt(page) }
+        pagination: {
+          totalLeaves,
+          totalPages: Math.ceil(totalLeaves / parseInt(limit)),
+          currentPage: parseInt(page),
+        },
       });
     }
 
     // --- VIEW 3: QUOTA ---
     if (view === "quota") {
-      // UPDATED: Added { role: "employee" } to the query
-      const userQuery = { role: "Employee" };
+      const userQuery = {
+        role: { $in: ["Employee", "Manager", "GAD Employee", "GAD Manager"] },
+      };
       if (search) {
         userQuery.name = { $regex: search, $options: "i" };
       }
@@ -417,58 +527,70 @@ exports.getAllLeaves = async (req, res) => {
       const users = await User.find(userQuery).populate("employee").lean();
 
       const settings = await LeaveSetting.find();
-      const leaveTypes = ["Earned Leave", "Casual Leave", "Sick Leave", "Bereavement Leave", "Paternity Leave", "Maternity Leave"];
+      const leaveTypes = [
+        "Earned Leave",
+        "Casual Leave",
+        "Sick Leave",
+        "Bereavement Leave",
+        "Paternity Leave",
+        "Maternity Leave",
+      ];
 
-      const quotaData = await Promise.all(users.map(async (user) => {
+      const quotaData = await Promise.all(
+        users.map(async (user) => {
+          const userBalances = {};
+          for (const t of leaveTypes) {
+            const setting = settings.find((s) => s.leaveType === t);
+            if (t === "Earned Leave") {
+              const balance = await LeaveBalance.findOne({
+                user: user._id,
+                year: new Date().getFullYear(),
+                type: "Earned Leave",
+              });
 
-        const userBalances = {};
-        for (const t of leaveTypes) {
-          const setting = settings.find(s => s.leaveType === t);
-          if (t === "Earned Leave") {
-            const balance = await LeaveBalance.findOne({
-              user: user._id,
-              year: new Date().getFullYear(),
-              type: "Earned Leave"
-            });
+              const earned = balance?.earned || 0;
+              const carryForward = balance?.carriedForward || 0;
 
-            const earned = balance?.earned || 0;
-            const carryForward = balance?.carriedForward || 0;
+              const carryForwardLimited = Math.min(
+                carryForward,
+                setting?.carryForwardLimit || 0,
+              );
 
-            const carryForwardLimited = Math.min(
-              carryForward,
-              setting?.carryForwardLimit || 0
-            );
+              const taken = await getTakenDays(user._id, t, false);
 
-            const taken = await getTakenDays(user._id, t, false);
+              const totalAvailable =
+                earned +
+                carryForwardLimited +
+                (balance?.initialAdjustment || 0);
 
-            const totalAvailable =
-              earned +
-              carryForwardLimited +
-              (balance?.initialAdjustment || 0);
-
-            userBalances[t] = {
-              earned: +earned.toFixed(1),
-              taken,
-              remaining: +(totalAvailable - taken).toFixed(1),
-              carryForward: carryForwardLimited,
-              adjustment: balance?.initialAdjustment || 0
-            };
-          } else {
-            const quota = setting ? setting.yearlyQuota : 10;
-            const taken = await getTakenDays(user._id, t, true);
-            userBalances[t] = { quota, taken, remaining: Math.max(0, quota - taken) };
+              userBalances[t] = {
+                earned: +earned.toFixed(1),
+                taken,
+                remaining: +(totalAvailable - taken).toFixed(1),
+                carryForward: carryForwardLimited,
+                adjustment: balance?.initialAdjustment || 0,
+              };
+            } else {
+              const quota = setting ? setting.yearlyQuota : 10;
+              const taken = await getTakenDays(user._id, t, true);
+              userBalances[t] = {
+                quota,
+                taken,
+                remaining: Math.max(0, quota - taken),
+              };
+            }
           }
-        }
-        return {
-          _id: user._id,
-          employee: {
-            user: { name: user.name },
-            employeeCode: user.employee?.employeeCode || "N/A",
-            designation: user.employee?.designation || "Staff"
-          },
-          balances: userBalances
-        };
-      }));
+          return {
+            _id: user._id,
+            employee: {
+              user: { name: user.name },
+              employeeCode: user.employee?.employeeCode || "N/A",
+              designation: user.employee?.designation || "Staff",
+            },
+            balances: userBalances,
+          };
+        }),
+      );
 
       const paginatedResults = quotaData.slice(skip, skip + parseInt(limit));
 
@@ -478,8 +600,8 @@ exports.getAllLeaves = async (req, res) => {
         pagination: {
           totalLeaves: quotaData.length,
           totalPages: Math.ceil(quotaData.length / parseInt(limit)),
-          currentPage: parseInt(page)
-        }
+          currentPage: parseInt(page),
+        },
       });
     }
   } catch (err) {
@@ -511,7 +633,7 @@ exports.updateLeaveSettings = async (req, res) => {
     const setting = await LeaveSetting.findOneAndUpdate(
       { leaveType },
       updateFields,
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
     emitEvent(req, "leaveChanged");
     emitDashboardUpdate(req);
@@ -527,8 +649,14 @@ exports.getLeaveCalendar = async (req, res) => {
     const leaves = await Leave.find({
       status: "Approved",
       startDate: { $lte: new Date(endDate) },
-      endDate: { $gte: new Date(startDate) }
-    }).populate({ path: "user", select: "name", populate: { path: "employee", select: "employeeCode" } }).lean();
+      endDate: { $gte: new Date(startDate) },
+    })
+      .populate({
+        path: "user",
+        select: "name",
+        populate: { path: "employee", select: "employeeCode" },
+      })
+      .lean();
 
     const result = [];
     for (const leave of leaves) {
@@ -539,13 +667,15 @@ exports.getLeaveCalendar = async (req, res) => {
           date: current.toISOString().split("T")[0],
           name: leave.user?.name,
           employeeCode: leave.user?.employee?.employeeCode,
-          type: leave.type
+          type: leave.type,
         });
         current.setDate(current.getDate() + 1);
       }
     }
     res.json(result);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
 exports.processLeave = async (req, res) => {
@@ -558,22 +688,101 @@ exports.processLeave = async (req, res) => {
 
     const newStatus = req.body.status;
 
+    if (!["Approved", "Rejected"].includes(newStatus)) {
+      return res.status(400).json({
+        message: "Invalid status",
+      });
+    }
+
+    if (!leave?.approvalFlow?.length) {
+      return res.status(400).json({
+        message: "Leave approval workflow not found",
+      });
+    }
+
+    const currentStep = leave?.approvalFlow[leave.currentLevel];
+    if (currentStep.role !== req.user.role) {
+      return res.status(403).json({
+        message: "Not your approval stage",
+      });
+    }
+
+    if (newStatus === "Rejected") {
+      currentStep.status = "Rejected";
+      currentStep.approvedBy = req.user._id;
+      currentStep.approvedAt = now();
+      leave.status = "Rejected";
+      await leave.save();
+      emitEvent(req, "leaveChanged");
+      emitDashboardUpdate(req);
+      const io = req.app.get("socketio");
+
+      const employee = await User.findById(leave.user);
+
+      await sendNotification(
+        employee,
+        {
+          type: "leave",
+          message: `Your ${leave.type} request has been rejected by ${req?.user?.role}`,
+        },
+        io,
+      );
+      return res.json(leave);
+    }
+
+    currentStep.status = "Approved";
+    currentStep.approvedBy = req.user._id;
+    currentStep.approvedAt = now();
+
+    const isLastStep = leave.currentLevel === leave.approvalFlow.length - 1;
+
+    if (!isLastStep) {
+      const nextRole = leave.approvalFlow[leave.currentLevel + 1].role;
+      leave.currentLevel += 1;
+      leave.approvalFlow[leave.currentLevel].status = "Pending";
+      await leave.save();
+      const io = req.app.get("socketio");
+      const nextApprovers = await User.find({
+        role: nextRole,
+        status: "Enable",
+      });
+
+      for (const approver of nextApprovers) {
+        await sendNotification(
+          approver,
+          {
+            type: "leave",
+            message: `New ${leave.type} request requires your approval`,
+          },
+          io,
+        );
+      }
+
+      emitEvent(req, "leaveChanged");
+
+      return res.json({
+        success: true,
+        message: "Approved and forwarded to next approver",
+        leave,
+      });
+    }
+
     if (newStatus === "Approved") {
       const existing = await Leave.find({
         user: leave.user,
         status: { $ne: "Rejected" },
-        _id: { $ne: leave._id }
+        _id: { $ne: leave._id },
       });
 
       if (hasLeaveOverlap(existing, leave.startDate, leave.endDate)) {
         return res.status(400).json({
-          message: "Cannot approve. Overlaps with another leave."
+          message: "Cannot approve. Overlaps with another leave.",
         });
       }
 
       const requestedDays = await calculateLeaveDays(
         leave.startDate,
-        leave.endDate
+        leave.endDate,
       );
 
       const setting = await LeaveSetting.findOne({ leaveType: leave.type });
@@ -584,14 +793,14 @@ exports.processLeave = async (req, res) => {
         let balance = await LeaveBalance.findOne({
           user: leave.user,
           year: currentYear,
-          type: "Earned Leave"
+          type: "Earned Leave",
         });
 
         if (!balance) {
           balance = await LeaveBalance.create({
             user: leave.user,
             year: currentYear,
-            type: "Earned Leave"
+            type: "Earned Leave",
           });
         }
 
@@ -600,14 +809,14 @@ exports.processLeave = async (req, res) => {
 
         const carryForwardLimited = Math.min(
           carryForward,
-          setting?.carryForwardLimit || 0
+          setting?.carryForwardLimit || 0,
         );
 
         const existingLeaves = await Leave.find({
           user: leave.user,
           status: { $ne: "Rejected" },
           type: "Earned Leave",
-          _id: { $ne: leave._id }
+          _id: { $ne: leave._id },
         });
 
         let taken = 0;
@@ -616,24 +825,21 @@ exports.processLeave = async (req, res) => {
         }
 
         const totalAvailable =
-          earned +
-          carryForwardLimited +
-          (balance.initialAdjustment || 0);
+          earned + carryForwardLimited + (balance.initialAdjustment || 0);
 
-        if (requestedDays > (totalAvailable - taken)) {
+        if (requestedDays > totalAvailable - taken) {
           return res.status(400).json({
-            message: `Cannot approve. Insufficient Earned Leave balance. Available ${totalAvailable - taken
-              } Leaves`
+            message: `Cannot approve. Insufficient Earned Leave balance. Available ${
+              totalAvailable - taken
+            } Leaves`,
           });
         }
-      }
-
-      else if (!["LOP"].includes(leave.type)) {
+      } else if (!["LOP"].includes(leave.type)) {
         const existingLeaves = await Leave.find({
           user: leave.user,
           status: { $ne: "Rejected" },
           type: leave.type,
-          _id: { $ne: leave._id }
+          _id: { $ne: leave._id },
         });
 
         let taken = 0;
@@ -645,15 +851,18 @@ exports.processLeave = async (req, res) => {
 
         if (taken + requestedDays > quota) {
           return res.status(400).json({
-            message: `Cannot approve. Insufficient ${leave.type} balance. Available: ${quota - taken
-              } Leaves`
+            message: `Cannot approve. Insufficient ${leave.type} balance. Available: ${
+              quota - taken
+            } Leaves`,
           });
         }
       }
     }
-    leave.status = newStatus;
-    leave.adminComment = req.body.adminComment;
-    leave.processedBy = req.user._id;
+
+    leave.status = "Approved";
+    leave.approvedBy = req.user._id;
+    leave.approvedAt = now();
+
     await leave.save();
     const io = req.app.get("socketio");
     const recipient = await User.findById(leave.user);
@@ -668,7 +877,7 @@ exports.processLeave = async (req, res) => {
           timeZone: "Asia/Kolkata",
           day: "2-digit",
           month: "short",
-          year: "numeric"
+          year: "numeric",
         });
 
       await sendNotification(
@@ -676,11 +885,12 @@ exports.processLeave = async (req, res) => {
         {
           type: "leave",
           message: `${statusEmoji} Your ${leave.type} request from ${formatDate(
-            leave.startDate
-          )} to ${formatDate(leave.endDate)} has been ${leave.status
-            }.${adminNote}`,
+            leave.startDate,
+          )} to ${formatDate(leave.endDate)} has been ${
+            leave.status
+          }.${adminNote}`,
         },
-        io
+        io,
       );
     }
     emitEvent(req, "leaveChanged");
@@ -699,46 +909,53 @@ exports.updateLeave = async (req, res) => {
 
     const isOwner = leave.user.toString() === req.user._id.toString();
     const isAdmin = req.user.role === "Admin";
+    const isGadManager = req.user.role === "GAD Manager";
 
-    if (!isOwner && !isAdmin) {
+    if (!isOwner && !isAdmin && !isGadManager) {
       return res.status(403).json({ message: "Unauthorized Access!" });
     }
 
     if (!isAdmin && leave.status !== "Pending") {
-      return res.status(400).json({ message: "Cannot update processed leaves" });
+      return res
+        .status(400)
+        .json({ message: "Cannot update processed leaves" });
     }
     const updatedLeave = {
       ...leave.toObject(),
-      ...req.body
+      ...req.body,
     };
     const existing = await Leave.find({
       user: leave.user,
       status: { $ne: "Rejected" },
-      _id: { $ne: leave._id }
+      _id: { $ne: leave._id },
     });
 
-    if (hasLeaveOverlap(existing, updatedLeave.startDate, updatedLeave.endDate)) {
+    if (
+      hasLeaveOverlap(existing, updatedLeave.startDate, updatedLeave.endDate)
+    ) {
       return res.status(400).json({ message: "Overlap with existing leave." });
     }
     const requestedDays = await calculateLeaveDays(
       updatedLeave.startDate,
-      updatedLeave.endDate
+      updatedLeave.endDate,
     );
-    const setting = await LeaveSetting.findOne({ leaveType: updatedLeave.type });
+    const setting = await LeaveSetting.findOne({
+      leaveType: updatedLeave.type,
+    });
     if (updatedLeave.type === "Earned Leave") {
       const currentYear = now().getFullYear();
 
       let balance = await LeaveBalance.findOne({
         user: leave.user,
         year: currentYear,
-        type: "Earned Leave"
+        type: "Earned Leave",
       });
 
       if (!balance) {
         balance = await LeaveBalance.create({
           user: leave.user,
           year: currentYear,
-          type: "Earned Leave"
+          type: "Earned Leave",
         });
       }
 
@@ -747,14 +964,14 @@ exports.updateLeave = async (req, res) => {
 
       const carryForwardLimited = Math.min(
         carryForward,
-        setting?.carryForwardLimit || 0
+        setting?.carryForwardLimit || 0,
       );
 
       const existingLeaves = await Leave.find({
         user: leave.user,
         status: { $ne: "Rejected" },
         type: "Earned Leave",
-        _id: { $ne: leave._id }
+        _id: { $ne: leave._id },
       });
 
       let taken = 0;
@@ -763,23 +980,21 @@ exports.updateLeave = async (req, res) => {
       }
 
       const totalAvailable =
-        earned +
-        carryForwardLimited +
-        (balance.initialAdjustment || 0);
+        earned + carryForwardLimited + (balance.initialAdjustment || 0);
 
-      if (requestedDays > (totalAvailable - taken)) {
+      if (requestedDays > totalAvailable - taken) {
         return res.status(400).json({
-          message: `Insufficient Earned Leave balance. Available ${totalAvailable - taken
-            } Leaves`
+          message: `Insufficient Earned Leave balance. Available ${
+            totalAvailable - taken
+          } Leaves`,
         });
       }
-    }
-    else if (!["LOP"].includes(updatedLeave.type)) {
+    } else if (!["LOP"].includes(updatedLeave.type)) {
       const existingLeaves = await Leave.find({
         user: leave.user,
         status: { $ne: "Rejected" },
         type: updatedLeave.type,
-        _id: { $ne: leave._id }
+        _id: { $ne: leave._id },
       });
       let taken = 0;
       for (const l of existingLeaves) {
@@ -790,11 +1005,14 @@ exports.updateLeave = async (req, res) => {
 
       if (taken + requestedDays > quota) {
         return res.status(400).json({
-          message: `Insufficient ${updatedLeave.type} balance. Available: ${quota - taken} leaves`
+          message: `Insufficient ${updatedLeave.type} balance. Available: ${quota - taken} leaves`,
         });
       }
     }
     Object.assign(leave, updatedLeave);
+    leave.approvalFlow = buildApprovalFlow(req.user.role);
+    leave.currentLevel = 0;
+    leave.status = "Pending";
     await leave.save();
     emitEvent(req, "leaveChanged");
     emitEvent(req, "leaveChanged", leave, leave.user);
@@ -813,8 +1031,9 @@ exports.deleteLeave = async (req, res) => {
     }
     const isOwner = leave.user.toString() === req.user._id.toString();
     const isAdmin = req.user.role === "Admin";
+    const isGadManager = req.user.role === "GAD Manager";
 
-    if (isAdmin) {
+    if (isAdmin || isGadManager) {
       await Leave.findByIdAndDelete(req.params.id);
     } else if (isOwner) {
       if (leave.status !== "Pending") {
@@ -822,7 +1041,6 @@ exports.deleteLeave = async (req, res) => {
           message: "Only pending leaves can be deleted",
         });
       }
-
       await Leave.findByIdAndDelete(req.params.id);
     } else {
       return res.status(403).json({
@@ -845,13 +1063,13 @@ exports.updateEarnedAdjustment = async (req, res) => {
     let balance = await LeaveBalance.findOne({
       user: userId,
       year,
-      type: "Earned Leave"
+      type: "Earned Leave",
     });
     if (!balance) {
       balance = await LeaveBalance.create({
         user: userId,
         year,
-        type: "Earned Leave"
+        type: "Earned Leave",
       });
     }
     balance.initialAdjustment = Number(value) || 0;
@@ -859,7 +1077,7 @@ exports.updateEarnedAdjustment = async (req, res) => {
     emitEvent(req, "leaveChanged");
     res.json({
       message: "Adjustment updated",
-      balance
+      balance,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

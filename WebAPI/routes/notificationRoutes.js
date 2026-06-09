@@ -1,10 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const { authenticate } = require("../middlewares/authMiddleware"); // Ensure this matches your auth middleware path
-const { 
-  getMyNotifications, 
-  markAllAsRead, 
-  deleteNotification 
+const { authenticate } = require("../middlewares/authMiddleware");
+const {
+  getMyNotifications,
+  markAllAsRead,
+  deleteNotification,
 } = require("../controllers/notificationController");
 
 router.get("/", authenticate, getMyNotifications);

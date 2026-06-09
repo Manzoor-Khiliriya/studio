@@ -48,11 +48,58 @@ export default function Sidebar() {
     { to: "/employee", label: "Overview", icon: <HiOutlineViewColumns /> },
     { to: "/my-profile", label: "Profile", icon: <HiOutlineUser /> },
     { to: "/my-tasks", label: "My Tasks", icon: <HiOutlineQueueList /> },
-    { to: '/my-leaves', label: 'Leaves', icon: <HiOutlineCalendar /> },
-    { to: '/public-holidays', label: 'Calendar', icon: <HiOutlineFlag /> },
+    { to: "/my-leaves", label: "Leaves", icon: <HiOutlineCalendar /> },
+    { to: "/public-holidays", label: "Calendar", icon: <HiOutlineFlag /> },
   ];
 
-  const links = user.role === "Admin" ? adminLinks : employeeLinks;
+  const managerLinks = [
+    { to: "/employee", label: "Overview", icon: <HiOutlineViewColumns /> },
+    { to: "/my-profile", label: "Profile", icon: <HiOutlineUser /> },
+    { to: "/my-tasks", label: "My Tasks", icon: <HiOutlineQueueList /> },
+    { to: "/leaves", label: "Leave Management", icon: <HiOutlineCalendar /> },
+    { to: "/public-holidays", label: "Calendar", icon: <HiOutlineFlag /> },
+  ];
+
+  const gadEmployeeLinks = [
+    { to: "/employee", label: "Overview", icon: <HiOutlineViewColumns /> },
+    { to: "/my-profile", label: "Profile", icon: <HiOutlineUser /> },
+    { to: "/leaves", label: "Leave Management", icon: <HiOutlineCalendar /> },
+    { to: "/public-holidays", label: "Calendar", icon: <HiOutlineFlag /> },
+  ];
+
+  const gadManagerLinks = [
+    { to: "/employee", label: "Overview", icon: <HiOutlineViewColumns /> },
+    { to: "/my-profile", label: "Profile", icon: <HiOutlineUser /> },
+    { to: "/leaves", label: "Leave Management", icon: <HiOutlineCalendar /> },
+    { to: "/public-holidays", label: "Calendar", icon: <HiOutlineFlag /> },
+  ];
+
+  let links;
+
+  switch (user.role) {
+    case "Admin":
+      links = adminLinks;
+      break;
+
+    case "Employee":
+      links = employeeLinks;
+      break;
+
+    case "Manager":
+      links = managerLinks;
+      break;
+
+    case "GAD Employee":
+      links = gadEmployeeLinks;
+      break;
+
+    case "GAD Manager":
+      links = gadManagerLinks;
+      break;
+
+    default:
+      links = [];
+  }
 
   return (
     <>

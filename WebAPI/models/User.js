@@ -26,11 +26,6 @@ const userSchema = new mongoose.Schema(
       default: "Employee",
       index: true,
     },
-    gadType: {
-      type: String,
-      enum: ["Employee", "Manager"],
-      default: null,
-    },
     designation: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Designation",

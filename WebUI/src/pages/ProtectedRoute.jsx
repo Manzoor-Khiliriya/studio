@@ -10,9 +10,24 @@ const ProtectedRoute = ({ allowedRoles }) => {
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    
-    const redirectPath = user.role === "Admin" ? "/admin" : "/employee";
-    
+    let redirectPath = "/employee";
+
+    switch (user.role) {
+      case "Admin":
+        redirectPath = "/admin";
+        break;
+
+      case "Employee":
+      case "Manager":
+      case "GAD Employee":
+      case "GAD Manager":
+        redirectPath = "/employee";
+        break;
+
+      default:
+        redirectPath = "/login";
+    }
+
     return <Navigate to={redirectPath} replace />;
   }
 
