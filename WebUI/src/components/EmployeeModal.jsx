@@ -56,6 +56,8 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
   const managers = departmentUsers.managers || [];
   const admins = departmentUsers.admins || [];
 
+  console.log(managers)
+
   const activeDepartments = departments.filter(
     (dept) => dept.status === "Enable"
   );
@@ -84,8 +86,8 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
         joinedDate: rawJoined ? new Date(rawJoined).toISOString().split('T')[0] : "",
         mobileNumber: editData.mobileNumber || editData.employee?.mobileNumber || "",
         dateOfBirth: rawDob ? new Date(rawDob).toISOString().split('T')[0] : "",
-        manager: editData.manager?._id || "",
-        admin: editData.admin?.map(a => a._id) || [],
+        manager: editData?.manager?._id || "",
+        admin: editData?.admin?.map(a => a._id) || [],
       });
     } else if (isOpen) {
       setFormData({
@@ -211,6 +213,11 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
                     role: val,
                     departments: [],
                     designation: "",
+                    manager: "",
+                    admin: [],
+                    employeeCode: "",
+                    proficiency: "",
+                    joinedDate: "",
                   }))
                 }
                 options={[
@@ -271,6 +278,8 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
                 setFormData({
                   ...formData,
                   departments: val,
+                  manager: "",
+                  admin: [],
                 })
               }
               options={activeDepartments.map((d) => ({

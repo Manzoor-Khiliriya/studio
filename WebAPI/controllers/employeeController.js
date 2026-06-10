@@ -78,6 +78,8 @@ exports.getAllEmployees = async (req, res) => {
         },
       })
       .populate("departments", "name")
+      .populate("manager", "name")
+      .populate("admin", "name")
       .sort({ createdAt: -1 })
       .limit(numericLimit)
       .skip((numericPage - 1) * numericLimit)
