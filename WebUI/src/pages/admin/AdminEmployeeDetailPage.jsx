@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import {
   HiOutlineClock,
@@ -14,6 +14,8 @@ import {
   HiOutlinePencilSquare,
   HiOutlineTrash,
   HiOutlineBuildingOffice,
+  HiOutlineUser,
+  HiOutlineUserGroup,
 } from "react-icons/hi2";
 import { useGetEmployeeProfileQuery } from "../../services/employeeApi";
 import { useGetTasksByEmployeeQuery } from "../../services/taskApi";
@@ -213,6 +215,7 @@ const TaskGridView = ({ tasks, userId }) => {
 export default function EmployeeDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [taskPage, setTaskPage] = useState(0);
   const itemsPerPage = 5;
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -330,7 +333,13 @@ export default function EmployeeDetailPage() {
     try {
       await deleteUser(employee.user._id).unwrap();
       toast.success("Employee removed successfully", { id: t });
-      navigate("/employees");
+      if (location.state) {
+        navigate("/employees", {
+          state: location.state,
+        });
+      } else {
+        navigate("/employees");
+      }
     } catch (err) {
       toast.error("Deletion failed", { id: t });
     }
@@ -343,7 +352,15 @@ export default function EmployeeDetailPage() {
       <header className="bg-white border-b border-slate-200 pt-8 pb-12 shadow-sm">
         <div className="mx-auto px-8">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => {
+              if (location.state) {
+                navigate("/employees", {
+                  state: location.state,
+                });
+              } else {
+                navigate("/employees");
+              }
+            }}
             className="flex items-center gap-2 text-slate-400 hover:text-orange-600 font-black uppercase text-[10px] tracking-[0.2em] mb-8 transition-all group bg-transparent border-none cursor-pointer"
           >
             <HiOutlineArrowLeft strokeWidth={2.5} className="group-hover:-translate-x-1 transition-transform" />
@@ -389,8 +406,8 @@ export default function EmployeeDetailPage() {
 
       <main className="px-8 -mt-8">
         <div className="grid lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-8 space-y-10">
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="lg:col-span-8 space-y-8">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
               {(role === "Employee" || role === "Manager") && (
                 <MetricBox label="Proficiency" value={`${employee?.proficiency || ""}%`} icon={<HiOutlineLightningBolt />} color="text-orange-500" />
               )}
@@ -400,29 +417,20 @@ export default function EmployeeDetailPage() {
               {(role === "Employee" || role === "Manager" || (role === "Admin" && currentlyAssigned.length > 0)) && (
                 <MetricBox label="Active Tasks" value={activeTasks.length} icon={<HiOutlineInboxStack />} color="text-slate-500" />
               )}
-              {(role !== "Admin") && (
-                <MetricBox label={role === "Manager" ? "Departments" : "Department"}
-                  value={
-                    role === "Manager"
-                      ? employee?.departments?.map((d) => d.name).join(", ")
-                      : employee?.departments?.[0]?.name || "N/A"
-                  }
-                  icon={<HiOutlineBuildingOffice />} color="text-slate-500" />
-              )}
             </div>
 
             {showTaskSections && (
-              <>
+              <div className="space-y-10">
                 <SectionHeader title="Record Book" />
                 <TaskGridView
                   tasks={workedAndAssigned}
                   userId={userId}
                 />
-              </>
+              </div>
             )}
 
             {showTaskSections && (
-              <div className="space-y-5">
+              <div className="space-y-8">
                 {/* Dynamic Header based on date */}
                 <SectionHeader
                   title={
@@ -528,7 +536,7 @@ export default function EmployeeDetailPage() {
           <div className="lg:col-span-4 space-y-8">
             {showTaskSections && (
               <>
-                <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl">
+                <div className="bg-slate-900 p-7 rounded-[2.5rem] text-white shadow-2xl">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
                     <h3 className="text-[10px] font-black text-slate-200 uppercase tracking-[0.2em]">Live Tasks</h3>
@@ -574,7 +582,7 @@ export default function EmployeeDetailPage() {
                   </div>
                 </div>
 
-                <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
+                <div className="bg-white p-7 rounded-[2.5rem] border border-slate-200 shadow-sm">
                   <div className="flex justify-between items-center mb-3">
                     <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                       Full Task History
@@ -610,38 +618,74 @@ export default function EmployeeDetailPage() {
               </>
             )}
 
-            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-8">Contact Details</h3>
-              <div className="space-y-6">
-                <ContactItem icon={<HiOutlineEnvelope />} label="Work Email" value={employee?.user?.email} />
-                <ContactItem icon={<HiOutlinePhone />} label="Mobile Number" value={employee?.mobileNumber} />
+
+          </div>
+
+          <div
+            className={`lg:col-span-12 space-y-8 ${role === "Admin"
+              ? (workedAndAssigned?.length > 0 || currentlyAssigned?.length > 0)
+                ? "mt-0"
+                : "mt-10"
+              : "mt-0"
+              }`}
+          >
+            <SectionHeader title="Profile Details" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
+              {/* <ContactItem
+                icon={<HiOutlineUserGroup />}
+                label={employee?.departments?.length === 1 ? "Department" : "Departments"}
+                value={employee?.departments.map(a => a?.name).join(", ")}
+              />
+
+              <ContactItem
+                icon={<HiOutlineUserGroup />}
+                label={"Designation"}
+                value={employee?.user?.designation}
+              /> */}
+              {employee?.manager && (
                 <ContactItem
-                  icon={<HiOutlineCake />}
-                  label="Date of Birth"
+                  icon={<HiOutlineUser />}
+                  label="Manager"
+                  value={employee?.manager?.name}
+                />
+              )}
+
+              {employee?.admin?.length > 0 && (
+                <ContactItem
+                  icon={<HiOutlineUserGroup />}
+                  label={employee?.admin?.length === 1 ? "Admin" : "Admins"}
+                  value={employee?.admin.map(a => a.name).join(", ")}
+                />
+              )}
+
+              <ContactItem icon={<HiOutlineEnvelope />} label="Work Email" value={employee?.user?.email} />
+              <ContactItem icon={<HiOutlinePhone />} label="Mobile Number" value={employee?.mobileNumber} />
+              <ContactItem
+                icon={<HiOutlineCake />}
+                label="Date of Birth"
+                value={
+                  employee?.dateOfBirth &&
+                  new Date(employee.dateOfBirth).toLocaleDateString("en-IN", {
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                  })
+                }
+              />
+              {role !== "Admin" && (
+                <ContactItem
+                  icon={<HiOutlineCalendarDays />}
+                  label="Date of Joining"
                   value={
-                    employee?.dateOfBirth &&
-                    new Date(employee.dateOfBirth).toLocaleDateString("en-IN", {
+                    employee?.joinedDate &&
+                    new Date(employee.joinedDate).toLocaleDateString("en-IN", {
                       day: "2-digit",
                       month: "long",
                       year: "numeric",
                     })
                   }
                 />
-                {role !== "Admin" && (
-                  <ContactItem
-                    icon={<HiOutlineCalendarDays />}
-                    label="Date of Joining"
-                    value={
-                      employee?.joinedDate &&
-                      new Date(employee.joinedDate).toLocaleDateString("en-IN", {
-                        day: "2-digit",
-                        month: "long",
-                        year: "numeric",
-                      })
-                    }
-                  />
-                )}
-              </div>
+              )}
             </div>
           </div>
         </div>

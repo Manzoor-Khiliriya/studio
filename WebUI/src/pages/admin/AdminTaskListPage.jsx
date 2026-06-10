@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   useDeleteProjectMutation,
   useGetProjectsQuery,
@@ -39,15 +39,33 @@ import useDebounce from "../../hooks/useDebounce";
 
 export default function AdminTasksPage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("live");
-  const [taskSearch, setTaskSearch] = useState("");
-  const [liveStatusFilter, setLiveStatusFilter] = useState("All");
-  const [taskStatusFilter, setTaskStatusFilter] = useState("All");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [limit, setLimit] = useState(5);
-  const [expandedProject, setExpandedProject] = useState(null);
-  const [liveSearch, setLiveSearch] = useState("");
-  const [allSearch, setAllSearch] = useState("");
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(
+    location.state?.activeTab || "live"
+  );
+  const [currentPage, setCurrentPage] = useState(
+    location.state?.currentPage || 1
+  );
+  const [limit, setLimit] = useState(
+    location.state?.limit || 5
+  );
+  const [taskSearch, setTaskSearch] = useState(
+    location.state?.taskSearch || ""
+  );
+  const [liveStatusFilter, setLiveStatusFilter] = useState(
+    location.state?.liveStatusFilter || "All"
+  );
+  const [taskStatusFilter, setTaskStatusFilter] = useState(
+    location.state?.taskStatusFilter || "All"
+  );
+  const [expandedProject, setExpandedProject] = useState(
+    location.state?.expandedProject || null);
+  const [liveSearch, setLiveSearch] = useState(
+    location.state?.liveSearch || ""
+  );
+  const [allSearch, setAllSearch] = useState(
+    location.state?.allSearch || ""
+  );
   const [liveDateFilters, setLiveDateFilters] = useState({
     createdAt: "",
     startDate: "",
@@ -876,7 +894,19 @@ export default function AdminTasksPage() {
                             columns={columns}
                             tasks={tasks}
                             onRowClick={(task) =>
-                              navigate(`/projects/${task._id}`)
+                              navigate(`/projects/${task._id}`, {
+                                state: {
+                                  activeTab,
+                                  currentPage,
+                                  limit,
+                                  taskSearch,
+                                  liveSearch,
+                                  allSearch,
+                                  expandedProject,
+                                  liveStatusFilter,
+                                  taskStatusFilter,
+                                },
+                              })
                             }
                           />
                         ) : (

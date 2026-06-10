@@ -24,7 +24,11 @@ exports.getAllEmployees = async (req, res) => {
         } else if (type === "Employee") {
           userCriteria.role = "Employee";
         } else {
-          userCriteria.$or = [{ role: "Employee" }, { role: "GAD Employee" }, {role: "Hr Employee"}];
+          userCriteria.$or = [
+            { role: "Employee" },
+            { role: "GAD Employee" },
+            { role: "Hr Employee" },
+          ];
         }
       }
     } else if (role === "Manager") {
@@ -35,10 +39,21 @@ exports.getAllEmployees = async (req, res) => {
       } else if (type === "Manager") {
         userCriteria.role = "Manager";
       } else {
-        userCriteria.$or = [{ role: "Manager" }, { role: "GAD Manager" }, {role: "Hr Manager"}];
+        userCriteria.$or = [
+          { role: "Manager" },
+          { role: "GAD Manager" },
+          { role: "Hr Manager" },
+        ];
       }
     } else if (role === "Admin") {
       userCriteria.role = "Admin";
+    } else {
+      return res.json({
+        employees: [],
+        totalPages: 0,
+        currentPage: numericPage,
+        totalEmployees: 0,
+      });
     }
 
     if (search) {
@@ -104,6 +119,8 @@ exports.getEmployeeProfile = async (req, res) => {
         },
       })
       .populate("departments", "name")
+      .populate("manager", "name")
+      .populate("admin", "name")
       .lean();
 
     if (!employee) {
@@ -135,6 +152,8 @@ exports.getMyEmployeeProfile = async (req, res) => {
         },
       })
       .populate("departments", "name")
+      .populate("manager", "name")
+      .populate("admin", "name")
       .lean();
     if (!employee) {
       return res.status(404).json({ message: "Employee profile not found" });

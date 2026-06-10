@@ -13,14 +13,6 @@ export const getDepartmentColumns = ({
             ),
         },
         {
-            header: "Manager Name",
-            render: (dept) => (
-                <div className="font-bold text-[12px] text-slate-700">
-                    {dept?.manager?.name}
-                </div>
-            ),
-        },
-        {
             header: "Status",
             render: (dept) => (
                 <span

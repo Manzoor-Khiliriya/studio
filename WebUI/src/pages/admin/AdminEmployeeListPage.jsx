@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { useGetAllEmployeesQuery } from "../../services/employeeApi";
 import {
@@ -32,7 +32,7 @@ const addOptionsByTab = {
       label: "ADD GAD EMPLOYEE",
       role: "GAD Employee",
     },
-     {
+    {
       label: "ADD Hr EMPLOYEE",
       role: "Hr Employee",
     },
@@ -63,24 +63,37 @@ const addOptionsByTab = {
 
 export default function EmployeeListPage() {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [limit, setLimit] = useState(5);
+  const location = useLocation();
+  const [searchTerm, setSearchTerm] = useState(
+    location.state?.searchTerm || ""
+  );
+  const [statusFilter, setStatusFilter] = useState(
+    location.state?.statusFilter || "All"
+  );
+  const [currentPage, setCurrentPage] = useState(
+    location.state?.page || 1
+  );
+  const [limit, setLimit] = useState(
+    location.state?.limit || 5
+  );
+  const [activeRole, setActiveRole] = useState(
+    location.state?.activeRole || "Employee"
+  );
+  const [typeFilter, setTypeFilter] = useState(
+    location.state?.typeFilter || "All"
+  );
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
   const [selectedEmp, setSelectedEmp] = useState(null);
   const [confirmConfig, setConfirmConfig] = useState({
     isOpen: false,
     type: null,
   });
-  const [activeRole, setActiveRole] = useState("Employee");
   const [settingsTab, setSettingsTab] = useState("Department");
   const [departmentModalOpen, setDepartmentModalOpen] = useState(false);
   const [designationModalOpen, setDesignationModalOpen] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState(null);
   const [selectedDesignation, setSelectedDesignation] = useState(null);
   const [selectedRole, setSelectedRole] = useState("Employee");
-  const [typeFilter, setTypeFilter] = useState("All");
 
   const debouncedSearch = useDebounce(
     searchTerm.length > 1 ? searchTerm : "",
@@ -93,6 +106,8 @@ export default function EmployeeListPage() {
     type: typeFilter,
     status: statusFilter === "All" ? undefined : statusFilter,
     search: debouncedSearch,
+  }, {
+    skip: activeRole === "Settings",
   });
   const [changeUserStatus, { isLoading: isUpdatingStatus }] =
     useChangeUserStatusMutation();
@@ -102,9 +117,13 @@ export default function EmployeeListPage() {
   });
 
   const { data: departments = [] } =
-    useGetDepartmentsQuery();
+    useGetDepartmentsQuery(undefined, {
+      skip: activeRole !== "Settings" || settingsTab !== "Department",
+    });
   const { data: designations = [] } =
-    useGetDesignationsQuery();
+    useGetDesignationsQuery(undefined, {
+      skip: activeRole !== "Settings" || settingsTab !== "Designation",
+    });
   const [deleteDepartment] = useDeleteDepartmentMutation();
   const [deleteDesignation] = useDeleteDesignationMutation();
 
@@ -422,7 +441,18 @@ export default function EmployeeListPage() {
               <Table
                 columns={columns}
                 data={data?.employees || []}
-                onRowClick={(emp) => navigate(`/employees/${emp.user?._id}`)}
+                onRowClick={(emp) =>
+                  navigate(`/employees/${emp.user?._id}`, {
+                    state: {
+                      page: currentPage,
+                      limit,
+                      searchTerm,
+                      statusFilter,
+                      activeRole,
+                      typeFilter,
+                    },
+                  })
+                }
                 emptyMessage={`No ${activeRole.toLowerCase()}s found.`}
               />
             </div>

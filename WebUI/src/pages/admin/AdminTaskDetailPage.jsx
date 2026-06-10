@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   HiOutlineArrowLeft,
   HiOutlinePencilSquare,
@@ -73,7 +73,7 @@ const formatHoursToDays = (hours) => {
 export default function AdminTaskDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-
+  const location = useLocation();
   // Modal States
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
@@ -168,11 +168,19 @@ export default function AdminTaskDetailPage() {
       <header className="bg-white border-b border-slate-200 pt-8 pb-10">
         <div className="max-w-[1750px] mx-auto px-8">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => {
+              if (location.state) {
+                navigate("/projects", {
+                  state: location.state,
+                });
+              } else {
+                navigate("/projects");
+              }
+            }}
             className="flex items-center gap-2 text-slate-400 hover:text-orange-600 font-bold uppercase text-[10px] tracking-widest mb-6 border-none bg-transparent cursor-pointer transition-all group"
           >
             <HiOutlineArrowLeft className="group-hover:-translate-x-1 transition-transform" />{" "}
-            Back to Dashboard
+            Back to Directory
           </button>
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">

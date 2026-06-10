@@ -156,7 +156,6 @@ exports.applyLeave = async (req, res) => {
 
     const setting = await LeaveSetting.findOne({ leaveType: type });
 
-    // 🔥 EARNED LEAVE
     if (type === "Earned Leave") {
       const currentYear = now().getFullYear();
 
@@ -205,14 +204,10 @@ exports.applyLeave = async (req, res) => {
 
     const employee = await Employee.findOne({
       user: userId,
-    }).populate("departments");
-
-    const department = await Department.findById(employee.departments[0]);
-
-    const managerId = department.manager;
-
-    const approvalFlow = buildApprovalFlow(req.user.role, managerId);
-
+    });
+    const managerId = employee.manager;
+    const adminIds = employee.admin || [];
+    const approvalFlow = buildApprovalFlow(req.user.role, managerId, adminIds);
     const leave = await Leave.create({
       user: userId,
       type,
@@ -404,6 +399,14 @@ exports.getAllLeaves = async (req, res) => {
           approvalFlow: {
             $elemMatch: {
               approver: req.user._id,
+            },
+          },
+        };
+      } else if (req.user.role === "Admin") {
+        query = {
+          approvalFlow: {
+            $elemMatch: {
+              approvers: req.user._id,
             },
           },
         };
@@ -749,6 +752,18 @@ exports.processLeave = async (req, res) => {
       }
     }
 
+    if (currentStep.approvers?.length) {
+      const canApprove = currentStep.approvers.some(
+        (id) => id.toString() === req.user._id.toString(),
+      );
+
+      if (!canApprove) {
+        return res.status(403).json({
+          message: "Not your approval stage",
+        });
+      }
+    }
+
     if (newStatus === "Rejected") {
       currentStep.status = "Rejected";
       currentStep.approvedBy = req.user._id;
@@ -782,15 +797,30 @@ exports.processLeave = async (req, res) => {
     const isLastStep = leave.currentLevel === leave.approvalFlow.length - 1;
 
     if (!isLastStep) {
-      const nextRole = leave.approvalFlow[leave.currentLevel + 1].role;
       leave.currentLevel += 1;
       leave.approvalFlow[leave.currentLevel].status = "Pending";
       await leave.save();
       const io = req.app.get("socketio");
-      const nextApprovers = await User.find({
-        role: nextRole,
-        status: "Enable",
-      });
+      const nextStep = leave.approvalFlow[leave.currentLevel];
+      let nextApprovers = [];
+
+      if (nextStep.approvers?.length) {
+        nextApprovers = await User.find({
+          _id: { $in: nextStep.approvers },
+          status: "Enable",
+        });
+      } else if (nextStep.approver) {
+        const user = await User.findById(nextStep.approver);
+
+        if (user) {
+          nextApprovers = [user];
+        }
+      } else {
+        nextApprovers = await User.find({
+          role: nextStep.role,
+          status: "Enable",
+        });
+      }
 
       for (const approver of nextApprovers) {
         await sendNotification(
@@ -1057,11 +1087,12 @@ exports.updateLeave = async (req, res) => {
     Object.assign(leave, updatedLeave);
     const employee = await Employee.findOne({
       user: leave.user,
-    }).populate("departments");
-    const department = await Department.findById(employee.departments[0]);
-    const managerId = department.manager;
+    });
+
+    const managerId = employee.manager;
+    const adminIds = employee.admin || [];
     const user = await User.findById(leave.user);
-    leave.approvalFlow = buildApprovalFlow(user.role, managerId);
+    leave.approvalFlow = buildApprovalFlow(user.role, managerId, adminIds);
     leave.currentLevel = 0;
     leave.status = "Pending";
     await leave.save();

@@ -75,7 +75,7 @@ export const getEmployeeColumns = ({ role, onEdit, onDelete, onToggle }) => [
     ),
   },
   {
-    header: role === "Manager" ? "Departments" : "Department",
+    header: "Departments",
     render: (emp) => {
       const departmentText = emp.departments?.length
         ? emp.departments.map((d) => d.name).join(", ")
@@ -203,7 +203,7 @@ export const getEmployeeColumns = ({ role, onEdit, onDelete, onToggle }) => [
 ].filter((col) => {
   if (
     role === "Admin" &&
-    ["Employee Code", "Department", "Joining Date", "Proficiency"].includes(
+    ["Employee Code", "Joining Date", "Proficiency"].includes(
       col.header
     )
   ) {

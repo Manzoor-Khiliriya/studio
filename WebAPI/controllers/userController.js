@@ -32,6 +32,8 @@ exports.createUser = async (req, res) => {
       joinedDate,
       mobileNumber,
       dateOfBirth,
+      manager,
+      admin = [],
     } = req.body;
     const existing = await User.findOne({ email: email.toLowerCase() });
     if (existing)
@@ -47,6 +49,58 @@ exports.createUser = async (req, res) => {
         });
       }
     }
+
+    const employeeRoles = ["Employee", "Hr Employee", "GAD Employee"];
+    const managerRoles = ["Manager", "Hr Manager", "GAD Manager"];
+
+    if (employeeRoles.includes(role)) {
+      if (!manager) {
+        return res.status(400).json({
+          message: "Manager is required",
+        });
+      }
+
+      if (!admin.length) {
+        return res.status(400).json({
+          message: "At least one admin is required",
+        });
+      }
+    }
+
+    if (managerRoles.includes(role)) {
+      if (!admin.length) {
+        return res.status(400).json({
+          message: "At least one admin is required",
+        });
+      }
+    }
+
+    if (manager) {
+      const managerUser = await User.findById(manager);
+
+      if (
+        !managerUser ||
+        !["Manager", "Hr Manager", "GAD Manager"].includes(managerUser.role)
+      ) {
+        return res.status(400).json({
+          message: "Invalid manager selected",
+        });
+      }
+    }
+
+    if (admin.length) {
+      const admins = await User.find({
+        _id: { $in: admin },
+        role: "Admin",
+      });
+
+      if (admins.length !== admin.length) {
+        return res.status(400).json({
+          message: "Invalid admin selected",
+        });
+      }
+    }
+
     const user = await User.create({
       name,
       email: email.toLowerCase(),
@@ -61,21 +115,39 @@ exports.createUser = async (req, res) => {
       user: user._id,
       mobileNumber: mobileNumber || "",
       dateOfBirth: dateOfBirth || null,
+      departments: departments || [],
     };
 
-    if (["Employee", "Manager"].includes(user.role)) {
+    if (["Employee"].includes(user.role)) {
       employeeData.dailyWorkLimit = dailyWorkLimit || 9;
       employeeData.proficiency = proficiency || 100;
       employeeData.employeeCode = employeeCode?.toUpperCase();
-      employeeData.departments = departments || [];
       employeeData.joinedDate = joinedDate || "";
+      employeeData.manager = manager;
+      employeeData.admin = admin;
     }
 
-    if (["GAD Employee", "GAD Manager", "Hr Manager", "Hr Employee"].includes(user.role)) {
+    if (["Manager"].includes(user.role)) {
+      employeeData.dailyWorkLimit = dailyWorkLimit || 9;
+      employeeData.proficiency = proficiency || 100;
+      employeeData.employeeCode = employeeCode?.toUpperCase();
+      employeeData.joinedDate = joinedDate || "";
+      employeeData.admin = admin;
+    }
+
+    if (["GAD Employee", "Hr Employee"].includes(user.role)) {
       employeeData.dailyWorkLimit = dailyWorkLimit || 9;
       employeeData.employeeCode = employeeCode?.toUpperCase();
-      employeeData.departments = departments || [];
       employeeData.joinedDate = joinedDate || "";
+      employeeData.manager = manager;
+      employeeData.admin = admin;
+    }
+
+    if (["GAD Manager", "Hr Manager"].includes(user.role)) {
+      employeeData.dailyWorkLimit = dailyWorkLimit || 9;
+      employeeData.employeeCode = employeeCode?.toUpperCase();
+      employeeData.joinedDate = joinedDate || "";
+      employeeData.admin = admin;
     }
 
     if (user.role === "Admin") {
@@ -121,7 +193,6 @@ exports.updateUser = async (req, res) => {
       email,
       employeeCode,
       role,
-      gadType,
       designation,
       departments,
       dailyWorkLimit,
@@ -129,6 +200,8 @@ exports.updateUser = async (req, res) => {
       proficiency,
       mobileNumber,
       dateOfBirth,
+      manager,
+      admin = [],
     } = req.body;
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -156,6 +229,60 @@ exports.updateUser = async (req, res) => {
         });
       }
     }
+
+    const employeeRoles = ["Employee", "Hr Employee", "GAD Employee"];
+    const managerRoles = ["Manager", "Hr Manager", "GAD Manager"];
+
+    const targetRole = role || user.role;
+
+    if (employeeRoles.includes(targetRole)) {
+      if (!manager) {
+        return res.status(400).json({
+          message: "Manager is required",
+        });
+      }
+
+      if (!admin.length) {
+        return res.status(400).json({
+          message: "At least one admin is required",
+        });
+      }
+    }
+
+    if (managerRoles.includes(targetRole)) {
+      if (!admin.length) {
+        return res.status(400).json({
+          message: "At least one admin is required",
+        });
+      }
+    }
+
+    if (manager) {
+      const managerUser = await User.findById(manager);
+
+      if (
+        !managerUser ||
+        !["Manager", "Hr Manager", "GAD Manager"].includes(managerUser.role)
+      ) {
+        return res.status(400).json({
+          message: "Invalid manager selected",
+        });
+      }
+    }
+
+    if (admin.length) {
+      const admins = await User.find({
+        _id: { $in: admin },
+        role: "Admin",
+      });
+
+      if (admins.length !== admin.length) {
+        return res.status(400).json({
+          message: "Invalid admin selected",
+        });
+      }
+    }
+
     if (name) user.name = name;
     if (email) user.email = email.toLowerCase();
     if (role) user.role = role;
@@ -164,21 +291,39 @@ exports.updateUser = async (req, res) => {
     const employeeData = {
       mobileNumber: mobileNumber || "",
       dateOfBirth: dateOfBirth || null,
+      departments: departments || [],
     };
 
-    if (["Employee", "Manager"].includes(user.role)) {
+    if (["Employee"].includes(user.role)) {
       employeeData.dailyWorkLimit = dailyWorkLimit || 9;
       employeeData.proficiency = proficiency || 100;
       employeeData.employeeCode = employeeCode?.toUpperCase();
-      employeeData.departments = departments || [];
       employeeData.joinedDate = joinedDate || "";
+      employeeData.manager = manager;
+      employeeData.admin = admin;
     }
 
-    if (["GAD Employee", "GAD Manager", "Hr Manager", "Hr Employee"].includes(user.role)) {
+    if (["Manager"].includes(user.role)) {
+      employeeData.dailyWorkLimit = dailyWorkLimit || 9;
+      employeeData.proficiency = proficiency || 100;
+      employeeData.employeeCode = employeeCode?.toUpperCase();
+      employeeData.joinedDate = joinedDate || "";
+      employeeData.admin = admin;
+    }
+
+    if (["GAD Employee", "Hr Employee"].includes(user.role)) {
       employeeData.dailyWorkLimit = dailyWorkLimit || 9;
       employeeData.employeeCode = employeeCode?.toUpperCase();
-      employeeData.departments = departments || [];
       employeeData.joinedDate = joinedDate || "";
+      employeeData.manager = manager;
+      employeeData.admin = admin;
+    }
+
+    if (["GAD Manager", "Hr Manager"].includes(user.role)) {
+      employeeData.dailyWorkLimit = dailyWorkLimit || 9;
+      employeeData.employeeCode = employeeCode?.toUpperCase();
+      employeeData.joinedDate = joinedDate || "";
+      employeeData.admin = admin;
     }
 
     await Employee.findOneAndUpdate({ user: user._id }, employeeData, {
@@ -250,6 +395,38 @@ exports.deleteUser = async (req, res) => {
     emitEvent(req, "employeeChanged", user._id);
     emitDashboardUpdate(req);
     res.json({ message: "User and employee profile deleted successfully." });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getUsersByDepartments = async (req, res) => {
+  try {
+    const { departments } = req.query;
+    const departmentIds = departments.split(",");
+    const employees = await Employee.find({
+      departments: { $in: departmentIds },
+    })
+      .populate("user", "name role")
+      .lean();
+
+    const managers = employees
+      .filter((e) =>
+        ["Manager", "Hr Manager", "GAD Manager"].includes(e.user?.role),
+      )
+      .map((e) => ({
+        _id: e.user._id,
+        name: e.user.name,
+      }));
+
+    const admins = employees
+      .filter((e) => e.user?.role === "Admin")
+      .map((e) => ({
+        _id: e.user._id,
+        name: e.user.name,
+      }));
+
+    res.json({ managers, admins });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

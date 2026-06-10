@@ -70,6 +70,13 @@ const leaveSchema = new mongoose.Schema(
           ref: "User",
         },
 
+        approvers: [
+          {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+          },
+        ],
+
         status: {
           type: String,
           enum: ["Waiting", "Pending", "Approved", "Rejected"],

@@ -10,6 +10,7 @@ router.post("/heartbeat", userController.heartbeat);
 
 router.post("/", authorize(ROLE.ADMIN), userController.createUser);
 router.get("/", authorize(ROLE.ADMIN), userController.getAllUsers);
+router.get("/departments", authorize(ROLE.ADMIN), userController.getUsersByDepartments);
 router.get("/:id", authorize(ROLE.ADMIN), userController.getUserById);
 router.put("/:id", authorize(ROLE.ADMIN), userController.updateUser);
 router.delete("/:id", authorize(ROLE.ADMIN), userController.deleteUser);

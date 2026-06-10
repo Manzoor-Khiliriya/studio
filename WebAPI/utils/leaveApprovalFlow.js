@@ -1,4 +1,4 @@
-exports.buildApprovalFlow =(role, managerId) => {
+exports.buildApprovalFlow = (role, managerId, adminIds) => {
   switch (role) {
     case "Employee":
       return [
@@ -9,6 +9,7 @@ exports.buildApprovalFlow =(role, managerId) => {
         },
         {
           role: "Admin",
+          approvers: adminIds,
           status: "Waiting",
         },
         {
@@ -22,6 +23,7 @@ exports.buildApprovalFlow =(role, managerId) => {
       return [
         {
           role: "Admin",
+          approvers: adminIds,
           status: "Pending",
         },
         {
@@ -39,6 +41,7 @@ exports.buildApprovalFlow =(role, managerId) => {
         },
         {
           role: "Admin",
+          approvers: adminIds,
           status: "Waiting",
         },
         {
@@ -50,16 +53,16 @@ exports.buildApprovalFlow =(role, managerId) => {
     case "Hr Employee":
       return [
         { role: "Hr Manager", status: "Pending" },
-        { role: "Admin", status: "Waiting" },
+        { role: "Admin", approvers: adminIds, status: "Waiting" },
       ];
 
     case "Hr Manager":
       return [
-        { role: "Admin", status: "Pending" },
+        { role: "Admin", approvers: adminIds, status: "Pending" },
         { role: "Hr Manager", status: "Waiting" },
       ];
 
     default:
       return [];
   }
-}
+};

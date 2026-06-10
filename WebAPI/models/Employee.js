@@ -21,6 +21,16 @@ const employeeSchema = new mongoose.Schema(
         ref: "Department",
       },
     ],
+    manager: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    admin: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
     mobileNumber: { type: String, trim: true },
     dateOfBirth: { type: Date },
     dailyWorkLimit: {
