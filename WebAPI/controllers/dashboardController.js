@@ -70,13 +70,6 @@ exports.getSummary = async (req, res) => {
       const pendingLeaves = await Leave.countDocuments({
         user: { $in: employeeUserIds },
         status: "Pending",
-        approvalFlow: {
-          $elemMatch: {
-            role: "Admin",
-            approvers: req.user._id,
-            status: "Pending",
-          },
-        },
       });
 
       const rawActivity = await TimeLog.find({
@@ -267,9 +260,7 @@ exports.getSummary = async (req, res) => {
       });
     }
 
-    if (
-      ["GAD Employee", "GAD Manager", "Hr Employee"].includes(req.user.role)
-    ) {
+    if (["GAD Employee", "Hr Employee"].includes(req.user.role)) {
       const upcomingLeavesCount = await Leave.countDocuments({
         user: userId,
         startDate: { $gte: now() },
@@ -279,6 +270,37 @@ exports.getSummary = async (req, res) => {
       return res.json({
         role: req.user.role,
         upcomingLeavesCount,
+      });
+    }
+
+    if (req.user.role === "GAD Manager") {
+      const managedEmployees = await Employee.find({
+        manager: req.user._id,
+      }).select("user");
+
+      const employeeUserIds = managedEmployees.map((e) => e.user);
+
+      const upcomingLeavesCount = await Leave.countDocuments({
+        user: userId,
+        startDate: { $gte: now() },
+        status: "Approved",
+      });
+
+      const pendingLeaveRequests = await Leave.countDocuments({
+        user: { $in: employeeUserIds },
+        status: "Pending",
+        approvalFlow: {
+          $elemMatch: {
+            approver: req.user._id,
+            status: "Pending",
+          },
+        },
+      });
+
+      return res.json({
+        role: req.user.role,
+        upcomingLeavesCount,
+        pendingLeaveRequests,
       });
     }
 
@@ -420,6 +442,67 @@ exports.getManagerDashboard = async (req, res) => {
       })),
 
       attendanceToday,
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: "Internal server error",
+    });
+  }
+};
+
+exports.getAdminOverview = async (req, res) => {
+  try {
+    const employeeProfile = await Employee.findOne({
+      user: req.user._id,
+    }).lean();
+
+    const [assignedTasks, runningTimer] = await Promise.all([
+      Task.find({
+        assignedTo: employeeProfile?._id,
+        status: { $ne: "Completed" },
+      })
+        .populate("project", "title projectCode")
+        .populate("timeLogs"),
+
+      TimeLog.findOne({
+        user: req.user._id,
+        isRunning: true,
+      })
+        .populate({
+          path: "task",
+          select: "title project",
+          populate: {
+            path: "project",
+            select: "projectCode",
+          },
+        })
+        .lean(),
+    ]);
+
+    return res.json({
+      role: "Admin",
+
+      activeTimer: runningTimer
+        ? {
+            logId: runningTimer._id,
+            task: runningTimer.task?.title,
+            projectCode: runningTimer.task?.project?.projectCode,
+            startedAt: runningTimer.startTime,
+          }
+        : null,
+
+      assignedTasksCount: assignedTasks.length,
+
+      taskSnapshot: assignedTasks.map((task) => ({
+        id: task._id,
+        title: task.title,
+        projectTitle: task.project?.title,
+        projectCode: task.project?.projectCode,
+        priority: task.priority,
+        status: task.liveStatus,
+        deadline: task.endDate,
+        description: task.description,
+      })),
     });
   } catch (err) {
     res.status(500).json({

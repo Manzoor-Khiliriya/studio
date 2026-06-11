@@ -11,5 +11,11 @@ router.get(
   authorize(ROLE.MANAGER),
   dashboardController.getManagerDashboard,
 );
+router.get(
+  "/admin-overview",
+  authenticate,
+  authorize(ROLE.ADMIN),
+  dashboardController.getAdminOverview,
+);
 
 module.exports = router;

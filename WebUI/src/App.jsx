@@ -27,6 +27,7 @@ import { connectSocket } from "./socket";
 import { useHeartbeatMutation } from "./services/userApi";
 import EmployeeProfilePage from "./pages/employee/EmployeeProfilePage";
 import AdminTaskAllocationPage from "./pages/admin/AdminTaskAllocationPage";
+import AdminOverView from "./pages/admin/AdminOverviewPage";
 
 function AppContent() {
   const user = useSelector((state) => state.auth.user);
@@ -65,6 +66,7 @@ function AppContent() {
             <Route element={<ProtectedRoute allowedRoles={["Admin"]} />}>
               <Route element={<Layout />}>
                 <Route path={"/admin"} element={<AdminDashboard />} />
+                <Route path="/overview" element={<AdminOverView />} />
                 <Route path="/employees" element={<AdminEmployeeListPage />} />
                 <Route path="/employees/:id" element={<AdminEmployeeDetailPage />} />
                 <Route path="/projects/:id" element={<AdminTaskDetailPage />} />

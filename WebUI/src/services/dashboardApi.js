@@ -11,6 +11,10 @@ export const dashboardApiSlice = apiSlice.injectEndpoints({
       query: () => "/dashboard/manager-dashboard",
       providesTags: ["Dashboard", "Task", "TimeLog", "Leave"],
     }),
+    getAdminOverview: builder.query({
+      query: () => "/dashboard/admin-overview",
+      providesTags: ["Dashboard", "Task", "TimeLog"],
+    }),
     clearLogs: builder.mutation({
       // Accept 'body' which will contain { date: "YYYY-MM-DD" }
       query: (body) => ({
@@ -33,6 +37,7 @@ export const dashboardApiSlice = apiSlice.injectEndpoints({
 export const {
   useGetDashboardSummaryQuery,
   useGetManagerDashboardQuery,
+  useGetAdminOverviewQuery,
   useClearLogsMutation,
   useStopAllSessionsMutation,
 } = dashboardApiSlice;

@@ -34,6 +34,7 @@ export default function Sidebar() {
 
   const adminLinks = [
     { to: "/admin", label: "Dashboard", icon: <HiOutlineSquares2X2 /> },
+    { to: "/overview", label: "Overview", icon: <HiOutlineViewColumns /> },
     { to: "/employees", label: "Team Space", icon: <HiOutlineUsers /> },
     { to: "/projects", label: "Projects", icon: <HiOutlineQueueList /> },
     { to: "/task-history", label: "Task History", icon: <HiOutlineDocumentCheck /> },

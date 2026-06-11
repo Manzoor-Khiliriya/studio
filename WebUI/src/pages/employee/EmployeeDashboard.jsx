@@ -188,7 +188,7 @@ export default function EmployeeDashboard() {
           <div
             className={`grid grid-cols-1 gap-6 my-8 ${isTaskUser
               ? "md:grid-cols-5"
-              : user?.role === "Hr Manager"
+              : (user?.role === "Hr Manager" || user?.role === "GAD Manager")
                 ? "md:grid-cols-4"
                 : "md:grid-cols-3"
               }`}
@@ -250,7 +250,7 @@ export default function EmployeeDashboard() {
               </p>
             </motion.div>
 
-            {user?.role === "Hr Manager" && (
+            {(user?.role === "Hr Manager" || user?.role === "GAD Manager") && (
               <StatCard
                 label="Leave Requests"
                 value={summaryData?.pendingLeaveRequests || 0}
