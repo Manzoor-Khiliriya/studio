@@ -232,7 +232,7 @@ export default function MyLeaveSection() {
     if (isLoading) return <Loader message="Accessing Personal Ledger..." />;
 
     return (
-        <div className="max-w-[1750px] mx-auto min-h-screen bg-slate-100">
+        <div className="max-w-[1750px] mx-auto bg-slate-100">
 
             <main className="max-w-[1750px] mx-auto mt-8 pb-20">
                 {/* TACTICAL FILTER BAR */}

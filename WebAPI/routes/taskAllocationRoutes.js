@@ -8,13 +8,13 @@ router.use(authenticate);
 
 router.put(
   "/:id",
-  authorize(ROLE.ADMIN),
+  authorize(ROLE.ADMIN, ROLE.MANAGER),
   taskAllocationController.updateTaskAllocation,
 );
 
 router.get(
   "/employee-allocation",
-  authorize(ROLE.ADMIN),
+  authorize(ROLE.ADMIN, ROLE.MANAGER),
   taskAllocationController.getEmployeeAllocations,
 );
 

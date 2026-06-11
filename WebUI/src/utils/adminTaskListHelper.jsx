@@ -80,7 +80,7 @@ const getStatusColor = (status) => {
   return statusMap[status?.toLowerCase()] || "text-yellow-600";
 };
 
-export const getAdminTaskColumns = (onEdit, onStatusUpdate, onAssignTeam, onDelete) => [
+export const getAdminTaskColumns = (role, onEdit, onStatusUpdate, onAssignTeam, onDelete) => [
   {
     header: <span className={headerClass}>Task Title</span>,
     className: "text-left",
@@ -180,25 +180,29 @@ export const getAdminTaskColumns = (onEdit, onStatusUpdate, onAssignTeam, onDele
           <HiOutlineArrowPath size={18} />
         </button>
 
-        <button
-          onClick={(e) => { e.stopPropagation(); onEdit(task); }}
-          title="Update Task"
-          className="text-amber-500 hover:text-amber-600 transition-all active:scale-90 cursor-pointer"
-        >
-          <FiEdit size={18} />
-        </button>
+        {role === "Admin" && (
+          <>
+            <button
+              onClick={(e) => { e.stopPropagation(); onEdit(task); }}
+              title="Update Task"
+              className="text-amber-500 hover:text-amber-600 transition-all active:scale-90 cursor-pointer"
+            >
+              <FiEdit size={18} />
+            </button>
 
-        {/* --- NEW DELETE BUTTON --- */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(task);
-          }}
-          title="Delete Task"
-          className="text-rose-500 hover:text-rose-600 transition-all active:scale-90 cursor-pointer"
-        >
-          <HiOutlineTrash size={18} />
-        </button>
+            {/* --- NEW DELETE BUTTON --- */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(task);
+              }}
+              title="Delete Task"
+              className="text-rose-500 hover:text-rose-600 transition-all active:scale-90 cursor-pointer"
+            >
+              <HiOutlineTrash size={18} />
+            </button>
+          </>
+        )}
       </div>
     ),
   },

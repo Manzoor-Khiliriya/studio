@@ -8,8 +8,8 @@ router.use(authenticate);
 
 router.post("/", authorize(ROLE.ADMIN), taskController.createTask);
 router.get("/all", authorize(ROLE.ADMIN), taskController.getAllTasks);
-router.put("/:id", authorize(ROLE.ADMIN), taskController.updateTask);
-router.patch("/:id/status", authorize(ROLE.ADMIN), taskController.updateTaskStatus);
+router.put("/:id", authorize(ROLE.ADMIN, ROLE.MANAGER), taskController.updateTask);
+router.patch("/:id/status", authorize(ROLE.ADMIN, ROLE.MANAGER), taskController.updateTaskStatus);
 router.delete("/:id", authorize(ROLE.ADMIN), taskController.deleteTask);
 router.get("/employee-tasks/:userId", authorize(ROLE.ADMIN, ROLE.MANAGER), taskController.getTasksByEmployee);
 

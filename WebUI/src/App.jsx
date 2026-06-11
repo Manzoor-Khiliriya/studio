@@ -67,18 +67,23 @@ function AppContent() {
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/employees" element={<AdminEmployeeListPage />} />
                 <Route path="/employees/:id" element={<AdminEmployeeDetailPage />} />
-                <Route path="/projects" element={<AdminTaskListPage />} />
                 <Route path="/projects/:id" element={<AdminTaskDetailPage />} />
                 <Route path="/performance" element={<AdminTaskPerformancePage />} />
                 <Route path="/projects-calender" element={<AdminProjectCalendar />} />
-                <Route path="/task-history" element={<AdminTaskAllocationPage />} />
               </Route>
             </Route>
 
-            <Route element={<ProtectedRoute allowedRoles={["Admin", "Hr Manager"]} />}>
+            <Route element={<ProtectedRoute allowedRoles={["Admin", "Hr Manager", "Manager"]} />}>
               <Route element={<Layout />}>
                 <Route path="/holidays" element={<AdminHolidayPage />} />
                 <Route path="/attendance" element={<AdminAttendanceListPage />} />
+              </Route>
+            </Route>
+
+            <Route element={<ProtectedRoute allowedRoles={["Admin", "Manager"]} />}>
+              <Route element={<Layout />}>
+                <Route path="/projects" element={<AdminTaskListPage />} />
+                <Route path="/task-history" element={<AdminTaskAllocationPage />} />
               </Route>
             </Route>
 

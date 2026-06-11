@@ -93,7 +93,7 @@ const AdminTaskPerformancePage = () => {
   if (isLoading) return <Loader message="Accessing Mission Logs..." />;
 
   return (
-    <div className="max-w-[1750px] mx-auto min-h-screen bg-slate-100 font-sans text-slate-900">
+    <div className="max-w-[1750px] mx-auto min-h-[83vh] bg-slate-100 font-sans text-slate-900">
       <PageHeader
         title="Project Performance"
         subtitle="Tracking time consumption and budget limits."

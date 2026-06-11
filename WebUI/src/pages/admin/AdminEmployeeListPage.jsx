@@ -252,7 +252,7 @@ export default function EmployeeListPage() {
   if (isLoading) return <Loader message="Accessing Workforce Database..." />;
 
   return (
-    <div className="max-w-[1750px] mx-auto  min-h-screen bg-slate-100">
+    <div className="max-w-[1750px] mx-auto min-h-[83vh] bg-slate-100">
       <PageHeader
         title={`${activeRole} Management`}
         subtitle="Manage workforce access and profiles."

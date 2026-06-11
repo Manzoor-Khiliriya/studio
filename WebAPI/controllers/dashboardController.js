@@ -13,7 +13,7 @@ const { getToday, now } = require("../utils/dateHelper");
 exports.getSummary = async (req, res) => {
   try {
     const userId = req.user._id;
-    const todayStr = moment().format("YYYY-MM-DD");
+    const today = getToday();
 
     if (isActiveAdmin(req.user)) {
       const [
@@ -26,7 +26,7 @@ exports.getSummary = async (req, res) => {
         attendanceToday,
       ] = await Promise.all([
         User.countDocuments({ status: "Enable", role: "Employee" }),
-        Attendance.countDocuments({ date: todayStr, clockOut: null }),
+        Attendance.countDocuments({ date: today, clockOut: null }),
         Leave.countDocuments({ status: "Pending" }),
         Task.find().populate("timeLogs"),
         Project.countDocuments({ deleteStatus: "Disable" }),
@@ -172,7 +172,11 @@ exports.getSummary = async (req, res) => {
             .populate("project", "title projectCode")
             .populate("timeLogs"),
 
-          Leave.countDocuments({ user: userId, status: "Approved" }),
+          Leave.countDocuments({
+            user: userId,
+            status: "Approved",
+            startDate: { $gte: today },
+          }),
 
           TimeLog.findOne({ user: userId, isRunning: true })
             .populate({
@@ -191,8 +195,6 @@ exports.getSummary = async (req, res) => {
       allocations.forEach((a) => {
         allocationMap[a.task.toString()] = a;
       });
-
-      const today = getToday();
 
       return res.json({
         role: "Employee",
@@ -263,7 +265,7 @@ exports.getSummary = async (req, res) => {
 
           Attendance.findOne({
             user: userId,
-            date: todayStr,
+            date: today,
           }).lean(),
 
           Leave.countDocuments({

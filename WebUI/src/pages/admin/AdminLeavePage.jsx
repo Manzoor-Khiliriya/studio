@@ -391,7 +391,7 @@ export default function AdminLeavePage() {
   if (isLoading) return <Loader message="Accessing Attendance Matrix..." />;
 
   return (
-    <div className="max-w-[1750px] mx-auto  p-8 bg-slate-100 min-h-screen">
+    <div className="max-w-[1750px] mx-auto p-8 bg-slate-100 min-h-[83vh]">
       {/* HEADER */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
         <div>

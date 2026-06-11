@@ -16,7 +16,7 @@ router.use(authenticate);
 
 router
   .route("/")
-  .get(authorize(ROLE.ADMIN), getAllProjects)
+  .get(authorize(ROLE.ADMIN, ROLE.MANAGER), getAllProjects)
   .post(authorize(ROLE.ADMIN), createProject);
 router.get("/calendar", authorize(ROLE.ADMIN), getProjectCalendarStacks);
 router.get(

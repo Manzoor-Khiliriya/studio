@@ -82,7 +82,7 @@ export default function EmployeeHolidayPage() {
   if (isLoading) return <Loader message="Synchronizing Calendar..." />;
 
   return (
-    <div className="max-w-[1750px] mx-auto  min-h-screen bg-slate-100">
+    <div className="max-w-[1750px] mx-auto  min-h-[83vh] bg-slate-100">
       <PageHeader
         title="Upcoming Holidays"
         subtitle="Chronological log of upcoming public observances and system downtime."

@@ -202,7 +202,7 @@ export default function MyTasksPage() {
   const hasActiveFilters = searchTerm || taskSearch || statusFilter !== "All" || liveStatusFilter !== "All" || activeStatusFilter !== "All";
 
   return (
-    <div className="max-w-[1750px] mx-auto min-h-screen bg-slate-100">
+    <div className="max-w-[1750px] mx-auto min-h-[83vh] bg-slate-100">
       <PageHeader title="My Tasks" subtitle="Individual tasks and real-time operational status." />
 
       <main className="max-w-[1750px] mx-auto px-8 pb-10 -mt-10">

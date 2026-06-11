@@ -24,7 +24,7 @@ export default function EmployeeProfilePage() {
     const user = data.user;
 
     return (
-        <div className="max-w-[1750px] mx-auto h-[90vh] bg-slate-100">
+        <div className="max-w-[1750px] mx-auto min-h-[83vh] bg-slate-100">
 
             {/* 🔥 PAGE HEADER */}
             <PageHeader
@@ -46,17 +46,23 @@ export default function EmployeeProfilePage() {
                         <Field label="Email Address" value={user?.email} />
                         <Field label="Designation" value={user?.designation?.name} />
                         <Field
-                            label={
-                                ["Manager", "GAD Manager"].includes(user.role)
-                                    ? "Departments"
-                                    : "Department"
-                            }
-                            value={
-                                ["Manager", "GAD Manager"].includes(user.role)
-                                    ? data?.departments?.map((d) => d.name).join(", ")
-                                    : data?.departments?.[0]?.name
-                            }
+                            label={data.departments.length === 1 ? "Department" : "Departments"}
+                            value={data?.departments?.map((d) => d?.name).join(", ")}
                         />
+                        {data?.manager && (
+                            <Field
+                                label="Manager"
+                                value={data.manager.name}
+                            />
+                        )}
+
+                        {data?.admin?.length > 0 && (
+                            <Field
+                                label={data.admin.length === 1 ? "Admin" : "Admins"}
+                                value={data.admin.map((a) => a?.name).join(", ")}
+                            />
+                        )}
+
                         {/* PERSONAL INFO */}
                         <Field
                             label="Date of Birth"

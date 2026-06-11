@@ -12,13 +12,20 @@ const emitEvent = (req, event, data) => {
 
 exports.createProject = async (req, res) => {
   try {
-    const { projectCode, projectType, title, clientName, startDate, endDate } = req.body;
+    const { projectCode, projectType, title, clientName, startDate, endDate } =
+      req.body;
     if (!projectCode || !projectType || !title || !startDate || !endDate) {
-      return res.status(400).json({ success: false, message: "Missing required fields" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing required fields" });
     }
-    const existingProject = await Project.findOne({ projectCode: projectCode.toUpperCase() });
+    const existingProject = await Project.findOne({
+      projectCode: projectCode.toUpperCase(),
+    });
     if (existingProject) {
-      return res.status(409).json({ success: false, message: "Project Code already exists" });
+      return res
+        .status(409)
+        .json({ success: false, message: "Project Code already exists" });
     }
     const project = await Project.create({
       projectCode: projectCode.toUpperCase(),
@@ -26,14 +33,20 @@ exports.createProject = async (req, res) => {
       title,
       clientName,
       startDate,
-      endDate
+      endDate,
     });
     emitEvent(req, "projectChanged", project);
     emitDashboardUpdate(req);
-    return res.status(201).json({ success: true, message: "Project created successfully", project });
+    return res.status(201).json({
+      success: true,
+      message: "Project created successfully",
+      project,
+    });
   } catch (error) {
-    console.error(error)
-    return res.status(500).json({ success: false, message: "Internal server error" });
+    console.error(error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -53,10 +66,24 @@ exports.getAllProjects = async (req, res) => {
       liveStatus,
       taskStatus,
       projectType,
-      status
+      status,
     } = req.query;
 
     const skip = (Number(page) - 1) * Number(limit);
+    if (req.user.role === "Manager" && activeTab !== "live") {
+      return res.status(200).json({
+        success: true,
+        activeTab,
+        projects: [],
+        pagination: {
+          totalProjects: 0,
+          totalTasks: 0,
+          totalPages: 0,
+          currentPage: Number(page),
+        },
+      });
+    }
+
     let query = {};
 
     if (activeTab === "live") {
@@ -75,7 +102,7 @@ exports.getAllProjects = async (req, res) => {
       if (search) {
         query.$or = [
           { projectCode: { $regex: search, $options: "i" } },
-          { title: { $regex: search, $options: "i" } }
+          { title: { $regex: search, $options: "i" } },
         ];
       }
     } else {
@@ -86,7 +113,7 @@ exports.getAllProjects = async (req, res) => {
           { clientName: { $regex: search, $options: "i" } },
           { projectType: { $regex: search, $options: "i" } },
           { status: { $regex: search, $options: "i" } },
-          { invoiceNumber: { $regex: search, $options: "i" } }
+          { invoiceNumber: { $regex: search, $options: "i" } },
         ];
       }
     }
@@ -100,24 +127,19 @@ exports.getAllProjects = async (req, res) => {
     }
 
     if (activeTab !== "live" && (createdFrom || createdTo)) {
-
       if (createdFrom && !createdTo) {
         const start = new Date(createdFrom);
         const end = new Date(createdFrom);
         end.setHours(23, 59, 59, 999);
 
         query.createdAt = { $gte: start, $lte: end };
-      }
-
-      else if (!createdFrom && createdTo) {
+      } else if (!createdFrom && createdTo) {
         const start = new Date(createdTo);
         const end = new Date(createdTo);
         end.setHours(23, 59, 59, 999);
 
         query.createdAt = { $gte: start, $lte: end };
-      }
-
-      else {
+      } else {
         const start = new Date(createdFrom);
         const end = new Date(createdTo);
         end.setHours(23, 59, 59, 999);
@@ -130,7 +152,7 @@ exports.getAllProjects = async (req, res) => {
       if (startDate && endDate) {
         query.startDate = {
           $gte: new Date(startDate),
-          $lte: new Date(endDate)
+          $lte: new Date(endDate),
         };
       } else if (startDate) {
         const s = new Date(startDate);
@@ -151,26 +173,26 @@ exports.getAllProjects = async (req, res) => {
         path: "tasks",
         match: {
           ...(taskSearch && { title: { $regex: taskSearch, $options: "i" } }),
-          ...(taskStatus && taskStatus !== "All" && { status: taskStatus })
+          ...(taskStatus && taskStatus !== "All" && { status: taskStatus }),
         },
         populate: [
           { path: "assignedTo", populate: { path: "user", select: "name" } },
-          { path: "timeLogs" }
-        ]
+          { path: "timeLogs" },
+        ],
       });
 
-    let projectsWithStatus = projects.map(project => ({
+    let projectsWithStatus = projects.map((project) => ({
       ...project.toObject(),
-      tasks: (project.tasks || []).map(task => ({
+      tasks: (project.tasks || []).map((task) => ({
         ...task.toObject(),
-        liveStatus: task.liveStatus
-      }))
+        liveStatus: task.liveStatus,
+      })),
     }));
 
     if (liveStatus && liveStatus !== "All") {
-      projectsWithStatus = projectsWithStatus.map(project => ({
+      projectsWithStatus = projectsWithStatus.map((project) => ({
         ...project,
-        tasks: project.tasks.filter(t => t.liveStatus === liveStatus)
+        tasks: project.tasks.filter((t) => t.liveStatus === liveStatus),
       }));
     }
 
@@ -181,17 +203,27 @@ exports.getAllProjects = async (req, res) => {
 
     if (isTaskFilterApplied) {
       projectsWithStatus = projectsWithStatus.filter(
-        project => project.tasks && project.tasks.length > 0
+        (project) => project.tasks && project.tasks.length > 0,
       );
     }
 
     const totalTasksAcrossAllFilteredProjects = projectsWithStatus.reduce(
       (acc, project) => acc + (project.tasks?.length || 0),
-      0
+      0,
     );
 
+    if (req.user.role === "Manager") {
+      projectsWithStatus = projectsWithStatus.map((project) => ({
+        ...project,
+        clientName: undefined,
+      }));
+    }
+
     const totalProjects = projectsWithStatus.length;
-    const paginatedProjects = projectsWithStatus.slice(skip, skip + Number(limit));
+    const paginatedProjects = projectsWithStatus.slice(
+      skip,
+      skip + Number(limit),
+    );
 
     return res.status(200).json({
       success: true,
@@ -201,13 +233,13 @@ exports.getAllProjects = async (req, res) => {
         totalProjects: totalProjects,
         totalTasks: totalTasksAcrossAllFilteredProjects,
         totalPages: Math.ceil(totalProjects / limit),
-        currentPage: Number(page)
-      }
+        currentPage: Number(page),
+      },
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Internal server error"
+      message: "Internal server error",
     });
   }
 };
@@ -217,7 +249,10 @@ exports.getEstimate = async (req, res) => {
     const project = await Project.findById(req.params.id);
     if (!project) return res.status(404).json({ message: "Project not found" });
 
-    const hours = await calculateEstimatedHours(project.startDate, project.endDate);
+    const hours = await calculateEstimatedHours(
+      project.startDate,
+      project.endDate,
+    );
 
     return res.status(200).json({ success: true, hours });
   } catch (err) {
@@ -237,11 +272,13 @@ exports.updateProject = async (req, res) => {
     const project = await Project.findByIdAndUpdate(
       id,
       { $set: updateData },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!project) {
-      return res.status(404).json({ success: false, message: "Project not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Project not found" });
     }
 
     emitEvent(req, "projectChanged", project);
@@ -249,13 +286,17 @@ exports.updateProject = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Project updated successfully",
-      project
+      project,
     });
   } catch (error) {
     if (error.code === 11000) {
-      return res.status(400).json({ success: false, message: "Project Code already exists" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Project Code already exists" });
     }
-    return res.status(500).json({ success: false, message: "Internal server error" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -265,11 +306,13 @@ exports.deleteProject = async (req, res) => {
     const project = await Project.findById(projectId);
 
     if (!project) {
-      return res.status(404).json({ success: false, message: "Project not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Project not found" });
     }
 
     const tasks = await Task.find({ project: projectId }).select("_id");
-    const taskIds = tasks.map(task => task._id);
+    const taskIds = tasks.map((task) => task._id);
 
     if (taskIds.length > 0) {
       await TimeLog.deleteMany({ task: { $in: taskIds } });
@@ -282,10 +325,12 @@ exports.deleteProject = async (req, res) => {
     emitDashboardUpdate(req);
     return res.status(200).json({
       success: true,
-      message: "Project and all related tasks/timelogs deleted successfully."
+      message: "Project and all related tasks/timelogs deleted successfully.",
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Internal server error" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -298,7 +343,7 @@ exports.getTaskPerformanceReport = async (req, res) => {
     if (search) {
       projectQuery.$or = [
         { projectCode: { $regex: search, $options: "i" } },
-        { title: { $regex: search, $options: "i" } }
+        { title: { $regex: search, $options: "i" } },
       ];
     }
 
@@ -314,16 +359,16 @@ exports.getTaskPerformanceReport = async (req, res) => {
           from: "tasks",
           localField: "_id",
           foreignField: "project",
-          as: "taskList"
-        }
+          as: "taskList",
+        },
       },
 
       // Unwind tasks
       {
         $unwind: {
           path: "$taskList",
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
 
       // Get timelogs per task
@@ -332,11 +377,9 @@ exports.getTaskPerformanceReport = async (req, res) => {
           from: "timelogs",
           localField: "taskList._id",
           foreignField: "task",
-          pipeline: [
-            { $match: { logType: "work" } }
-          ],
-          as: "taskLogs"
-        }
+          pipeline: [{ $match: { logType: "work" } }],
+          as: "taskLogs",
+        },
       },
 
       // Calculate consumed time per task
@@ -345,15 +388,12 @@ exports.getTaskPerformanceReport = async (req, res) => {
           "taskList.consumedHours": {
             $round: [
               {
-                $divide: [
-                  { $sum: "$taskLogs.durationSeconds" },
-                  3600
-                ]
+                $divide: [{ $sum: "$taskLogs.durationSeconds" }, 3600],
               },
-              2
-            ]
-          }
-        }
+              2,
+            ],
+          },
+        },
       },
 
       // Calculate task progress %
@@ -367,16 +407,16 @@ exports.getTaskPerformanceReport = async (req, res) => {
                   {
                     $divide: [
                       "$taskList.consumedHours",
-                      "$taskList.allocatedTime"
-                    ]
+                      "$taskList.allocatedTime",
+                    ],
                   },
-                  100
-                ]
+                  100,
+                ],
               },
-              0
-            ]
-          }
-        }
+              0,
+            ],
+          },
+        },
       },
 
       // Group back tasks into project
@@ -388,20 +428,20 @@ exports.getTaskPerformanceReport = async (req, res) => {
           title: { $first: "$title" },
           endDate: { $first: "$endDate" },
           createdAt: { $first: "$createdAt" },
-          taskList: { $push: "$taskList" }
-        }
+          taskList: { $push: "$taskList" },
+        },
       },
 
       // Project-level totals
       {
         $addFields: {
           totalConsumed: {
-            $sum: "$taskList.consumedHours"
+            $sum: "$taskList.consumedHours",
           },
           totalBudget: {
-            $sum: "$taskList.allocatedTime"
-          }
-        }
+            $sum: "$taskList.allocatedTime",
+          },
+        },
       },
 
       // Project progress %
@@ -413,14 +453,14 @@ exports.getTaskPerformanceReport = async (req, res) => {
               {
                 $multiply: [
                   { $divide: ["$totalConsumed", "$totalBudget"] },
-                  100
-                ]
+                  100,
+                ],
               },
-              0
-            ]
-          }
-        }
-      }
+              0,
+            ],
+          },
+        },
+      },
     ]);
     const totalProjects = await Project.countDocuments(projectQuery);
 
@@ -429,8 +469,8 @@ exports.getTaskPerformanceReport = async (req, res) => {
       pagination: {
         totalProjects,
         totalPages: Math.ceil(totalProjects / limit),
-        currentPage: Number(page)
-      }
+        currentPage: Number(page),
+      },
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -449,10 +489,10 @@ exports.getProjectCalendarStacks = async (req, res) => {
           ...(search && {
             $or: [
               { projectCode: { $regex: search, $options: "i" } },
-              { title: { $regex: search, $options: "i" } }
-            ]
-          })
-        }
+              { title: { $regex: search, $options: "i" } },
+            ],
+          }),
+        },
       },
 
       // ✅ get tasks
@@ -461,8 +501,8 @@ exports.getProjectCalendarStacks = async (req, res) => {
           from: "tasks",
           localField: "_id",
           foreignField: "project",
-          as: "taskList"
-        }
+          as: "taskList",
+        },
       },
 
       // ✅ get logs
@@ -471,8 +511,8 @@ exports.getProjectCalendarStacks = async (req, res) => {
           from: "timelogs",
           localField: "taskList._id",
           foreignField: "task",
-          as: "timeLogs"
-        }
+          as: "timeLogs",
+        },
       },
 
       {
@@ -500,9 +540,9 @@ exports.getProjectCalendarStacks = async (req, res) => {
                           $filter: {
                             input: "$timeLogs",
                             as: "log",
-                            cond: { $eq: ["$$log.task", "$$task._id"] }
-                          }
-                        }
+                            cond: { $eq: ["$$log.task", "$$task._id"] },
+                          },
+                        },
                       },
                       in: {
                         $cond: [
@@ -517,14 +557,14 @@ exports.getProjectCalendarStacks = async (req, res) => {
                                     cond: {
                                       $and: [
                                         { $eq: ["$$log.isRunning", true] },
-                                        { $eq: ["$$log.logType", "work"] }
-                                      ]
-                                    }
-                                  }
-                                }
+                                        { $eq: ["$$log.logType", "work"] },
+                                      ],
+                                    },
+                                  },
+                                },
                               },
-                              0
-                            ]
+                              0,
+                            ],
                           },
                           "In progress",
 
@@ -541,33 +581,35 @@ exports.getProjectCalendarStacks = async (req, res) => {
                                         cond: {
                                           $and: [
                                             { $eq: ["$$log.logType", "work"] },
-                                            { $gt: ["$$log.durationSeconds", 0] }
-                                          ]
-                                        }
-                                      }
-                                    }
+                                            {
+                                              $gt: ["$$log.durationSeconds", 0],
+                                            },
+                                          ],
+                                        },
+                                      },
+                                    },
                                   },
-                                  0
-                                ]
+                                  0,
+                                ],
                               },
                               "Started",
 
                               // 🔥 TO BE STARTED
-                              "To be started"
-                            ]
-                          }
-                        ]
-                      }
-                    }
-                  }
-                }
-              }
+                              "To be started",
+                            ],
+                          },
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
             },
 
-            taskCount: { $size: "$taskList" }
-          }
-        }
-      }
+            taskCount: { $size: "$taskList" },
+          },
+        },
+      },
     ]);
 
     res.status(200).json(projectStacks);

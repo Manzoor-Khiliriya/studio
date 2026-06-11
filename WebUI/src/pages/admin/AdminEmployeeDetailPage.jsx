@@ -348,7 +348,7 @@ export default function EmployeeDetailPage() {
   if (userLoading || tasksLoading) return <Loader message="Accessing Personnel Files..." />;
 
   return (
-    <div className="max-w-[1750px] mx-auto  min-h-screen bg-slate-100 pb-10 font-sans text-slate-900">
+    <div className="max-w-[1750px] mx-auto min-h-[83vh] bg-slate-100 pb-10 font-sans text-slate-900">
       <header className="bg-white border-b border-slate-200 pt-8 pb-12 shadow-sm">
         <div className="mx-auto px-8">
           <button
@@ -631,17 +631,6 @@ export default function EmployeeDetailPage() {
           >
             <SectionHeader title="Profile Details" />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-              {/* <ContactItem
-                icon={<HiOutlineUserGroup />}
-                label={employee?.departments?.length === 1 ? "Department" : "Departments"}
-                value={employee?.departments.map(a => a?.name).join(", ")}
-              />
-
-              <ContactItem
-                icon={<HiOutlineUserGroup />}
-                label={"Designation"}
-                value={employee?.user?.designation}
-              /> */}
               {employee?.manager && (
                 <ContactItem
                   icon={<HiOutlineUser />}
@@ -657,6 +646,18 @@ export default function EmployeeDetailPage() {
                   value={employee?.admin.map(a => a.name).join(", ")}
                 />
               )}
+
+              <ContactItem
+                icon={<HiOutlineUserGroup />}
+                label={"Designation"}
+                value={employee?.user?.designation?.name}
+              />
+
+              <ContactItem
+                icon={<HiOutlineUserGroup />}
+                label={employee?.departments?.length === 1 ? "Department" : "Departments"}
+                value={employee?.departments.map(a => a?.name).join(", ")}
+              />
 
               <ContactItem icon={<HiOutlineEnvelope />} label="Work Email" value={employee?.user?.email} />
               <ContactItem icon={<HiOutlinePhone />} label="Mobile Number" value={employee?.mobileNumber} />

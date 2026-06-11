@@ -172,7 +172,7 @@ export default function EmployeeDashboard() {
 
   return (
     <>
-      <div className="min-h-screen bg-[#f1f5f9]">
+      <div className="min-h-[83vh] bg-[#f1f5f9]">
         <PageHeader title="Dashboard" />
 
         {/* --- STATS GRID (5 COLUMNS) --- */}

@@ -164,7 +164,7 @@ export default function AdminTaskDetailPage() {
   };
 
   return (
-    <div className="max-w-[1750px] mx-auto  min-h-screen bg-slate-100 pb-10">
+    <div className="max-w-[1750px] mx-auto min-h-[83vh] bg-slate-100 pb-10">
       <header className="bg-white border-b border-slate-200 pt-8 pb-10">
         <div className="max-w-[1750px] mx-auto px-8">
           <button

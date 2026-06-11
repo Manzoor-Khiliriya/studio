@@ -56,6 +56,9 @@ export default function Sidebar() {
     { to: "/employee", label: "Overview", icon: <HiOutlineViewColumns /> },
     { to: "/my-profile", label: "Profile", icon: <HiOutlineUser /> },
     { to: "/my-tasks", label: "My Tasks", icon: <HiOutlineQueueList /> },
+    { to: "/projects", label: "Projects", icon: <HiOutlineQueueList /> },
+    { to: "/task-history", label: "Task History", icon: <HiOutlineDocumentCheck /> },
+    { to: "/attendance", label: "Attendance", icon: <HiOutlineViewColumns /> },
     { to: "/leaves", label: "Leave Management", icon: <HiOutlineCalendar /> },
     { to: "/public-holidays", label: "Calendar", icon: <HiOutlineFlag /> },
   ];

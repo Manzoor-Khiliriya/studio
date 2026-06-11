@@ -97,7 +97,7 @@ const AdminDashboard = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-slate-100">
+      <div className="min-h-[83vh] bg-slate-100">
         <PageHeader
           title="Admin Dashboard"
           iconText="A"

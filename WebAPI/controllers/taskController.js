@@ -69,6 +69,16 @@ exports.updateTask = async (req, res) => {
   try {
     const { title, assignedTo, project, priority, allocatedTime, description } =
       req.body;
+
+    if (req.user.role === "Manager") {
+      if (!assignedTo) {
+        return res.status(403).json({
+          success: false,
+          message: "Managers can only update task assignments",
+        });
+      }
+    }
+    
     const io = req.app.get("socketio");
 
     const task = await Task.findById(req.params.id);

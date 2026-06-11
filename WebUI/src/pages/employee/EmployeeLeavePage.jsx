@@ -232,7 +232,7 @@ export default function EmployeeLeavePage() {
   if (isLoading) return <Loader message="Accessing Personal Ledger..." />;
 
   return (
-    <div className="max-w-[1750px] mx-auto min-h-screen bg-slate-100">
+    <div className="max-w-[1750px] mx-auto min-h-[83vh] bg-slate-100">
       <PageHeader
         title="My Leaves"
         subtitle="Operational absence logs and earned credit registry."

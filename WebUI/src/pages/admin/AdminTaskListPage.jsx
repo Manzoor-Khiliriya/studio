@@ -36,8 +36,11 @@ import { useSocketEvents } from "../../hooks/useSocketEvents";
 import TruncateText from "../../components/TruncateText";
 import CustomDropdown from "../../components/CustomDropdown";
 import useDebounce from "../../hooks/useDebounce";
+import { useSelector } from "react-redux";
 
 export default function AdminTasksPage() {
+  const { user } = useSelector((state) => state.auth);
+
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState(
@@ -154,12 +157,14 @@ export default function AdminTasksPage() {
   const columns = useMemo(
     () =>
       getAdminTaskColumns(
+        user?.role,
         setEditingTask,
         setStatusUpdateTask,
         setAssigningTeamTask,
         setTaskToDelete,
       ),
     [
+      user?.role,
       setEditingTask,
       setStatusUpdateTask,
       setAssigningTeamTask,
@@ -340,14 +345,14 @@ export default function AdminTasksPage() {
     return <Loader message="Synchronizing Project Data..." />;
 
   return (
-    <div className="max-w-[1750px] mx-auto min-h-screen bg-slate-100">
+    <div className="max-w-[1750px] mx-auto min-h-[83vh] bg-slate-100">
       <PageHeader
         title="Project Management"
         subtitle="Manage operational projects and nested task objectives."
-        tabs={[
-          { id: "live", label: "Live Projects" },
-          { id: "all", label: "All Projects" },
-        ]}
+        tabs={user?.role !== "Admin" ? [{ id: "live", label: "Live Projects" }] :
+          [{ id: "live", label: "Live Projects" },
+          { id: "all", label: "All Projects" }]
+        }
         activeTab={activeTab}
         onTabChange={(tabId) => {
           setActiveTab(tabId);
@@ -553,27 +558,29 @@ export default function AdminTasksPage() {
                 />
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">
-                  Selection for Delete
-                </label>
-                <div className="flex items-center gap-3 bg-slate-100/50 px-4 py-2 rounded-xl border border-slate-200">
-                  <input
-                    type="checkbox"
-                    className="w-4 h-5 accent-orange-500 cursor-pointer"
-                    checked={
-                      projectGroups.length > 0 &&
-                      selectedProjects.length === projectGroups.length
-                    }
-                    onChange={handleSelectAll}
-                  />
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                    Select All
-                  </span>
+              {user?.role === "Admin" && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">
+                    Selection for Delete
+                  </label>
+                  <div className="flex items-center gap-3 bg-slate-100/50 px-4 py-2 rounded-xl border border-slate-200">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-5 accent-orange-500 cursor-pointer"
+                      checked={
+                        projectGroups.length > 0 &&
+                        selectedProjects.length === projectGroups.length
+                      }
+                      onChange={handleSelectAll}
+                    />
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                      Select All
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {activeTab === "live" && (
+              {activeTab === "live" && user?.role === "Admin" && (
                 <button
                   onClick={() => {
                     setEditingProject(null);
@@ -586,7 +593,7 @@ export default function AdminTasksPage() {
                 </button>
               )}
 
-              {activeTab !== "live" && (
+              {activeTab !== "live" && user?.role === "Admin" && (
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
                     Export
@@ -604,7 +611,7 @@ export default function AdminTasksPage() {
               )}
 
               <div className="flex items-center gap-3">
-                {selectedProjects.length > 0 && (
+                {selectedProjects.length > 0 && user?.role === "Admin" && (
                   <button
                     onClick={() =>
                       setProjectToDeactivate({
@@ -732,15 +739,17 @@ export default function AdminTasksPage() {
                           />
                         </div>
 
-                        <div className="flex flex-col gap-1">
-                          <span className="text-[9px] font-black text-left text-slate-400 uppercase tracking-[0.15em]">
-                            Client
-                          </span>
-                          <TruncateText
-                            text={project.clientName || "Direct Client"}
-                            className="text-[11px] font-bold w-30 text-slate-800 font-mono uppercase"
-                          />
-                        </div>
+                        {user?.role === "Admin" && (
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[9px] font-black text-left text-slate-400 uppercase tracking-[0.15em]">
+                              Client
+                            </span>
+                            <TruncateText
+                              text={project.clientName || "Direct Client"}
+                              className="text-[11px] font-bold w-30 text-slate-800 font-mono uppercase"
+                            />
+                          </div>
+                        )}
 
                         {activeTab === "live" ? (
                           <div className="flex flex-col justify-center items-center w-[180px] gap-1">
@@ -826,7 +835,7 @@ export default function AdminTasksPage() {
 
                     {/* ACTION BUTTONS + CHECKBOX */}
                     <div className="flex items-center gap-2">
-                      {activeTab === "live" && (
+                      {activeTab === "live" && user?.role === "Admin" && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -839,42 +848,47 @@ export default function AdminTasksPage() {
                         </button>
                       )}
 
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingProject(project);
-                          setShowProjectModal(true);
-                        }}
-                        className="p-3 rounded-xl border border-slate-200 text-yellow-500 hover:text-yellow-600 hover:border-orange-500 transition-all bg-white shadow-xl cursor-pointer"
-                        title="Update Project"
-                      >
-                        <HiOutlinePencilSquare />
-                      </button>
+                      {user?.role === "Admin" && (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingProject(project);
+                              setShowProjectModal(true);
+                            }}
+                            className="p-3 rounded-xl border border-slate-200 text-yellow-500 hover:text-yellow-600 hover:border-orange-500 transition-all bg-white shadow-xl cursor-pointer"
+                            title="Update Project"
+                          >
+                            <HiOutlinePencilSquare />
+                          </button>
 
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setProjectToDeactivate(project);
-                        }}
-                        className="p-3 rounded-xl border border-slate-200 text-rose-500 hover:text-rose-600 hover:border-rose-500 transition-all bg-white shadow-xl cursor-pointer"
-                        title="Delete Project"
-                      >
-                        <HiOutlineTrash />
-                      </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setProjectToDeactivate(project);
+                            }}
+                            className="p-3 rounded-xl border border-slate-200 text-rose-500 hover:text-rose-600 hover:border-rose-500 transition-all bg-white shadow-xl cursor-pointer"
+                            title="Delete Project"
+                          >
+                            <HiOutlineTrash />
+                          </button>
 
-                      {/* SELECTION CHECKBOX (Right Aligned) */}
-                      <div
-                        className={`px-3 py-2.5 flex items-center rounded-xl border hover:border-orange-500  transition-all ${isSelected ? "bg-orange-500 border-orange-500" : "bg-white border-slate-200"}`}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleProjectSelection(project._id)}
-                          className="w-4 h-5 accent-white cursor-pointer"
-                          title="Select To Delete Project"
-                        />
-                      </div>
+                          {/* SELECTION CHECKBOX (Right Aligned) */}
+                          <div
+                            className={`px-3 py-2.5 flex items-center rounded-xl border hover:border-orange-500  transition-all ${isSelected ? "bg-orange-500 border-orange-500" : "bg-white border-slate-200"}`}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleProjectSelection(project._id)}
+                              className="w-4 h-5 accent-white cursor-pointer"
+                              title="Select To Delete Project"
+                            />
+                          </div>
+
+                        </>
+                      )}
 
                       {activeTab === "live" && (
                         <div

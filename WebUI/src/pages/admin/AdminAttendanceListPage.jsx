@@ -41,9 +41,15 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { useGetHolidaysQuery } from "../../services/holidayApi";
+import { useSelector } from "react-redux";
 
 export default function AttendanceManagement() {
-  const [activeTab, setActiveTab] = useState("logs");
+  const { user } = useSelector((state) => state.auth);
+
+  const [activeTab, setActiveTab] = useState(
+    user?.role === "Admin" ? "logs" : "calendar"
+  );
+
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState("");
@@ -70,6 +76,8 @@ export default function AttendanceManagement() {
     page: page,
     limit: limit,
     search: debouncedSearch,
+  }, {
+    skip: user?.role !== "Admin" || activeTab !== "logs",
   });
 
   const {
@@ -194,7 +202,7 @@ export default function AttendanceManagement() {
   if (isLoading) return <Loader message="Accessing Attendance Records..." />;
 
   return (
-    <div className="max-w-[1750px] mx-auto p-8 bg-slate-100 min-h-screen">
+    <div className="max-w-[1750px] mx-auto p-8 bg-slate-100 min-h-[83vh]">
       {/* HEADER SECTION */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
         <div>
@@ -212,16 +220,19 @@ export default function AttendanceManagement() {
 
         {/* TAB SWITCHER */}
         <div className="flex bg-white p-1 rounded-2xl border border-slate-200 shadow-sm">
-          <button
-            onClick={() => setActiveTab("logs")}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all  cursor-pointer ${activeTab === "logs"
-              ? "bg-orange-600 text-white shadow-lg"
-              : "text-slate-400 hover:text-slate-600"
-              }`}
-          >
-            <HiOutlineListBullet size={16} />
-            Daily Attendance
-          </button>
+          {user?.role === "Admin" && (
+            <button
+              onClick={() => setActiveTab("logs")}
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all  cursor-pointer ${activeTab === "logs"
+                ? "bg-orange-600 text-white shadow-lg"
+                : "text-slate-400 hover:text-slate-600"
+                }`}
+            >
+              <HiOutlineListBullet size={16} />
+              Daily Attendance
+            </button>
+          )}
+
           <button
             onClick={() => setActiveTab("calendar")}
             className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${activeTab === "calendar"

@@ -41,7 +41,7 @@ export default function AdminTaskAllocationPage() {
                 />
             )}
 
-            <div className="max-w-[1750px] mx-auto min-h-screen bg-slate-100">
+            <div className="max-w-[1750px] mx-auto min-h-[83vh] bg-slate-100">
                 <div className="flex flex-wrap items-center justify-between gap-6 pr-8 bg-white">
                     <PageHeader
                         title="Task Allocation"

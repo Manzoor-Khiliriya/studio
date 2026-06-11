@@ -130,7 +130,7 @@ export default function Navbar() {
                 {unreadCount > 0 && (
                   <button
                     onClick={handleMarkAllRead}
-                    className="w-full py-4 text-[10px] font-black uppercase tracking-widest text-orange-600 hover:bg-orange-100 transition-colors border-t border-orange-50"
+                    className="w-full py-4 text-[10px] font-black uppercase tracking-widest text-orange-600 hover:bg-orange-100 transition-colors border-t border-orange-50 cursor-pointer"
                   >
                     Mark all as read
                   </button>
