@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import {
   useGetDashboardSummaryQuery,
   useClearLogsMutation,
-  useStopAllSessionsMutation
+  useStopAllSessionsMutation,
+  useGetManagerDashboardQuery
 } from '../../services/dashboardApi';
 import { HiOutlineArrowTrendingUp, HiOutlineBolt, HiOutlineUserGroup, HiOutlineFingerPrint, HiOutlineCalendarDays } from 'react-icons/hi2';
 import { BiTask, BiTimeFive, BiTrash } from 'react-icons/bi';
@@ -16,17 +17,47 @@ import PageHeader from '../../components/PageHeader';
 import { useSocketEvents } from '../../hooks/useSocketEvents';
 import ConfirmModal from '../../components/ConfirmModal';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 
 const AdminDashboard = () => {
+  const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
   const [confirmState, setConfirmState] = useState({
     open: false,
     action: null,
     payload: null,
   });
-  const { data, isLoading, refetch } = useGetDashboardSummaryQuery(undefined, {
+
+  const {
+    data: adminData,
+    isLoading: adminLoading,
+    refetch: adminRefetch,
+  } = useGetDashboardSummaryQuery(undefined, {
+    skip: user?.role !== "Admin",
     refetchOnMountOrArgChange: true,
   });
+
+  const {
+    data: managerData,
+    isLoading: managerLoading,
+    refetch: managerRefetch,
+  } = useGetManagerDashboardQuery(undefined, {
+    skip: user?.role !== "Manager",
+    refetchOnMountOrArgChange: true,
+  });
+
+  const data = user?.role === "Admin" ? adminData : managerData;
+
+  const isLoading =
+    user?.role === "Admin"
+      ? adminLoading
+      : managerLoading;
+
+  const refetch =
+    user?.role === "Admin"
+      ? adminRefetch
+      : managerRefetch;
+
   const [stopAllSessions, { isLoading: isStoppingAll }] = useStopAllSessionsMutation();
   const [clearLogs, { isLoading: isClearing }] = useClearLogsMutation();
 
@@ -99,7 +130,7 @@ const AdminDashboard = () => {
     <>
       <div className="min-h-[83vh] bg-slate-100">
         <PageHeader
-          title="Admin Dashboard"
+          title={user?.role === "Admin" ? "Admin Dashboard" : "Manager Dashboard"}
           iconText="A"
           subtitle="Manage operational objectives and real-time resource utilization."
         />
@@ -119,7 +150,11 @@ const AdminDashboard = () => {
               value={stats.totalActiveEmployees || 0}
               icon={<HiOutlineUserGroup size={22} />}
               delay={0.2}
-              onClick={() => navigate("/employees")}
+              onClick={
+                user?.role === "Admin"
+                  ? () => navigate("/employees")
+                  : undefined
+              }
             />
 
             <StatCard
@@ -128,7 +163,11 @@ const AdminDashboard = () => {
               variant={stats.attendanceLive > 0 ? "active" : "default"}
               icon={<HiOutlineFingerPrint size={22} />}
               delay={0.3}
-              onClick={() => navigate("/attendance")}
+              onClick={
+                user?.role === "Admin"
+                  ? () => navigate("/attendance")
+                  : undefined
+              }
             />
 
             <StatCard
@@ -151,7 +190,8 @@ const AdminDashboard = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* --- LIVE TRACKING --- */}
-            <div className="lg:col-span-5 bg-white rounded-[3rem] border border-slate-200 p-8 shadow-xl flex flex-col h-[700px]">
+            
+            <div className={`bg-white rounded-[3rem] border border-slate-200 p-8 shadow-xl flex flex-col h-[700px] ${user?.role === "Admin" ? "lg:col-span-5" : "lg:col-span-12"}`}>
               <div className="flex justify-between items-center mb-10 shrink-0">
                 <h3 className="font-black text-slate-900 text-sm uppercase tracking-widest flex items-center gap-3">
                   <span className="relative flex h-3 w-3">
@@ -160,7 +200,7 @@ const AdminDashboard = () => {
                   </span>
                   Active Timers
                 </h3>
-                {liveTracking.length > 0 && (
+                {liveTracking.length > 0 && user?.role === "Admin" && (
                   <button onClick={handleStopAll} disabled={isStoppingAll} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white rounded-full text-[10px] font-black uppercase tracking-tighter transition-all border border-red-100 cursor-pointer">
                     <FiAlertTriangle size={12} /> {isStoppingAll ? 'Shutting Down...' : 'Stop All'}
                   </button>
@@ -190,115 +230,117 @@ const AdminDashboard = () => {
             </div>
 
             {/* --- ACTIVITY LOG (DATE GROUPED) --- */}
-            <div className="lg:col-span-7 bg-slate-900 rounded-[3rem] p-8 shadow-2xl border border-slate-800 flex flex-col h-[700px]">
-              <div className="flex justify-between items-center mb-10 shrink-0 px-2">
-                <h3 className="font-black text-white text-sm uppercase tracking-widest">Log History</h3>
-                {/* Legend */}
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                    <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">
-                      Attendance
-                    </span>
-                  </div>
+            {user?.role === "Admin" && (
+              <div className="lg:col-span-7 bg-slate-900 rounded-[3rem] p-8 shadow-2xl border border-slate-800 flex flex-col h-[700px]">
+                <div className="flex justify-between items-center mb-10 shrink-0 px-2">
+                  <h3 className="font-black text-white text-sm uppercase tracking-widest">Log History</h3>
+                  {/* Legend */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                      <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">
+                        Attendance
+                      </span>
+                    </div>
 
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full bg-orange-400" />
-                    <span className="text-[8px] font-black text-orange-400 uppercase tracking-widest">
-                      Task
-                    </span>
-                  </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-orange-400" />
+                      <span className="text-[8px] font-black text-orange-400 uppercase tracking-widest">
+                        Task
+                      </span>
+                    </div>
 
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full bg-red-400" />
-                    <span className="text-[8px] font-black text-red-400 uppercase tracking-widest">
-                      Difference
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-red-400" />
+                      <span className="text-[8px] font-black text-red-400 uppercase tracking-widest">
+                        Difference
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar space-y-12">
-                {Object.keys(groupedLogs).length > 0 ? (
-                  Object.keys(groupedLogs)
-                    .sort((a, b) => b.localeCompare(a)) // Sort newest date first
-                    .map((date) => (
-                      <div key={date} className="space-y-3">
-                        {/* Date Heading Group */}
-                        <div className="flex justify-between items-center sticky top-0 z-10 bg-slate-900/80 backdrop-blur-sm py-1">
-                          <div className="flex items-center gap-3">
-                            <div className="bg-blue-500/10 p-2 rounded-xl">
-                              <HiOutlineCalendarDays className="text-blue-400" size={16} />
+                <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar space-y-12">
+                  {Object.keys(groupedLogs).length > 0 ? (
+                    Object.keys(groupedLogs)
+                      .sort((a, b) => b.localeCompare(a)) // Sort newest date first
+                      .map((date) => (
+                        <div key={date} className="space-y-3">
+                          {/* Date Heading Group */}
+                          <div className="flex justify-between items-center sticky top-0 z-10 bg-slate-900/80 backdrop-blur-sm py-1">
+                            <div className="flex items-center gap-3">
+                              <div className="bg-blue-500/10 p-2 rounded-xl">
+                                <HiOutlineCalendarDays className="text-blue-400" size={16} />
+                              </div>
+                              <span className="text-white font-black text-xs uppercase tracking-[0.2em]">
+                                {getFriendlyDate(date)}
+                              </span>
                             </div>
-                            <span className="text-white font-black text-xs uppercase tracking-[0.2em]">
-                              {getFriendlyDate(date)}
-                            </span>
+
+                            <button
+                              onClick={() => handleClearDay(date)}
+                              disabled={isClearing}
+                              className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-600 text-red-500 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-red-500/20 cursor-pointer"
+                            >
+                              <BiTrash size={16} />
+                              <span>Clear Logs</span>
+                            </button>
                           </div>
 
-                          <button
-                            onClick={() => handleClearDay(date)}
-                            disabled={isClearing}
-                            className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-600 text-red-500 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-red-500/20 cursor-pointer"
-                          >
-                            <BiTrash size={16} />
-                            <span>Clear Logs</span>
-                          </button>
-                        </div>
+                          {/* Entries for this specific date */}
+                          <div className="space-y-4 pl-4 border-l border-slate-800 ml-4">
+                            {groupedLogs[date].map((log) => (
+                              <div key={log.id} className="flex gap-6 items-start group">
+                                <div className="flex-1">
+                                  <div className="flex justify-between items-center bg-white/5 p-5 rounded-[1.8rem] border border-white/5 hover:border-white/10 transition-all">
+                                    <span className="font-black text-white text-xs uppercase tracking-tight">
+                                      {log.userName} {`(${log.employeeCode || ''})`}
+                                    </span>
+                                    <div className="flex flex-col items-end gap-2">
 
-                        {/* Entries for this specific date */}
-                        <div className="space-y-4 pl-4 border-l border-slate-800 ml-4">
-                          {groupedLogs[date].map((log) => (
-                            <div key={log.id} className="flex gap-6 items-start group">
-                              <div className="flex-1">
-                                <div className="flex justify-between items-center bg-white/5 p-5 rounded-[1.8rem] border border-white/5 hover:border-white/10 transition-all">
-                                  <span className="font-black text-white text-xs uppercase tracking-tight">
-                                    {log.userName} {`(${log.employeeCode || ''})`}
-                                  </span>
-                                  <div className="flex flex-col items-end gap-2">
+                                      {/* Values */}
+                                      <div className="flex items-center gap-3">
 
-                                    {/* Values */}
-                                    <div className="flex items-center gap-3">
+                                        <span className="text-[10px] font-black text-emerald-400 tracking-tight tabular-nums flex items-center gap-1.5">
+                                          <BiTimeFive
+                                            className="text-emerald-400"
+                                            size={9}
+                                          />
+                                          {log.attendanceWorked}
+                                        </span>
 
-                                      <span className="text-[10px] font-black text-emerald-400 tracking-tight tabular-nums flex items-center gap-1.5">
-                                        <BiTimeFive
-                                          className="text-emerald-400"
-                                          size={9}
-                                        />
-                                        {log.attendanceWorked}
-                                      </span>
+                                        <span className="text-[10px] font-black text-orange-400 tracking-tight tabular-nums flex items-center gap-1.5">
+                                          <BiTimeFive
+                                            className="text-orange-400"
+                                            size={9}
+                                          />
+                                          {log.totalDailyTime}
+                                        </span>
 
-                                      <span className="text-[10px] font-black text-orange-400 tracking-tight tabular-nums flex items-center gap-1.5">
-                                        <BiTimeFive
-                                          className="text-orange-400"
-                                          size={9}
-                                        />
-                                        {log.totalDailyTime}
-                                      </span>
+                                        <span className="text-[10px] font-black text-red-400 tracking-tight tabular-nums flex items-center gap-1.5">
+                                          <BiTimeFive
+                                            className="text-red-400"
+                                            size={9}
+                                          />
+                                          {log.idleFormatted}
+                                        </span>
 
-                                      <span className="text-[10px] font-black text-red-400 tracking-tight tabular-nums flex items-center gap-1.5">
-                                        <BiTimeFive
-                                          className="text-red-400"
-                                          size={9}
-                                        />
-                                        {log.idleFormatted}
-                                      </span>
-
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ))
-                ) : (
-                  <div className="h-full flex items-center justify-center text-slate-700 text-[10px] font-black uppercase tracking-[0.4em]">
-                    Awaiting Daily Summaries
-                  </div>
-                )}
+                      ))
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-slate-700 text-[10px] font-black uppercase tracking-[0.4em]">
+                      Awaiting Daily Summaries
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

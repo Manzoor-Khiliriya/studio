@@ -15,9 +15,12 @@ import StatCard from "../../components/StatCard";
 import { useSocketEvents } from "../../hooks/useSocketEvents";
 import ConfirmModal from "../../components/ConfirmModal";
 import { useSelector } from "react-redux";
+import { BiTask } from "react-icons/bi";
+import { useNavigate } from "react-router-dom";
 
 export default function EmployeeDashboard() {
   const { user } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
   const timerRef = useRef(null);
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
@@ -32,15 +35,21 @@ export default function EmployeeDashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
+  const isTaskUser = ["Employee", "Manager"].includes(user?.role);
+
   const {
     data: summaryData,
     isLoading: summaryLoading,
     refetch: refetchSummary
-  } = useGetDashboardSummaryQuery();
+  } = useGetDashboardSummaryQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
   const { data: attendanceStatus, isLoading: attendanceLoading, refetch } = useGetTodayStatusQuery();
   const [clockIn, { isLoading: isClockingIn }] = useClockInMutation();
   const [clockOut, { isLoading: isClockingOut }] = useClockOutMutation();
-  const { data: logsData, isSuccess: logsLoaded, refetch: refetchLogs } = useGetMyTodayLogsQuery();
+  const { data: logsData, isSuccess: logsLoaded, refetch: refetchLogs } = useGetMyTodayLogsQuery(undefined, {
+    skip: !isTaskUser,
+  });
   const [stopTimer] = useStopTimerMutation();
 
   const isSyncingAttendance = isClockingIn || isClockingOut;
@@ -166,33 +175,42 @@ export default function EmployeeDashboard() {
     return `${h}h ${m}m ${s}s`;
   };
 
-  const isTaskUser = ["Employee", "Manager"].includes(user?.role);
-
   if (attendanceLoading || summaryLoading) return <Loader message="Syncing Systems..." />;
 
   return (
     <>
       <div className="min-h-[83vh] bg-[#f1f5f9]">
-        <PageHeader title="Dashboard" />
+        <PageHeader title="Overview" />
 
         {/* --- STATS GRID (5 COLUMNS) --- */}
         <div className="mx-auto px-8 pb-10">
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6 my-8">
-            <StatCard
-              label="Today's Work"
-              value={formatTime(liveSeconds)}
-              icon={<FiClock className={runningTask && !isOnBreak ? "text-emerald-500 animate-pulse" : "text-slate-400"} />}
-              variant={runningTask && !isOnBreak ? "active" : "default"}
-            />
+          <div
+            className={`grid grid-cols-1 gap-6 my-8 ${isTaskUser
+              ? "md:grid-cols-5"
+              : user?.role === "Hr Manager"
+                ? "md:grid-cols-4"
+                : "md:grid-cols-3"
+              }`}
+          >
+            {isTaskUser && (
+              <>
+                <StatCard
+                  label="Today's Work"
+                  value={formatTime(liveSeconds)}
+                  icon={<FiClock className={runningTask && !isOnBreak ? "text-emerald-500 animate-pulse" : "text-slate-400"} />}
+                  variant={runningTask && !isOnBreak ? "active" : "default"}
+                />
 
+                <StatCard
+                  label="Live Tasks"
+                  value={allActiveTasks.length}
+                  icon={<FiTarget className="text-rose-500" />}
+                />
+              </>
+            )}
             <StatCard
-              label="Live Tasks"
-              value={allActiveTasks.length}
-              icon={<FiTarget className="text-rose-500" />}
-            />
-            <StatCard
-              label="Approved Leaves"
+              label="Upcoming Leaves"
               value={summaryData?.approvedLeavesCount || 0}
               icon={<FiBriefcase className="text-blue-500" />}
             />
@@ -231,6 +249,18 @@ export default function EmployeeDashboard() {
                   : "Clock In To Start Your Shift"}
               </p>
             </motion.div>
+
+            {user?.role === "Hr Manager" && (
+              <StatCard
+                label="Leave Requests"
+                value={summaryData?.pendingLeaveRequests || 0}
+                variant={summaryData?.pendingLeaveRequests > 0 ? "warning" : "default"}
+                icon={<BiTask size={22} />}
+                delay={0.5}
+                onClick={() => navigate("/leaves")}
+              />
+            )}
+
           </div>
 
           {/* --- MAIN CONTENT AREA --- */}

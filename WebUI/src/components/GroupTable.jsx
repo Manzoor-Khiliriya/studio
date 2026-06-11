@@ -23,8 +23,9 @@ export default function GroupedTaskTable({ tasks, columns, onRowClick, emptyMess
             tasks.map((task, idx) => (
               <tr
                 key={task._id || idx}
-                onClick={() => onRowClick && onRowClick(task)}
-                className="group hover:bg-orange-100/20 cursor-pointer"
+                onClick={() => onRowClick?.(task)}
+                className={`group ${onRowClick ? "hover:bg-orange-100/20 cursor-pointer" : ""
+                  }`}
               >
                 {columns.map((col, colIdx) => (
                   <td key={colIdx} className={`px-6 py-4 border-b border-slate-50 ${col.cellClassName || ""}`}>

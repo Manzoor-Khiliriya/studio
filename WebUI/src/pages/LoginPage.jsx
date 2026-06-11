@@ -45,7 +45,15 @@ export default function LoginPage() {
       const userData = await loginPromise;
       dispatch(setCredentials({ ...userData }));
       connectSocket(userData.user._id);
-      navigate(userData.user.role === "Admin" ? "/admin" : "/employee");
+      const role = userData.user.role;
+
+      if (role === "Admin") {
+        navigate("/admin");
+      } else if (role === "Manager") {
+        navigate("/manager");
+      } else {
+        navigate("/employee");
+      }
     } catch (err) {
       console.error("Login Error:", err);
     }

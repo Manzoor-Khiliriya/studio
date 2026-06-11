@@ -834,6 +834,8 @@ exports.processLeave = async (req, res) => {
       }
 
       emitEvent(req, "leaveChanged");
+      emitEvent(req, "leaveChanged", leave, leave.user);
+      emitDashboardUpdate(req);
 
       return res.json({
         success: true,

@@ -64,12 +64,18 @@ function AppContent() {
 
             <Route element={<ProtectedRoute allowedRoles={["Admin"]} />}>
               <Route element={<Layout />}>
-                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path={"/admin"} element={<AdminDashboard />} />
                 <Route path="/employees" element={<AdminEmployeeListPage />} />
                 <Route path="/employees/:id" element={<AdminEmployeeDetailPage />} />
                 <Route path="/projects/:id" element={<AdminTaskDetailPage />} />
                 <Route path="/performance" element={<AdminTaskPerformancePage />} />
                 <Route path="/projects-calender" element={<AdminProjectCalendar />} />
+              </Route>
+            </Route>
+
+            <Route element={<ProtectedRoute allowedRoles={["Manager"]} />}>
+              <Route element={<Layout />}>
+                <Route path={"/manager"} element={<AdminDashboard />} />
               </Route>
             </Route>
 

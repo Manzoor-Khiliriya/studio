@@ -892,8 +892,8 @@ export default function AdminTasksPage() {
 
                       {activeTab === "live" && (
                         <div
-                          className={`cursor-pointer transition-all p-2 ml-2 rounded-full text-orange-500 ${expandedProject === project.projectCode ? " rotate-180" : ""}`}
-                        >
+                          className={`cursor-pointer p-2 ml-2 rounded-full text-orange-500 transform transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${expandedProject === project.projectCode ? "rotate-180" : "rotate-0"
+                            }`}                        >
                           <HiChevronDown size={24} />
                         </div>
                       )}
@@ -907,20 +907,23 @@ export default function AdminTasksPage() {
                           <GroupedTaskTable
                             columns={columns}
                             tasks={tasks}
-                            onRowClick={(task) =>
-                              navigate(`/projects/${task._id}`, {
-                                state: {
-                                  activeTab,
-                                  currentPage,
-                                  limit,
-                                  taskSearch,
-                                  liveSearch,
-                                  allSearch,
-                                  expandedProject,
-                                  liveStatusFilter,
-                                  taskStatusFilter,
-                                },
-                              })
+                            onRowClick={
+                              user?.role === "Admin"
+                                ? (task) =>
+                                  navigate(`/projects/${task._id}`, {
+                                    state: {
+                                      activeTab,
+                                      currentPage,
+                                      limit,
+                                      taskSearch,
+                                      liveSearch,
+                                      allSearch,
+                                      expandedProject,
+                                      liveStatusFilter,
+                                      taskStatusFilter,
+                                    },
+                                  })
+                                : undefined
                             }
                           />
                         ) : (

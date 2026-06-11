@@ -53,6 +53,7 @@ export default function Sidebar() {
   ];
 
   const managerLinks = [
+    { to: "/manager", label: "Dashboard", icon: <HiOutlineSquares2X2 /> },
     { to: "/employee", label: "Overview", icon: <HiOutlineViewColumns /> },
     { to: "/my-profile", label: "Profile", icon: <HiOutlineUser /> },
     { to: "/my-tasks", label: "My Tasks", icon: <HiOutlineQueueList /> },

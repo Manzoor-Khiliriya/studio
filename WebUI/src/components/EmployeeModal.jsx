@@ -215,9 +215,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
                     designation: "",
                     manager: "",
                     admin: [],
-                    employeeCode: "",
                     proficiency: "",
-                    joinedDate: "",
                   }))
                 }
                 options={[
