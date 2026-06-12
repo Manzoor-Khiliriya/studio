@@ -299,7 +299,7 @@ export default function MyTasksPage() {
                 className="flex items-center gap-2 px-6 py-4 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-2xl transition-all font-black text-[10px] tracking-widest cursor-pointer shadow-sm"
               >
                 <HiOutlineXMark size={18} strokeWidth={2.5} />
-                <span>RESET MISSION FILTERS</span>
+                <span>RESET FILTERS</span>
               </button>
             )}
           </div>

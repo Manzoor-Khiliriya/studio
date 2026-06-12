@@ -8,6 +8,7 @@ import {
   HiOutlineListBullet,
   HiOutlineChevronLeft,
   HiOutlineChevronRight,
+  HiOutlineArrowDownTray,
 } from "react-icons/hi2";
 import {
   startOfToday,
@@ -42,6 +43,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { useGetHolidaysQuery } from "../../services/holidayApi";
 import { useSelector } from "react-redux";
+import toast from "react-hot-toast";
 
 export default function AttendanceManagement() {
   const { user } = useSelector((state) => state.auth);
@@ -202,6 +204,49 @@ export default function AttendanceManagement() {
     LOP: "bg-red-700",
   };
 
+  const handleExportCSV = () => {
+    if (!attendanceData || attendanceData.length === 0) {
+      return toast.error("No data available to export");
+    }
+
+    const fileName = `attendance_report_${dateFilter.startDate}_to_${dateFilter.endDate}.csv`;
+
+    const headers = [
+      "Employee",
+      "Employee Code",
+      "Date",
+      "Clock In",
+      "Clock Out",
+      "Total Hours Worked",
+      "Status",
+    ];
+
+    const rows = attendanceData.map((r) => [
+      r.user?.name || "N/A",
+      r.user?.employee?.employeeCode || "N/A",
+      r.date || "N/A",
+      r.clockIn ? new Date(r.clockIn).toLocaleTimeString("en-IN") : "N/A",
+      r.clockOut ? new Date(r.clockOut).toLocaleTimeString("en-IN") : "Not Clocked Out",
+      r.totalSecondsWorked
+        ? `${Math.floor(r.totalSecondsWorked / 3600)}h ${Math.floor((r.totalSecondsWorked % 3600) / 60)}m`
+        : "0h 0m",
+      r.status || "N/A",
+    ]);
+
+    const csvContent = [headers, ...rows].map((e) => e.join(",")).join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", fileName);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("CSV Exported Successfully");
+  };
+
   if (isLoading) return <Loader message="Accessing Attendance Records..." />;
 
   return (
@@ -261,7 +306,7 @@ export default function AttendanceManagement() {
             <input
               type="text"
               placeholder="Search by employee name..."
-              className="w-full pl-12 pr-6 py-3.5 bg-white border border-slate-200 rounded-2xl focus:border-orange-500 outline-none font-bold text-xs transition-all shadow-sm"
+              className="w-full pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl focus:border-orange-500 outline-none font-bold text-xs transition-all shadow-sm"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -284,12 +329,12 @@ export default function AttendanceManagement() {
                   { label: "Custom Range", value: "custom" },
                 ]}
                 className="min-w-[180px]"
-                buttonClass="pl-6 pr-12 py-3.5 bg-white border border-slate-200 rounded-2xl font-black text-[10px] uppercase text-slate-700 shadow-sm"
+                buttonClass="pl-6 pr-12 py-4.25 bg-white border border-slate-200 rounded-2xl font-black text-[10px] uppercase text-slate-700 shadow-sm"
               />
             </div>
 
             {rangeType === "custom" && (
-              <div className="flex items-center gap-3 bg-white px-4 py-3.5 rounded-2xl border border-orange-100 shadow-sm animate-in fade-in zoom-in-95">
+              <div className="flex items-center gap-3 bg-white px-4 py-4.25 rounded-2xl border border-orange-100 shadow-sm animate-in fade-in zoom-in-95">
                 <input
                   type="date"
                   value={dateFilter.startDate}
@@ -308,16 +353,31 @@ export default function AttendanceManagement() {
                   className="bg-transparent text-[10px] font-black uppercase outline-none"
                 />
               </div>
+
             )}
+
           </>
         )}
 
         {(search || rangeType !== "today") && activeTab === "logs" && (
+          <>
+            <button
+              onClick={resetFilters}
+              className="px-4 p-4.25 bg-rose-100 text-rose-500 rounded-2xl hover:bg-rose-200 transition-all cursor-pointer"
+              title="Clear Filters"
+            >
+              <HiOutlineXMark size={20} />
+            </button>
+          </>
+        )}
+
+        {activeTab === "logs" && (
           <button
-            onClick={resetFilters}
-            className="p-3.5 bg-rose-50 text-rose-500 rounded-2xl hover:bg-rose-100 transition-all"
+            onClick={handleExportCSV}
+            className="px-4 py-4.25 bg-white text-slate-900 border border-slate-200 rounded-2xl hover:text-orange-600 transition-all cursor-pointer shadow-sm"
+            title="Export to CSV"
           >
-            <HiOutlineXMark size={20} />
+            <HiOutlineArrowDownTray size={18} />
           </button>
         )}
       </div>
