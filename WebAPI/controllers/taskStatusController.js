@@ -1,16 +1,29 @@
 const TaskStatus = require("../models/TaskStatus");
 
+const emitEvent = (req, event, data, userIds = []) => {
+  const io = req.app.get("socketio");
+  if (!io) return;
+  if (userIds.length) {
+    userIds.forEach((id) => {
+      io.to(id.toString()).emit(event, data);
+    });
+  } else {
+    io.emit(event, data);
+  }
+};
+
 exports.getTaskStatuses = async (req, res) => {
   try {
-    const { type, status = "Enable" } = req.query;
+    const { type } = req.query;
 
     const filter = {};
 
     if (type) filter.type = type;
-    if (status) filter.status = status;
 
-    const taskStatuses = await TaskStatus.find(filter)
-      .sort({ order: 1, createdAt: 1 });
+    const taskStatuses = await TaskStatus.find(filter).sort({
+      order: 1,
+      createdAt: 1,
+    });
 
     res.json(taskStatuses);
   } catch (err) {
@@ -66,6 +79,8 @@ exports.updateTaskStatus = async (req, res) => {
       });
     }
 
+    // emitEven(req, "taskStatusChanged", updatedTask);
+
     res.json(taskStatus);
   } catch (err) {
     res.status(500).json({
@@ -87,10 +102,7 @@ exports.deleteTaskStatus = async (req, res) => {
     const Task = require("../models/Task");
 
     const inUse = await Task.exists({
-      $or: [
-        { status: taskStatus._id },
-        { activeStatus: taskStatus._id },
-      ],
+      $or: [{ status: taskStatus._id }, { activeStatus: taskStatus._id }],
     });
 
     if (inUse) {

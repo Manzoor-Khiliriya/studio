@@ -467,7 +467,7 @@ exports.getAdminOverview = async (req, res) => {
     const [assignedTasks, runningTimer, todayLogs] = await Promise.all([
       Task.find({
         assignedTo: employeeProfile?._id,
-        status: { $ne: "Completed" },
+        // status: { $ne: "Completed" },
       })
         .populate("project", "title projectCode")
         .populate("timeLogs"),

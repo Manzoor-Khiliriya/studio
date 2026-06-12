@@ -5,7 +5,7 @@ import {
   HiOutlineCommandLine,
   HiOutlineXMark,
 } from "react-icons/hi2";
-import { useGetMyTasksQuery } from "../../services/taskApi";
+import { useGetMyTasksQuery, useGetTaskStatusesQuery } from "../../services/taskApi";
 import PageHeader from "../../components/PageHeader";
 import Table from "../../components/Table";
 import Loader from "../../components/Loader";
@@ -36,6 +36,19 @@ export default function MyTasksPage() {
     activeStatus: activeStatusFilter === "All" ? "" : activeStatusFilter,
   });
 
+  const { data: statuses = [] } =
+    useGetTaskStatusesQuery("status", {
+      refetchOnMountOrArgChange:
+        true,
+    });
+
+  const { data: activeStatuses = [] } =
+    useGetTaskStatusesQuery("activeStatus", {
+      refetchOnMountOrArgChange:
+        true,
+    });
+
+
   useSocketEvents({
     onTaskChange: refetch,
     onAllocationChange: refetch,
@@ -48,44 +61,6 @@ export default function MyTasksPage() {
     setLiveStatusFilter("All");
     setActiveStatusFilter("All");
     setCurrentPage(1);
-  };
-
-  const renderStatusBadge = (status) => {
-    const themes = {
-      completed: "text-emerald-600",
-      "on hold": "text-blue-600",
-      "modeling": "text-green-600",
-      "lighting and texturing": "text-cyan-600",
-      "feedback pending": "text-yellow-600",
-      "final rendering": "text-orange-600",
-      postproduction: "text-purple-600",
-    };
-
-    const themeClass =
-      themes[status?.toLowerCase()] || "text-slate-600";
-
-    return (
-      <span className={`text-[10px] font-black py-2 tracking-widest ${themeClass}`}>
-        {status}
-      </span>
-    );
-  };
-
-  const renderActiveStatus = (status) => {
-    const isFinal = status === "Final";
-    const isPreFinal = status === "Pre-Final";
-
-    let textColor = "text-slate-600";
-    if (isFinal) textColor = "text-emerald-600";
-    else if (isPreFinal) textColor = "text-orange-600";
-
-    return (
-      <div className="flex justify-center">
-        <span className={`text-[10px] font-black py-2 tracking-widest ${textColor}`}>
-          {status || "DRAFT-1"}
-        </span>
-      </div>
-    );
   };
 
   const getStatusColor = (status) => {
@@ -265,13 +240,10 @@ export default function MyTasksPage() {
                 }}
                 options={[
                   { label: "All Phases", value: "All" },
-                  { label: "On hold", value: "On hold" },
-                  { label: "Modeling", value: "Modeling" },
-                  { label: "Lighting and Texturing", value: "Lighting and Texturing" },
-                  { label: "Feedback pending", value: "Feedback pending" },
-                  { label: "Final rendering", value: "Final rendering" },
-                  { label: "Postproduction", value: "Postproduction" },
-                  { label: "Completed", value: "Completed" },
+                  ...statuses.map(item => ({
+                    label: item.name,
+                    value: item._id,
+                  })),
                 ]}
                 className="min-w-[180px]"
                 buttonClass="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700"
@@ -288,12 +260,11 @@ export default function MyTasksPage() {
                   setCurrentPage(1);
                 }}
                 options={[
-                  { label: "All Versions", value: "All" },
-                  { label: "Draft-1", value: "Draft-1" },
-                  { label: "Draft-2", value: "Draft-2" },
-                  { label: "Draft-3", value: "Draft-3" },
-                  { label: "Pre-Final", value: "Pre-Final" },
-                  { label: "Final", value: "Final" },
+                  { label: "All Phases", value: "All" },
+                  ...activeStatuses.map(item => ({
+                    label: item.name,
+                    value: item._id,
+                  })),
                 ]}
                 className="min-w-[140px]"
                 buttonClass="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700"

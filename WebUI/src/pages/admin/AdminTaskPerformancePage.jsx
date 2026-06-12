@@ -256,8 +256,8 @@ const AdminTaskPerformancePage = () => {
                                     <span
                                       className={`w-1 h-1 rounded-full ${isTaskOver ? "bg-rose-500" : "bg-emerald-500"}`}
                                     />
-                                    <span className="text-[7px] font-black text-slate-400 uppercase">
-                                      {task.status}
+                                    <span className="text-[7px] font-black text-slate-600 uppercase">
+                                      {task?.status}
                                     </span>
                                   </div>
                                 </div>

@@ -570,7 +570,7 @@ export default function EmployeeDetailPage() {
                             </span>
 
                             <span className="text-[8px] font-black uppercase tracking-widest text-slate-200">
-                              {t.status}
+                              {t?.status?.name || ""}
                             </span>
 
                             <span className="text-[10px] font-black text-white">
@@ -805,7 +805,7 @@ function TaskSmallCard({ task, active, historical }) {
                 : "text-orange-500"
             }`}
         >
-          {task.status}
+          {task?.status?.name || ""}
         </span>
 
         <span

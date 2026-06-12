@@ -11,7 +11,7 @@ export default function TaskStatusModal({
   isOpen,
   onClose,
   editData = null,
-  type = "status", // status | activeStatus
+  type = "status",
 }) {
   const isEditing = !!editData;
 

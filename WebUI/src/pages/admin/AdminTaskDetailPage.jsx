@@ -198,11 +198,11 @@ export default function AdminTaskDetailPage() {
                     className=" text-blue-600 border-blue-100"
                   />
                   <Badge
-                    text={task.status}
+                    text={task?.status?.name}
                     className=" text-emerald-600 border-emerald-100"
                   />
                   <Badge
-                    text={task.activeStatus}
+                    text={task?.activeStatus?.name}
                     className=" text-orange-600 border-orange-100"
                   />
                   <Badge

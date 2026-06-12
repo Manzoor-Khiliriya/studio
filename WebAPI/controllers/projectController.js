@@ -370,6 +370,22 @@ exports.getTaskPerformanceReport = async (req, res) => {
           as: "taskList",
         },
       },
+      {
+        $lookup: {
+          from: "taskstatuses",
+          localField: "taskList.status",
+          foreignField: "_id",
+          as: "statusData",
+        },
+      },
+      {
+        $lookup: {
+          from: "taskstatuses",
+          localField: "taskList.activeStatus",
+          foreignField: "_id",
+          as: "activeStatusData",
+        },
+      },
 
       // Unwind tasks
       {
@@ -400,6 +416,17 @@ exports.getTaskPerformanceReport = async (req, res) => {
               },
               2,
             ],
+          },
+        },
+      },
+
+      {
+        $addFields: {
+          "taskList.status": {
+            $arrayElemAt: ["$statusData.name", 0],
+          },
+          "taskList.activeStatus": {
+            $arrayElemAt: ["$activeStatusData.name", 0],
           },
         },
       },
