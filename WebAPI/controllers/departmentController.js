@@ -12,7 +12,7 @@ exports.getDepartments = async (req, res) => {
 
 exports.createDepartment = async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, status } = req.body;
 
     const exists = await Department.findOne({
       name: name.trim(),
@@ -26,6 +26,7 @@ exports.createDepartment = async (req, res) => {
 
     const department = await Department.create({
       name: name.trim(),
+      status
     });
 
     res.status(201).json(department);

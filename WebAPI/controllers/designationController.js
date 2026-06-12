@@ -13,7 +13,7 @@ exports.getDesignations = async (req, res) => {
 
 exports.createDesignation = async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, status } = req.body;
 
     const exists = await Designation.findOne({
       name: name.trim(),
@@ -27,6 +27,7 @@ exports.createDesignation = async (req, res) => {
 
     const designation = await Designation.create({
       name: name.trim(),
+      status
     });
 
     res.status(201).json(designation);

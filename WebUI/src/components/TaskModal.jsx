@@ -243,10 +243,12 @@ export default function TaskModal({
                     status: val,
                   })
                 }
-                options={statuses.map(item => ({
-                  label: item.name,
-                  value: item._id,
-                }))}
+                options={statuses
+                  .filter(item => item.status === "Enable")
+                  .map(item => ({
+                    label: item.name,
+                    value: item._id,
+                  }))}
                 className="w-full"
                 buttonClass="form-input text-xs font-bold pl-10"
               />
@@ -264,10 +266,12 @@ export default function TaskModal({
                     activeStatus: val,
                   })
                 }
-                options={activeStatuses.map(item => ({
-                  label: item.name,
-                  value: item._id,
-                }))}
+                options={activeStatuses
+                  .filter(item => item.status === "Enable")
+                  .map(item => ({
+                    label: item.name,
+                    value: item._id,
+                  }))}
                 className="w-full"
                 buttonClass="form-input text-xs font-bold pl-10"
               />

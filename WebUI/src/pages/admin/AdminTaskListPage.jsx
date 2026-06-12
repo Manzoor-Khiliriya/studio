@@ -31,7 +31,7 @@ import GroupedTaskTable from "../../components/GroupTable";
 import { getAdminTaskColumns } from "../../utils/adminTaskListHelper";
 import ConfirmModal from "../../components/ConfirmModal";
 import EmployeeAssignModal from "../../components/EmployeeAssignModal";
-import { useDeleteTaskMutation, useGetTaskStatusesQuery } from "../../services/taskApi";
+import { useDeleteTaskMutation, useDeleteTaskStatusMasterMutation, useGetTaskStatusesQuery } from "../../services/taskApi";
 import toast from "react-hot-toast";
 import { useSocketEvents } from "../../hooks/useSocketEvents";
 import TruncateText from "../../components/TruncateText";
@@ -102,6 +102,7 @@ export default function AdminTasksPage() {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [settingsTab, setSettingsTab] =
     useState("Initiative Status");
+  const [statusToDelete, setStatusToDelete] = useState(null);
 
   const debouncedLiveSearch = useDebounce(
     liveSearch.length > 1 ? liveSearch : "",
@@ -134,7 +135,8 @@ export default function AdminTasksPage() {
     useUpdateProjectMutation();
   const [deleteProject, { isLoading: isDeletingProject }] =
     useDeleteProjectMutation();
-
+  const [deleteTaskStatusMaster, { isLoading: isDeletingTaskStatus }] =
+    useDeleteTaskStatusMasterMutation();
   const { data, isLoading, isFetching, refetch } = useGetProjectsQuery(
     {
       page: currentPage,
@@ -200,7 +202,7 @@ export default function AdminTasksPage() {
           setShowStatusModal(true);
         },
         onDelete: (row) => {
-          // delete logic
+          setStatusToDelete(row);
         },
       }),
     []
@@ -272,6 +274,20 @@ export default function AdminTasksPage() {
       toast.error(err?.data?.message || "Failed to delete task");
     } finally {
       setTaskToDelete(null);
+    }
+  };
+
+  const handleDeleteStatus = async () => {
+    try {
+      await deleteTaskStatusMaster(statusToDelete._id).unwrap();
+
+      toast.success(`${settingsTab} deleted successfully`);
+
+      setStatusToDelete(null);
+    } catch (err) {
+      toast.error(
+        err?.data?.message || "Delete failed"
+      );
     }
   };
 
@@ -744,7 +760,7 @@ export default function AdminTasksPage() {
                 <button
                   key={tab}
                   onClick={() => setSettingsTab(tab)}
-                  className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${settingsTab === tab
+                  className={`cursor-pointer px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${settingsTab === tab
                     ? "bg-orange-600 text-white shadow-lg"
                     : "text-slate-400 hover:text-slate-600"
                     }`}
@@ -1176,6 +1192,17 @@ export default function AdminTasksPage() {
         isLoading={isDeletingTask}
         title="Delete Task"
         message={`Are you sure you want to permanently delete the task "${taskToDelete?.title}"? This action cannot be undone.`}
+        variant="danger"
+      />
+
+      <ConfirmModal
+        isOpen={!!statusToDelete}
+        onClose={() => setStatusToDelete(null)}
+        onConfirm={handleDeleteStatus}
+        isLoading={isDeletingTaskStatus}
+        title={`Delete ${statusToDelete?.name}`}
+        message={`Are you sure you want to delete "${statusToDelete?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
         variant="danger"
       />
     </div>

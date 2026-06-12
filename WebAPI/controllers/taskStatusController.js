@@ -35,7 +35,7 @@ exports.getTaskStatuses = async (req, res) => {
 
 exports.createTaskStatus = async (req, res) => {
   try {
-    const { name, type, order } = req.body;
+    const { name, type, order, status } = req.body;
 
     const exists = await TaskStatus.findOne({
       name: name.trim(),
@@ -52,6 +52,7 @@ exports.createTaskStatus = async (req, res) => {
       name,
       type,
       order,
+      status
     });
 
     res.status(201).json(taskStatus);

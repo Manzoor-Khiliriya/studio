@@ -61,16 +61,18 @@ export default function StatusUpdateModal({ isOpen, onClose, task }) {
       submitText="Update"
       cancelText="Cancel"
     >
-      <div className="space-y-4">
+      <div className="space-y-5">
         <InputGroup label="Initiative Status">
           <HiOutlineArrowPath className="input-icon" />
           <CustomDropdown
             value={status}
             onChange={setStatus}
-            options={statuses.map(item => ({
-              label: item.name,
-              value: item._id,
-            }))}
+            options={statuses
+              .filter(item => item.status === "Enable")
+              .map(item => ({
+                label: item.name,
+                value: item._id,
+              }))}
             className="w-full"
             placeholder="Select Initiative Status"
             buttonClass="form-input text-xs font-bold pl-10"
@@ -82,10 +84,12 @@ export default function StatusUpdateModal({ isOpen, onClose, task }) {
           <CustomDropdown
             value={activeStatus}
             onChange={setActiveStatus}
-            options={activeStatuses.map(item => ({
-              label: item.name,
-              value: item._id,
-            }))}
+            options={activeStatuses
+              .filter(item => item.status === "Enable")
+              .map(item => ({
+                label: item.name,
+                value: item._id,
+              }))}
             className="w-full"
             buttonClass="form-input text-xs font-bold pl-10"
             placeholder="Select Active Status"
