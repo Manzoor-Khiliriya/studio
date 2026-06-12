@@ -4,7 +4,6 @@ import { HiOutlineLogin, HiOutlineLogout, HiOutlineClock } from "react-icons/hi"
 export const getAdminAttendanceColumns = () => [
   {
     header: "Employee Profile",
-    className: "text-left pl-6",
     render: (row) => (
       <div className="flex items-center gap-3 py-1">
         <div className="flex flex-col">
@@ -17,7 +16,6 @@ export const getAdminAttendanceColumns = () => [
   },
   {
     header: "Date",
-    className: "text-left",
     render: (row) => (
       <div className="flex items-center gap-3 py-1">
         <p className="text-[10px] text-slate-800 font-black uppercase italic">
@@ -28,8 +26,6 @@ export const getAdminAttendanceColumns = () => [
   },
   {
     header: "Clock In",
-    className: "text-center",
-    cellClassName: "text-center",
     render: (row) => (
       <div className="inline-flex items-center gap-1.5 text-emerald-600 font-black text-[10px] uppercase tracking-tighter">
         <HiOutlineLogin size={12} />
@@ -39,8 +35,6 @@ export const getAdminAttendanceColumns = () => [
   },
   {
     header: "Clock Out",
-    className: "text-center",
-    cellClassName: "text-center",
     render: (row) => (
       <div className={`inline-flex items-center gap-1.5 font-black text-[10px]  uppercase tracking-tighter ${row.clockOut
         ? "text-rose-600"

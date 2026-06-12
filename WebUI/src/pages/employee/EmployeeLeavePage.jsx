@@ -322,7 +322,7 @@ export default function EmployeeLeavePage() {
 
           {/* STATS SECTION */}
           <div className="xl:col-span-3">
-            <div className="h-full p-10 rounded-[3rem] bg-white border border-slate-200 shadow-xl shadow-slate-200/30 relative overflow-hidden group hover:border-orange-500/30 transition-all duration-500 flex flex-col justify-center">
+            <div className="h-full p-10 rounded-[2rem] bg-white border border-slate-200 shadow-xl shadow-slate-200/30 relative overflow-hidden group hover:border-orange-500/30 transition-all duration-500 flex flex-col justify-center">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 text-center">
                 Earned Leaves
               </p>
