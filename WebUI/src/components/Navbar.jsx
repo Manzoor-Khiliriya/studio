@@ -13,6 +13,7 @@ import { useOnClickOutside } from "../hooks/useOnClickOutside";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/Sandd-Studio-Orange-BG.jpg";
 import DeleteRequestNotifications from "./DeleteRequestNotifications"; // add this
+import { useSocketEvents } from "../hooks/useSocketEvents";
 
 export default function Navbar() {
   const { user } = useSelector((state) => state.auth);
@@ -21,8 +22,12 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const notificationRef = useRef();
 
-  const { data: notifications = [] } = useGetNotificationsQuery();
+  const { data: notifications = [], refetch } = useGetNotificationsQuery();
   const [markNotificationsRead] = useMarkNotificationsReadMutation();
+
+  useSocketEvents({
+    onNotificationChange: refetch,
+  });
 
   const handleMarkAllRead = async (e) => {
     e.stopPropagation();

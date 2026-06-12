@@ -5,11 +5,13 @@ import {
   HiOutlineFlag,
   HiOutlineBriefcase,
   HiOutlineInformationCircle,
+  HiOutlineArrowPath,
+  HiOutlineSquares2X2,
 } from "react-icons/hi2";
 import { CgSpinner } from "react-icons/cg";
 import { toast } from "react-hot-toast";
 import CommonModal, { InputGroup } from "./CommonModal";
-import { useCreateTaskMutation, useUpdateTaskMutation } from "../services/taskApi";
+import { useCreateTaskMutation, useGetTaskStatusesQuery, useUpdateTaskMutation } from "../services/taskApi";
 import { useGetProjectEstimateQuery } from "../services/projectApi";
 import CustomDropdown from "./CustomDropdown";
 
@@ -27,7 +29,9 @@ export default function TaskModal({
     estimatedTime: "",
     allocatedTime: "",
     priority: "Medium",
-    description: ""
+    description: "",
+    status: "",
+    activeStatus: "",
   });
 
   const [createTask, { isLoading: isCreating }] = useCreateTaskMutation();
@@ -37,6 +41,20 @@ export default function TaskModal({
     formData.project,
     { skip: !formData.project || isEditing || !isOpen }
   );
+
+  const { data: statuses = [] } =
+    useGetTaskStatusesQuery("status", {
+      skip: !isOpen,
+      refetchOnMountOrArgChange:
+        true,
+    });
+
+  const { data: activeStatuses = [] } =
+    useGetTaskStatusesQuery("activeStatus", {
+      skip: !isOpen,
+      refetchOnMountOrArgChange:
+        true,
+    });
 
   useEffect(() => {
     if (!isEditing && estimateData) {
@@ -57,7 +75,9 @@ export default function TaskModal({
           estimatedTime: String(editTask.estimatedTime || 8),
           allocatedTime: String(editTask.allocatedTime || 8),
           priority: editTask.priority || "Medium",
-          description: editTask.description || ""
+          description: editTask.description || "",
+          status: editTask?.status?._id || editTask.status || "",
+          activeStatus: editTask?.activeStatus?._id || editTask.activeStatus || "",
         });
       } else if (singleProject) {
         setFormData({
@@ -66,7 +86,9 @@ export default function TaskModal({
           estimatedTime: "",
           allocatedTime: "",
           priority: "Medium",
-          description: ""
+          description: "",
+          status: "",
+          activeStatus: "",
         });
       }
     }
@@ -157,7 +179,7 @@ export default function TaskModal({
 
         {/* Resource Allocation & Priority */}
         <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-12 md:col-span-3">
+          <div className="col-span-12 md:col-span-4">
             <InputGroup label="Estimated (H)">
               {isCalculating ? (
                 <CgSpinner className="input-icon animate-spin text-orange-500" />
@@ -175,7 +197,7 @@ export default function TaskModal({
             </InputGroup>
           </div>
 
-          <div className="col-span-12 md:col-span-3">
+          <div className="col-span-12 md:col-span-4">
             <InputGroup label="Allocated (H) *">
               <HiOutlineClock className={`input-icon ${formData.allocatedTime !== formData.estimatedTime ? 'text-orange-500' : 'text-slate-400'}`} />
               <input
@@ -188,7 +210,7 @@ export default function TaskModal({
             </InputGroup>
           </div>
 
-          <div className="col-span-12 md:col-span-6">
+          <div className="col-span-12 md:col-span-4">
             <InputGroup label="Priority">
               <HiOutlineFlag className={`input-icon ${formData.priority === 'High' ? 'text-rose-500' : ''}`} />
               <CustomDropdown
@@ -201,6 +223,51 @@ export default function TaskModal({
                   { label: "Medium", value: "Medium" },
                   { label: "High", value: "High" },
                 ]}
+                className="w-full"
+                buttonClass="form-input text-xs font-bold pl-10"
+              />
+            </InputGroup>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-12 gap-4">
+
+          <div className="col-span-12 md:col-span-6">
+            <InputGroup label="Initiative Status">
+              <HiOutlineArrowPath className="input-icon" />
+              <CustomDropdown
+                value={formData.status}
+                onChange={(val) =>
+                  setFormData({
+                    ...formData,
+                    status: val,
+                  })
+                }
+                options={statuses.map(item => ({
+                  label: item.name,
+                  value: item._id,
+                }))}
+                className="w-full"
+                buttonClass="form-input text-xs font-bold pl-10"
+              />
+            </InputGroup>
+          </div>
+
+          <div className="col-span-12 md:col-span-6">
+            <InputGroup label="Active Status">
+              <HiOutlineSquares2X2 className="input-icon" />
+              <CustomDropdown
+                value={formData.activeStatus}
+                onChange={(val) =>
+                  setFormData({
+                    ...formData,
+                    activeStatus: val,
+                  })
+                }
+                options={activeStatuses.map(item => ({
+                  label: item.name,
+                  value: item._id,
+                }))}
                 className="w-full"
                 buttonClass="form-input text-xs font-bold pl-10"
               />

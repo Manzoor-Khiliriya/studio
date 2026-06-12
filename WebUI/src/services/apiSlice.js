@@ -26,7 +26,8 @@ export const apiSlice = createApi({
     "TaskAllocation",
     "Department",
     "Designation",
-    "DeleteRequest"
+    "DeleteRequest",
+    "TaskStatus",
   ],
   endpoints: () => ({}),
 });

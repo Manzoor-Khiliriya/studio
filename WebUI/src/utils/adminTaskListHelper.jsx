@@ -95,7 +95,7 @@ export const getAdminTaskColumns = (role, onEdit, onStatusUpdate, onAssignTeam, 
     header: <span className={headerClass}>Task Details</span>,
     className: "text-left",
     render: (task) => (
-      <p className="text-[9px] font-bold text-slate-400 line-clamp-1 italic">
+      <p className="text-[9px] font-bold text-slate-600 line-clamp-1 italic">
         {task.description || "No task details."}
       </p>
     ),
@@ -150,13 +150,22 @@ export const getAdminTaskColumns = (role, onEdit, onStatusUpdate, onAssignTeam, 
     header: <span className={headerClass}>Initiative Status</span>,
     className: "text-center",
     cellClassName: "text-center",
-    render: (task) => renderStatusBadge(task.status),
+    render: (task) =>
+    (
+      <span className={`text-[9px] text-slate-900 font-black`}>
+        {task?.status?.name || ""}
+      </span>
+    )
   },
   {
     header: <span className={headerClass}>Active Status</span>,
     className: "text-center",
     cellClassName: "text-center",
-    render: (task) => renderActiveStatus(task.activeStatus),
+    render: (task) => (
+      <span className={`text-[9px] text-slate-900 font-black`}>
+        {task?.activeStatus?.name || ""}
+      </span>
+    )
   },
   {
     header: <span className={headerClass}>Actions</span>,

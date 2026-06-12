@@ -178,6 +178,14 @@ exports.getAllProjects = async (req, res) => {
         populate: [
           { path: "assignedTo", populate: { path: "user", select: "name" } },
           { path: "timeLogs" },
+          {
+            path: "status",
+            select: "name type status",
+          },
+          {
+            path: "activeStatus",
+            select: "name type status",
+          },
         ],
       });
 

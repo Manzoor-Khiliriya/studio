@@ -18,6 +18,7 @@ import {
   HiOutlineCommandLine,
   HiOutlineTrash,
   HiOutlineArrowDownTray,
+  HiOutlineCog6Tooth,
 } from "react-icons/hi2";
 
 import PageHeader from "../../components/PageHeader";
@@ -37,6 +38,7 @@ import TruncateText from "../../components/TruncateText";
 import CustomDropdown from "../../components/CustomDropdown";
 import useDebounce from "../../hooks/useDebounce";
 import { useSelector } from "react-redux";
+import TaskStatusSettingsModal from "../../components/TaskStatusSettingModal";
 
 export default function AdminTasksPage() {
   const { user } = useSelector((state) => state.auth);
@@ -94,6 +96,10 @@ export default function AdminTasksPage() {
   const [projectToDeactivate, setProjectToDeactivate] = useState(null);
   const [taskToDelete, setTaskToDelete] = useState(null);
   const [isTabSwitching, setIsTabSwitching] = useState(false);
+  const [settingsTab, setSettingsTab] =
+    useState("Initiative Status");
+  const [showTaskStatusModal, setShowTaskStatusModal] =
+    useState(false);
 
   const debouncedLiveSearch = useDebounce(
     liveSearch.length > 1 ? liveSearch : "",
@@ -411,7 +417,7 @@ export default function AdminTasksPage() {
           </div>
 
           <div className="flex flex-wrap items-end justify-between gap-6 pt-5 border-t border-slate-100">
-            <div className="flex flex-wrap items-end gap-7">
+            <div className="flex flex-wrap items-end gap-3">
               {activeTab === "live" && (
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">
@@ -615,6 +621,13 @@ export default function AdminTasksPage() {
                 </div>
               )}
 
+              <button
+                onClick={() => setShowTaskStatusModal(true)}
+                className="p-3 bg-slate-900 text-white rounded-2xl hover:bg-orange-600 transition-all cursor-pointer shadow-lg shadow-slate-200"
+                title="Task Status Settings" >
+                <HiOutlineCog6Tooth size={18} />
+              </button>
+
               <div className="flex items-center gap-3">
                 {selectedProjects.length > 0 && user?.role === "Admin" && (
                   <button
@@ -665,6 +678,8 @@ export default function AdminTasksPage() {
                     </button>
                   )}
               </div>
+
+
             </div>
 
             {activeTab !== "live" && (
@@ -685,6 +700,7 @@ export default function AdminTasksPage() {
                 )}
               </div>
             )}
+
           </div>
         </div>
 
@@ -1039,6 +1055,11 @@ export default function AdminTasksPage() {
         isOpen={!!statusUpdateTask}
         onClose={() => setStatusUpdateTask(null)}
         task={statusUpdateTask}
+      />
+
+      <TaskStatusSettingsModal
+        isOpen={showTaskStatusModal}
+        onClose={() => setShowTaskStatusModal(false)}
       />
 
       <ConfirmModal

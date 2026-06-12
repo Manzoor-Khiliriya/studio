@@ -2,20 +2,36 @@ import React, { useState, useEffect } from "react";
 import CommonModal, { InputGroup } from "./CommonModal";
 import { HiOutlineSquares2X2, HiOutlineArrowPath } from "react-icons/hi2";
 // UPDATED: Using the specific status update mutation
-import { useUpdateTaskStatusMutation } from "../services/taskApi";
+import { useGetTaskStatusesQuery, useUpdateTaskStatusMutation } from "../services/taskApi";
 import { toast } from "react-hot-toast";
 import CustomDropdown from "./CustomDropdown";
 
 export default function StatusUpdateModal({ isOpen, onClose, task }) {
   // Use the new status-specific mutation
-  const [updateStatus, { isLoading }] = useUpdateTaskStatusMutation();
   const [status, setStatus] = useState("");
   const [activeStatus, setActiveStatus] = useState("");
 
+  const { data: statuses = [] } =
+    useGetTaskStatusesQuery("status", {
+      skip: !isOpen,
+      refetchOnMountOrArgChange:
+        true,
+    });
+
+  const { data: activeStatuses = [] } =
+    useGetTaskStatusesQuery("activeStatus", {
+      skip: !isOpen,
+      refetchOnMountOrArgChange:
+        true,
+    });
+
+  const [updateStatus, { isLoading }] = useUpdateTaskStatusMutation();
+
+
   useEffect(() => {
     if (task) {
-      setStatus(task.status);
-      setActiveStatus(task.activeStatus || "Draft-1");
+      setStatus(task?.status?._id || "");
+      setActiveStatus(task?.activeStatus?._id || "");
     }
   }, [task]);
 
@@ -46,41 +62,33 @@ export default function StatusUpdateModal({ isOpen, onClose, task }) {
       cancelText="Cancel"
     >
       <div className="space-y-4">
-        <InputGroup label="Active Version">
-          <HiOutlineSquares2X2 className="input-icon" />
+        <InputGroup label="Initiative Status">
+          <HiOutlineArrowPath className="input-icon" />
           <CustomDropdown
-            value={activeStatus}
-            onChange={(val) => setActiveStatus(val)}
-            options={[
-              "Draft-1",
-              "Draft-2",
-              "Draft-3",
-              "Draft-4",
-              "Draft-5",
-              "Pre-Final",
-              "Final"
-            ]}
+            value={status}
+            onChange={setStatus}
+            options={statuses.map(item => ({
+              label: item.name,
+              value: item._id,
+            }))}
             className="w-full"
+            placeholder="Select Initiative Status"
             buttonClass="form-input text-xs font-bold pl-10"
           />
         </InputGroup>
 
-        <InputGroup label="Operational Status">
-          <HiOutlineArrowPath className="input-icon" />
+        <InputGroup label="Active Status">
+          <HiOutlineSquares2X2 className="input-icon" />
           <CustomDropdown
-            value={status}
-            onChange={(val) => setStatus(val)}
-            options={[
-              "On hold",
-              "Modeling",
-              "Lighting and Texturing",
-              "Feedback pending",
-              "Final rendering",
-              "Postproduction",
-              "Completed"
-            ]}
+            value={activeStatus}
+            onChange={setActiveStatus}
+            options={activeStatuses.map(item => ({
+              label: item.name,
+              value: item._id,
+            }))}
             className="w-full"
             buttonClass="form-input text-xs font-bold pl-10"
+            placeholder="Select Active Status"
           />
         </InputGroup>
       </div>

@@ -1,30 +1,58 @@
 const mongoose = require("mongoose");
 
-const taskSchema = new mongoose.Schema({
-  project: { type: mongoose.Schema.Types.ObjectId, ref: "Project", required: true },
-  title: { type: String, required: true },
-  description: { type: String },
-  assignedTo: [{ type: mongoose.Schema.Types.ObjectId, ref: "Employee" }],
-  estimatedTime: { type: Number, required: true },
-  allocatedTime: { type: Number, required: true },
-  priority: { type: String, enum: ["Low", "Medium", "High"], default: "Medium" },
-  status: { type: String, enum: ["On hold", "Modeling", "Lighting and Texturing", "Feedback pending", "Final rendering", "Postproduction", "Completed",], default: "Modeling" },
-  activeStatus: { type: String, enum: ["Draft-1", "Draft-2", "Draft-3", "Draft-4", "Draft-5", "Pre-Final", "Final"], default: "Draft-1" }
-}, { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } });
+const taskSchema = new mongoose.Schema(
+  {
+    project: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Project",
+      required: true,
+    },
+    title: { type: String, required: true },
+    description: { type: String },
+    assignedTo: [{ type: mongoose.Schema.Types.ObjectId, ref: "Employee" }],
+    estimatedTime: { type: Number, required: true },
+    allocatedTime: { type: Number, required: true },
+    priority: {
+      type: String,
+      enum: ["Low", "Medium", "High"],
+      default: "Medium",
+    },
+    status: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "TaskStatus",
+    },
+    activeStatus: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "TaskStatus",
+    },
+  },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  },
+);
 
-taskSchema.virtual("timeLogs", { ref: "TimeLog", localField: "_id", foreignField: "task" });
+taskSchema.virtual("timeLogs", {
+  ref: "TimeLog",
+  localField: "_id",
+  foreignField: "task",
+});
 
 taskSchema.virtual("totalConsumedHours").get(function () {
   if (!this.timeLogs || this.timeLogs.length === 0) return 0;
   const totalSeconds = this.timeLogs
-    .filter(log => log.logType === "work")
+    .filter((log) => log.logType === "work")
     .reduce((a, l) => a + (l.durationSeconds || 0), 0);
   return +(totalSeconds / 3600).toFixed(2);
 });
 
 taskSchema.virtual("progressPercent").get(function () {
   if (!this.allocatedTime) return 0;
-  return Math.min(100, Math.round((this.totalConsumedHours / this.allocatedTime) * 100));
+  return Math.min(
+    100,
+    Math.round((this.totalConsumedHours / this.allocatedTime) * 100),
+  );
 });
 
 taskSchema.virtual("liveStatus").get(function () {
@@ -34,16 +62,17 @@ taskSchema.virtual("liveStatus").get(function () {
 
   const today = new Date().toISOString().split("T")[0];
 
-  const isRunningToday = this.timeLogs.some(log =>
-    log.dateString === today &&
-    log.logType === "work" &&
-    log.isRunning === true
+  const isRunningToday = this.timeLogs.some(
+    (log) =>
+      log.dateString === today &&
+      log.logType === "work" &&
+      log.isRunning === true,
   );
 
   if (isRunningToday) return "In progress";
 
-  const hasWorked = this.timeLogs.some(log =>
-    log.logType === "work" && log.durationSeconds > 0
+  const hasWorked = this.timeLogs.some(
+    (log) => log.logType === "work" && log.durationSeconds > 0,
   );
 
   if (hasWorked) return "Started";

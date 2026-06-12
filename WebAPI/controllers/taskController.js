@@ -10,6 +10,7 @@ const { emitDashboardUpdate } = require("../utils/socket");
 const { getToday } = require("../utils/dateHelper");
 const User = require("../models/User");
 const { ROLE, STATUS } = require("../utils/constant");
+const TaskStatus = require("../models/TaskStatus");
 
 const emitEvent = (req, event, data, userIds = []) => {
   const io = req.app.get("socketio");
@@ -27,7 +28,8 @@ const allowedRoles = [ROLE.ADMIN, ROLE.MANAGER];
 
 exports.createTask = async (req, res) => {
   try {
-    const { project, title, description, allocatedTime } = req.body;
+    const { project, title, description, allocatedTime, status, activeStatus } =
+      req.body;
     if (!title || !project) {
       return res
         .status(400)
@@ -39,6 +41,39 @@ exports.createTask = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Project not found" });
     }
+
+    let statusDoc = null;
+    let activeStatusDoc = null;
+
+    if (status) {
+      statusDoc = await TaskStatus.findOne({
+        _id: status,
+        type: "status",
+        status: "Enable",
+      });
+
+      if (!statusDoc) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid task status",
+        });
+      }
+    }
+
+    if (activeStatus) {
+      activeStatusDoc = await TaskStatus.findOne({
+        _id: activeStatus,
+        type: "activeStatus",
+        status: "Enable",
+      });
+
+      if (!activeStatusDoc) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid active status",
+        });
+      }
+    }
     const estimatedTime = await calculateEstimatedHours(
       projectExists.startDate,
       projectExists.endDate,
@@ -49,6 +84,8 @@ exports.createTask = async (req, res) => {
       description,
       estimatedTime,
       allocatedTime: allocatedTime || estimatedTime,
+      status,
+      activeStatus,
     });
     const populatedTask = await task.populate("project");
     emitEvent(req, "taskChanged", populatedTask);
@@ -158,7 +195,9 @@ exports.updateTask = async (req, res) => {
         path: "assignedTo",
         populate: { path: "user", select: "name" },
       })
-      .populate("timeLogs");
+      .populate("timeLogs")
+      .populate("status", "name type")
+      .populate("activeStatus", "name type");
     if (assignedTo) {
       const newAssigneeIds = assignedTo.map((id) => id.toString());
       const added = newAssigneeIds.filter((id) => !oldAssigneeIds.includes(id));
@@ -222,12 +261,47 @@ exports.updateTask = async (req, res) => {
 exports.updateTaskStatus = async (req, res) => {
   try {
     const { status, activeStatus } = req.body;
-
     const task = await Task.findById(req.params.id);
+
     if (!task) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Task not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Task not found",
+      });
+    }
+
+    if (status) {
+      const statusDoc = await TaskStatus.findOne({
+        _id: status,
+        type: "status",
+        status: "Enable",
+      });
+
+      if (!statusDoc) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid task status",
+        });
+      }
+
+      task.status = status;
+    }
+
+    if (activeStatus) {
+      const activeStatusDoc = await TaskStatus.findOne({
+        _id: activeStatus,
+        type: "activeStatus",
+        status: "Enable",
+      });
+
+      if (!activeStatusDoc) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid active status",
+        });
+      }
+
+      task.activeStatus = activeStatus;
     }
 
     if (status) task.status = status;
@@ -244,7 +318,9 @@ exports.updateTaskStatus = async (req, res) => {
         path: "assignedTo",
         populate: { path: "user", select: "name" },
       })
-      .populate("timeLogs");
+      .populate("timeLogs")
+      .populate("status", "name type")
+      .populate("activeStatus", "name type");
 
     emitEvent(req, "taskChanged", updatedTask);
     emitDashboardUpdate(req);
@@ -329,6 +405,8 @@ exports.getAllTasks = async (req, res) => {
         populate: { path: "user", select: "name" },
       })
       .populate("timeLogs")
+      .populate("status", "name type")
+      .populate("activeStatus", "name type")
       .sort({ createdAt: -1 });
 
     return res.status(200).json({
@@ -377,7 +455,9 @@ exports.getTaskDetail = async (req, res) => {
             select: "employeeCode",
           },
         },
-      });
+      })
+      .populate("status", "name type")
+      .populate("activeStatus", "name type");
 
     if (!task) {
       return res.status(404).json({
@@ -503,6 +583,8 @@ exports.getTasksByEmployee = async (req, res) => {
     const allRelatedTasks = await Task.find(query)
       .populate("project", "title projectCode")
       .populate("timeLogs")
+      .populate("status", "name type")
+      .populate("activeStatus", "name type")
       .sort({ createdAt: -1 });
 
     const tasksWithStatus = allRelatedTasks.map((task) => {
@@ -623,6 +705,8 @@ exports.getMyTasks = async (req, res) => {
     const tasks = await Task.find(query)
       .populate("project", "projectCode title")
       .populate("timeLogs")
+      .populate("status", "name type")
+      .populate("activeStatus", "name type")
       .skip(skip)
       .limit(Number(limit));
 

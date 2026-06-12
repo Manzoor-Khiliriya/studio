@@ -187,13 +187,21 @@ export default function MyTasksPage() {
       header: <span className={headerClass}>Initiative Status</span>,
       className: "text-center",
       cellClassName: "text-center",
-      render: (task) => renderStatusBadge(task.status),
+      render: (task) => (
+        <span className={`text-[10px] text-slate-900 font-black`}>
+          {task?.status?.name || ""}
+        </span>
+      )
     },
     {
       header: <span className={headerClass}>Active Status</span>,
       className: "text-center",
       cellClassName: "text-center",
-      render: (task) => renderActiveStatus(task.activeStatus),
+      render: (task) => (
+        <span className={`text-[10px] text-slate-900 font-black`}>
+          {task?.activeStatus?.name || ""}
+        </span>
+      )
     },
   ];
 

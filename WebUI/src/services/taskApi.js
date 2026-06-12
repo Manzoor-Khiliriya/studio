@@ -119,6 +119,38 @@ export const taskApiSlice = apiSlice.injectEndpoints({
         { type: "Project", id: "LIST" },
       ],
     }),
+    getTaskStatuses: builder.query({
+      query: (type) => ({
+        url: "/task-status",
+        params: { type },
+      }),
+      providesTags: [{ type: "TaskStatus", id: "LIST" }],
+    }),
+    createTaskStatus: builder.mutation({
+      query: (data) => ({
+        url: "/task-status",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: [{ type: "TaskStatus", id: "LIST" }],
+    }),
+
+    updateTaskStatusMaster: builder.mutation({
+      query: ({ id, ...data }) => ({
+        url: `/task-status/${id}`,
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: [{ type: "TaskStatus", id: "LIST" }],
+    }),
+
+    deleteTaskStatusMaster: builder.mutation({
+      query: (id) => ({
+        url: `/task-status/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: [{ type: "TaskStatus", id: "LIST" }],
+    }),
   }),
 });
 
@@ -131,4 +163,8 @@ export const {
   useGetTaskDetailQuery,
   useGetMyTasksQuery,
   useUpdateTaskStatusMutation,
+  useGetTaskStatusesQuery,
+  useCreateTaskStatusMutation,
+  useUpdateTaskStatusMasterMutation,
+  useDeleteTaskStatusMasterMutation,
 } = taskApiSlice;

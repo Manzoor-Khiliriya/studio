@@ -74,7 +74,7 @@ exports.getEmployeeAllocations = async (req, res) => {
       })
       .populate({
         path: "task",
-        select: "title project timelogs",
+        select: "title project timelogs status activeStatus",
 
         populate: [
           {
@@ -86,6 +86,15 @@ exports.getEmployeeAllocations = async (req, res) => {
             path: "timeLogs",
             select:
               "rawDurationSeconds dateString user logType isRunning startTime",
+          },
+
+          {
+            path: "status",
+            select: "name type",
+          },
+          {
+            path: "activeStatus",
+            select: "name type",
           },
         ],
       });

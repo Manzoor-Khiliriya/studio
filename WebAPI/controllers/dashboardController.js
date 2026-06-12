@@ -181,7 +181,7 @@ exports.getSummary = async (req, res) => {
         await Promise.all([
           Task.find({
             assignedTo: employeeProfile._id,
-            status: { $ne: "Completed" },
+            // status: { $ne: "Completed" },
           })
             .populate("project", "title projectCode")
             .populate("timeLogs"),
@@ -333,6 +333,7 @@ exports.getSummary = async (req, res) => {
       });
     }
   } catch (err) {
+    console.error(err )
     res.status(500).json({ error: "Internal server error" });
   }
 };
