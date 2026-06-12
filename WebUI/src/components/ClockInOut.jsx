@@ -1,31 +1,40 @@
 import React, { useState, useEffect, useRef } from "react";
 import { toast } from "react-hot-toast";
 import { FiPlay, FiCoffee, FiTarget, FiZap, FiSquare, } from "react-icons/fi";
-import { useGetMyTodayLogsQuery, useStartTimerMutation, useTogglePauseMutation, useStopTimerMutation } from "../services/timeLogApi";
+import { useStartTimerMutation, useTogglePauseMutation, useStopTimerMutation } from "../services/timeLogApi";
 import ConfirmModal from "./ConfirmModal";
 import FloatingTimer from "./FloatingTimer";
 import CustomDropdown from "./CustomDropdown";
 
-export default function ClockInOut({ taskList = [], totalSeconds }) {
+export default function ClockInOut({
+  taskList = [],
+  totalSeconds = 0,
+  activeTimer = null,
+}) {
   const [confirmStop, setConfirmStop] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState("");
 
-  const { data: logsData } = useGetMyTodayLogsQuery(undefined, { pollingInterval: 30000 });
   const [startTimer, { isLoading: isStarting }] = useStartTimerMutation();
   const [togglePause, { isLoading: isToggling }] = useTogglePauseMutation();
   const [stopTimer, { isLoading: isStopping }] = useStopTimerMutation();
 
-  const activeLog = logsData?.logs?.find(log => log.isRunning);
-  const isPaused = activeLog?.logType === "break";
+  const isPaused =
+    activeTimer?.logType === "break" ||
+    activeTimer?.type === "break";
   const isSyncing = isStarting || isToggling || isStopping;
-  const status = activeLog ? (isPaused ? "On Break" : "Mission Active") : "Not Started";
+  const status = activeTimer
+    ? (isPaused ? "On Break" : "Mission Active")
+    : "Not Started";
 
   useEffect(() => {
-    if (activeLog?.task?._id) {
-      const match = taskList.find(t => t.id === activeLog.task._id.toString());
-      setSelectedTaskId(match ? match.id : activeLog.task._id);
+    const taskId =
+      activeTimer?.taskId ||
+      activeTimer?.task?._id;
+
+    if (taskId) {
+      setSelectedTaskId(taskId.toString());
     }
-  }, [activeLog, taskList]);
+  }, [activeTimer]);
 
   const handleStart = async () => {
     if (!selectedTaskId) return toast.error("Target required");
@@ -58,7 +67,7 @@ export default function ClockInOut({ taskList = [], totalSeconds }) {
       <div className="space-y-6">
         <div className="flex items-center justify-between px-2">
           <div className="flex items-center gap-3">
-            <div className={`h-2.5 w-2.5 rounded-full ${activeLog ? (isPaused ? "bg-orange-500" : "bg-emerald-500 animate-pulse") : "bg-slate-700"}`} />
+            <div className={`h-2.5 w-2.5 rounded-full ${activeTimer ? (isPaused ? "bg-orange-500" : "bg-emerald-500 animate-pulse") : "bg-slate-700"}`} />
             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">{status}</span>
           </div>
         </div>
@@ -79,9 +88,9 @@ export default function ClockInOut({ taskList = [], totalSeconds }) {
                 value: task.id
               }))
             ]}
-            disabled={!!activeLog}
+            disabled={!!activeTimer}
             className="w-full"
-            buttonClass={`w-full bg-white/[0.03] border border-white/10 text-white text-sm font-bold py-5 pl-12 pr-4 rounded-[1.5rem] outline-none ${activeLog ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+            buttonClass={`w-full bg-white/[0.03] border border-white/10 text-white text-sm font-bold py-5 pl-12 pr-4 rounded-[1.5rem] outline-none ${activeTimer ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
               }`}
           />
         </div>
@@ -92,7 +101,7 @@ export default function ClockInOut({ taskList = [], totalSeconds }) {
         </div>
 
         <div className="flex items-center gap-4 w-full">
-          {!activeLog ? (
+          {!activeTimer ? (
             <button
               onClick={handleStart}
               disabled={!selectedTaskId || isSyncing}
@@ -139,7 +148,7 @@ export default function ClockInOut({ taskList = [], totalSeconds }) {
 
       <FloatingTimer
         seconds={totalSeconds}
-        isRunning={!!activeLog && !isPaused}
+        isRunning={!!activeTimer && !isPaused}
         isBreak={isPaused}
       />
     </>

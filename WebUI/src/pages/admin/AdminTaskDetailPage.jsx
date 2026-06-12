@@ -194,24 +194,23 @@ export default function AdminTaskDetailPage() {
                 </h1>
                 <div className="flex flex-wrap gap-2">
                   <Badge
-                    icon={<HiOutlineBolt size={10} />}
                     text={task.liveStatus}
-                    className="bg-blue-50 text-blue-600 border-blue-100"
+                    className=" text-blue-600 border-blue-100"
                   />
                   <Badge
                     text={task.status}
-                    className="bg-emerald-50 text-emerald-600 border-emerald-100"
+                    className=" text-emerald-600 border-emerald-100"
                   />
                   <Badge
                     text={task.activeStatus}
-                    className="bg-orange-50 text-orange-600 border-orange-100"
+                    className=" text-orange-600 border-orange-100"
                   />
                   <Badge
                     text={task.priority}
                     className={
                       task.priority === "High"
-                        ? "bg-rose-50 text-rose-600 animate-pulse border-rose-100"
-                        : "bg-amber-50 text-amber-600 border-amber-100"
+                        ? " text-rose-600 animate-pulse "
+                        : " text-amber-600"
                     }
                   />
                 </div>
@@ -379,7 +378,7 @@ export default function AdminTaskDetailPage() {
                         <div className="flex flex-col">
                           <div className="flex items-center gap-2 mb-1">
                             {op.isCurrentlyAssigned && (
-                              <span className="bg-emerald-50 text-emerald-600 text-[7px] font-black uppercase px-1.5 py-0.5 rounded border border-emerald-100 flex items-center gap-1">
+                              <span className=" text-emerald-600 text-[7px] font-black uppercase flex items-center gap-1">
                                 <HiCheckBadge size={8} /> Currently Assigned
                               </span>
                             )}
@@ -605,7 +604,7 @@ function MetricBox({ label, value, icon, color = "text-slate-900" }) {
 function Badge({ text, className, icon }) {
   return (
     <span
-      className={`px-3 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 ${className}`}
+      className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 ${className}`}
     >
       {icon} {text}
     </span>

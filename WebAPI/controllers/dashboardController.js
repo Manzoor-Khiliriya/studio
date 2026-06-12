@@ -456,7 +456,9 @@ exports.getAdminOverview = async (req, res) => {
       user: req.user._id,
     }).lean();
 
-    const [assignedTasks, runningTimer] = await Promise.all([
+    const today = getToday();
+
+    const [assignedTasks, runningTimer, todayLogs] = await Promise.all([
       Task.find({
         assignedTo: employeeProfile?._id,
         status: { $ne: "Completed" },
@@ -477,17 +479,38 @@ exports.getAdminOverview = async (req, res) => {
           },
         })
         .lean(),
+
+      TimeLog.find({
+        user: req.user._id,
+        dateString: today,
+        logType: "work",
+      }),
     ]);
+
+    let todaySeconds = 0;
+    const currentTime = now();
+
+    todayLogs.forEach((log) => {
+      if (log.isRunning) {
+        todaySeconds += Math.floor(
+          (currentTime - new Date(log.startTime)) / 1000,
+        );
+      } else {
+        todaySeconds += log.rawDurationSeconds || 0;
+      }
+    });
 
     return res.json({
       role: "Admin",
-
+      todaySeconds,
       activeTimer: runningTimer
         ? {
             logId: runningTimer._id,
+            taskId: runningTimer.task?._id,
             task: runningTimer.task?.title,
             projectCode: runningTimer.task?.project?.projectCode,
             startedAt: runningTimer.startTime,
+            type: runningTimer.logType,
           }
         : null,
 

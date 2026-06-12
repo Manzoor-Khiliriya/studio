@@ -9,10 +9,10 @@ const LeaveSetting = require("../models/LeaveSetting");
 const User = require("../models/User");
 const JobTracker = require("../models/JobTracker");
 const Notification = require("../models/Notification");
-
 const { calculateLeaveDays } = require("../utils/leaveHelpers");
 const { now } = require("../utils/dateHelper");
 const Employee = require("../models/Employee");
+const { applyProficiency } = require("./userHelpers");
 
 //
 // 🔥 HELPER (timezone-safe)
@@ -352,7 +352,10 @@ module.exports = (io) => {
       const threshold = new Date(currentTime.getTime() - 120000);
 
       const inactiveUsers = await User.find({
-        lastActiveAt: { $exists: true, $lt: threshold },
+        lastActiveAt: {
+          $ne: null,
+          $lt: threshold,
+        },
       });
 
       if (!inactiveUsers.length) return;
@@ -360,26 +363,46 @@ module.exports = (io) => {
       console.log(`⚡ Found ${inactiveUsers.length} inactive users`);
 
       for (const user of inactiveUsers) {
-        await User.updateOne({ _id: user._id }, { lastActiveAt: null });
+        await User.updateOne(
+          { _id: user._id },
+          { $set: { lastActiveAt: null } },
+        );
         // 🔥 STOP TIMELOG
         const logs = await TimeLog.find({ user: user._id, isRunning: true });
 
         for (const log of logs) {
-          const rawSeconds = Math.floor((currentTime - log.startTime) / 1000);
+          const rawSeconds = Math.max(
+            0,
+            Math.floor((currentTime - new Date(log.startTime)) / 1000),
+          );
 
-          log.durationSeconds = rawSeconds;
+          if (log.logType === "work") {
+            const { adjustedSeconds } = await applyProficiency(
+              user._id,
+              rawSeconds,
+            );
+
+            log.rawDurationSeconds = rawSeconds;
+            log.durationSeconds = adjustedSeconds;
+          } else {
+            log.durationSeconds = rawSeconds;
+          }
+
           log.endTime = currentTime;
           log.isRunning = false;
+          log.action = "Auto Stop";
 
           await log.save();
+
+          io.emit("taskChanged", { taskId: log.task });
+          io.to(user._id.toString()).emit("timeLogChanged", log);
         }
 
         // 🔥 EMIT TO THAT USER (optional)
-        io.to(user._id.toString()).emit("attendanceChanged");
       }
 
       // 🔥 GLOBAL EMIT (IMPORTANT)
-      io.emit("attendanceChanged");
+      io.emit("timeLogChanged");
       io.emit("dashboardUpdate");
 
       console.log("✅ Heartbeat auto-stop done");

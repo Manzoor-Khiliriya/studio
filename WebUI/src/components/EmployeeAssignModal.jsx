@@ -28,14 +28,11 @@ export default function EmployeeAssignModal({ isOpen, onClose, task }) {
     undefined,
     {
       skip: !isOpen,
-
       refetchOnMountOrArgChange:
         true,
-
-      refetchOnFocus: true,
     }
   );
-  
+
   const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation();
 
   // --- SYNC STATE ---

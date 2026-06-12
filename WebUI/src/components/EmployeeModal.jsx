@@ -113,7 +113,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
       return toast.error("Please select a designation");
     }
 
-    if (!formData.departments.length) {
+    if (["Employee", "Hr Employee", "GAD Employee"].includes(formData.role) && !formData.departments.length) {
       return toast.error("Please select at least one department");
     }
 
@@ -265,7 +265,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
             />
           </InputGroup>
 
-          <InputGroup label="Departments *">
+          <InputGroup label="Departments">
             <HiOutlineBriefcase className="input-icon" />
 
             <CustomDropdown

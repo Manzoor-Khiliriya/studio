@@ -234,6 +234,7 @@ export default function EmployeeDetailPage() {
   const { data: taskData, isLoading: tasksLoading, refetch: refetchTasks } =
     useGetTasksByEmployeeQuery(id, {
       skip: !shouldFetchTasks,
+      refetchOnMountOrArgChange: true,
     });
   const currentlyAssigned = taskData?.currentlyAssigned || [];
   const workedAndAssigned = taskData?.workedAndAssigned || [];
@@ -554,7 +555,7 @@ export default function EmployeeDetailPage() {
                               {t?.project?.title && `(${t.project.title})`}
                             </p>
 
-                            <span className="text-[7px] font-black uppercase px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                            <span className="text-[7px] font-black uppercase text-orange-400">
                               Live
                             </span>
                           </div>
@@ -760,15 +761,15 @@ function TaskSmallCard({ task, active, historical }) {
         </p>
 
         {active ? (
-          <span className="text-[7px] font-black uppercase px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">
+          <span className="text-[7px] font-black uppercase text-green-400">
             Current
           </span>
         ) : historical ? (
-          <span className="text-[7px] font-black uppercase px-1.5 py-0.5 rounded bg-slate-200 text-slate-500 border border-slate-300">
+          <span className="text-[7px] font-black uppercase text-slate-500">
             History
           </span>
         ) : (
-          <span className="text-[7px] font-black uppercase px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 border border-orange-200">
+          <span className="text-[7px] font-black uppercase text-orange-700">
             Current
           </span>
         )}
@@ -844,7 +845,7 @@ function StatusBadge({ status }) {
   const isEnabled = status === "Enable";
   return (
     <div
-      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-[0.2em] ${isEnabled ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-700 border-rose-200"
+      className={`inline-flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] ${isEnabled ? " text-emerald-700 " : " text-rose-700 "
         }`}
     >
       <span className={`w-1.5 h-1.5 rounded-full ${isEnabled ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} />

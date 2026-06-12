@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiZap, FiClock, FiTarget, FiBriefcase, FiActivity, FiLock } from "react-icons/fi";
+import { FiClock, FiTarget, FiBriefcase, FiLock } from "react-icons/fi";
 import { HiOutlineBolt } from 'react-icons/hi2';
 import { useGetAdminOverviewQuery } from "../../services/dashboardApi";
 import ClockInOut from "../../components/ClockInOut";
@@ -12,22 +12,23 @@ import StatCard from "../../components/StatCard";
 import { useSocketEvents } from "../../hooks/useSocketEvents";
 import { useSelector } from "react-redux";
 import { BiTask } from "react-icons/bi";
-import { useNavigate } from "react-router-dom";
 
 export default function AdminOverView() {
     const { user } = useSelector((state) => state.auth);
-    const navigate = useNavigate();
     const [liveSeconds, setLiveSeconds] = useState(0);
     const [runningTask, setRunningTask] = useState(null);
-    const [isUnLocked, setIsUnLocked] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
+    const [manuallyUnlocked, setManuallyUnlocked] = useState(false);
 
     const {
         data: adminOverview, isLoading, refetch
     } = useGetAdminOverviewQuery(undefined, {
         skip: user?.role !== "Admin",
+        refetchOnMountOrArgChange: true,
     });
+
+    const isUnLocked = manuallyUnlocked || !!adminOverview?.activeTimer;
 
     useSocketEvents({
         onDashboardUpdate: refetch,
@@ -40,6 +41,20 @@ export default function AdminOverView() {
         setRunningTask(adminOverview?.activeTimer?.task || null);
         setLiveSeconds(adminOverview?.todaySeconds || 0);
     }, [adminOverview]);
+
+    useEffect(() => {
+        if (
+            adminOverview?.activeTimer &&
+            adminOverview?.activeTimer?.type === "work"
+        ) {
+            const interval = setInterval(() => {
+                setLiveSeconds(prev => prev + 1);
+            }, 1000);
+
+            return () => clearInterval(interval);
+        }
+    }, [adminOverview?.activeTimer]);
+
 
     const allActiveTasks = useMemo(() => {
         return adminOverview?.taskSnapshot || [];
@@ -112,7 +127,7 @@ export default function AdminOverView() {
                                     </p>
 
                                     <button
-                                        onClick={() => setIsUnLocked(true)}
+                                        onClick={() => setManuallyUnlocked(true)}
                                         className="cursor-pointer px-8 py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-xs"
                                     >
                                         Unlock Tasks
@@ -132,6 +147,7 @@ export default function AdminOverView() {
                                         <ClockInOut
                                             taskList={allActiveTasks}
                                             totalSeconds={liveSeconds}
+                                            activeTimer={adminOverview?.activeTimer}
                                         />
                                     </motion.div>
                                 </div>

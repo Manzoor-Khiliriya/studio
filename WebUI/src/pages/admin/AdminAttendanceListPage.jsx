@@ -47,7 +47,7 @@ export default function AttendanceManagement() {
   const { user } = useSelector((state) => state.auth);
 
   const [activeTab, setActiveTab] = useState(
-    user?.role === "Admin" ? "logs" : "calendar"
+    (user?.role === "Admin" || user?.role === "Hr Manager") ? "logs" : "calendar"
   );
 
   const [page, setPage] = useState(1);
@@ -77,7 +77,10 @@ export default function AttendanceManagement() {
     limit: limit,
     search: debouncedSearch,
   }, {
-    skip: user?.role !== "Admin" || activeTab !== "logs",
+    skip:
+      !["Hr Manager", "Admin"].includes(user?.role) ||
+      activeTab !== "logs",
+    refetchOnMountOrArgChange: true,
   });
 
   const {
@@ -220,7 +223,7 @@ export default function AttendanceManagement() {
 
         {/* TAB SWITCHER */}
         <div className="flex bg-white p-1 rounded-2xl border border-slate-200 shadow-sm">
-          {user?.role === "Admin" && (
+          {(user?.role === "Admin" || user?.role === "Hr Manager") && (
             <button
               onClick={() => setActiveTab("logs")}
               className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all  cursor-pointer ${activeTab === "logs"

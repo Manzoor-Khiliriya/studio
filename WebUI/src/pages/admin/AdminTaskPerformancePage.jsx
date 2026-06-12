@@ -35,10 +35,10 @@ const CustomProgressBar = ({ percentage, isOver }) => {
           initial={{ width: 0 }}
           animate={{ width: `${Math.min(percentage, 100)}%` }}
           className={`h-full relative z-10 transition-colors duration-700 ${isOver
-              ? "bg-rose-500"
-              : percentage > 75
-                ? "bg-orange-500"
-                : "bg-indigo-600"
+            ? "bg-rose-500"
+            : percentage > 75
+              ? "bg-orange-500"
+              : "bg-indigo-600"
             }`}
         />
       </div>
@@ -80,10 +80,13 @@ const AdminTaskPerformancePage = () => {
       page: currentPage,
       limit: limit,
       search: debouncedSearch,
+    }, {
+      refetchOnMountOrArgChange: true,
     });
 
   useSocketEvents({
     onTaskChange: refetch,
+    onTimeLogChange: refetch,
     onProjectChange: refetch,
   });
 

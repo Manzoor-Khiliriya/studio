@@ -297,9 +297,10 @@ export default function EmployeeDashboard() {
                       >
                         <ClockInOut
                           taskList={allActiveTasks}
-                          forceStopSignal={forceStopSignal}
                           totalSeconds={liveSeconds}
+                          activeTimer={logsData?.logs?.find(log => log.isRunning)}
                         />
+
                       </motion.div>
                     </div>
 

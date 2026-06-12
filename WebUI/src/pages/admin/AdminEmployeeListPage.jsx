@@ -108,6 +108,7 @@ export default function EmployeeListPage() {
     search: debouncedSearch,
   }, {
     skip: activeRole === "Settings",
+    refetchOnMountOrArgChange: true,
   });
   const [changeUserStatus, { isLoading: isUpdatingStatus }] =
     useChangeUserStatusMutation();
@@ -119,10 +120,12 @@ export default function EmployeeListPage() {
   const { data: departments = [] } =
     useGetDepartmentsQuery(undefined, {
       skip: activeRole !== "Settings" || settingsTab !== "Department",
+      refetchOnMountOrArgChange: true,
     });
   const { data: designations = [] } =
     useGetDesignationsQuery(undefined, {
       skip: activeRole !== "Settings" || settingsTab !== "Designation",
+      refetchOnMountOrArgChange: true,
     });
   const [deleteDepartment] = useDeleteDepartmentMutation();
   const [deleteDesignation] = useDeleteDesignationMutation();

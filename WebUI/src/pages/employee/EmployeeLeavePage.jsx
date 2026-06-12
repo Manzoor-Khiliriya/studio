@@ -47,6 +47,8 @@ export default function EmployeeLeavePage() {
     limit: limit,
     type: typeFilter === "All" ? "" : typeFilter,
     status: statusFilter === "All" ? "" : statusFilter,
+  }, {
+    refetchOnMountOrArgChange: true,
   });
 
   useSocketEvents({
