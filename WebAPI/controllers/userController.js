@@ -403,28 +403,29 @@ exports.deleteUser = async (req, res) => {
 exports.getUsersByDepartments = async (req, res) => {
   try {
     const { departments } = req.query;
-    const departmentIds = departments.split(",");
-    const employees = await Employee.find({
-      departments: { $in: departmentIds },
-    })
-      .populate("user", "name role")
-      .lean();
+
+    let employees;
+
+    if (!departments) {
+      employees = await Employee.find({}).populate("user", "name role").lean();
+    } else {
+      const departmentIds = departments.split(",");
+      employees = await Employee.find({
+        departments: { $in: departmentIds },
+      })
+        .populate("user", "name role")
+        .lean();
+    }
 
     const managers = employees
       .filter((e) =>
         ["Manager", "Hr Manager", "GAD Manager"].includes(e.user?.role),
       )
-      .map((e) => ({
-        _id: e.user._id,
-        name: e.user.name,
-      }));
+      .map((e) => ({ _id: e.user._id, name: e.user.name }));
 
     const admins = employees
       .filter((e) => e.user?.role === "Admin")
-      .map((e) => ({
-        _id: e.user._id,
-        name: e.user.name,
-      }));
+      .map((e) => ({ _id: e.user._id, name: e.user.name }));
 
     res.json({ managers, admins });
   } catch (err) {

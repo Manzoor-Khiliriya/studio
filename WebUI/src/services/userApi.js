@@ -70,9 +70,9 @@ export const userApi = apiSlice.injectEndpoints({
     getDepartmentOptions: builder.query({
       query: (departments) => ({
         url: "/users/departments",
-        params: {
-          departments: departments.join(","),
-        },
+        params: departments?.length
+          ? { departments: departments.join(",") }
+          : {},
       }),
     }),
   }),

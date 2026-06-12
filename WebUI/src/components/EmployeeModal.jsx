@@ -47,16 +47,22 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
       admins: [],
     },
   } = useGetDepartmentOptionsQuery(
-    formData.departments,
+    formData.departments.length ? formData.departments : null,
     {
-      skip: !formData.departments.length,
+      skip: !isOpen || (
+        ["Employee", "Hr Employee", "GAD Employee"].includes(formData.role)
+        && !formData.departments.length
+      ),
     }
   );
 
-  const managers = departmentUsers.managers || [];
-  const admins = departmentUsers.admins || [];
-
-  console.log(managers)
+  const isEmployeeRole = ["Employee", "Hr Employee", "GAD Employee"].includes(formData.role);
+  const managers = (isEmployeeRole && !formData.departments.length)
+    ? []
+    : (departmentUsers.managers || []);
+  const admins = (isEmployeeRole && !formData.departments.length)
+    ? []
+    : (departmentUsers.admins || []);
 
   const activeDepartments = departments.filter(
     (dept) => dept.status === "Enable"
@@ -265,7 +271,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
             />
           </InputGroup>
 
-          <InputGroup label="Departments">
+          <InputGroup label={["Employee", "Hr Employee", "GAD Employee"].includes(formData.role) ? "Departments *" : "Departments"}>
             <HiOutlineBriefcase className="input-icon" />
 
             <CustomDropdown
