@@ -12,6 +12,7 @@ export const useSocketEvents = ({
   onNotificationChange,
   onDashboardUpdate,
   onAllocationChange,
+  onDeleteRequestChange,
 }) => {
   useEffect(() => {
     const socket = getSocket();
@@ -67,6 +68,11 @@ export const useSocketEvents = ({
       onAllocationChange?.();
     };
 
+    const handleDeleteRequest = () => {
+      console.log("🧩 Delete Request changed");
+      onDeleteRequestChange?.();
+    };
+
     socket.on("employeeChanged", handleEmployee);
     socket.on("projectChanged", handleProject);
     socket.on("taskChanged", handleTask);
@@ -77,6 +83,7 @@ export const useSocketEvents = ({
     socket.on("notificationChanged", handleNotification);
     socket.on("dashboardUpdated", handleDashboard);
     socket.on("allocationChanged", handleAllocation);
+    socket.on("deleteRequestChanged", handleDeleteRequest);
 
     return () => {
       socket.off("employeeChanged", handleEmployee);
@@ -89,6 +96,7 @@ export const useSocketEvents = ({
       socket.off("notificationChanged", handleNotification);
       socket.off("dashboardUpdated", handleDashboard);
       socket.off("allocationChanged", handleAllocation);
+      socket.off("deleteRequestChanged", handleDeleteRequest);
     };
   }, [
     onEmployeeChange,
@@ -101,5 +109,6 @@ export const useSocketEvents = ({
     onNotificationChange,
     onDashboardUpdate,
     onAllocationChange,
+    onDeleteRequestChange
   ]);
 };

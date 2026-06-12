@@ -436,7 +436,7 @@ exports.deleteUser = async (req, res) => {
       approvals: [req.user._id],
     });
 
-    emitEvent(req, "deleteRequestCreated", request);
+    emitEvent(req, "deleteRequestChanged", request);
     return res.json({
       message: "Delete request sent to all admins for approval.",
       requestId: request._id,
@@ -465,7 +465,7 @@ exports.respondToDeleteRequest = async (req, res) => {
       request.rejections.push(req.user._id);
       request.status = "Rejected";
       await request.save();
-      emitEvent(req, "deleteRequestUpdated", request);
+      emitEvent(req, "deleteRequestChanged", request);
       return res.json({ message: "Delete request rejected." });
     }
 
@@ -495,7 +495,7 @@ exports.respondToDeleteRequest = async (req, res) => {
     }
 
     await request.save();
-    emitEvent(req, "deleteRequestUpdated", request);
+    emitEvent(req, "deleteRequestChanged", request);
     return res.json({
       message: "Approval recorded. Waiting for other admins.",
     });
@@ -506,19 +506,41 @@ exports.respondToDeleteRequest = async (req, res) => {
 
 exports.getPendingDeleteRequests = async (req, res) => {
   try {
-    const requests = await DeleteRequest.find({ status: "Pending" })
+    const requests = await DeleteRequest.find()
       .populate("targetUser", "name email role")
       .populate("requestedBy", "name")
-      .populate("approvals", "name")
+      .populate("approvals", "name _id")
+      .populate("rejections", "name _id")
       .lean();
 
-    const pending = requests.filter(
-      (r) =>
-        !r.approvals.map(String).includes(String(req.user._id)) &&
-        !r.rejections.map(String).includes(String(req.user._id)),
+    const filtered = requests.filter(
+      (r) => String(r.targetUser?._id) !== String(req.user._id),
     );
 
-    res.json(pending);
+    const enriched = filtered.map((r) => {
+      const hasApproved = r.approvals.some(
+        (a) => String(a._id) === String(req.user._id),
+      );
+      const hasRejected = r.rejections.some(
+        (a) => String(a._id) === String(req.user._id),
+      );
+      const isRequester = String(r.requestedBy?._id) === String(req.user._id);
+
+      return {
+        ...r,
+        hasResponded: hasApproved || hasRejected || isRequester,
+        isRequester,
+        myAction: hasApproved
+          ? "approved"
+          : hasRejected
+            ? "rejected"
+            : isRequester
+              ? "requested"
+              : null,
+      };
+    });
+
+    res.json(enriched);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
