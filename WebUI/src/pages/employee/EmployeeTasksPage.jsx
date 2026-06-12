@@ -227,23 +227,20 @@ export default function MyTasksPage() {
           <div className="flex flex-wrap items-center gap-6 pt-5 border-t border-slate-100">
             {/* Initiative Status */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[9px] font-black text-slate-400 uppercase ml-1 tracking-widest">Initiative Status</label>
+              <label className="text-[9px] font-black text-slate-400 uppercase ml-1 tracking-widest">Live Status</label>
               <CustomDropdown
-                value={statusFilter}
+                value={liveStatusFilter}
                 onChange={(val) => {
-                  setStatusFilter(val);
+                  setLiveStatusFilter(val);
                   setCurrentPage(1);
                 }}
                 options={[
                   { label: "All Phases", value: "All" },
-                  { label: "On hold", value: "On hold" },
-                  { label: "Modeling", value: "Modeling" },
-                  { label: "Lighting and Texturing", value: "Lighting and Texturing" },
-                  { label: "Feedback pending", value: "Feedback pending" },
-                  { label: "Final rendering", value: "Final rendering" },
-                  { label: "Postproduction", value: "Postproduction" },
-                  { label: "Completed", value: "Completed" },
+                  { label: "To be started", value: "To be started" },
+                  { label: "In progress", value: "In progress" },
+                  { label: "Started", value: "Started" },
                 ]}
+
                 className="min-w-[180px]"
                 buttonClass="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700"
               />

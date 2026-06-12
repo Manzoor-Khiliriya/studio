@@ -29,6 +29,7 @@ exports.getSummary = async (req, res) => {
         uniqueProjects,
         activeTimers,
         attendanceToday,
+        adminUsers,
       ] = await Promise.all([
         User.countDocuments({ status: "Enable", role: "Employee" }),
         Attendance.countDocuments({ date: today, clockOut: null }),
@@ -56,6 +57,8 @@ exports.getSummary = async (req, res) => {
             },
           })
           .lean(),
+
+        User.find({ role: "Admin" }).select("_id"),
       ]);
 
       const tasksWithVirtuals = allTasks.map((task) => ({
@@ -72,8 +75,10 @@ exports.getSummary = async (req, res) => {
         status: "Pending",
       });
 
+      const adminIds = adminUsers.map((a) => a._id); 
       const rawActivity = await TimeLog.find({
         clearedByAdmin: false,
+        user: { $nin: adminIds },
       })
         .sort({ createdAt: -1 })
         .populate({

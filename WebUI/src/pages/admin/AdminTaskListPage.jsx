@@ -423,7 +423,12 @@ export default function AdminTasksPage() {
                       setLiveStatusFilter(val);
                       setCurrentPage(1);
                     }}
-                    options={["All", "To be started", "In progress", "Started"]}
+                    options={[
+                      { label: "All Phases", value: "All" },
+                      { label: "To be started", value: "To be started" },
+                      { label: "In progress", value: "In progress" },
+                      { label: "Started", value: "Started" },
+                    ]}
                     className="min-w-35"
                   />
                 </div>
@@ -441,14 +446,14 @@ export default function AdminTasksPage() {
                       setCurrentPage(1);
                     }}
                     options={[
-                      "All",
-                      "On hold",
-                      "Modeling",
-                      "Lighting and Texturing",
-                      "Feedback pending",
-                      "Final rendering",
-                      "Postproduction",
-                      "Completed",
+                      { label: "All Phases", value: "All" },
+                      { label: "On hold", value: "On hold" },
+                      { label: "Modeling", value: "Modeling" },
+                      { label: "Lighting and Texturing", value: "Lighting and Texturing" },
+                      { label: "Feedback pending", value: "Feedback pending" },
+                      { label: "Final rendering", value: "Final rendering" },
+                      { label: "Postproduction", value: "Postproduction" },
+                      { label: "Completed", value: "Completed" },
                     ]}
                     className="min-w-45"
                   />

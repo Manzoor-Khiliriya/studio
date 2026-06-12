@@ -78,7 +78,7 @@ exports.updateTask = async (req, res) => {
         });
       }
     }
-    
+
     const io = req.app.get("socketio");
 
     const task = await Task.findById(req.params.id);
@@ -622,6 +622,7 @@ exports.getMyTasks = async (req, res) => {
 
     const tasks = await Task.find(query)
       .populate("project", "projectCode title")
+      .populate("timeLogs")
       .skip(skip)
       .limit(Number(limit));
 
