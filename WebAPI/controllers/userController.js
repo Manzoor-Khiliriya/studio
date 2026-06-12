@@ -5,6 +5,7 @@ const { hashPassword } = require("../utils/authHelpers");
 const sendNotification = require("../utils/notifier");
 const { emitDashboardUpdate } = require("../utils/socket");
 const { now } = require("../utils/dateHelper");
+const DeleteRequest = require("../models/DeleteRequest");
 
 const emitEvent = (req, event, data, userId = null) => {
   const io = req.app.get("socketio");
@@ -395,6 +396,129 @@ exports.deleteUser = async (req, res) => {
     emitEvent(req, "employeeChanged", user._id);
     emitDashboardUpdate(req);
     res.json({ message: "User and employee profile deleted successfully." });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.deleteUser = async (req, res) => {
+  try {
+    const targetUser = await User.findById(req.params.id);
+    if (!targetUser) return res.status(404).json({ message: "User not found" });
+
+    if (targetUser.role !== "Admin") {
+      await User.findByIdAndDelete(req.params.id);
+      await Employee.findOneAndDelete({ user: targetUser._id });
+      emitEvent(req, "employeeChanged", targetUser._id);
+      emitDashboardUpdate(req);
+      return res.json({ message: "User deleted successfully." });
+    }
+
+    const existing = await DeleteRequest.findOne({
+      targetUser: targetUser._id,
+      status: "Pending",
+    });
+    if (existing) {
+      return res.status(400).json({
+        message: "A delete request is already pending for this admin.",
+      });
+    }
+
+    const allAdmins = await User.find({
+      role: "Admin",
+      _id: { $ne: req.user._id },
+      status: "Enable",
+    });
+
+    const request = await DeleteRequest.create({
+      targetUser: targetUser._id,
+      requestedBy: req.user._id,
+      approvals: [req.user._id],
+    });
+
+    emitEvent(req, "deleteRequestCreated", request);
+    return res.json({
+      message: "Delete request sent to all admins for approval.",
+      requestId: request._id,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.respondToDeleteRequest = async (req, res) => {
+  try {
+    const { requestId, action } = req.body;
+
+    const request = await DeleteRequest.findById(requestId);
+    if (!request) return res.status(404).json({ message: "Request not found" });
+    if (request.status !== "Pending")
+      return res.status(400).json({ message: "Request already resolved" });
+
+    const alreadyVoted =
+      request.approvals.includes(req.user._id) ||
+      request.rejections.includes(req.user._id);
+    if (alreadyVoted)
+      return res.status(400).json({ message: "You have already responded" });
+
+    if (action === "reject") {
+      request.rejections.push(req.user._id);
+      request.status = "Rejected";
+      await request.save();
+      emitEvent(req, "deleteRequestUpdated", request);
+      return res.json({ message: "Delete request rejected." });
+    }
+
+    request.approvals.push(req.user._id);
+
+    const allAdmins = await User.find({
+      role: "Admin",
+      status: "Enable",
+      _id: { $ne: request.targetUser },
+    });
+
+    const allApproved = allAdmins.every((admin) =>
+      request.approvals.map(String).includes(String(admin._id)),
+    );
+
+    if (allApproved) {
+      request.status = "Approved";
+      await request.save();
+
+      await User.findByIdAndDelete(request.targetUser);
+      await Employee.findOneAndDelete({ user: request.targetUser });
+      emitEvent(req, "employeeChanged", request.targetUser);
+      emitDashboardUpdate(req);
+      return res.json({
+        message: "All admins approved. Admin deleted successfully.",
+      });
+    }
+
+    await request.save();
+    emitEvent(req, "deleteRequestUpdated", request);
+    return res.json({
+      message: "Approval recorded. Waiting for other admins.",
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getPendingDeleteRequests = async (req, res) => {
+  try {
+    const requests = await DeleteRequest.find({ status: "Pending" })
+      .populate("targetUser", "name email role")
+      .populate("requestedBy", "name")
+      .populate("approvals", "name")
+      .lean();
+
+    const pending = requests.filter(
+      (r) =>
+        !r.approvals.map(String).includes(String(req.user._id)) &&
+        !r.rejections.map(String).includes(String(req.user._id)),
+    );
+
+    res.json(pending);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

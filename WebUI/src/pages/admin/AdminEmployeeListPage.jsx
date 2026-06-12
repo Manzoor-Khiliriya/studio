@@ -138,18 +138,18 @@ export default function EmployeeListPage() {
     if (!selectedEmp) return;
 
     const isDelete = confirmConfig.type === "delete";
-    const loadingMessage = isDelete
-      ? "Deleting records..."
-      : "Updating access...";
+    const loadingMessage = isDelete ? "Deleting records..." : "Updating access...";
     const t = toast.loading(loadingMessage);
 
     try {
       if (isDelete) {
-        // Handle Deletion
-        await deleteUser(selectedEmp.user._id).unwrap();
-        toast.success("Employee removed successfully", { id: t });
+        const result = await deleteUser(selectedEmp.user._id).unwrap();
+        if (result.requestId) {
+          toast.success("Delete request sent to all admins for approval.", { id: t });
+        } else {
+          toast.success("Employee removed successfully", { id: t });
+        }
       } else {
-        // Handle Status Toggle
         const currentStatus = selectedEmp.user?.status;
         const newStatus = currentStatus === "Enable" ? "Disable" : "Enable";
         await changeUserStatus({
@@ -519,16 +519,20 @@ export default function EmployeeListPage() {
         onConfirm={handleExecuteConfirm}
         isLoading={isUpdatingStatus || isDeleting}
         title={
-          confirmConfig.type === "delete" ? "Delete Employee" : "Update Access"
+          confirmConfig.type === "delete" ? `Delete ${selectedEmp?.user?.name}` : "Update Access"
         }
         message={
           confirmConfig.type === "delete"
-            ? `You are about to permanently delete ${selectedEmp?.user?.name}. This action cannot be undone.`
+            ? activeRole === "Admin"
+              ? `Deleting ${selectedEmp?.user?.name} requires consent from all other admins. A request will be sent for approval.`
+              : `You are about to permanently delete ${selectedEmp?.user?.name}. This action cannot be undone.`
             : `Are you sure you want to change the access status for ${selectedEmp?.user?.name}?`
         }
         confirmText={
           confirmConfig.type === "delete"
-            ? "Confirm"
+            ? activeRole === "Admin"
+              ? "Send Request"
+              : "Confirm"
             : selectedEmp?.user?.status === "Enable"
               ? "Disable"
               : "Enable"

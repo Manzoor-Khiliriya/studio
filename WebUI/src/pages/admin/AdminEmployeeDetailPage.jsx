@@ -330,19 +330,23 @@ export default function EmployeeDetailPage() {
   const effectiveHours = employee ? ((540 * (employee.proficiency || 100)) / 6000).toFixed(1) : 0;
 
   const handleConfirmDelete = async () => {
-    const t = toast.loading("Deleting records...");
+    const t = toast.loading("Processing...");
     try {
-      await deleteUser(employee.user._id).unwrap();
-      toast.success("Employee removed successfully", { id: t });
-      if (location.state) {
-        navigate("/employees", {
-          state: location.state,
-        });
+      const result = await deleteUser(employee.user._id).unwrap();
+
+      if (result.requestId) {
+        toast.success("Delete request sent to all admins for approval.", { id: t });
+        setConfirmConfig({ isOpen: false, type: null });
       } else {
-        navigate("/employees");
+        toast.success("Employee removed successfully", { id: t });
+        if (location.state) {
+          navigate("/employees", { state: location.state });
+        } else {
+          navigate("/employees");
+        }
       }
     } catch (err) {
-      toast.error("Deletion failed", { id: t });
+      toast.error(err?.data?.message || "Deletion failed", { id: t });
     }
   };
 
@@ -392,13 +396,13 @@ export default function EmployeeDetailPage() {
               <button
                 onClick={() => setIsEditModalOpen(true)}
                 className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest bg-slate-900 text-white hover:bg-orange-600 transition-all shadow-xl shadow-orange-100 active:scale-95 cursor-pointer"              >
-                <HiOutlinePencilSquare size={18} /> Update Employee
+                <HiOutlinePencilSquare size={18} /> {`Delete ${employee?.user?.name}`}
               </button>
               <button
                 onClick={() => setConfirmConfig({ isOpen: true, type: "delete" })}
                 className="flex items-center justify-center gap-2 bg-slate-900 text-white w-full py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-600 transition-all shadow-xl shadow-orange-100 active:scale-95 cursor-pointer"
               >
-                <HiOutlineTrash size={18} /> Delete Employee
+                <HiOutlineTrash size={18} /> {`Delete ${employee?.user?.name}`}
               </button>
             </div>
           </div>
@@ -699,9 +703,13 @@ export default function EmployeeDetailPage() {
         onClose={() => setConfirmConfig({ isOpen: false, type: null })}
         onConfirm={handleConfirmDelete}
         isLoading={isDeleting}
-        title="Delete Employee"
-        message={`Delete ${employee?.user?.name}? This action is irreversible.`}
-        confirmText="Delete"
+        title={`Delete ${employee?.user?.name}`}
+        message={
+          role === "Admin"
+            ? `Deleting ${employee?.user?.name} requires consent from all other admins. A request will be sent for approval.`
+            : `Delete ${employee?.user?.name}? This action is irreversible.`
+        }
+        confirmText={role === "Admin" ? "Send Request" : "Delete"}
         variant="danger"
       />
     </div>

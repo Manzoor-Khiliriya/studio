@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useOnClickOutside } from "../hooks/useOnClickOutside";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/Sandd-Studio-Orange-BG.jpg";
+import DeleteRequestNotifications from "./DeleteRequestNotifications"; // add this
 
 export default function Navbar() {
   const { user } = useSelector((state) => state.auth);
@@ -22,7 +23,6 @@ export default function Navbar() {
 
   const { data: notifications = [] } = useGetNotificationsQuery();
   const [markNotificationsRead] = useMarkNotificationsReadMutation();
-
 
   const handleMarkAllRead = async (e) => {
     e.stopPropagation();
@@ -61,8 +61,13 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* RIGHT: SEARCH, NOTIFICATIONS, PROFILE */}
-      <div className="flex items-center">
+      {/* RIGHT: NOTIFICATIONS & PROFILE */}
+      <div className="flex items-center gap-2">
+
+        {/* Delete Request Notifications — admin only */}
+        <DeleteRequestNotifications />
+
+        {/* Existing bell notifications */}
         <div className="relative" ref={notificationRef}>
           <button
             onClick={() => setIsOpen(!isOpen)}

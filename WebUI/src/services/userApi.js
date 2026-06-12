@@ -65,6 +65,7 @@ export const userApi = apiSlice.injectEndpoints({
       invalidatesTags: [
         { type: "User", id: "LIST" },
         { type: "Employee", id: "LIST" },
+        { type: "DeleteRequest", id: "LIST" },
       ],
     }),
     getDepartmentOptions: builder.query({
@@ -74,6 +75,22 @@ export const userApi = apiSlice.injectEndpoints({
           ? { departments: departments.join(",") }
           : {},
       }),
+    }),
+    getPendingDeleteRequests: builder.query({
+      query: () => "/users/delete-requests/pending",
+      providesTags: [{ type: "DeleteRequest", id: "LIST" }],
+    }),
+    respondToDeleteRequest: builder.mutation({
+      query: ({ requestId, action }) => ({
+        url: "/users/delete-request/respond",
+        method: "POST",
+        body: { requestId, action },
+      }),
+      invalidatesTags: [
+        { type: "DeleteRequest", id: "LIST" },
+        { type: "User", id: "LIST" },
+        { type: "Employee", id: "LIST" },
+      ],
     }),
   }),
 });
@@ -87,4 +104,6 @@ export const {
   useChangeUserStatusMutation,
   useDeleteUserMutation,
   useGetDepartmentOptionsQuery,
+  useGetPendingDeleteRequestsQuery,
+  useRespondToDeleteRequestMutation,
 } = userApi;

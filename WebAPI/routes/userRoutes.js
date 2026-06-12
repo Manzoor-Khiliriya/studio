@@ -8,6 +8,9 @@ router.use(authenticate);
 
 router.post("/heartbeat", userController.heartbeat);
 
+router.get("/delete-requests/pending", authorize(ROLE.ADMIN), userController.getPendingDeleteRequests);
+router.post("/delete-request/respond", authorize(ROLE.ADMIN), userController.respondToDeleteRequest);
+
 router.post("/", authorize(ROLE.ADMIN), userController.createUser);
 router.get("/", authorize(ROLE.ADMIN), userController.getAllUsers);
 router.get("/departments", authorize(ROLE.ADMIN), userController.getUsersByDepartments);
