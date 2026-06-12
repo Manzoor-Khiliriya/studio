@@ -248,7 +248,7 @@ export default function MyTasksPage() {
 
             {/* Live Status */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[9px] font-black text-slate-400 uppercase ml-1 tracking-widest">Live Status</label>
+              <label className="text-[9px] font-black text-slate-400 uppercase ml-1 tracking-widest">Initiative Status</label>
               <CustomDropdown
                 value={statusFilter}
                 onChange={(val) => {
