@@ -310,15 +310,23 @@ export default function MyLeaveSection() {
 
                 </div>
 
-                <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 relative z-0">
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 relative z-0 items-stretch">
+
                     {/* STATS SECTION */}
-                    <div className="xl:col-span-3 space-y-6">
-                        <StatBox
-                            label="Earned Leaves"
-                            value={`${data?.balances?.earnedLeave?.remaining?.toFixed(1) || 0}`}
-                            unit="Days"
-                            color="orange"
-                        />
+                    <div className="xl:col-span-3">
+                        <div className="h-full p-10 rounded-[3rem] bg-white border border-slate-200 shadow-xl shadow-slate-200/30 relative overflow-hidden group hover:border-orange-500/30 transition-all duration-500 flex flex-col justify-center">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 text-center">
+                                Earned Leaves
+                            </p>
+                            <div className="flex items-baseline gap-2 justify-center">
+                                <h3 className="text-6xl font-black tracking-tighter tabular-nums text-orange-500">
+                                    {data?.balances?.earnedLeave?.remaining?.toFixed(1) || 0}
+                                </h3>
+                                <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                                    Days
+                                </span>
+                            </div>
+                        </div>
                     </div>
 
                     {/* TABLE SECTION */}
