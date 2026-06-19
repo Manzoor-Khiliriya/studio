@@ -49,7 +49,7 @@ async function runCleanupSafe() {
   const cutoff = getCutoffDate();
 
   const expiredProjects = await Project.find({
-    deleteStatus: "Disable",
+    deleteStatus: "Enable",
     updatedAt: { $lt: cutoff },
   }).select("_id");
 
@@ -403,7 +403,7 @@ module.exports = (io) => {
 
       // 🔥 GLOBAL EMIT (IMPORTANT)
       io.emit("timeLogChanged");
-      io.emit("dashboardUpdate");
+      io.emit("dashboardUpdated");
 
       console.log("✅ Heartbeat auto-stop done");
     } catch (err) {
