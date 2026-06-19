@@ -68,7 +68,7 @@ export default function Sidebar() {
   const gadEmployeeLinks = [
     { to: "/employee", label: "Overview", icon: <HiOutlineViewColumns /> },
     { to: "/my-profile", label: "Profile", icon: <HiOutlineUser /> },
-    { to: "/my-leaves", label: "Leave", icon: <HiOutlineCalendar /> },
+    { to: "/my-leaves", label: "Leaves", icon: <HiOutlineCalendar /> },
     { to: "/public-holidays", label: "Calendar", icon: <HiOutlineFlag /> },
   ];
 
@@ -92,6 +92,7 @@ export default function Sidebar() {
     { to: "/leaves", label: "Leave Management", icon: <HiOutlineCalendar /> },
     { to: "/attendance", label: "Attendance", icon: <HiOutlineViewColumns /> },
     { to: '/holidays', label: 'Holidays', icon: <HiOutlineFlag /> },
+    { to: "/public-holidays", label: "Calendar", icon: <HiOutlineFlag /> },
   ];
 
   let links;

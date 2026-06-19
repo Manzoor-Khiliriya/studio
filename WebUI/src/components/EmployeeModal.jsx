@@ -24,7 +24,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
     proficiency: "100", joinedDate: getToday(), dailyWorkLimit: "9",
     mobileNumber: "",
     dateOfBirth: "", manager: "",
-    admin: [],
+    admin: [], hrManager: ""
   });
 
   const isEditing = !!editData;
@@ -45,6 +45,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
     data: departmentUsers = {
       managers: [],
       admins: [],
+      hrManagers: []
     },
   } = useGetDepartmentOptionsQuery(
     formData.departments.length ? formData.departments : null,
@@ -63,6 +64,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
   const admins = (isEmployeeRole && !formData.departments.length)
     ? []
     : (departmentUsers.admins || []);
+  const hrManagers = departmentUsers.hrManagers || [];
 
   const activeDepartments = departments.filter(
     (dept) => dept.status === "Enable"
@@ -94,6 +96,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
         dateOfBirth: rawDob ? new Date(rawDob).toISOString().split('T')[0] : "",
         manager: editData?.manager?._id || "",
         admin: editData?.admin?.map(a => a._id) || [],
+        hrManager: editData?.hrManager?._id || "",
       });
     } else if (isOpen) {
       setFormData({
@@ -101,7 +104,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
         email: "", password: "", designation: "", departments: [],
         proficiency: "100", joinedDate: getToday(), dailyWorkLimit: "9",
         mobileNumber: "", dateOfBirth: "", manager: "",
-        admin: [],
+        admin: [], hrManager: ""
       });
     }
   }, [editData, isOpen]);
@@ -124,17 +127,17 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
     }
 
     if (
-      ["Employee", "Hr Employee", "GAD Employee"].includes(formData.role) &&
-      !formData.manager
-    ) {
-      return toast.error("Please select a manager");
-    }
-
-    if (
       formData.role !== "Admin" &&
       !formData.admin.length
     ) {
       return toast.error("Please select at least one admin");
+    }
+
+    if (
+      !["Admin", "Hr Manager"].includes(formData.role) &&
+      !formData.hrManager
+    ) {
+      return toast.error("Please select a hr manager");
     }
 
     try {
@@ -184,7 +187,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
           ? `Update ${formData.role}`
           : `Create New ${formData.role}`
       }
-      maxWidth="max-w-2xl"
+      maxWidth="max-w-3xl"
       onSubmit={handleSubmit}
       isLoading={isCreating || isUpdating}
       submitText={isEditing ? "Update" : "Create"}
@@ -198,7 +201,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
         <div className={`grid grid-cols-1 gap-4 ${isEditing ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
           <InputGroup label="Full Name *">
             <HiOutlineUser className="input-icon" />
-            <input required name="name" value={formData.name} onChange={handleChange} className="form-input" placeholder="Enter Full Name" />
+            <input required name="name" value={formData.name} onChange={handleChange} disabled={editData?.user?.role === "Admin"} className="form-input disabled:opacity-75 disabled:cursor-not-allowed" placeholder="Enter Full Name" />
           </InputGroup>
           {formData.role !== "Admin" && (
             <InputGroup label="Employee Code *">
@@ -221,6 +224,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
                     designation: "",
                     manager: "",
                     admin: [],
+                    hrManager: "",
                     proficiency: "",
                   }))
                 }
@@ -234,6 +238,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
                   { label: "Admin", value: "Admin" },
                 ]}
                 className="w-full"
+                disabled={editData?.user?.role === "Admin"}
                 buttonClass="form-input text-xs font-bold pl-10"
                 placeholder="Select Role"
               />
@@ -243,7 +248,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
           {formData.role === "Admin" && (
             <InputGroup label="Date of Birth">
               <HiOutlineCake className="input-icon" />
-              <input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleChange} className="form-input" />
+              <input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleChange} disabled={editData?.user?.role === "Admin"} className="form-input disabled:opacity-75 disabled:cursor-not-allowed" />
             </InputGroup>
           )}
         </div>
@@ -298,37 +303,44 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
 
           <InputGroup label="Mobile Number">
             <HiOutlinePhone className="input-icon" />
-            <input name="mobileNumber" value={formData.mobileNumber} onChange={handleChange} className="form-input" placeholder="+1 234 567 890" />
+            <input name="mobileNumber" value={formData.mobileNumber} onChange={handleChange} disabled={editData?.user?.role === "Admin"} className="form-input disabled:opacity-75 disabled:cursor-not-allowed" placeholder="+1 234 567 890" />
           </InputGroup>
         </div>
 
-        <div className={`grid grid-cols-1 gap-4 ${!["Manager", "Hr Manager", "GAD Manager"].includes(formData.role) ? "md:grid-cols-2" : "md:grid-cols-1"}`}>
-          {["Employee", "Hr Employee", "GAD Employee"].includes(formData.role) && (
-            <InputGroup label="Manager *">
-              <HiOutlineUser className="input-icon" />
+        {formData.role !== "Admin" && (
+          <div
+            className={`grid grid-cols-1 gap-4 ${formData.role === "Hr Manager"
+              ? "md:grid-cols-1"
+              : ["Manager", "GAD Manager"].includes(formData.role)
+                ? "md:grid-cols-2"
+                : "md:grid-cols-3"
+              }`}
+          >
+            {["Employee", "Hr Employee", "GAD Employee"].includes(formData.role) && (
+              <InputGroup label="Manager">
+                <HiOutlineUser className="input-icon" />
 
-              <CustomDropdown
-                value={formData.manager}
-                onChange={(val) =>
-                  setFormData({
-                    ...formData,
-                    manager: val,
-                  })
-                }
-                options={managers.map((m) => ({
-                  label: m.name,
-                  value: m._id,
-                }))}
-                className="w-full"
-                buttonClass="form-input text-xs font-bold pl-10"
-                placeholder="Select Manager"
-              />
-            </InputGroup>
-          )}
-          {/* {formData.role !== "GAD Employee" && (
+                <CustomDropdown
+                  value={formData.manager}
+                  onChange={(val) =>
+                    setFormData({
+                      ...formData,
+                      manager: val,
+                    })
+                  }
+                  options={managers.map((m) => ({
+                    label: m.name,
+                    value: m._id,
+                  }))}
+                  className="w-full"
+                  buttonClass="form-input text-xs font-bold pl-10"
+                  placeholder="Select Manager"
+                />
+              </InputGroup>
+            )}
+            {/* {formData.role !== "GAD Employee" && (
           
           )} */}
-          {formData.role !== "Admin" && (
             <InputGroup label="Admins *">
               <HiOutlineUser className="input-icon" />
 
@@ -351,13 +363,36 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
                 placeholder="Select Admins"
               />
             </InputGroup>
-          )}
-        </div>
+
+            {formData.role !== "Hr Manager" && (
+              <InputGroup label="Hr Manager *">
+                <HiOutlineUser className="input-icon" />
+
+                <CustomDropdown
+                  value={formData.hrManager}
+                  onChange={(val) =>
+                    setFormData({
+                      ...formData,
+                      hrManager: val,
+                    })
+                  }
+                  options={hrManagers.map((m) => ({
+                    label: m.name,
+                    value: m._id,
+                  }))}
+                  className="w-full"
+                  buttonClass="form-input text-xs font-bold pl-10"
+                  placeholder="Select Hr Manager"
+                />
+              </InputGroup>
+            )}
+          </div>
+        )}
 
         <div className={isEditing ? "w-full" : "grid grid-cols-1 md:grid-cols-2 gap-4"}>
           <InputGroup label="Work Email *">
             <HiOutlineMail className="input-icon" />
-            <input required type="email" name="email" value={formData.email} onChange={handleChange} className="form-input" placeholder="john@company.com" />
+            <input required type="email" name="email" value={formData.email} onChange={handleChange} disabled={editData?.user?.role === "Admin"} className="form-input disabled:opacity-75 disabled:cursor-not-allowed" placeholder="john@company.com" />
           </InputGroup>
           {!isEditing && (
             <InputGroup label="Password *">

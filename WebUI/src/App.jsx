@@ -124,6 +124,7 @@ function AppContent() {
                     "GAD Employee",
                     "GAD Manager",
                     "Hr Employee",
+                    "Hr Manager ",
                   ]}
                 />
               }

@@ -47,9 +47,9 @@ export default function CustomDropdown({
       <div
         tabIndex={0}
         onClick={() => !disabled && setOpen(!open)}
-        className={`flex items-center justify-between cursor-pointer ${disabled ? "opacity-50 cursor-not-allowed" : ""
-          } ${buttonClass ||
-          "pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700"
+        className={`flex items-center justify-between ${disabled ? "opacity-75 cursor-not-allowed" : "cursor-pointer"
+          } ${buttonClass  ||
+          "pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 shadow-sm"
           }`}
       >
         <span
@@ -64,7 +64,7 @@ export default function CustomDropdown({
             ? selectedLabel?.name
             : selectedLabel}
         </span>
-        <HiChevronDown className={`transition ${open ? "rotate-180" : ""}`} />
+        {!disabled && (<HiChevronDown className={`transition ${open ? "rotate-180" : ""}`} />)}
       </div>
 
       {/* DROPDOWN */}

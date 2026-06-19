@@ -308,6 +308,56 @@ exports.updateProject = async (req, res) => {
   }
 };
 
+exports.updateProjectPayment = async (req, res) => {
+  try {
+    const {
+      invoiceNumber,
+      invoiceDate,
+      paymentStatus,
+      paymentRemark,
+      paymentDate,
+    } = req.body;
+
+    const project = await Project.findByIdAndUpdate(
+      req.params.id,
+      {
+        $set: {
+          invoiceNumber,
+          invoiceDate,
+          paymentStatus,
+          paymentRemark,
+          paymentDate,
+        },
+      },
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+    }
+
+    emitEvent(req, "projectChanged", project);
+    emitDashboardUpdate(req);
+
+    return res.status(200).json({
+      success: true,
+      message: "Payment details updated successfully",
+      project,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
 exports.deleteProject = async (req, res) => {
   try {
     const projectId = req.params.id;

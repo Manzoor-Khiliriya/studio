@@ -28,10 +28,8 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
     clientName: "",
     startDate: "",
     endDate: "",
-    invoiceNumber: "",
-    invoiceDate: "",
     status: "Active",
-    statusChangedAt: ""
+    statusChangedAt: "",
   });
 
   useEffect(() => {
@@ -43,8 +41,6 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
         clientName: editProject.clientName || "",
         startDate: editProject.startDate ? new Date(editProject.startDate).toISOString().split('T')[0] : "",
         endDate: editProject.endDate ? new Date(editProject.endDate).toISOString().split('T')[0] : "",
-        invoiceNumber: editProject.invoiceNumber || "",
-        invoiceDate: editProject.invoiceDate ? new Date(editProject.invoiceDate).toISOString().split('T')[0] : "",
         status: editProject.status || "Active",
         statusChangedAt: editProject.statusChangedAt ? new Date(editProject.statusChangedAt).toISOString().split('T')[0] : "",
       });
@@ -56,8 +52,6 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
         clientName: "",
         startDate: "",
         endDate: "",
-        invoiceNumber: "",
-        invoiceDate: "",
         status: "Active",
         statusChangedAt: ""
       });
@@ -142,7 +136,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
                 { label: "Standard Interior", value: "Standard Interior" },
                 { label: "Revision Exterior", value: "Revision Exterior" },
                 { label: "Revision Interior", value: "Revision Interior" },
-                {label: "Interior Design and Fitout", value: "Interior Design and Fitout"}
+                { label: "Interior Design and Fitout", value: "Interior Design and Fitout" }
               ]}
               className="w-full"
               buttonClass="form-input text-xs font-bold pl-10"
@@ -211,28 +205,6 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
                 />
               </InputGroup>
 
-              {activeTab === "all" && (
-                <>
-                  <InputGroup label="Invoice Number">
-                    <HiOutlineUser className="input-icon" />
-                    <input
-                      className="form-input text-xs font-bold"
-                      placeholder="Enter Invoice Number"
-                      value={formData.invoiceNumber}
-                      onChange={(e) => setFormData({ ...formData, invoiceNumber: e.target.value })}
-                    />
-                  </InputGroup>
-
-                  <InputGroup label="Invoice Date">
-                    <HiOutlineCalendarDays className="input-icon" />
-                    <input
-                      type="date"
-                      className="form-input text-[11px] font-bold"
-                      value={formData.invoiceDate}
-                      onChange={(e) => setFormData({ ...formData, invoiceDate: e.target.value })}
-                    />
-                  </InputGroup></>
-              )}
             </>
           )}
         </div>

@@ -8,6 +8,7 @@ const {
   deleteProject,
   getProjectCalendarStacks,
   getTaskPerformanceReport,
+  updateProjectPayment,
 } = require("../controllers/projectController");
 const { authenticate, authorize } = require("../middlewares/authMiddleware");
 const { ROLE } = require("../utils/constant");
@@ -24,11 +25,12 @@ router.get(
   authorize(ROLE.ADMIN),
   getTaskPerformanceReport,
 );
+router.patch("/:id/payment", authorize(ROLE.ADMIN), updateProjectPayment);
 router
   .route("/:id")
   .put(authorize(ROLE.ADMIN), updateProject)
   .delete(authorize(ROLE.ADMIN), deleteProject);
 
-router.get("/:id/calculate-estimate", authenticate, getEstimate);
+router.get("/:id/calculate-estimate", authorize(ROLE.ADMIN), getEstimate);
 
 module.exports = router;

@@ -207,7 +207,8 @@ exports.applyLeave = async (req, res) => {
     });
     const managerId = employee.manager;
     const adminIds = employee.admin || [];
-    const approvalFlow = buildApprovalFlow(req.user.role, managerId, adminIds);
+    const hrId = employee.hrManager;
+    const approvalFlow = buildApprovalFlow(req.user.role, managerId, adminIds, hrId);
     const leave = await Leave.create({
       user: userId,
       type,
@@ -1093,8 +1094,9 @@ exports.updateLeave = async (req, res) => {
 
     const managerId = employee.manager;
     const adminIds = employee.admin || [];
+    const hrId = employee.hrManager;
     const user = await User.findById(leave.user);
-    leave.approvalFlow = buildApprovalFlow(user.role, managerId, adminIds);
+    leave.approvalFlow = buildApprovalFlow(user.role, managerId, adminIds, hrId);
     leave.currentLevel = 0;
     leave.status = "Pending";
     await leave.save();

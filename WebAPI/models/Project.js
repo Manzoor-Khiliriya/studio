@@ -16,6 +16,13 @@ const projectSchema = new mongoose.Schema({
   deleteStatus: { type: String, enum: ["Enable", "Disable"], default: "Disable" },
   invoiceNumber: { type: String },
   invoiceDate: { type: Date }, 
+  paymentStatus: { 
+    type: String, 
+    enum: ["Due", "Paid", "Advance"], 
+    default: "Due" 
+  },
+  paymentRemark: { type: String },
+  paymentDate: { type: Date }, 
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },

@@ -19,6 +19,11 @@ import {
   HiOutlineTrash,
   HiOutlineArrowDownTray,
   HiOutlineCog6Tooth,
+  HiOutlineCurrencyRupee,
+  HiOutlineClipboardDocumentList,
+  HiOutlineCheckBadge,
+  HiOutlineReceiptPercent,
+  HiOutlineDocumentText,
 } from "react-icons/hi2";
 
 import PageHeader from "../../components/PageHeader";
@@ -41,6 +46,7 @@ import { useSelector } from "react-redux";
 import Table from "../../components/Table";
 import { getTaskStatusColumns } from "../../utils/adminTaskStatusHelper";
 import TaskStatusModal from "../../components/TaskStatusModal";
+import ProjectPaymentModal from "../../components/ProjectPaymentModal";
 
 export default function AdminTasksPage() {
   const { user } = useSelector((state) => state.auth);
@@ -90,6 +96,8 @@ export default function AdminTasksPage() {
   const [allSelectedProjects, setAllSelectedProjects] = useState([]);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentProject, setPaymentProject] = useState(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [preSelectedProject, setPreSelectedProject] = useState(null);
@@ -347,10 +355,13 @@ export default function AdminTasksPage() {
       "Project Type",
       "Client",
       "Created Date",
-      "Status",
+      "Project Status",
       "No of Tasks",
       "Invoice Number",
       "Invoice Date",
+      "Pyament Status",
+      "Payment Date",
+      "Payment Remark"
     ];
 
     const rows = projectGroups.map((p) => [
@@ -363,6 +374,9 @@ export default function AdminTasksPage() {
       (p.tasks || []).length,
       p.invoiceNumber || "",
       p.invoiceDate ? new Date(p.invoiceDate).toLocaleDateString("en-IN") : "",
+      p?.paymentStatus || "",
+      p.paymentDate ? new Date(p.invoiceDate).toLocaleDateString("en-IN") : "",
+      p.paymentRemark || "",
     ]);
 
     const csvContent = [headers, ...rows]
@@ -533,7 +547,7 @@ export default function AdminTasksPage() {
 
                       <input
                         type="date"
-                        className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 outline-none focus:border-orange-500 focus:bg-white transition-all"
+                        className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 outline-none focus:border-orange-500 focus:bg-white transition-all shadow-sm"
                         value={
                           activeTab === "live"
                             ? liveDateFilters[filter.key]
@@ -616,7 +630,7 @@ export default function AdminTasksPage() {
                     <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">
                       Selection for Delete
                     </label>
-                    <div className="flex items-center gap-3 bg-slate-100/50 px-4 py-2 rounded-xl border border-slate-200">
+                    <div className="flex items-center gap-3 bg-slate-100/50 px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
                       <input
                         type="checkbox"
                         className="w-4 h-5 accent-orange-500 cursor-pointer"
@@ -639,7 +653,7 @@ export default function AdminTasksPage() {
                       setEditingProject(null);
                       setShowProjectModal(true);
                     }}
-                    className="flex items-center gap-2 mx-1.5 px-3.5 py-2.5 bg-slate-50 border border-slate-100 text-[10px] font-black hover:bg-orange-600 hover:text-white rounded-xl transition-all uppercase tracking-widest shadow-lg shadow-orange-200 cursor-pointer active:scale-95"
+                    className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 border border-slate-100 text-[10px] font-black hover:bg-orange-600 hover:text-white rounded-xl transition-all uppercase tracking-widest shadow-lg shadow-orange-200 cursor-pointer active:scale-95"
                   >
                     <HiOutlinePlusCircle size={18} />
                     <span>Add Project</span>
@@ -654,10 +668,10 @@ export default function AdminTasksPage() {
                     <div className="flex items-center justify-center">
                       <button
                         onClick={handleExportCSV}
-                        className=" p-2 mb-0.5 bg-slate-100/50 text-slate-900 border border-slate-200 rounded-xl hover:text-orange-600 transition-all cursor-pointer shadow-sm"
+                        className=" p-2.5  bg-slate-100/50 text-slate-900 border border-slate-200 rounded-xl hover:text-orange-600 transition-all cursor-pointer shadow-sm"
                         title="Export to CSV"
                       >
-                        <HiOutlineArrowDownTray size={18} />
+                        <HiOutlineArrowDownTray />
                       </button>{" "}
                     </div>
                   </div>
@@ -666,7 +680,7 @@ export default function AdminTasksPage() {
                 {activeTab === "live" && user?.role === "Admin" && (
                   <button
                     onClick={() => setActiveTab("Settings")}
-                    className="p-3 bg-slate-900 text-white rounded-2xl hover:bg-orange-600 transition-all cursor-pointer"
+                    className="bg-slate-900 text-white p-2.5 rounded-2xl hover:bg-orange-600 transition-all cursor-pointer"
                     title="Task Status Settings"
                   >
                     <HiOutlineCog6Tooth size={18} />
@@ -682,7 +696,7 @@ export default function AdminTasksPage() {
                           title: `${selectedProjects.length} selected projects`,
                         })
                       }
-                      className="flex items-center gap-2 px-6 py-3 text-white bg-rose-600 hover:bg-rose-700 rounded-2xl transition-all font-black text-[10px] tracking-widest cursor-pointer shadow-lg shadow-rose-100"
+                      className="flex items-center gap-2 px-6 py-2.5 text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-all font-black text-[10px] tracking-widest cursor-pointer shadow-sm shadow-rose-100"
                     >
                       <HiOutlineTrash size={18} />
                       <span>DELETE SELECTED ({selectedProjects.length})</span>
@@ -716,7 +730,7 @@ export default function AdminTasksPage() {
                       allProjectStatus !== "All")) && (
                       <button
                         onClick={clearFilters}
-                        className="flex items-center gap-2 px-6 py-3 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-2xl transition-all font-black text-[10px] tracking-widest cursor-pointer"
+                        className="shadow-sm flex items-center gap-2 px-6 py-2.5 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all font-bold text-xs cursor-pointer"
                       >
                         <HiOutlineXMark size={18} strokeWidth={2.5} />
                         <span>RESET FILTERS</span>
@@ -819,28 +833,30 @@ export default function AdminTasksPage() {
                   >
                     <div className="px-6 py-2 flex items-start justify-between flex-wrap gap-2 hover:bg-slate-50/80 transition-all group/header border-b border-slate-100 last:border-0">
                       <div className="flex items-start gap-10 cursor-pointer flex-1">
-                        <div className="flex items-start flex-wrap gap-3 min-w-[300px]">
+                        <div className="flex items-start flex-wrap gap-3 min-w-[180px]">
                           <div>
                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
                               Project Code
                             </p>
-                            <h3 className="text-sm font-black uppercase tracking-tight text-slate-900 group-hover/header:text-orange-600 transition-colors">
-                              {project.projectCode}
-                            </h3>
+                            <TruncateText
+                              maxWidth="max-w-[75px]"
+                              text={project.projectCode}
+                              className="text-sm font-black uppercase tracking-tight text-slate-900 group-hover/header:text-orange-600 transition-colors"
+                            />
                           </div>
                           <div>
                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
                               Project Name
                             </p>
                             <TruncateText
-                              maxWidth="max-w-[200px]"
+                              maxWidth="max-w-[90px]"
                               text={project.title}
                               className="text-sm font-black uppercase tracking-tight text-slate-900 group-hover/header:text-orange-600 transition-colors"
                             />
                           </div>
                         </div>
 
-                        <div className="flex items-start gap-5">
+                        <div className="flex items-start gap-3">
                           <div className="flex flex-col gap-1 items-center">
                             <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">
                               Project Type
@@ -852,13 +868,14 @@ export default function AdminTasksPage() {
                           </div>
 
                           {user?.role === "Admin" && (
-                            <div className="flex flex-col gap-1">
+                            <div className="flex flex-col gap-1 w-[90px]">
                               <span className="text-[9px] font-black text-left text-slate-400 uppercase tracking-[0.15em]">
                                 Client
                               </span>
                               <TruncateText
-                                text={project.clientName || "Direct Client"}
-                                className="text-[11px] font-bold w-30 text-slate-800 font-mono uppercase"
+                                maxWidth="max-w-[70px]"
+                                text={project?.clientName || "Direct Client"}
+                                className="text-[11px] font-bold text-slate-800 font-mono uppercase"
                               />
                             </div>
                           )}
@@ -899,16 +916,16 @@ export default function AdminTasksPage() {
                             </span>
                           </div>
 
-                          <div className="flex flex-col gap-1 justify-center items-center w-[80px]">
+                          <div className="flex flex-col gap-1 justify-center items-center w-[100px]">
                             <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">
-                              Status
+                              Project Status
                             </span>
                             <span className="text-[11px] font-bold text-slate-800 font-mono">
                               {project.status}
                             </span>
                           </div>
 
-                          <div className="flex flex-col gap-1 items-center">
+                          <div className="flex flex-col gap-1 items-center w-[100px]">
                             <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">
                               Date of Status
                             </span>
@@ -921,16 +938,17 @@ export default function AdminTasksPage() {
 
                           {activeTab === "all" && (
                             <>
-                              <div className="flex flex-col gap-1 items-center">
+                              <div className="flex flex-col gap-1 w-[90px]">
                                 <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">
-                                  Invoice Number
+                                  Invoice No.
                                 </span>
-                                <span className="text-[11px] font-bold text-slate-800 font-mono">
-                                  {project?.invoiceNumber || "N/A"}
-                                </span>
+                                <TruncateText
+                                  text={project?.invoiceNumber || "N/A"}
+                                  className="text-[11px] text-center font-bold text-slate-800 font-mono uppercase"
+                                />
                               </div>
 
-                              <div className="flex flex-col gap-1 items-center">
+                              <div className="flex flex-col gap-1 items-center w-[90px]">
                                 <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">
                                   Invoice Date
                                 </span>
@@ -939,6 +957,37 @@ export default function AdminTasksPage() {
                                     ? formatDate(project.invoiceDate)
                                     : "dd-mmm-yy"}
                                 </span>
+                              </div>
+
+                              <div className="flex flex-col gap-1 w-[60px]">
+                                <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">
+                                  Status
+                                </span>
+                                <TruncateText
+                                  text={project?.paymentStatus || "N/A"}
+                                  className="text-[11px] text-center font-bold text-slate-800 font-mono uppercase"
+                                />
+                              </div>
+
+                              <div className="flex flex-col gap-1 items-center w-[90px]">
+                                <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">
+                                  Payment Date
+                                </span>
+                                <span className="text-[11px] font-bold text-slate-800 font-mono">
+                                  {project?.paymentDate
+                                    ? formatDate(project.paymentDate)
+                                    : "dd-mmm-yy"}
+                                </span>
+                              </div>
+
+                              <div className="flex flex-col gap-1 w-[70px]">
+                                <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">
+                                  Remark
+                                </span>
+                                <TruncateText
+                                  text={project?.paymentRemark || "N/A"}
+                                  className="text-[11px] text-center font-bold text-slate-800 font-mono uppercase"
+                                />
                               </div>
                             </>
                           )}
@@ -962,6 +1011,20 @@ export default function AdminTasksPage() {
 
                         {user?.role === "Admin" && (
                           <>
+                            {activeTab !== "live" && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPaymentProject(project);
+                                  setShowPaymentModal(true);
+                                }}
+                                className="p-3 rounded-xl border border-slate-200 text-emerald-500 hover:text-emerald-600 hover:border-emerald-500 transition-all bg-white shadow-xl cursor-pointer"
+                                title="Update Invoice & Payment"
+                              >
+                                <HiOutlineDocumentText />
+                              </button>
+                            )}
+
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -1129,6 +1192,16 @@ export default function AdminTasksPage() {
         editProject={editingProject}
         activeTab={activeTab}
       />
+
+      <ProjectPaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => {
+          setShowPaymentModal(false);
+          setPaymentProject(null);
+        }}
+        project={paymentProject}
+      />
+
       <TaskModal
         isOpen={showTaskModal || !!editingTask}
         onClose={() => {

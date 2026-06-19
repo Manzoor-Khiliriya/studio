@@ -154,10 +154,10 @@ export default function AdminHolidayPage() {
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}
-                className="flex items-center gap-2 px-6 py-3 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-2xl transition-all font-bold text-xs cursor-pointer"
+                className="shadow-sm flex items-center gap-2 px-4 p-3.5 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all font-bold text-xs cursor-pointer"
               >
                 <HiOutlineXMark size={18} strokeWidth={2.5} />
-                <span>RESET</span>
+                <span>RESET FILTERS</span>
               </button>
             )}
           </div>

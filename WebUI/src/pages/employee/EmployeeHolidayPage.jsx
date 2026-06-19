@@ -101,13 +101,13 @@ export default function EmployeeHolidayPage() {
           </div>
           {isFetching && (
             <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest animate-pulse flex items-center gap-2">
-              <div className="w-2 h-2 bg-orange-500 rounded-full" /> Syncing Matrix...
+              <div className="w-2 h-2 bg-orange-500 rounded-full" /> Syncing...
             </span>
           )}
         </div>
 
         {/* DATA TABLE CONTAINER */}
-        <div className="bg-white rounded-[3rem] border border-slate-200 shadow-xl shadow-slate-200/40 overflow-hidden group/table transition-all">
+        <div className="bg-white rounded-[2rem] border border-slate-200 shadow-2xl shadow-slate-200/50 overflow-hidden group/table transition-all">
           <Table
             columns={columns}
             data={upcomingHolidays}

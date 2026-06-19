@@ -363,10 +363,10 @@ export default function AttendanceManagement() {
           <>
             <button
               onClick={resetFilters}
-              className="px-4 p-4.25 bg-rose-100 text-rose-500 rounded-2xl hover:bg-rose-200 transition-all cursor-pointer"
-              title="Clear Filters"
+              className="shadow-sm flex items-center gap-2 px-4 p-4.25 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all font-bold text-xs cursor-pointer"
             >
-              <HiOutlineXMark size={20} />
+              <HiOutlineXMark size={18} strokeWidth={2.5} />
+              <span>RESET FILTERS</span>
             </button>
           </>
         )}

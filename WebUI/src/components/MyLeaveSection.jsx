@@ -26,7 +26,7 @@ import PageHeader from "./PageHeader";
 import { useSocketEvents } from "../hooks/useSocketEvents";
 import ConfirmModal from "./ConfirmModal";
 import CustomDropdown from "./CustomDropdown";
-import { HiOutlinePlusCircle } from "react-icons/hi2";
+import { HiOutlineArrowPath, HiOutlinePlusCircle, HiOutlineXMark } from "react-icons/hi2";
 
 export default function MyLeaveSection() {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -229,6 +229,16 @@ export default function MyLeaveSection() {
         },
     ];
 
+    const handleResetFilters = () => {
+        setTypeFilter("All");
+        setStatusFilter("All");
+        setPage(1);
+    };
+
+    const hasFiltersApplied =
+        typeFilter !== "All" ||
+        statusFilter !== "All";
+
     if (isLoading) return <Loader message="Accessing Personal Ledger..." />;
 
     return (
@@ -292,11 +302,21 @@ export default function MyLeaveSection() {
 
                     <button
                         onClick={() => setIsModalOpen(true)}
-                        className="flex items-center gap-2 mx-1.5 px-3.5 py-2.5 bg-slate-50 border border-slate-100 text-[10px] font-black hover:bg-orange-600 hover:text-white rounded-xl transition-all uppercase tracking-widest shadow-sm shadow-orange-200 cursor-pointer active:scale-95"
+                        className="flex items-center gap-2 px-3.5 py-2.25 bg-slate-50 border border-slate-100 text-[10px] font-black hover:bg-orange-600 hover:text-white rounded-xl transition-all uppercase tracking-widest shadow-sm shadow-orange-200 cursor-pointer active:scale-95"
                     >
                         <HiOutlinePlusCircle size={18} />
                         <span>Apply Leave</span>
                     </button>
+
+                    {hasFiltersApplied && (
+                        <button
+                            onClick={handleResetFilters}
+                            className="shadow-sm flex items-center gap-2 px-3 p-2.5 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all font-bold text-xs cursor-pointer"
+                        >
+                            <HiOutlineXMark size={18} strokeWidth={2.5} />
+                            <span>RESET FILTERS</span>
+                        </button>
+                    )}
 
                     {isFetching && (
                         <div className="ml-auto flex items-center gap-3 px-6 py-1 bg-orange-50 rounded-2xl border border-orange-100">

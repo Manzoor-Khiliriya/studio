@@ -184,13 +184,18 @@ const AdminDashboard = () => {
               variant={stats.pendingApprovals > 0 ? "warning" : "default"}
               icon={<BiTask size={22} />}
               delay={0.5}
-              onClick={() => navigate("/leaves")}
-            />
+              onClick={() =>
+                navigate("/leaves", {
+                  state: {
+                    activeTab: "requests",
+                  },
+                })
+              } />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* --- LIVE TRACKING --- */}
-            
+
             <div className={`bg-white rounded-[3rem] border border-slate-200 p-8 shadow-xl flex flex-col h-[700px] ${user?.role === "Admin" ? "lg:col-span-5" : "lg:col-span-12"}`}>
               <div className="flex justify-between items-center mb-10 shrink-0">
                 <h3 className="font-black text-slate-900 text-sm uppercase tracking-widest flex items-center gap-3">

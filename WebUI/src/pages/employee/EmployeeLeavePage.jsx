@@ -16,8 +16,6 @@ import {
   useGetMyLeavesQuery,
   useDeleteLeaveMutation,
 } from "../../services/leaveApi";
-
-// Components
 import Table from "../../components/Table";
 import Loader from "../../components/Loader";
 import LeaveModal from "../../components/LeaveModal";
@@ -26,6 +24,7 @@ import PageHeader from "../../components/PageHeader";
 import { useSocketEvents } from "../../hooks/useSocketEvents";
 import ConfirmModal from "../../components/ConfirmModal";
 import CustomDropdown from "../../components/CustomDropdown";
+import { HiOutlineArrowPath, HiOutlinePlusCircle, HiOutlineXMark } from "react-icons/hi2";
 
 export default function EmployeeLeavePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -35,7 +34,6 @@ export default function EmployeeLeavePage() {
     leaveId: null,
   });
 
-  // --- FILTER & PAGINATION STATE ---
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -231,6 +229,16 @@ export default function EmployeeLeavePage() {
     },
   ];
 
+  const handleResetFilters = () => {
+    setTypeFilter("All");
+    setStatusFilter("All");
+    setPage(1);
+  };
+
+  const hasFiltersApplied =
+    typeFilter !== "All" ||
+    statusFilter !== "All";
+
   if (isLoading) return <Loader message="Accessing Personal Ledger..." />;
 
   return (
@@ -238,84 +246,92 @@ export default function EmployeeLeavePage() {
       <PageHeader
         title="My Leaves"
         subtitle="Operational absence logs and earned credit registry."
-        actionLabel="Apply for Leave"
-        onAction={() => setIsModalOpen(true)}
       />
 
       <main className="max-w-[1750px] mx-auto px-8 -mt-10 pb-20">
         {/* TACTICAL FILTER BAR */}
-        <div className="relative z-[200] flex flex-wrap items-center gap-4 mb-8 bg-white/90 backdrop-blur-xl p-5 rounded-[2.5rem] border border-slate-200 shadow-xl shadow-slate-200/40">
-          <div className="flex items-center gap-3 bg-slate-50 px-5 py-3 rounded-2xl border border-slate-100">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200 pr-4">
-              Leave Type
-            </span>
-            <CustomDropdown
-              value={typeFilter}
-              onChange={(val) => {
-                setTypeFilter(val);
-                setPage(1);
-              }}
-              options={[
-                "All",
-                "Earned Leave",
-                "Sick Leave",
-                "Bereavement Leave",
-                "Paternity Leave",
-                "Maternity Leave",
-                "Casual Leave",
-                "Compensatory Off",
-                "LOP",
-              ].map((t) => ({
-                label: t,
-                value: t,
-              }))}
-              className="min-w-[170px]"
-              buttonClass="
-    bg-transparent
-    text-[10px]
-    font-black
-    cursor-pointer
-    text-slate-700
-    uppercase
-    flex
-    items-center
-    justify-between
-    gap-2
-    px-1
-  "
-            />
-          </div>
 
-          <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200/50">
-            {["All", "Pending", "Approved", "Rejected"].map((s) => (
-              <button
-                key={s}
-                onClick={() => {
-                  setStatusFilter(s);
-                  setPage(1);
-                }}
-                className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === s
-                  ? "bg-white text-orange-600 shadow-md ring-1 ring-slate-200"
-                  : "text-slate-500 hover:text-slate-800 cursor-pointer"
-                  }`}
-              >
-                {s === "Pending"
-                  ? "Under Review"
-                  : s === "Approved"
-                    ? "Approved"
-                    : s}
-              </button>
-            ))}
-          </div>
+        <div className="relative z-[200] flex flex-wrap items-center gap-4 mb-8 bg-white/90 backdrop-blur-xl p-1.5 rounded-2xl border border-slate-200 shadow-sm">
+          <CustomDropdown
+            value={typeFilter}
+            onChange={(val) => {
+              setTypeFilter(val);
+              setPage(1);
+            }}
+            options={[
+              { label: "All Leave Types", value: "All" },
+              { label: "Earned Leave", value: "Earned Leave" },
+              { label: "Sick Leave", value: "Sick Leave" },
+              { label: "Bereavement Leave", value: "Bereavement Leave" },
+              { label: "Paternity Leave", value: "Paternity Leave" },
+              { label: "Maternity Leave", value: "Maternity Leave" },
+              { label: "Casual Leave", value: "Casual Leave" },
+              { label: "Compensatory Off", value: "Compensatory Off" },
+              { label: "LOP", value: "LOP" },
+            ].map((t) => ({
+              label: t.label || t,
+              value: t.value || t,
+            }))}
+            className="min-w-[170px]"
+            buttonClass="shadow-sm bg-slate-50 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl text-slate-700 border border-slate-100"
+          />
+
+
+          <CustomDropdown
+            value={statusFilter}
+            onChange={(val) => {
+              setStatusFilter(val);
+              setPage(1);
+            }}
+            options={[
+              {
+                label: "All Leave Status",
+                value: "All",
+              },
+              {
+                label: "Under Review",
+                value: "Pending",
+              },
+              {
+                label: "Approved",
+                value: "Approved",
+              },
+              {
+                label: "Rejected",
+                value: "Rejected",
+              },
+            ]}
+            className="min-w-[170px]"
+            buttonClass="shadow-sm bg-slate-50 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl text-slate-700 border border-slate-100"
+          />
+
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 px-3.5 py-2.25 bg-slate-50 border border-slate-100 text-[10px] font-black hover:bg-orange-600 hover:text-white rounded-xl transition-all uppercase tracking-widest shadow-sm shadow-orange-200 cursor-pointer active:scale-95"
+          >
+            <HiOutlinePlusCircle size={18} />
+            <span>Apply Leave</span>
+          </button>
+
+          {hasFiltersApplied && (
+            <button
+              onClick={handleResetFilters}
+              className="shadow-sm flex items-center gap-2 px-3 p-2.5 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all font-bold text-xs cursor-pointer"
+            >
+              <HiOutlineXMark size={18} strokeWidth={2.5} />
+              <span>RESET FILTERS</span>
+            </button>
+          )}
 
           {isFetching && (
-            <div className="ml-auto flex items-center gap-3 px-6 py-2 bg-orange-50 rounded-full border border-orange-100">
-              <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
+            <div className="ml-auto flex items-center gap-3 px-3 py-2.5 bg-orange-50 rounded-xl border border-orange-100">
+              <div className="w-2 h-2 bg-orange-500 rounded-2xl animate-pulse" />
               <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest">
                 Syncing...
               </span>
             </div>
           )}
+
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 relative z-0 items-stretch">
@@ -371,7 +387,7 @@ export default function EmployeeLeavePage() {
                     />
                   </div>
 
-                  {data?.pagination?.totalLeaves && (
+                  {data?.pagination?.totalLeaves > 0 && (
                     <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight ml-2">
                       Total {data?.pagination?.totalLeaves} Leave Requests
                     </span>

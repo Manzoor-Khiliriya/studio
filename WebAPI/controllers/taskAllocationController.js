@@ -75,19 +75,16 @@ exports.getEmployeeAllocations = async (req, res) => {
       .populate({
         path: "task",
         select: "title project timelogs status activeStatus",
-
         populate: [
           {
             path: "project",
-            select: "title projectType",
+            select: "title projectType status deleteStatus",
           },
-
           {
             path: "timeLogs",
             select:
               "rawDurationSeconds dateString user logType isRunning startTime",
           },
-
           {
             path: "status",
             select: "name type",
@@ -99,9 +96,18 @@ exports.getEmployeeAllocations = async (req, res) => {
         ],
       });
 
+    const validAllocations = allocations.filter((allocation) => {
+      const project = allocation.task?.project;
+      if (!project) return false;
+      if (project.deleteStatus === "Enable") return false;
+      if (["Submitted", "Inactive", "On hold"].includes(project.status)) return false;
+
+      return true;
+    });
+
     const grouped = {};
 
-    allocations.forEach((allocation) => {
+    validAllocations.forEach((allocation) => {
       const employeeId = allocation.employee?._id?.toString();
 
       if (!employeeId) return;

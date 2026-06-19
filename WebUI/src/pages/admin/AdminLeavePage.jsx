@@ -7,6 +7,7 @@ import {
   HiOutlineCalendarDays,
   HiOutlineArrowPath,
   HiOutlineArrowDownTray,
+  HiOutlineXMark,
 } from "react-icons/hi2";
 import { toast } from "react-hot-toast";
 import {
@@ -34,9 +35,11 @@ import useDebounce from "../../hooks/useDebounce";
 import { useSelector } from "react-redux";
 import EmployeeLeavePage from "../employee/EmployeeLeavePage";
 import MyLeaveSection from "../../components/MyLeaveSection";
+import { useLocation } from "react-router-dom";
 
 export default function AdminLeavePage() {
   const { user } = useSelector((state) => state.auth);
+  const location = useLocation();
 
   const getTabsByRole = (role) => {
     switch (role) {
@@ -124,7 +127,10 @@ export default function AdminLeavePage() {
 
   const tabs = getTabsByRole(user?.role);
 
-  const [activeTab, setActiveTab] = useState(user?.role === "Admin" ? "requests" : "my-leaves");
+  const [activeTab, setActiveTab] = useState(
+    location.state?.activeTab ||
+    (user?.role === "Admin" ? "requests" : "my-leaves")
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -390,6 +396,13 @@ export default function AdminLeavePage() {
   const isTabLoading = isFetching && data?.view !== activeTab;
   if (isLoading) return <Loader message="Accessing Attendance Matrix..." />;
 
+  const hasActiveFilters =
+    searchQuery.trim() !== "" ||
+    statusFilter !== "All" ||
+    dateRange !== "current-week" ||
+    customDates.start !== "" ||
+    customDates.end !== "";
+
   return (
     <div className="max-w-[1750px] mx-auto p-8 bg-slate-100 min-h-[83vh]">
       {/* HEADER */}
@@ -483,37 +496,41 @@ export default function AdminLeavePage() {
                 />
 
                 {/* Reset Button - Modified to reset to "current-week" */}
-                <button
-                  onClick={() => {
-                    setSearchQuery("");
-                    setStatusFilter("All");
-                    setDateRange("current-week");
-                    setCustomDates({ start: "", end: "" });
-                    setPage(1);
-                  }}
-                  className="cursor-pointer p-2.5 text-orange-400 hover:text-orange-600 transition-colors"
-                  title="Reset Filters"
-                >
-                  <HiOutlineArrowPath size={18} />
-                </button>
+                {hasActiveFilters && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery("");
+                      setStatusFilter("All");
+                      setDateRange("current-week");
+                      setCustomDates({ start: "", end: "" });
+                      setPage(1);
+                    }}
+                    className="shadow-sm flex items-center gap-2 p-2.5 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all font-bold text-xs cursor-pointer"
+                  >
+                    <HiOutlineXMark size={18} strokeWidth={2.5} />
+                    <span>RESET FILTERS</span>
+                  </button>
+                )}
               </div>
             )}
 
-            <div className="flex gap-2">
-              <button
-                onClick={handleExportCSV}
-                className="p-4 bg-white text-slate-900 border border-slate-200 rounded-2xl hover:text-orange-600 transition-all cursor-pointer shadow-sm"
-                title="Export to CSV"
-              >
-                <HiOutlineArrowDownTray size={18} />
-              </button>
-              <button
-                onClick={() => setIsSettingsOpen(true)}
-                className="p-4 bg-slate-900 text-white rounded-2xl hover:bg-orange-600 transition-all cursor-pointer shadow-lg shadow-slate-200"
-              >
-                <HiOutlineCog6Tooth size={18} />
-              </button>
-            </div>
+            {(user?.role === "Admin" || user?.role === "Hr Manager") && (
+              <div className="flex gap-2">
+                <button
+                  onClick={handleExportCSV}
+                  className="p-4 bg-white text-slate-900 border border-slate-200 rounded-2xl hover:text-orange-600 transition-all cursor-pointer shadow-sm"
+                  title="Export to CSV"
+                >
+                  <HiOutlineArrowDownTray size={18} />
+                </button>
+                <button
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="p-4 bg-slate-900 text-white rounded-2xl hover:bg-orange-600 transition-all cursor-pointer shadow-lg shadow-slate-200"
+                >
+                  <HiOutlineCog6Tooth size={18} />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* --- CUSTOM DATE INPUTS --- */}

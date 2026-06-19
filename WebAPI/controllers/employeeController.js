@@ -80,6 +80,7 @@ exports.getAllEmployees = async (req, res) => {
       .populate("departments", "name")
       .populate("manager", "name")
       .populate("admin", "name")
+      .populate("hrManager", "name")
       .sort({ createdAt: -1 })
       .limit(numericLimit)
       .skip((numericPage - 1) * numericLimit)
@@ -123,6 +124,7 @@ exports.getEmployeeProfile = async (req, res) => {
       .populate("departments", "name")
       .populate("manager", "name")
       .populate("admin", "name")
+      .populate("hrManager", "name")
       .lean();
 
     if (!employee) {
@@ -156,6 +158,7 @@ exports.getMyEmployeeProfile = async (req, res) => {
       .populate("departments", "name")
       .populate("manager", "name")
       .populate("admin", "name")
+      .populate("hrManager", "name")
       .lean();
     if (!employee) {
       return res.status(404).json({ message: "Employee profile not found" });

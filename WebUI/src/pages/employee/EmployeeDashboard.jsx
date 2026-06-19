@@ -257,7 +257,13 @@ export default function EmployeeDashboard() {
                 variant={summaryData?.pendingLeaveRequests > 0 ? "warning" : "default"}
                 icon={<BiTask size={22} />}
                 delay={0.5}
-                onClick={() => navigate("/leaves")}
+                onClick={() =>
+                  navigate("/leaves", {
+                    state: {
+                      activeTab: "requests",
+                    },
+                  })
+                }
               />
             )}
 

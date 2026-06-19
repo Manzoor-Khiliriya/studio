@@ -173,16 +173,18 @@ export const getEmployeeColumns = ({ role, onEdit, onDelete, onToggle }) => [
     className: "",
     render: (emp) => (
       <div className="flex items-center gap-2">
-        <button
-          onClick={(e) => { e.stopPropagation(); onToggle(emp); }}
-          className={`rounded-lg transition-all duration-200 active:scale-90 cursor-pointer ${emp.user?.status === "Enable"
-            ? "text-emerald-500 hover:text-rose-600"
-            : "text-rose-500 hover:text-emerald-600"
-            }`}
-          title={emp.user?.status === "Enable" ? "Disable Access" : "Grant Access"}
-        >
-          <HiOutlineShieldCheck size={18} strokeWidth={2} />
-        </button>
+        {role !== "Admin" && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggle(emp); }}
+            className={`rounded-lg transition-all duration-200 active:scale-90 cursor-pointer ${emp.user?.status === "Enable"
+              ? "text-emerald-500 hover:text-rose-600"
+              : "text-rose-500 hover:text-emerald-600"
+              }`}
+            title={emp.user?.status === "Enable" ? "Disable Access" : "Grant Access"}
+          >
+            <HiOutlineShieldCheck size={18} strokeWidth={2} />
+          </button>
+        )}
 
         <button
           onClick={(e) => { e.stopPropagation(); onEdit(emp); }}
@@ -205,7 +207,7 @@ export const getEmployeeColumns = ({ role, onEdit, onDelete, onToggle }) => [
 ].filter((col) => {
   if (
     role === "Admin" &&
-    ["Employee Code", "Joining Date", "Proficiency"].includes(
+    ["Employee Code", "Joining Date", "Proficiency", "Status"].includes(
       col.header
     )
   ) {

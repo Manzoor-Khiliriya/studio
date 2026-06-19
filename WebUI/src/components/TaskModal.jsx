@@ -39,7 +39,9 @@ export default function TaskModal({
 
   const { data: estimateData, isFetching: isCalculating } = useGetProjectEstimateQuery(
     formData.project,
-    { skip: !formData.project || isEditing || !isOpen }
+    { skip: !formData.project || !isOpen,
+      refetchOnMountOrArgChange: true
+     }
   );
 
   const { data: statuses = [] } =

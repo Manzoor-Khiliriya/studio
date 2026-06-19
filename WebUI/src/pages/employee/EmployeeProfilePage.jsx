@@ -1,9 +1,15 @@
 import React from "react";
 import { useGetMyEmployeeProfileQuery } from "../../services/employeeApi";
 import PageHeader from "../../components/PageHeader";
+import Loader from "../../components/Loader";
+import { useSocketEvents } from "../../hooks/useSocketEvents";
 
 export default function EmployeeProfilePage() {
-    const { data, isLoading, isError } = useGetMyEmployeeProfileQuery();
+    const { data, isLoading, isError, refetch } = useGetMyEmployeeProfileQuery();
+
+    useSocketEvents({
+        onEmployeeChange: refetch,
+    });
 
     const isOnline = (lastActiveAt) => {
         if (!lastActiveAt) return false;
@@ -17,9 +23,9 @@ export default function EmployeeProfilePage() {
             year: "numeric",
         });
 
-    if (isLoading) return <div className="p-6 font-bold">Loading profile...</div>;
+    if (isLoading) return <Loader message="Loading profile..." />;
     if (isError || !data)
-        return <div className="p-6 text-red-500">Failed to load profile</div>;
+        return <div className="p-8 text-red-500">Failed to load profile</div>;
 
     const user = data.user;
 
@@ -60,6 +66,13 @@ export default function EmployeeProfilePage() {
                             <Field
                                 label={data.admin.length === 1 ? "Admin" : "Admins"}
                                 value={data.admin.map((a) => a?.name).join(", ")}
+                            />
+                        )}
+
+                        {data?.hrManager && (
+                            <Field
+                                label="Hr Manager"
+                                value={data.hrManager.name}
                             />
                         )}
 

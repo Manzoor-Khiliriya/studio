@@ -326,20 +326,22 @@ export default function EmployeeListPage() {
                 />
               </div>
 
-              <CustomDropdown
-                value={statusFilter}
-                onChange={(val) => {
-                  setStatusFilter(val);
-                  setCurrentPage(1);
-                }}
-                options={[
-                  { value: "All", label: "All Status" },
-                  { value: "Active", label: "Active" },
-                  { value: "Disabled", label: "Disabled" },
-                ]}
-                placeholder="Filter by Status"
-                buttonClass="py-3.5 px-4 bg-slate-100/80 rounded-xl border border-slate-200/50 shadow-sm text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer text-slate-500 hover:text-slate-800 min-w-[120px]"
-              />
+              {activeRole !== "Admin" && (
+                <CustomDropdown
+                  value={statusFilter}
+                  onChange={(val) => {
+                    setStatusFilter(val);
+                    setCurrentPage(1);
+                  }}
+                  options={[
+                    { value: "All", label: "All Status" },
+                    { value: "Active", label: "Active" },
+                    { value: "Disabled", label: "Disabled" },
+                  ]}
+                  placeholder="Filter by Status"
+                  buttonClass="py-3.5 px-4 bg-slate-100/80 rounded-xl border border-slate-200/50 shadow-sm text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer text-slate-500 hover:text-slate-800 min-w-[120px]"
+                />
+              )}
 
               {activeRole !== "Admin" && (
                 <CustomDropdown
@@ -379,10 +381,10 @@ export default function EmployeeListPage() {
                       setTypeFilter("All");
                       setCurrentPage(1);
                     }}
-                    className="flex items-center gap-2 px-6 py-3.5 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all font-bold text-xs cursor-pointer"
+                    className="shadow-sm flex items-center gap-2 px-6 py-3.5 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all font-bold text-xs cursor-pointer"
                   >
                     <HiOutlineXMark size={18} strokeWidth={2.5} />
-                    <span>CLEAR FILTERS</span>
+                    <span>RESET FILTERS</span>
                   </button>
                 )}
 
@@ -592,7 +594,7 @@ export default function EmployeeListPage() {
         confirmText="Delete"
         variant="danger"
       />
-      
+
     </div>
   );
 }

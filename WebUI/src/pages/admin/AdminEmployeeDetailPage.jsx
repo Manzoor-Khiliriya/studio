@@ -396,13 +396,13 @@ export default function EmployeeDetailPage() {
               <button
                 onClick={() => setIsEditModalOpen(true)}
                 className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest bg-slate-900 text-white hover:bg-orange-600 transition-all shadow-xl shadow-orange-100 active:scale-95 cursor-pointer"              >
-                <HiOutlinePencilSquare size={18} /> {`Delete ${employee?.user?.name}`}
+                <HiOutlinePencilSquare size={18} /> {`Update ${employee?.user?.role}`}
               </button>
               <button
                 onClick={() => setConfirmConfig({ isOpen: true, type: "delete" })}
                 className="flex items-center justify-center gap-2 bg-slate-900 text-white w-full py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-600 transition-all shadow-xl shadow-orange-100 active:scale-95 cursor-pointer"
               >
-                <HiOutlineTrash size={18} /> {`Delete ${employee?.user?.name}`}
+                <HiOutlineTrash size={18} /> {`Delete ${employee?.user?.role}`}
               </button>
             </div>
           </div>
@@ -661,6 +661,14 @@ export default function EmployeeDetailPage() {
                   icon={<HiOutlineUserGroup />}
                   label={employee?.admin?.length === 1 ? "Admin" : "Admins"}
                   value={employee?.admin.map(a => a.name).join(", ")}
+                />
+              )}
+
+              {employee?.hrManager && (
+                <ContactItem
+                  icon={<HiOutlineUser />}
+                  label="Hr Manager"
+                  value={employee?.hrManager?.name}
                 />
               )}
 

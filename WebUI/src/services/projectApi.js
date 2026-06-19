@@ -1,99 +1,119 @@
-import { apiSlice } from './apiSlice';
+import { apiSlice } from "./apiSlice";
 
 export const projectApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getProjects: builder.query({
       query: (params) => ({
-        url: '/projects',
-        params: params, 
+        url: "/projects",
+        params: params,
       }),
       transformResponse: (response) => ({
         activeTab: response.activeTab,
         projects: response.projects || [],
-        pagination: response.pagination || {}
+        pagination: response.pagination || {},
       }),
       providesTags: (result) =>
         result?.projects
           ? [
-            ...result.projects.map(({ _id }) => ({ type: 'Project', id: _id })),
-            { type: 'Project', id: 'LIST' },
-          ]
-          : [{ type: 'Project', id: 'LIST' }],
+              ...result.projects.map(({ _id }) => ({
+                type: "Project",
+                id: _id,
+              })),
+              { type: "Project", id: "LIST" },
+            ]
+          : [{ type: "Project", id: "LIST" }],
     }),
     getProjectCalendar: builder.query({
       query: (search) => ({
-        url: '/projects/calendar',
+        url: "/projects/calendar",
         params: { search },
       }),
       transformResponse: (response) => response || [],
       providesTags: (result) => [
-        { type: 'Project', id: 'CALENDAR' },
-        { type: 'Task', id: 'LIST' },
+        { type: "Project", id: "CALENDAR" },
+        { type: "Task", id: "LIST" },
       ],
     }),
     getProjectDetail: builder.query({
       query: (id) => `/projects/${id}`,
       transformResponse: (response) => response.project || {},
-      providesTags: (result, error, id) => [{ type: 'Project', id }],
+      providesTags: (result, error, id) => [{ type: "Project", id }],
     }),
     createProject: builder.mutation({
       query: (newProject) => ({
-        url: '/projects',
-        method: 'POST',
+        url: "/projects",
+        method: "POST",
         body: newProject,
       }),
       transformResponse: (response) => response.project || {},
       invalidatesTags: [
-        { type: 'Project', id: 'LIST' },
-        { type: 'Project', id: 'CALENDAR' }
+        { type: "Project", id: "LIST" },
+        { type: "Project", id: "CALENDAR" },
       ],
     }),
     updateProject: builder.mutation({
       query: ({ id, ...updateData }) => ({
         url: `/projects/${id}`,
-        method: 'PUT',
+        method: "PUT",
         body: updateData,
       }),
       transformResponse: (response) => response.project || {},
       invalidatesTags: (result, error, { id }) => [
-        { type: 'Project', id: 'LIST' },
-        { type: 'Project', id: 'CALENDAR' },
-        { type: 'Project', id },
-        { type: 'Task', id: 'LIST' },
+        { type: "Project", id: "LIST" },
+        { type: "Project", id: "CALENDAR" },
+        { type: "Project", id },
+        { type: "Task", id: "LIST" },
+      ],
+    }),
+    updateProjectPayment: builder.mutation({
+      query: ({ id, ...updateData }) => ({
+        url: `/projects/${id}/payment`,
+        method: "PATCH",
+        body: updateData,
+      }),
+      transformResponse: (response) => response.project || {},
+      invalidatesTags: (result, error, { id }) => [
+        { type: "Project", id: "LIST" },
+        { type: "Project", id: "CALENDAR" },
+        { type: "Project", id },
+        { type: "Task", id: "LIST" },
       ],
     }),
     deleteProject: builder.mutation({
       query: (id) => ({
         url: `/projects/${id}`,
-        method: 'DELETE',
+        method: "DELETE",
       }),
       invalidatesTags: [
-        { type: 'Project', id: 'LIST' },
-        { type: 'Project', id: 'CALENDAR' },
-        { type: 'Task', id: 'LIST' },
+        { type: "Project", id: "LIST" },
+        { type: "Project", id: "CALENDAR" },
+        { type: "Task", id: "LIST" },
       ],
     }),
     getProjectEstimate: builder.query({
       query: (projectId) => `/projects/${projectId}/calculate-estimate`,
       transformResponse: (response) => response.hours,
       providesTags: (result, error, projectId) => [
-        { type: 'Project', id: projectId },
-        { type: 'Task', id: 'LIST' },
+        { type: "Project", id: projectId },
+        { type: "Task", id: "LIST" },
       ],
     }),
     getTaskPerformanceReport: builder.query({
       query: (params) => ({
-        url: '/projects/reports/performance',
-        params, 
+        url: "/projects/reports/performance",
+        params,
       }),
       providesTags: (result) =>
         result?.projects
           ? [
-              ...result.projects.map(({ _id }) => ({ type: 'Project', id: _id })),
-              { type: 'Project', id: 'REPORT_LIST' },
-              { type: 'Task', id: 'LIST' }
+              ...result.projects.map(({ _id }) => ({
+                type: "Project",
+                id: _id,
+              })),
+              { type: "Project", id: "REPORT_LIST" },
+              { type: "Task", id: "LIST" },
             ]
-          : [{ type: 'Project', id: 'REPORT_LIST' }],
+          : [{ type: "Project", id: "REPORT_LIST" }],
     }),
   }),
 });
@@ -104,6 +124,7 @@ export const {
   useGetProjectDetailQuery,
   useCreateProjectMutation,
   useUpdateProjectMutation,
+  useUpdateProjectPaymentMutation,
   useDeleteProjectMutation,
   useGetProjectEstimateQuery,
   useGetTaskPerformanceReportQuery,

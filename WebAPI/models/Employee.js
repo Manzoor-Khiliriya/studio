@@ -31,6 +31,10 @@ const employeeSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
+    hrManager: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
     mobileNumber: { type: String, trim: true },
     dateOfBirth: { type: Date },
     dailyWorkLimit: {

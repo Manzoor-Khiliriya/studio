@@ -207,7 +207,7 @@ export default function MyTasksPage() {
 
 
           {/* Bottom Row: Status Dropdowns & Actions */}
-          <div className="flex flex-wrap items-center gap-6 pt-5 border-t border-slate-100">
+          <div className="flex flex-wrap items-end gap-6 pt-5 border-t border-slate-100">
             {/* Initiative Status */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[9px] font-black text-slate-400 uppercase ml-1 tracking-widest">Live Status</label>
@@ -218,14 +218,14 @@ export default function MyTasksPage() {
                   setCurrentPage(1);
                 }}
                 options={[
-                  { label: "All Phases", value: "All" },
+                  { label: "All Live Status", value: "All" },
                   { label: "To be started", value: "To be started" },
                   { label: "In progress", value: "In progress" },
                   { label: "Started", value: "Started" },
                 ]}
 
                 className="min-w-[180px]"
-                buttonClass="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700"
+                buttonClass="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 shadow-sm"
               />
             </div>
 
@@ -239,14 +239,14 @@ export default function MyTasksPage() {
                   setCurrentPage(1);
                 }}
                 options={[
-                  { label: "All Phases", value: "All" },
+                  { label: "All Initiative Status", value: "All" },
                   ...statuses.map(item => ({
                     label: item.name,
                     value: item._id,
                   })),
                 ]}
                 className="min-w-[180px]"
-                buttonClass="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700"
+                buttonClass="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 shadow-sm"
               />
             </div>
 
@@ -267,7 +267,7 @@ export default function MyTasksPage() {
                   })),
                 ]}
                 className="min-w-[140px]"
-                buttonClass="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700"
+                buttonClass="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 shadow-sm"
               />
             </div>
 
@@ -275,7 +275,7 @@ export default function MyTasksPage() {
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}
-                className="flex items-center gap-2 px-6 py-4 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-2xl transition-all font-black text-[10px] tracking-widest cursor-pointer shadow-sm"
+                className="shadow-sm flex items-center gap-2 px-3 p-2.5 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all font-bold text-xs cursor-pointer"
               >
                 <HiOutlineXMark size={18} strokeWidth={2.5} />
                 <span>RESET FILTERS</span>
@@ -317,7 +317,7 @@ export default function MyTasksPage() {
                 />
               </div>
 
-              {data?.pagination?.totalTasks && (
+              {data?.pagination?.totalTasks > 0 && (
                 <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight ml-2">
                   Total {data?.pagination?.totalTasks} Tasks
                 </span>
