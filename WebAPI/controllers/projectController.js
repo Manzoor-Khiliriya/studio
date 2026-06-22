@@ -402,7 +402,7 @@ exports.getTaskPerformanceReport = async (req, res) => {
     const { page = 1, limit = 5, search = "" } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const projectQuery = { deleteStatus: "Disable" };
+    const projectQuery = { deleteStatus: "Disable", status: "Active" };
     if (search) {
       projectQuery.$or = [
         { projectCode: { $regex: search, $options: "i" } },
@@ -575,6 +575,7 @@ exports.getProjectCalendarStacks = async (req, res) => {
       {
         $match: {
           deleteStatus: "Disable",
+          status: "Active",
 
           ...(search && {
             $or: [
