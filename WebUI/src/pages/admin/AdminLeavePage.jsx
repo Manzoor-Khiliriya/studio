@@ -51,6 +51,11 @@ export default function AdminLeavePage() {
             icon: <HiOutlineClipboardDocumentList size={16} />,
           },
           {
+            id: "leave-history",
+            label: "Leave History",
+            icon: <HiOutlineCalendarDays size={16} />,
+          },
+          {
             id: "quota",
             label: "Leave Quotas",
             icon: <HiOutlineUserCircle size={16} />,
@@ -78,6 +83,11 @@ export default function AdminLeavePage() {
             id: "requests",
             label: "Leave Requests",
             icon: <HiOutlineClipboardDocumentList size={16} />,
+          },
+          {
+            id: "leave-history",
+            label: "Leave History",
+            icon: <HiOutlineCalendarDays size={16} />,
           },
           {
             id: "quota",

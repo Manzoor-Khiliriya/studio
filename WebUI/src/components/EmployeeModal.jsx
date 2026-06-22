@@ -66,7 +66,12 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
   const admins = (isEmployeeRole && !formData.departments.length)
     ? []
     : (departmentUsers.admins || []);
-  const hrManagers = departmentUsers.hrManagers || [];
+  const hrManagers = (departmentUsers.hrManagers || []).filter((hr) => {
+    return !(
+      editData?.user?._id === hr._id &&
+      formData.role !== "Hr Manager"
+    );
+  });
 
   const activeDepartments = departments.filter(
     (dept) => dept.status === "Enable"

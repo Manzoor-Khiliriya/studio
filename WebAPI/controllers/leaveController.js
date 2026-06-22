@@ -208,7 +208,12 @@ exports.applyLeave = async (req, res) => {
     const managerId = employee.manager;
     const adminIds = employee.admin || [];
     const hrId = employee.hrManager;
-    const approvalFlow = buildApprovalFlow(req.user.role, managerId, adminIds, hrId);
+    const approvalFlow = buildApprovalFlow(
+      req.user.role,
+      managerId,
+      adminIds,
+      hrId,
+    );
     const leave = await Leave.create({
       user: userId,
       type,
@@ -302,22 +307,14 @@ exports.getAllLeaves = async (req, res) => {
         start.setHours(0, 0, 0, 0);
         end.setFullYear(currentTime.getFullYear() + 2);
       } else if (dateRange === "current-week") {
-        // Logic: Monday to Sunday
-        const day = currentTime.getDay();
-        const diff = currentTime.getDate() - day + (day === 0 ? -6 : 1);
-        start.setDate(diff);
+        start.setDate(currentTime.getDate() - 6);
         start.setHours(0, 0, 0, 0);
-
-        end.setDate(start.getDate() + 6);
+        end.setTime(currentTime.getTime());
         end.setHours(23, 59, 59, 999);
       } else if (dateRange === "last-week") {
-        // Previous Monday to Previous Sunday
-        const day = currentTime.getDay();
-        const diff = currentTime.getDate() - day + (day === 0 ? -6 : 1) - 7;
-        start.setDate(diff);
+        start.setDate(currentTime.getDate() - 13);
         start.setHours(0, 0, 0, 0);
-
-        end.setDate(start.getDate() + 6);
+        end.setDate(currentTime.getDate() - 7);
         end.setHours(23, 59, 59, 999);
       } else if (dateRange === "current-month") {
         start.setDate(1); // First of this month
@@ -454,6 +451,76 @@ exports.getAllLeaves = async (req, res) => {
 
       return res.json({
         view: "requests",
+        leaves: processedLeaves,
+        pagination: {
+          totalLeaves,
+          totalPages: Math.ceil(totalLeaves / parseInt(limit)),
+          currentPage: parseInt(page),
+        },
+      });
+    }
+
+    if (view === "leave-history") {
+      let query = {};
+
+      if (filterStart && filterEnd) {
+        query.$or = [
+          {
+            startDate: {
+              $gte: filterStart,
+              $lte: filterEnd,
+            },
+          },
+          {
+            endDate: {
+              $gte: filterStart,
+              $lte: filterEnd,
+            },
+          },
+          {
+            startDate: { $lte: filterStart },
+            endDate: { $gte: filterEnd },
+          },
+        ];
+      }
+
+      if (status && status !== "All") {
+        query.status = status;
+      }
+
+      if (search) {
+        const users = await User.find({
+          name: { $regex: search, $options: "i" },
+        }).select("_id");
+
+        query.user = { $in: users.map((u) => u._id) };
+      }
+
+      const totalLeaves = await Leave.countDocuments(query);
+
+      const leaves = await Leave.find(query)
+        .populate({
+          path: "user",
+          select: "name email designation",
+          populate: {
+            path: "employee",
+            select: "employeeCode",
+          },
+        })
+        .sort({ startDate: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean();
+
+      const processedLeaves = await Promise.all(
+        leaves.map(async (leave) => ({
+          ...leave,
+          duration: await calculateLeaveDays(leave.startDate, leave.endDate),
+        })),
+      );
+
+      return res.json({
+        view: "leave-history",
         leaves: processedLeaves,
         pagination: {
           totalLeaves,
@@ -1096,7 +1163,12 @@ exports.updateLeave = async (req, res) => {
     const adminIds = employee.admin || [];
     const hrId = employee.hrManager;
     const user = await User.findById(leave.user);
-    leave.approvalFlow = buildApprovalFlow(user.role, managerId, adminIds, hrId);
+    leave.approvalFlow = buildApprovalFlow(
+      user.role,
+      managerId,
+      adminIds,
+      hrId,
+    );
     leave.currentLevel = 0;
     leave.status = "Pending";
     await leave.save();
