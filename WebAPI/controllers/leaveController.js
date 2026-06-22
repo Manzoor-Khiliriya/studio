@@ -461,7 +461,7 @@ exports.getAllLeaves = async (req, res) => {
     }
 
     if (view === "leave-history") {
-      let query = {};
+      let query = {status: "Approved"};
 
       if (filterStart && filterEnd) {
         query.$or = [
