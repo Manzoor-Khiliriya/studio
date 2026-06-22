@@ -295,9 +295,8 @@ export default function AttendanceManagement() {
       </div>
 
       {/* FILTER BAR */}
-
-      <div className="bg-slate-50/50 border border-slate-100 rounded-[2rem] mb-8 flex flex-wrap items-center gap-4">
-        {activeTab === "logs" && (
+      {activeTab === "logs" && (
+        <div className="bg-slate-50/50 border border-slate-100 rounded-[2rem] mb-8 flex flex-wrap items-center gap-4">
           <div className="relative flex-1 min-w-[300px] group">
             <HiOutlineMagnifyingGlass
               className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400"
@@ -311,67 +310,61 @@ export default function AttendanceManagement() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-        )}
 
-        {activeTab === "logs" && (
-          <>
-            <div className="relative">
-              <CustomDropdown
-                value={rangeType}
-                onChange={handleRangeChange}
-                options={[
-                  { label: "Today", value: "today" },
-                  { label: "Yesterday", value: "yesterday" },
-                  { label: "This Week", value: "current_week" },
-                  { label: "Last Week", value: "last_week" },
-                  { label: "This Month", value: "current_month" },
-                  { label: "Last Month", value: "last_month" },
-                  { label: "Custom Range", value: "custom" },
-                ]}
-                className="min-w-[180px]"
-                buttonClass="pl-6 pr-12 py-4.25 bg-white border border-slate-200 rounded-2xl font-black text-[10px] uppercase text-slate-700 shadow-sm"
+          <div className="relative">
+            <CustomDropdown
+              value={rangeType}
+              onChange={handleRangeChange}
+              options={[
+                { label: "Today", value: "today" },
+                { label: "Yesterday", value: "yesterday" },
+                { label: "This Week", value: "current_week" },
+                { label: "Last Week", value: "last_week" },
+                { label: "This Month", value: "current_month" },
+                { label: "Last Month", value: "last_month" },
+                { label: "Custom Range", value: "custom" },
+              ]}
+              className="min-w-[180px]"
+              buttonClass="pl-6 pr-12 py-4.25 bg-white border border-slate-200 rounded-2xl font-black text-[10px] uppercase text-slate-700 shadow-sm"
+            />
+          </div>
+
+          {rangeType === "custom" && (
+            <div className="flex items-center gap-3 bg-white px-4 py-4.25 rounded-2xl border border-orange-100 shadow-sm animate-in fade-in zoom-in-95">
+              <input
+                type="date"
+                value={dateFilter.startDate}
+                onChange={(e) =>
+                  setDateFilter((p) => ({ ...p, startDate: e.target.value }))
+                }
+                className="bg-transparent text-[10px] font-black uppercase outline-none"
+              />
+              <HiOutlineArrowRight className="text-slate-300" size={12} />
+              <input
+                type="date"
+                value={dateFilter.endDate}
+                onChange={(e) =>
+                  setDateFilter((p) => ({ ...p, endDate: e.target.value }))
+                }
+                className="bg-transparent text-[10px] font-black uppercase outline-none"
               />
             </div>
 
-            {rangeType === "custom" && (
-              <div className="flex items-center gap-3 bg-white px-4 py-4.25 rounded-2xl border border-orange-100 shadow-sm animate-in fade-in zoom-in-95">
-                <input
-                  type="date"
-                  value={dateFilter.startDate}
-                  onChange={(e) =>
-                    setDateFilter((p) => ({ ...p, startDate: e.target.value }))
-                  }
-                  className="bg-transparent text-[10px] font-black uppercase outline-none"
-                />
-                <HiOutlineArrowRight className="text-slate-300" size={12} />
-                <input
-                  type="date"
-                  value={dateFilter.endDate}
-                  onChange={(e) =>
-                    setDateFilter((p) => ({ ...p, endDate: e.target.value }))
-                  }
-                  className="bg-transparent text-[10px] font-black uppercase outline-none"
-                />
-              </div>
+          )}
 
-            )}
 
-          </>
-        )}
+          {(search || rangeType !== "today") && activeTab === "logs" && (
+            <>
+              <button
+                onClick={resetFilters}
+                className="shadow-sm flex items-center gap-2 px-4 p-4.25 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all font-bold text-xs cursor-pointer"
+              >
+                <HiOutlineXMark size={18} strokeWidth={2.5} />
+                <span>RESET FILTERS</span>
+              </button>
+            </>
+          )}
 
-        {(search || rangeType !== "today") && activeTab === "logs" && (
-          <>
-            <button
-              onClick={resetFilters}
-              className="shadow-sm flex items-center gap-2 px-4 p-4.25 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all font-bold text-xs cursor-pointer"
-            >
-              <HiOutlineXMark size={18} strokeWidth={2.5} />
-              <span>RESET FILTERS</span>
-            </button>
-          </>
-        )}
-
-        {activeTab === "logs" && (
           <button
             onClick={handleExportCSV}
             className="px-4 py-4.25 bg-white text-slate-900 border border-slate-200 rounded-2xl hover:text-orange-600 transition-all cursor-pointer shadow-sm"
@@ -379,8 +372,8 @@ export default function AttendanceManagement() {
           >
             <HiOutlineArrowDownTray size={18} />
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* DATA VIEW CONTAINER */}
       <div className={` ${activeTab === "logs" ? "rounded-[2rem] overflow-visible border border-slate-100 bg-white shadow-sm" : "overflow-hidden"}`}>
@@ -440,7 +433,7 @@ export default function AttendanceManagement() {
                     height="auto"
                     fixedWeekCount={false}
                     displayEventTime={false}
-                    dayMaxEvents={3}
+                    dayMaxEvents={false}
                     headerToolbar={{
                       left: "prev,next today",
                       center: "title",
@@ -529,6 +522,6 @@ export default function AttendanceManagement() {
 
         )}
       </div>
-    </div>
+    </div >
   );
 }
