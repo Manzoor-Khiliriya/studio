@@ -177,7 +177,7 @@ export default function ProjectPaymentModal({
                 </div>
 
                 <InputGroup label="Payment Remark">
-                    <HiOutlineChatBubbleLeftRight className="input-icon top-4" />
+                    <HiOutlineChatBubbleLeftRight className="input-icon !top-6.5 translate-y-0" />
 
                     <textarea
                         rows={4}

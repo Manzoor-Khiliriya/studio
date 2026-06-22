@@ -92,6 +92,7 @@ export default function AdminTasksPage() {
   });
   const [allProjectType, setAllProjectType] = useState("All");
   const [allProjectStatus, setAllProjectStatus] = useState("All");
+  const [paymentStatus, setPaymentStatus] = useState("All");
   const [liveSelectedProjects, setLiveSelectedProjects] = useState([]);
   const [allSelectedProjects, setAllSelectedProjects] = useState([]);
   const [showProjectModal, setShowProjectModal] = useState(false);
@@ -168,6 +169,7 @@ export default function AdminTasksPage() {
         createdTo: allDateFilters.createdTo,
         projectType: allProjectType,
         status: allProjectStatus,
+        paymentStatus,
       }),
     },
     {
@@ -323,6 +325,7 @@ export default function AdminTasksPage() {
 
     setAllProjectType("All");
     setAllProjectStatus("All");
+    setPaymentStatus("All");
 
     setCurrentPage(1);
     setLiveSelectedProjects([]);
@@ -625,6 +628,28 @@ export default function AdminTasksPage() {
                   />
                 </div>
 
+                {activeTab !== "live" && (
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">
+                      Payment Status
+                    </label>
+                    <CustomDropdown
+                      value={paymentStatus}
+                      onChange={(val) => {
+                        setPaymentStatus(val);
+                        setCurrentPage(1);
+                      }}
+                      options={[
+                        "All",
+                        "Due",
+                        "Advance",
+                        "Paid",
+                      ]}
+                      className="min-w-35"
+                    />
+                  </div>
+                )}
+
                 {user?.role === "Admin" && (
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">
@@ -724,6 +749,7 @@ export default function AdminTasksPage() {
                       liveProjectType !== "All" ||
                       liveProjectStatus !== "All"
                       : allSearch ||
+                      paymentStatus !== "All" ||
                       allDateFilters.createdFrom ||
                       allDateFilters.createdTo ||
                       allProjectType !== "All" ||

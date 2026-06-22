@@ -14,8 +14,10 @@ import { useCreateUserMutation, useGetDepartmentOptionsQuery, useUpdateUserMutat
 import { HiOutlineMail } from "react-icons/hi";
 import CustomDropdown from "./CustomDropdown";
 import { useGetDepartmentsQuery, useGetDesignationsQuery } from "../services/settingsApi";
+import { useSelector } from "react-redux";
 
 export default function EmployeeModal({ isOpen, onClose, editData = null, role = "Employee" }) {
+  const { user } = useSelector((state) => state.auth);
   const getToday = () => new Date().toISOString().split("T")[0];
 
   const [formData, setFormData] = useState({
@@ -178,6 +180,14 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
     }
   };
 
+  const isOwnAdmin =
+    editData?.user?.role === "Admin" &&
+    editData?.user?._id === user?._id;
+
+  const isOtherAdmin =
+    editData?.user?.role === "Admin" &&
+    editData?.user?._id !== user?._id;
+
   return (
     <CommonModal
       isOpen={isOpen}
@@ -201,7 +211,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
         <div className={`grid grid-cols-1 gap-4 ${isEditing ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
           <InputGroup label="Full Name *">
             <HiOutlineUser className="input-icon" />
-            <input required name="name" value={formData.name} onChange={handleChange} disabled={editData?.user?.role === "Admin"} className="form-input disabled:opacity-75 disabled:cursor-not-allowed" placeholder="Enter Full Name" />
+            <input required name="name" value={formData.name} onChange={handleChange} disabled={isOtherAdmin} className="form-input disabled:opacity-75 disabled:cursor-not-allowed" placeholder="Enter Full Name" />
           </InputGroup>
           {formData.role !== "Admin" && (
             <InputGroup label="Employee Code *">
@@ -248,7 +258,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
           {formData.role === "Admin" && (
             <InputGroup label="Date of Birth">
               <HiOutlineCake className="input-icon" />
-              <input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleChange} disabled={editData?.user?.role === "Admin"} className="form-input disabled:opacity-75 disabled:cursor-not-allowed" />
+              <input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleChange} disabled={isOtherAdmin} className="form-input disabled:opacity-75 disabled:cursor-not-allowed" />
             </InputGroup>
           )}
         </div>
@@ -303,7 +313,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
 
           <InputGroup label="Mobile Number">
             <HiOutlinePhone className="input-icon" />
-            <input name="mobileNumber" value={formData.mobileNumber} onChange={handleChange} disabled={editData?.user?.role === "Admin"} className="form-input disabled:opacity-75 disabled:cursor-not-allowed" placeholder="+1 234 567 890" />
+            <input name="mobileNumber" value={formData.mobileNumber} onChange={handleChange} disabled={isOtherAdmin} className="form-input disabled:opacity-75 disabled:cursor-not-allowed" placeholder="+1 234 567 890" />
           </InputGroup>
         </div>
 
@@ -392,7 +402,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
         <div className={isEditing ? "w-full" : "grid grid-cols-1 md:grid-cols-2 gap-4"}>
           <InputGroup label="Work Email *">
             <HiOutlineMail className="input-icon" />
-            <input required type="email" name="email" value={formData.email} onChange={handleChange} disabled={editData?.user?.role === "Admin"} className="form-input disabled:opacity-75 disabled:cursor-not-allowed" placeholder="john@company.com" />
+            <input required type="email" name="email" value={formData.email} onChange={handleChange} disabled={isOtherAdmin} className="form-input disabled:opacity-75 disabled:cursor-not-allowed" placeholder="john@company.com" />
           </InputGroup>
           {!isEditing && (
             <InputGroup label="Password *">

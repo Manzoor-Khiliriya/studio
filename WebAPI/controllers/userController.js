@@ -85,7 +85,7 @@ exports.createUser = async (req, res) => {
         });
       }
     }
-    
+
     if (manager) {
       const managerUser = await User.findById(manager);
 
@@ -134,7 +134,7 @@ exports.createUser = async (req, res) => {
       employeeData.proficiency = proficiency || 100;
       employeeData.employeeCode = employeeCode?.toUpperCase();
       employeeData.joinedDate = joinedDate || "";
-      employeeData.manager = manager || null;;
+      employeeData.manager = manager || null;
       employeeData.admin = admin;
       employeeData.hrManager = hrManager;
     }
@@ -153,7 +153,7 @@ exports.createUser = async (req, res) => {
       employeeData.dailyWorkLimit = dailyWorkLimit || 9;
       employeeData.employeeCode = employeeCode?.toUpperCase();
       employeeData.joinedDate = joinedDate || "";
-      employeeData.manager = manager || null;;
+      employeeData.manager = manager || null;
       employeeData.admin = admin;
       employeeData.hrManager = hrManager;
     }
@@ -164,7 +164,7 @@ exports.createUser = async (req, res) => {
       employeeData.joinedDate = joinedDate || "";
       employeeData.manager = null;
       employeeData.admin = admin;
-      employeeData.hrManager = hrManager;
+      employeeData.hrManager = role === "Hr Manager" ? user._id : hrManager;
     }
 
     if (user.role === "Admin") {
@@ -324,11 +324,31 @@ exports.updateUser = async (req, res) => {
       });
     }
 
+    if (
+      req.user.role === "Admin" &&
+      user.role === "Admin" &&
+      user._id.toString() !== req.user._id.toString()
+    ) {
+      const allowedFields = ["designation", "departments"];
+
+      const invalidFields = Object.keys(req.body).filter(
+        (key) => !allowedFields.includes(key) && req.body[key] !== undefined,
+      );
+
+      if (invalidFields.length) {
+        return res.status(403).json({
+          message:
+            "You can only update designation and departments for other admins",
+        });
+      }
+    }
+
     if (name) user.name = name;
     if (email) user.email = email.toLowerCase();
     if (role) user.role = role;
     if (designation) user.designation = designation;
     await user.save();
+
     const employeeData = {
       mobileNumber: mobileNumber || "",
       dateOfBirth: dateOfBirth || null,
@@ -370,7 +390,8 @@ exports.updateUser = async (req, res) => {
       employeeData.joinedDate = joinedDate || "";
       employeeData.manager = null;
       employeeData.admin = admin;
-      employeeData.hrManager = hrManager;
+      employeeData.hrManager =
+        user.role === "Hr Manager" ? user._id : hrManager;
     }
 
     await Employee.findOneAndUpdate({ user: user._id }, employeeData, {

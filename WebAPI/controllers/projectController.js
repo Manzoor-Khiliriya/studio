@@ -67,6 +67,7 @@ exports.getAllProjects = async (req, res) => {
       taskStatus,
       projectType,
       status,
+      paymentStatus,
     } = req.query;
 
     const skip = (Number(page) - 1) * Number(limit);
@@ -165,6 +166,10 @@ exports.getAllProjects = async (req, res) => {
         e.setHours(23, 59, 59, 999);
         query.endDate = { $gte: s, $lte: e };
       }
+    }
+
+    if (activeTab !== "live" && paymentStatus && paymentStatus !== "All") {
+      query.paymentStatus = paymentStatus;
     }
 
     const projects = await Project.find(query)
