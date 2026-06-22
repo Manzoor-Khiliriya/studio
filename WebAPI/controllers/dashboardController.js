@@ -180,29 +180,33 @@ exports.getSummary = async (req, res) => {
     if (["Employee", "Manager"].includes(req.user.role)) {
       const employeeProfile = await Employee.findOne({ user: userId }).lean();
 
-      const [assignedTasks, approvedLeavesCount, runningTimer] =
-        await Promise.all([
-          Task.find({
-            assignedTo: employeeProfile._id,
-            // status: { $ne: "Completed" },
+      const [approvedLeavesCount, runningTimer] = await Promise.all([
+        Leave.countDocuments({
+          user: userId,
+          status: "Approved",
+          startDate: { $gte: today },
+        }),
+
+        TimeLog.findOne({ user: userId, isRunning: true })
+          .populate({
+            path: "task",
+            select: "title project",
+            populate: { path: "project", select: "projectCode" },
           })
-            .populate("project", "title projectCode")
-            .populate("timeLogs"),
+          .lean(),
+      ]);
 
-          Leave.countDocuments({
-            user: userId,
-            status: "Approved",
-            startDate: { $gte: today },
-          }),
-
-          TimeLog.findOne({ user: userId, isRunning: true })
-            .populate({
-              path: "task",
-              select: "title project",
-              populate: { path: "project", select: "projectCode" },
-            })
-            .lean(),
-        ]);
+      const assignedTasks = (
+        await Task.find({
+          assignedTo: employeeProfile?._id,
+        })
+          .populate({
+            path: "project",
+            match: { status: "Active" },
+            select: "title projectCode",
+          })
+          .populate("timeLogs")
+      ).filter((task) => task.project);
 
       const allocations = await TaskAllocation.find({
         employee: employeeProfile._id,
@@ -465,16 +469,19 @@ exports.getAdminOverview = async (req, res) => {
       user: req.user._id,
     }).lean();
 
+    if (!employeeProfile) {
+      return res.json({
+        role: "Admin",
+        todaySeconds: 0,
+        activeTimer: null,
+        assignedTasksCount: 0,
+        taskSnapshot: [],
+      });
+    }
+
     const today = getToday();
 
-    const [assignedTasks, runningTimer, todayLogs] = await Promise.all([
-      Task.find({
-        assignedTo: employeeProfile?._id,
-        // status: { $ne: "Completed" },
-      })
-        .populate("project", "title projectCode")
-        .populate("timeLogs"),
-
+    const [runningTimer, todayLogs] = await Promise.all([
       TimeLog.findOne({
         user: req.user._id,
         isRunning: true,
@@ -495,6 +502,18 @@ exports.getAdminOverview = async (req, res) => {
         logType: "work",
       }),
     ]);
+
+    const assignedTasks = (
+      await Task.find({
+        assignedTo: employeeProfile?._id,
+      })
+        .populate({
+          path: "project",
+          match: { status: "Active" },
+          select: "title projectCode",
+        })
+        .populate("timeLogs")
+    ).filter((task) => task.project);
 
     let todaySeconds = 0;
     const currentTime = now();
