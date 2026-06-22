@@ -31,7 +31,10 @@ exports.getSummary = async (req, res) => {
         attendanceToday,
         adminUsers,
       ] = await Promise.all([
-        User.countDocuments({ status: "Enable", role: "Employee" }),
+        User.countDocuments({
+          status: "Enable",
+          role: { $in: ["Employee", "Manager"] },
+        }),
         Attendance.countDocuments({ date: today, clockOut: null }),
         Task.find().populate("timeLogs"),
         Project.countDocuments({ deleteStatus: "Disable" }),
@@ -75,7 +78,7 @@ exports.getSummary = async (req, res) => {
         status: "Pending",
       });
 
-      const adminIds = adminUsers.map((a) => a._id); 
+      const adminIds = adminUsers.map((a) => a._id);
       const rawActivity = await TimeLog.find({
         clearedByAdmin: false,
         user: { $nin: adminIds },
@@ -333,7 +336,7 @@ exports.getSummary = async (req, res) => {
       });
     }
   } catch (err) {
-    console.error(err )
+    console.error(err);
     res.status(500).json({ error: "Internal server error" });
   }
 };
