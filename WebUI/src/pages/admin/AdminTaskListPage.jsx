@@ -985,9 +985,9 @@ export default function AdminTasksPage() {
                                 </span>
                               </div>
 
-                              <div className="flex flex-col gap-1 w-[60px]">
+                              <div className="flex flex-col gap-1 w-[110px]">
                                 <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">
-                                  Status
+                                  Payment Status
                                 </span>
                                 <TruncateText
                                   text={project?.paymentStatus || "N/A"}
@@ -995,9 +995,9 @@ export default function AdminTasksPage() {
                                 />
                               </div>
 
-                              <div className="flex flex-col gap-1 items-center w-[140px]">
+                              <div className="flex flex-col gap-1 items-center w-[90px]">
                                 <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">
-                                 Payment Status Date
+                                  Status Date
                                 </span>
                                 <span className="text-[11px] font-bold text-slate-800 font-mono">
                                   {project?.paymentDate
