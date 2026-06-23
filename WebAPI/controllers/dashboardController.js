@@ -361,14 +361,15 @@ exports.getManagerDashboard = async (req, res) => {
       allTasks,
       uniqueProjects,
       activeTimers,
-      attendanceToday,
     ] = await Promise.all([
       User.countDocuments({
+        _id: { $in: employeeUserIds },
         status: "Enable",
         role: "Employee",
       }),
 
       Attendance.countDocuments({
+        user: { $in: employeeUserIds },
         date: today,
         clockOut: null,
       }),
@@ -380,6 +381,7 @@ exports.getManagerDashboard = async (req, res) => {
       }),
 
       TimeLog.find({
+        user: { $in: employeeUserIds },
         isRunning: true,
         logType: "work",
       })
@@ -397,17 +399,6 @@ exports.getManagerDashboard = async (req, res) => {
           populate: {
             path: "project",
             select: "projectCode",
-          },
-        })
-        .lean(),
-
-      Attendance.find()
-        .populate({
-          path: "user",
-          select: "name",
-          populate: {
-            path: "employee",
-            select: "employeeCode",
           },
         })
         .lean(),
@@ -454,7 +445,6 @@ exports.getManagerDashboard = async (req, res) => {
         since: t.startTime,
       })),
 
-      attendanceToday,
     });
   } catch (err) {
     res.status(500).json({
