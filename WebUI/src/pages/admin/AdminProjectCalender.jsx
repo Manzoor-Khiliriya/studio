@@ -82,9 +82,19 @@ const AdminProjectCalendar = () => {
     const isHovered = hoveredProjectId === projectId;
     const isFirstSegment = eventInfo.isStart;
 
+    const headerClass = isExpanded
+      ? isFirstSegment
+        ? `${isDeadlineView ? "bg-rose-600" : "bg-indigo-600"} rounded-t-xl`
+        : `${isDeadlineView ? "bg-rose-600" : "bg-indigo-600"} rounded-xl`
+      : isHovered
+        ? "bg-orange-600 rounded-xl"
+        : isDeadlineView
+          ? "bg-rose-800 rounded-xl hover:bg-rose-700"
+          : "bg-slate-800 rounded-xl hover:bg-slate-700";
+
     return (
       <div
-        className={`relative flex flex-col w-full rounded-xl border transition-all duration-200 
+        className={`relative flex flex-col mt-1 w-full rounded-xl border transition-all duration-200 
           ${isExpanded ? 'z-50 ring-2 ring-indigo-500/20 border-indigo-400' : 'z-10'}
           ${isHovered && !isExpanded ? ' border-orange-500 shadow-md z-40' : 'border-slate-200 shadow-sm'}
         `}
@@ -93,19 +103,19 @@ const AdminProjectCalendar = () => {
       >
         <div
           onClick={(e) => toggleProject(projectId, e)}
-          className={`cursor-pointer px-2 py-0.5 flex justify-between items-center transition-colors ${isExpanded
-            ? (isDeadlineView ? 'bg-rose-600 rounded-t-xl' : 'bg-indigo-600 rounded-t-xl')
-            : (isHovered
-              ? 'bg-orange-600 rounded-xl' // Different color for hover state
-              : (isDeadlineView ? 'bg-rose-800 rounded-xl hover:bg-rose-700' : 'bg-slate-800 rounded-xl hover:bg-slate-700'))
-            }`}
+          className={`cursor-pointer px-2 py-0.5 flex justify-between items-center transition-colors ${headerClass}`}
         >
           <span className="text-[9px] font-bold text-white truncate uppercase italic">
             {eventInfo.event.title} ({projectCode})
           </span>
           <div className="flex items-center gap-1.5">
             <span className="text-[7px] font-black text-white bg-white/10 px-1 rounded uppercase tracking-tighter">{taskCount}</span>
-            {isExpanded ? <HiChevronUp size={12} className="text-white" /> : <HiChevronDown size={12} className="text-white" />}
+            {isFirstSegment &&
+              (isExpanded ? (
+                <HiChevronUp size={12} className="text-white" />
+              ) : (
+                <HiChevronDown size={12} className="text-white" />
+              ))}
           </div>
         </div>
 
