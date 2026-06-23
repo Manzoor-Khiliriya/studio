@@ -480,6 +480,20 @@ exports.getTaskDetail = async (req, res) => {
         priorityOrder: 1,
       });
 
+    const liveUserIds = new Set(
+      (task.timeLogs || [])
+        .filter(
+          (log) =>
+            log.logType === "work" && log.isRunning === true && log.user?._id,
+        )
+        .map((log) => log.user._id.toString()),
+    );
+
+    const allocationsWithLive = allocations.map((allocation) => ({
+      ...allocation.toObject(),
+      isLive: liveUserIds.has(allocation.employee?.user?._id?.toString()),
+    }));
+
     const totalAllocatedSeconds = (task.allocatedTime || 0) * 3600;
     const contributorMap = new Map();
 
@@ -524,7 +538,7 @@ exports.getTaskDetail = async (req, res) => {
 
     const taskData = {
       ...task.toObject(),
-      allocations,
+      allocations: allocationsWithLive,
       liveStatus: task.liveStatus,
       totalConsumedSeconds,
       totalConsumedHours,

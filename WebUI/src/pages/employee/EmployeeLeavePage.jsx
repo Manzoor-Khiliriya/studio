@@ -251,7 +251,7 @@ export default function EmployeeLeavePage() {
       <main className="max-w-[1750px] mx-auto px-8 -mt-10 pb-20">
         {/* TACTICAL FILTER BAR */}
 
-        <div className="relative z-[200] flex flex-wrap items-center gap-4 mb-8 bg-white/90 backdrop-blur-xl p-1.5 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="relative flex flex-wrap items-center gap-4 mb-8 bg-white/90 backdrop-blur-xl p-1.5 rounded-2xl border border-slate-200 shadow-sm">
           <CustomDropdown
             value={typeFilter}
             onChange={(val) => {

@@ -180,12 +180,7 @@ exports.createUser = async (req, res) => {
         user,
         {
           type: "system",
-          title: "Account Created",
-          message: `Hello ${name}, your account has been created successfully.`,
-          credentials: {
-            email: email,
-            password: password,
-          },
+          password
         },
         io,
       );

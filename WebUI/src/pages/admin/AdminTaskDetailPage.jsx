@@ -92,6 +92,14 @@ export default function AdminTaskDetailPage() {
     onAllocationChange: refetch,
   });
 
+  const sortedAllocations = useMemo(() => {
+    return [...(task?.allocations || [])].sort((a, b) => {
+      if (a.isLive && !b.isLive) return -1;
+      if (!a.isLive && b.isLive) return 1;
+      return 0;
+    });
+  }, [task?.allocations]);
+
   // Derived Values (Memoized for performance)
   const { consumedSec, allocatedSec, timeData, employeePieData } =
     useMemo(() => {
@@ -440,16 +448,23 @@ export default function AdminTaskDetailPage() {
 
                   <div className="space-y-3">
                     {task.allocations?.length > 0 ? (
-                      task.allocations.map((allocation) => (
+                      sortedAllocations.map((allocation) => (
                         <div
                           key={allocation._id}
                           className="p-4 rounded-2xl border border-slate-100 bg-slate-50 space-y-1"
                         >
                           {/* NAME */}
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
                             <span className="text-[11px] font-black text-slate-900 uppercase">
-                              {allocation.employee?.user?.name} ({allocation.employee?.employeeCode})
+                              {allocation.employee?.user?.name} ({allocation.employee?.employeeCode || "N/A"})
                             </span>
+
+                            {allocation.isLive && (
+                              <span className="flex items-center gap-1 text-[8px] font-black uppercase text-emerald-600">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                LIVE
+                              </span>
+                            )}
                           </div>
 
                           <div className="grid grid-cols-3 gap-3">
