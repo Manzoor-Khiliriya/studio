@@ -160,7 +160,7 @@ export default function ProjectPaymentModal({
                         />
                     </InputGroup>
 
-                    <InputGroup label="Payment Date">
+                    <InputGroup label="Status Date">
                         <HiOutlineCalendarDays className="input-icon" />
                         <input
                             type="date"
