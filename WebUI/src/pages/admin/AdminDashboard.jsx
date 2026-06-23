@@ -3,7 +3,8 @@ import {
   useGetDashboardSummaryQuery,
   useClearLogsMutation,
   useStopAllSessionsMutation,
-  useGetManagerDashboardQuery
+  useGetManagerDashboardQuery,
+  useStopEmployeeSessionMutation
 } from '../../services/dashboardApi';
 import { HiOutlineArrowTrendingUp, HiOutlineBolt, HiOutlineUserGroup, HiOutlineFingerPrint, HiOutlineCalendarDays } from 'react-icons/hi2';
 import { BiTask, BiTimeFive, BiTrash } from 'react-icons/bi';
@@ -60,6 +61,7 @@ const AdminDashboard = () => {
 
   const [stopAllSessions, { isLoading: isStoppingAll }] = useStopAllSessionsMutation();
   const [clearLogs, { isLoading: isClearing }] = useClearLogsMutation();
+  const [stopEmployeeSession, { isLoading: isStoppingEmployee }] = useStopEmployeeSessionMutation();
 
   useSocketEvents({
     onDashboardUpdate: refetch,
@@ -108,6 +110,14 @@ const AdminDashboard = () => {
     }).toUpperCase();
   };
 
+  const handleStopEmployee = (timer) => {
+    setConfirmState({
+      open: true,
+      action: "STOP_EMPLOYEE",
+      payload: timer,
+    });
+  };
+
   const handleConfirm = async () => {
     try {
       if (confirmState.action === "STOP_ALL") {
@@ -115,14 +125,30 @@ const AdminDashboard = () => {
         toast.success("All sessions terminated");
       }
 
+      if (confirmState.action === "STOP_EMPLOYEE") {
+        await stopEmployeeSession(
+          confirmState.payload.userId
+        ).unwrap();
+
+        toast.success(
+          `${confirmState.payload.employee} session stopped`
+        );
+      }
+
       if (confirmState.action === "CLEAR_LOGS") {
         await clearLogs({ date: confirmState.payload }).unwrap();
         toast.success(`Logs for ${confirmState.payload} cleared`);
       }
     } catch (err) {
-      toast.error("Action failed");
+      toast.error(
+        err?.data?.message || "Action failed"
+      );
     } finally {
-      setConfirmState({ open: false, action: null, payload: null });
+      setConfirmState({
+        open: false,
+        action: null,
+        payload: null,
+      });
     }
   };
 
@@ -224,7 +250,15 @@ const AdminDashboard = () => {
                           <p className="text-[11px] font-black text-slate-900 uppercase truncate">{timer.employee} {timer.employeeCode && `(${timer.employeeCode})`}</p>
                           <p className="text-[9px] text-slate-600 font-bold uppercase truncate">{timer.task} ({timer.projectCode})</p>
                         </div>
-                        <HiOutlineBolt className="text-blue-500 animate-pulse shrink-0" size={18} />
+                        {user?.role === "Admin" && (
+                          <button
+                            onClick={() => handleStopEmployee(timer)}
+                            className="text-red-500 hover:text-red-600 cursor-pointer transition-all"
+                            title='Stop Session'
+                          >
+                            <FiAlertTriangle size={12} />
+                          </button>
+                        )}
                       </motion.div>
                     ))
                   ) : (
@@ -356,20 +390,30 @@ const AdminDashboard = () => {
         title={
           confirmState.action === "STOP_ALL"
             ? "Terminate All Sessions"
-            : "Clear Logs"
+            : confirmState.action === "STOP_EMPLOYEE"
+              ? "Stop Employee Session"
+              : "Clear Logs"
         }
         message={
           confirmState.action === "STOP_ALL"
             ? "This will immediately stop ALL active sessions globally."
-            : `This will permanently delete logs for ${confirmState.payload}.`
+            : confirmState.action === "STOP_EMPLOYEE"
+              ? `Are you sure you want to stop the active task session for ${confirmState.payload?.employee}?`
+              : `This will permanently delete logs for ${confirmState.payload}.`
         }
         confirmText={
           confirmState.action === "STOP_ALL"
-            ? "Terminate"
-            : "Delete"
+            ? "Terminate All"
+            : confirmState.action === "STOP_EMPLOYEE"
+              ? "Stop Session"
+              : "Delete"
         }
         variant="danger"
-        isLoading={isStoppingAll || isClearing}
+        isLoading={
+          isStoppingAll ||
+          isStoppingEmployee ||
+          isClearing
+        }
       />
 
     </>

@@ -31,6 +31,13 @@ export const dashboardApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["Dashboard", "TimeLog"],
     }),
+    stopEmployeeSession: builder.mutation({
+      query: (userId) => ({
+        url: `/timelogs/stop/${userId}`,
+        method: "PUT",
+      }),
+      invalidatesTags: ["Dashboard", "TimeLog", "Task"],
+    }),
   }),
 });
 
@@ -40,4 +47,5 @@ export const {
   useGetAdminOverviewQuery,
   useClearLogsMutation,
   useStopAllSessionsMutation,
+  useStopEmployeeSessionMutation,
 } = dashboardApiSlice;

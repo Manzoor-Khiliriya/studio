@@ -30,8 +30,15 @@ exports.startTimer = async (req, res) => {
     const task = await Task.findOne({ _id: taskId, assignedTo: employee._id });
     if (!task) throw new Error("Task not found or not assigned to you.");
 
-    const logs = await TimeLog.find({ user: userId, dateString: today, logType: "work" });
-    const hoursToday = logs.reduce((sum, l) => sum + (l.durationSeconds / 3600 || 0), 0);
+    const logs = await TimeLog.find({
+      user: userId,
+      dateString: today,
+      logType: "work",
+    });
+    const hoursToday = logs.reduce(
+      (sum, l) => sum + (l.durationSeconds / 3600 || 0),
+      0,
+    );
 
     if (hoursToday >= employee.dailyWorkLimit) {
       throw new Error(`Daily limit reached (${employee.dailyWorkLimit} hrs).`);
@@ -41,7 +48,10 @@ exports.startTimer = async (req, res) => {
 
     if (activeLog) {
       const currentTime = now();
-      const rawSeconds = Math.max(0, Math.floor((currentTime - new Date(activeLog.startTime)) / 1000));
+      const rawSeconds = Math.max(
+        0,
+        Math.floor((currentTime - new Date(activeLog.startTime)) / 1000),
+      );
 
       if (activeLog.logType === "work") {
         const { adjustedSeconds } = await applyProficiency(userId, rawSeconds);
@@ -56,22 +66,26 @@ exports.startTimer = async (req, res) => {
       await activeLog.save({ session });
     }
 
-    const log = await TimeLog.create([{
-      user: userId,
-      task: taskId,
-      startTime: now(),
-      isRunning: true,
-      logType: "work",
-      action: "Start",
-      dateString: today
-    }], { session });
+    const log = await TimeLog.create(
+      [
+        {
+          user: userId,
+          task: taskId,
+          startTime: now(),
+          isRunning: true,
+          logType: "work",
+          action: "Start",
+          dateString: today,
+        },
+      ],
+      { session },
+    );
 
     await session.commitTransaction();
     emitEvent(req, "taskChanged", { taskId });
     emitEvent(req, "timeLogChanged", log[0], userId);
     emitDashboardUpdate(req);
     res.status(201).json(log[0]);
-
   } catch (err) {
     await session.abortTransaction();
     res.status(400).json({ error: err.message });
@@ -88,7 +102,10 @@ exports.togglePause = async (req, res) => {
     if (!active) return res.status(404).json({ message: "No active timer." });
 
     const currentTime = now();
-    const rawSeconds = Math.max(0, Math.floor((currentTime - new Date(active.startTime)) / 1000));
+    const rawSeconds = Math.max(
+      0,
+      Math.floor((currentTime - new Date(active.startTime)) / 1000),
+    );
 
     if (active.logType === "work") {
       const { adjustedSeconds } = await applyProficiency(userId, rawSeconds);
@@ -110,12 +127,11 @@ exports.togglePause = async (req, res) => {
       startTime: now(),
       logType: newType,
       isRunning: true,
-      dateString: active.dateString
+      dateString: active.dateString,
     });
     emitEvent(req, "timeLogChanged", { status: newType, log: newLog }, userId);
     emitDashboardUpdate(req);
     res.json({ status: newType, log: newLog });
-
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -124,12 +140,19 @@ exports.togglePause = async (req, res) => {
 exports.stopTimer = async (req, res) => {
   try {
     const log = await TimeLog.findOne({ user: req.user._id, isRunning: true });
-    if (!log) return res.status(400).json({ message: "No active timer found." });
+    if (!log)
+      return res.status(400).json({ message: "No active timer found." });
 
     const currentTime = now();
-    const rawSeconds = Math.max(0, Math.floor((currentTime - new Date(log.startTime)) / 1000));
+    const rawSeconds = Math.max(
+      0,
+      Math.floor((currentTime - new Date(log.startTime)) / 1000),
+    );
 
-    const { adjustedSeconds } = await applyProficiency(req.user._id, rawSeconds);
+    const { adjustedSeconds } = await applyProficiency(
+      req.user._id,
+      rawSeconds,
+    );
 
     log.endTime = currentTime;
     log.isRunning = false;
@@ -142,7 +165,6 @@ exports.stopTimer = async (req, res) => {
     emitEvent(req, "timeLogChanged", log, req.user._id);
     emitDashboardUpdate(req);
     res.json({ message: "Session Terminated", log });
-
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -153,21 +175,21 @@ exports.getMyLogs = async (req, res) => {
     const today = getToday();
     const logs = await TimeLog.find({
       user: req.user._id,
-      dateString: today
+      dateString: today,
     })
       .populate("task", "title projectNumber")
       .sort({ startTime: -1 });
-    const activeLog = logs.find(l => l.isRunning);
+    const activeLog = logs.find((l) => l.isRunning);
     let totalSeconds = 0;
-    logs.forEach(log => {
+    logs.forEach((log) => {
       if (log.logType !== "work") return;
       if (log.isRunning) {
         const runningSec = Math.floor(
-          (now() - new Date(log.startTime).getTime()) / 1000
+          (now() - new Date(log.startTime).getTime()) / 1000,
         );
         totalSeconds += Math.max(0, runningSec);
       } else {
-        totalSeconds += (log.rawDurationSeconds  || 0);
+        totalSeconds += log.rawDurationSeconds || 0;
       }
     });
     const hoursWorkedToday = +(totalSeconds / 3600).toFixed(2);
@@ -175,8 +197,8 @@ exports.getMyLogs = async (req, res) => {
       activeTaskId: activeLog?.task?._id || null,
       status: activeLog ? activeLog.logType : "idle",
       totalSecondsWorkedToday: totalSeconds,
-      hoursWorkedToday, 
-      logs
+      hoursWorkedToday,
+      logs,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -189,10 +211,16 @@ exports.stopAllLiveSessions = async (req, res) => {
     const activeLogs = await TimeLog.find({ isRunning: true });
 
     const updatePromises = activeLogs.map(async (log) => {
-      const rawSeconds = Math.max(0, Math.floor((currentTime - new Date(log.startTime)) / 1000));
+      const rawSeconds = Math.max(
+        0,
+        Math.floor((currentTime - new Date(log.startTime)) / 1000),
+      );
 
       if (log.logType === "work") {
-        const { adjustedSeconds } = await applyProficiency(log.user, rawSeconds);
+        const { adjustedSeconds } = await applyProficiency(
+          log.user,
+          rawSeconds,
+        );
         log.rawDurationSeconds = rawSeconds;
         log.durationSeconds = adjustedSeconds;
       } else {
@@ -208,16 +236,15 @@ exports.stopAllLiveSessions = async (req, res) => {
     await Promise.all(updatePromises);
 
     emitEvent(req, "timeLogChanged");
-    activeLogs.forEach(log => {
+    activeLogs.forEach((log) => {
       emitEvent(req, "timeLogChanged", null, log.user);
     });
     emitEvent(req, "taskChanged");
     emitDashboardUpdate(req);
     res.json({
       message: `Global shutdown complete. ${activeLogs.length} sessions recorded.`,
-      stoppedCount: activeLogs.length
+      stoppedCount: activeLogs.length,
     });
-
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -235,19 +262,70 @@ exports.clearLogs = async (req, res) => {
       {
         dateString: date,
         isRunning: false,
-        clearedByAdmin: { $ne: true }
+        clearedByAdmin: { $ne: true },
       },
-      { $set: { clearedByAdmin: true } }
+      { $set: { clearedByAdmin: true } },
     );
 
     emitEvent(req, "timeLogChanged", { date });
     emitDashboardUpdate(req);
     res.json({
       message: `Logs for ${date} cleared.`,
-      clearedCount: result.modifiedCount
+      clearedCount: result.modifiedCount,
     });
-
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+exports.stopEmployeeSession = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const currentTime = now();
+    const activeLog = await TimeLog.findOne({
+      user: userId,
+      isRunning: true,
+    });
+
+    if (!activeLog) {
+      return res.status(404).json({
+        message: "No active session found for this employee.",
+      });
+    }
+
+    const rawSeconds = Math.max(
+      0,
+      Math.floor((currentTime - new Date(activeLog.startTime)) / 1000),
+    );
+
+    if (activeLog.logType === "work") {
+      const { adjustedSeconds } = await applyProficiency(
+        activeLog.user,
+        rawSeconds,
+      );
+
+      activeLog.rawDurationSeconds = rawSeconds;
+      activeLog.durationSeconds = adjustedSeconds;
+    } else {
+      activeLog.durationSeconds = rawSeconds;
+    }
+
+    activeLog.endTime = currentTime;
+    activeLog.isRunning = false;
+    activeLog.action = "Stop";
+
+    await activeLog.save();
+    emitEvent(req, "taskChanged", {
+      taskId: activeLog.task,
+    });
+    emitEvent(req, "timeLogChanged", activeLog, userId);
+    emitDashboardUpdate(req);
+    res.json({
+      message: "Employee session terminated successfully.",
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: err.message,
+    });
   }
 };

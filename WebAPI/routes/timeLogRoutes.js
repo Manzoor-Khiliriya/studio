@@ -6,10 +6,26 @@ const { ROLE } = require("../utils/constant");
 
 router.use(authenticate);
 
-router.post("/start", authorize(ROLE.ADMIN, ROLE.EMPLOYEE, ROLE.MANAGER), timeLogController.startTimer);
-router.post("/pause", authorize(ROLE.ADMIN, ROLE.EMPLOYEE, ROLE.MANAGER), timeLogController.togglePause);
-router.post("/stop", authorize(ROLE.ADMIN, ROLE.EMPLOYEE, ROLE.MANAGER), timeLogController.stopTimer);
-router.get("/my", authorize(ROLE.ADMIN, ROLE.EMPLOYEE, ROLE.MANAGER), timeLogController.getMyLogs);
+router.post(
+  "/start",
+  authorize(ROLE.ADMIN, ROLE.EMPLOYEE, ROLE.MANAGER),
+  timeLogController.startTimer,
+);
+router.post(
+  "/pause",
+  authorize(ROLE.ADMIN, ROLE.EMPLOYEE, ROLE.MANAGER),
+  timeLogController.togglePause,
+);
+router.post(
+  "/stop",
+  authorize(ROLE.ADMIN, ROLE.EMPLOYEE, ROLE.MANAGER),
+  timeLogController.stopTimer,
+);
+router.get(
+  "/my",
+  authorize(ROLE.ADMIN, ROLE.EMPLOYEE, ROLE.MANAGER),
+  timeLogController.getMyLogs,
+);
 
 router.post(
   "/stop-all",
@@ -18,5 +34,6 @@ router.post(
 );
 
 router.post("/clear-all", authorize(ROLE.ADMIN), timeLogController.clearLogs);
+router.put("/stop/:userId", authorize(ROLE.ADMIN), timeLogController.stopEmployeeSession);
 
 module.exports = router;
