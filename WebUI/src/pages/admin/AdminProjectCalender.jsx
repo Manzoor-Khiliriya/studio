@@ -43,20 +43,29 @@ const AdminProjectCalendar = () => {
     }));
 
     // 2. Project Events
-    const projectEvents = (projectStacks || []).map(p => {
-      const isDeadline = activeTab === 'deadline';
+    const projectEvents = (projectStacks || []).map((p) => {
+      const isDeadline = activeTab === "deadline";
+
+      const adjustedEnd = p.end
+        ? new Date(
+          new Date(p.end).getTime() + 24 * 60 * 60 * 1000
+        )
+          .toISOString()
+          .split("T")[0]
+        : null;
+
       return {
         id: p.id,
         title: p.title,
         start: isDeadline ? p.end : p.start,
-        end: p.end,
+        end: isDeadline ? undefined : adjustedEnd,
         allDay: true,
         extendedProps: {
           projectCode: p.extendedProps.projectCode,
           tasks: p.extendedProps.tasks,
           taskCount: p.extendedProps.taskCount,
-          isDeadlineView: isDeadline
-        }
+          isDeadlineView: isDeadline,
+        },
       };
     });
 
