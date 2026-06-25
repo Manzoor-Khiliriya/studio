@@ -8,6 +8,59 @@ import { useNavigate } from 'react-router-dom';
 import { HiChevronDown, HiChevronUp, HiOutlineQueueList, HiOutlineFlag } from 'react-icons/hi2';
 import { useSocketEvents } from '../../hooks/useSocketEvents';
 
+const PROJECT_COLORS = [
+  {
+    normal: "bg-blue-700 hover:bg-blue-600",
+    expanded: "bg-blue-500",
+    ring: "ring-blue-500/20 border-blue-400",
+  },
+  {
+    normal: "bg-emerald-700 hover:bg-emerald-600",
+    expanded: "bg-emerald-500",
+    ring: "ring-emerald-500/20 border-emerald-400",
+  },
+  {
+    normal: "bg-violet-700 hover:bg-violet-600",
+    expanded: "bg-violet-500",
+    ring: "ring-violet-500/20 border-violet-400",
+  },
+  {
+    normal: "bg-orange-700 hover:bg-orange-600",
+    expanded: "bg-orange-500",
+    ring: "ring-orange-500/20 border-orange-400",
+  },
+  {
+    normal: "bg-pink-700 hover:bg-pink-600",
+    expanded: "bg-pink-500",
+    ring: "ring-pink-500/20 border-pink-400",
+  },
+  {
+    normal: "bg-cyan-700 hover:bg-cyan-600",
+    expanded: "bg-cyan-500",
+    ring: "ring-cyan-500/20 border-cyan-400",
+  },
+  {
+    normal: "bg-teal-700 hover:bg-teal-600",
+    expanded: "bg-teal-500",
+    ring: "ring-teal-500/20 border-teal-400",
+  },
+  {
+    normal: "bg-fuchsia-700 hover:bg-fuchsia-600",
+    expanded: "bg-fuchsia-500",
+    ring: "ring-fuchsia-500/20 border-fuchsia-400",
+  },
+];
+
+const getProjectColor = (projectId) => {
+  let hash = 0;
+
+  for (let i = 0; i < projectId.length; i++) {
+    hash = projectId.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  return PROJECT_COLORS[Math.abs(hash) % PROJECT_COLORS.length];
+};
+
 const AdminProjectCalendar = () => {
   const navigate = useNavigate();
   const [expandedProjects, setExpandedProjects] = useState(new Set());
@@ -77,6 +130,7 @@ const AdminProjectCalendar = () => {
 
     const { projectCode, tasks, taskCount, isDeadlineView } = eventInfo.event.extendedProps;
     const projectId = eventInfo.event.id;
+    const color = getProjectColor(projectId);
     const isExpanded = expandedProjects.has(projectId);
 
     const isHovered = hoveredProjectId === projectId;
@@ -84,13 +138,11 @@ const AdminProjectCalendar = () => {
 
     const headerClass = isExpanded
       ? isFirstSegment
-        ? `${isDeadlineView ? "bg-rose-600" : "bg-indigo-600"} rounded-t-xl`
-        : `${isDeadlineView ? "bg-rose-600" : "bg-indigo-600"} rounded-xl`
+        ? `${color.expanded} rounded-t-xl`
+        : `${color.expanded} rounded-xl`
       : isHovered
         ? "bg-orange-600 rounded-xl"
-        : isDeadlineView
-          ? "bg-rose-800 rounded-xl hover:bg-rose-700"
-          : "bg-slate-800 rounded-xl hover:bg-slate-700";
+        : `${color.normal} rounded-xl`;
 
     return (
       <div

@@ -49,8 +49,8 @@ export default function DeleteRequestNotifications() {
             <button
                 onClick={() => setIsOpen((prev) => !prev)}
                 className={`p-2.5 rounded-xl transition-all border relative cursor-pointer ${isOpen
-                        ? "bg-orange-100 border-orange-200 text-orange-600 shadow-inner"
-                        : "bg-white border-slate-100 text-slate-500 hover:border-orange-200 hover:bg-orange-200 shadow-sm"
+                    ? "bg-orange-100 border-orange-200 text-orange-600 shadow-inner"
+                    : "bg-white border-slate-100 text-slate-500 hover:border-orange-200 hover:bg-orange-200 shadow-sm"
                     }`}
             >
                 <FiShield size={20} />
@@ -124,17 +124,22 @@ export default function DeleteRequestNotifications() {
                                         )}
                                     </div>
 
-                                    {/* Actions or status */}
                                     {req.hasResponded ? (
-                                        <div className={`text-center py-2 rounded-xl text-[9px] font-black uppercase tracking-widest ${req.myAction === "approved"
+                                        <div
+                                            className={`text-center py-2 rounded-xl text-[9px] font-black uppercase tracking-widest ${req.myAction === "approved"
                                                 ? "bg-emerald-50 text-emerald-600"
                                                 : req.myAction === "rejected"
                                                     ? "bg-rose-50 text-rose-600"
                                                     : "bg-slate-50 text-slate-500"
-                                            }`}>
+                                                }`}
+                                        >
                                             {req.myAction === "approved" && "✓ You approved this request"}
                                             {req.myAction === "rejected" && "✗ You rejected this request"}
                                             {req.myAction === "requested" && "↑ You initiated this request"}
+                                        </div>
+                                    ) : req.status === "Rejected" ? (
+                                        <div className="text-center py-2 rounded-xl text-[9px] font-black uppercase tracking-widest bg-rose-50 text-rose-600">
+                                            ✗ Request already rejected
                                         </div>
                                     ) : (
                                         <div className="flex gap-2">
@@ -145,6 +150,7 @@ export default function DeleteRequestNotifications() {
                                             >
                                                 <HiOutlineCheck size={12} /> Approve
                                             </button>
+
                                             <button
                                                 onClick={() => handleRespond(req._id, "reject")}
                                                 disabled={isLoading}

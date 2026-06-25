@@ -571,7 +571,8 @@ exports.getPendingDeleteRequests = async (req, res) => {
       .populate("requestedBy", "name")
       .populate("approvals", "name _id")
       .populate("rejections", "name _id")
-      .lean();
+      .lean()
+      .sort({ createdAt: -1 });
 
     const filtered = requests.filter(
       (r) => String(r.targetUser?._id) !== String(req.user._id),

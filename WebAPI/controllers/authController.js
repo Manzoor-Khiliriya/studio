@@ -60,7 +60,7 @@ exports.forgotPassword = async (req, res) => {
         type: "reset",
         title: "Password Reset OTP",
         otp: otp,
-        message: `Your password reset code is ${otp}. It will expire in 15 minutes.`,
+        message: "A password reset request was generated. Check your email."
       },
       req.app.get("socketio"),
     );

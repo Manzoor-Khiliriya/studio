@@ -54,8 +54,6 @@ const sendNotification = async (recipient, data, io) => {
           <h2>Welcome, ${recipient.name}!</h2>
           <p>Login with: <br> <b>Email:</b> ${recipient.email} <br> <b>Password:</b> ${password}</p>
         </div>`;
-    } else if (!htmlContent) {
-      finalHtml = `<p>${message}</p>`;
     } else if (type === "leave") {
       const isApproved = message.includes("Approved");
       finalSubject = isApproved
@@ -72,6 +70,8 @@ const sendNotification = async (recipient, data, io) => {
         Please log in to view your leave details.
       </p>
     </div>`;
+    } else if (!htmlContent) {
+      finalHtml = `<p>${message}</p>`;
     }
 
     // 4. Send Email

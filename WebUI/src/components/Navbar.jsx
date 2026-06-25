@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useSelector } from "react-redux";
 import {
   useGetNotificationsQuery,
+  useMarkNotificationReadMutation,
   useMarkNotificationsReadMutation
 } from "../services/notificationApi";
 import {
@@ -24,6 +25,7 @@ export default function Navbar() {
 
   const { data: notifications = [], refetch } = useGetNotificationsQuery();
   const [markNotificationsRead] = useMarkNotificationsReadMutation();
+  const [markNotificationRead] = useMarkNotificationReadMutation();
 
   useSocketEvents({
     onNotificationChange: refetch,
@@ -38,12 +40,35 @@ export default function Navbar() {
     }
   };
 
+  const handleNotificationClick = async (notification) => {
+    try {
+      if (!notification.read) {
+        await markNotificationRead(notification._id).unwrap();
+      }
+
+      setIsOpen(false);
+
+      navigate(
+        notificationRoutes[notification.type] ||
+        (user?.role === "Admin" ? "/admin" : "/employee")
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   useOnClickOutside(notificationRef, () => setIsOpen(false));
 
   if (!user) return null;
 
   const unreadCount = notifications.filter(n => !n.read).length;
   const greeting = "Welcome"
+
+  const notificationRoutes = {
+    task: user?.role === "Employee" || user.role === "Manager" ? "/my-tasks" : "/overview",
+    leave: user?.role === "Employee" ? "/my-leaves" : "/leaves",
+    reset: "/reset-password",
+  };
 
   return (
     <header className="h-[7vh] flex items-center justify-between px-6 md:px-12 bg-[#ee4123] text-gray-200 font-primary backdrop-blur-md sticky top-0 z-40">
@@ -107,10 +132,7 @@ export default function Navbar() {
                     notifications.map((n) => (
                       <div
                         key={n._id || n.id}
-                        onClick={() => {
-                          setIsOpen(false);
-                          if (n.taskId) navigate(`/my-tasks/`);
-                        }}
+                        onClick={() => handleNotificationClick(n)}
                         className={`p-5 flex gap-4 hover:bg-orange-50/50 transition-colors cursor-pointer border-b border-orange-50/50 ${!n.read ? 'bg-orange-50/10' : ''}`}
                       >
                         <div className={`w-11 h-11 rounded-2xl shrink-0 flex items-center justify-center border
