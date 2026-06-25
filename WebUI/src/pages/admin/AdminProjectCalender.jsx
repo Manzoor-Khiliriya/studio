@@ -147,7 +147,7 @@ const AdminProjectCalendar = () => {
     return (
       <div
         className={`relative flex flex-col mt-1 w-full rounded-xl border transition-all duration-200 
-          ${isExpanded ? 'z-50 ring-2 ring-indigo-500/20 border-indigo-400' : 'z-10'}
+          ${isExpanded ? `z-50 ring-2 ${color.ring}` : 'z-10'}
           ${isHovered && !isExpanded ? ' border-orange-500 shadow-md z-40' : 'border-slate-200 shadow-sm'}
         `}
         onMouseEnter={() => setHoveredProjectId(projectId)}
