@@ -933,6 +933,17 @@ export default function AdminTasksPage() {
                             </div>
                           )}
 
+                          {activeTab === "live" && (
+                            <div className="flex flex-col justify-center w-[90px] gap-1 items-center">
+                              <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">
+                                No. Of Days
+                              </span>
+                              <span className="text-[11px] font-bold text-slate-800 font-mono">
+                                {project.workingDays} Days
+                              </span>
+                            </div>
+                          )}
+
                           <div className="flex flex-col justify-center w-[90px] gap-1 items-center">
                             <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">
                               No. Of Tasks

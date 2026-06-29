@@ -49,17 +49,67 @@ const PROJECT_COLORS = [
     expanded: "bg-fuchsia-500",
     ring: "ring-fuchsia-500/20 border-fuchsia-400",
   },
+  {
+    normal: "bg-red-700 hover:bg-red-600",
+    expanded: "bg-red-500",
+    ring: "ring-red-500/20 border-red-400",
+  },
+  {
+    normal: "bg-lime-700 hover:bg-lime-600",
+    expanded: "bg-lime-500",
+    ring: "ring-lime-500/20 border-lime-400",
+  },
+  {
+    normal: "bg-indigo-700 hover:bg-indigo-600",
+    expanded: "bg-indigo-500",
+    ring: "ring-indigo-500/20 border-indigo-400",
+  },
+  {
+    normal: "bg-rose-700 hover:bg-rose-600",
+    expanded: "bg-rose-500",
+    ring: "ring-rose-500/20 border-rose-400",
+  },
+  {
+    normal: "bg-amber-700 hover:bg-amber-600",
+    expanded: "bg-amber-500",
+    ring: "ring-amber-500/20 border-amber-400",
+  },
+  {
+    normal: "bg-sky-700 hover:bg-sky-600",
+    expanded: "bg-sky-500",
+    ring: "ring-sky-500/20 border-sky-400",
+  },
+  {
+    normal: "bg-purple-700 hover:bg-purple-600",
+    expanded: "bg-purple-500",
+    ring: "ring-purple-500/20 border-purple-400",
+  },
+  {
+    normal: "bg-green-700 hover:bg-green-600",
+    expanded: "bg-green-500",
+    ring: "ring-green-500/20 border-green-400",
+  },
+  {
+    normal: "bg-yellow-700 hover:bg-yellow-600",
+    expanded: "bg-yellow-500",
+    ring: "ring-yellow-500/20 border-yellow-400",
+  },
+  {
+    normal: "bg-stone-700 hover:bg-stone-600",
+    expanded: "bg-stone-500",
+    ring: "ring-stone-500/20 border-stone-400",
+  },
+  {
+    normal: "bg-slate-700 hover:bg-slate-600",
+    expanded: "bg-slate-500",
+    ring: "ring-slate-500/20 border-slate-400",
+  },
+  {
+    normal: "bg-neutral-700 hover:bg-neutral-600",
+    expanded: "bg-neutral-500",
+    ring: "ring-neutral-500/20 border-neutral-400",
+  },
 ];
-
-const getProjectColor = (projectId) => {
-  let hash = 0;
-
-  for (let i = 0; i < projectId.length; i++) {
-    hash = projectId.charCodeAt(i) + ((hash << 5) - hash);
-  }
-
-  return PROJECT_COLORS[Math.abs(hash) % PROJECT_COLORS.length];
-};
 
 const AdminProjectCalendar = () => {
   const navigate = useNavigate();
@@ -75,6 +125,16 @@ const AdminProjectCalendar = () => {
     onTaskChange: refetchProjects,
     onHolidayChange: refetchHolidays,
   });
+
+  const projectColorMap = useMemo(() => {
+    const map = {};
+
+    (projectStacks || []).forEach((project, index) => {
+      map[project.id] = PROJECT_COLORS[index % PROJECT_COLORS.length];
+    });
+
+    return map;
+  }, [projectStacks]);
 
   const toggleProject = (projectId, e) => {
     e.stopPropagation();
@@ -130,7 +190,7 @@ const AdminProjectCalendar = () => {
 
     const { projectCode, tasks, taskCount, isDeadlineView } = eventInfo.event.extendedProps;
     const projectId = eventInfo.event.id;
-    const color = getProjectColor(projectId);
+    const color = projectColorMap[projectId] || PROJECT_COLORS[0];
     const isExpanded = expandedProjects.has(projectId);
 
     const isHovered = hoveredProjectId === projectId;

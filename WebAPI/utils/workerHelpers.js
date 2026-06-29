@@ -1,5 +1,5 @@
 const Holiday = require("../models/Holiday");
-const { formatDate } = require("../utils/dateHelper");
+const { formatDate, startOfDay, endOfDay } = require("../utils/dateHelper");
 
 const isWeekend = (d) => [0, 6].includes(d.getDay());
 
@@ -8,7 +8,11 @@ const toValidDate = (value) => {
   return isNaN(d.getTime()) ? null : d;
 };
 
-const calculateEmployeeAvailableHours = async (start, end, employeeJoinDate) => {
+const calculateEmployeeAvailableHours = async (
+  start,
+  end,
+  employeeJoinDate,
+) => {
   const startDate = toValidDate(start);
   const endDate = toValidDate(end);
   const joinDate = toValidDate(employeeJoinDate);
@@ -26,9 +30,7 @@ const calculateEmployeeAvailableHours = async (start, end, employeeJoinDate) => 
     date: { $gte: effectiveStart, $lte: endDate },
   }).select("date");
 
-  const holidaySet = new Set(
-    holidays.map((h) => formatDate(h.date))
-  );
+  const holidaySet = new Set(holidays.map((h) => formatDate(h.date)));
 
   let days = 0;
   const current = new Date(effectiveStart);
@@ -46,4 +48,25 @@ const calculateEmployeeAvailableHours = async (start, end, employeeJoinDate) => 
   return days * 9;
 };
 
-module.exports = { calculateEmployeeAvailableHours };
+const calculateWorkingDaysFromHolidaySet = (startDate, endDate, holidaySet) => {
+  const start = startOfDay(startDate);
+  const end = endOfDay(endDate);
+
+  let count = 0;
+  const current = new Date(start);
+
+  while (current <= end) {
+    const dateStr = formatDate(current);
+    const isWeekend = current.getDay() === 0 || current.getDay() === 6;
+
+    if (!isWeekend && !holidaySet.has(dateStr)) {
+      count++;
+    }
+
+    current.setDate(current.getDate() + 1);
+  }
+
+  return count;
+};
+
+module.exports = { calculateEmployeeAvailableHours, calculateWorkingDaysFromHolidaySet };

@@ -1,8 +1,13 @@
+const Holiday = require("../models/Holiday");
 const Project = require("../models/Project");
 const Task = require("../models/Task");
 const TimeLog = require("../models/TimeLog");
+const { formatDate } = require("../utils/dateHelper");
 const { emitDashboardUpdate } = require("../utils/socket");
 const { calculateEstimatedHours } = require("../utils/taskHelpers");
+const {
+  calculateWorkingDaysFromHolidaySet,
+} = require("../utils/workerHelpers");
 
 const emitEvent = (req, event, data) => {
   const io = req.app.get("socketio");
@@ -194,8 +199,38 @@ exports.getAllProjects = async (req, res) => {
         ],
       });
 
+    const startDates = projects.map((p) => p.startDate).filter(Boolean);
+
+    const endDates = projects.map((p) => p.endDate).filter(Boolean);
+
+    let holidaySet = new Set();
+
+    if (startDates.length && endDates.length) {
+      const minStartDate = new Date(
+        Math.min(...startDates.map((d) => new Date(d).getTime())),
+      );
+
+      const maxEndDate = new Date(
+        Math.max(...endDates.map((d) => new Date(d).getTime())),
+      );
+
+      const holidays = await Holiday.find({
+        date: {
+          $gte: minStartDate,
+          $lte: maxEndDate,
+        },
+      }).select("date");
+
+      holidaySet = new Set(holidays.map((h) => formatDate(h.date)));
+    }
+
     let projectsWithStatus = projects.map((project) => ({
       ...project.toObject(),
+      workingDays: calculateWorkingDaysFromHolidaySet(
+        project.startDate,
+        project.endDate,
+        holidaySet,
+      ),
       tasks: (project.tasks || []).map((task) => ({
         ...task.toObject(),
         liveStatus: task.liveStatus,
@@ -250,6 +285,7 @@ exports.getAllProjects = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error(error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
