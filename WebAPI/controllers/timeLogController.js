@@ -3,15 +3,16 @@ const Task = require("../models/Task");
 const Employee = require("../models/Employee");
 const mongoose = require("mongoose");
 const { applyProficiency } = require("../utils/userHelpers");
-const { emitDashboardUpdate, emitToTask } = require("../utils/socket");
+const { emitDashboardUpdate, emitToTask, emitToRole } = require("../utils/socket");
 const { getToday, now } = require("../utils/dateHelper");
 
 const emitEvent = (req, event, data, userId = null) => {
   const io = req.app.get("socketio");
   if (!io) return;
-  io.emit(event, data);
   if (userId) {
     io.to(userId.toString()).emit(event, data);
+  } else {
+    io.emit(event, data);
   }
 };
 
@@ -90,6 +91,11 @@ exports.startTimer = async (req, res) => {
     res.status(201).json(log[0]);
   } catch (err) {
     await session.abortTransaction();
+    if (err.code === 11000) {
+      return res
+        .status(400)
+        .json({ error: "A timer is already running. Please refresh." });
+    }
     res.status(400).json({ error: err.message });
   } finally {
     session.endSession();
@@ -281,7 +287,7 @@ exports.clearLogs = async (req, res) => {
       { $set: { clearedByAdmin: true } },
     );
 
-    emitEvent(req, "timeLogChanged", { date });
+    emitToRole(req, "Admin", "timeLogChanged", { date });
     emitDashboardUpdate(req);
     res.json({
       message: `Logs for ${date} cleared.`,

@@ -491,12 +491,6 @@ exports.deleteUser = async (req, res) => {
       });
     }
 
-    const allAdmins = await User.find({
-      role: "Admin",
-      _id: { $ne: req.user._id },
-      status: "Enable",
-    });
-
     const request = await DeleteRequest.create({
       targetUser: targetUser._id,
       requestedBy: req.user._id,
