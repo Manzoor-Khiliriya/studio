@@ -1,10 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { useGetProjectCalendarQuery } from '../../services/projectApi';
 import { useGetHolidaysQuery } from '../../services/holidayApi';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { HiChevronDown, HiChevronUp, HiOutlineQueueList, HiOutlineFlag } from 'react-icons/hi2';
 import { useSocketEvents } from '../../hooks/useSocketEvents';
 
@@ -113,6 +113,8 @@ const PROJECT_COLORS = [
 
 const AdminProjectCalendar = () => {
   const navigate = useNavigate();
+  const calendarRef = useRef(null);
+  const location = useLocation();
   const [expandedProjects, setExpandedProjects] = useState(new Set());
   const [activeTab, setActiveTab] = useState('all');
   const [hoveredProjectId, setHoveredProjectId] = useState(null);
@@ -125,6 +127,18 @@ const AdminProjectCalendar = () => {
     onTaskChange: refetchProjects,
     onHolidayChange: refetchHolidays,
   });
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const api = calendarRef.current?.getApi();
+      if (api) {
+        api.render();
+        api.updateSize();
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [location.key]);
 
   const projectColorMap = useMemo(() => {
     const map = {};
@@ -305,6 +319,7 @@ const AdminProjectCalendar = () => {
 
       <div className="modern-calendar-wrapper border border-slate-100 rounded-md overflow-hidden bg-slate-50/20 p-2">
         <FullCalendar
+          ref={calendarRef}
           plugins={[dayGridPlugin, interactionPlugin]}
           initialView="dayGridMonth"
           events={allEvents}
