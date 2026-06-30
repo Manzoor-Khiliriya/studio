@@ -113,8 +113,8 @@ exports.emitToTask = async (req, task, event, data) => {
   const users = new Set();
 
   populatedTask.assignedTo.forEach((emp) => {
-    if (emp.user) {
-      users.add(emp.user.toString());
+    if (emp.user?._id) {
+      users.add(emp.user._id.toString());
     }
   });
 
