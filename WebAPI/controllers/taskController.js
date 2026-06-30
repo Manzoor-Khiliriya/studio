@@ -6,7 +6,7 @@ const Employee = require("../models/Employee");
 const TaskAllocation = require("../models/TaskAllocation");
 const sendTaskNotification = require("../utils/notifier");
 const { calculateEstimatedHours } = require("../utils/taskHelpers");
-const { emitDashboardUpdate } = require("../utils/socket");
+const { emitDashboardUpdate, emitToTask } = require("../utils/socket");
 const { getToday } = require("../utils/dateHelper");
 const User = require("../models/User");
 const { ROLE, STATUS } = require("../utils/constant");
@@ -88,7 +88,7 @@ exports.createTask = async (req, res) => {
       activeStatus,
     });
     const populatedTask = await task.populate("project");
-    emitEvent(req, "taskChanged", populatedTask);
+    await emitToTask(req, populatedTask, "taskChanged", populatedTask);
     emitDashboardUpdate(req);
     return res.status(201).json({
       success: true,
@@ -243,7 +243,7 @@ exports.updateTask = async (req, res) => {
       }
     }
 
-    emitEvent(req, "taskChanged", updated);
+    await emitToTask(req, updated, "taskChanged", updated);
     emitDashboardUpdate(req);
 
     return res.status(200).json({
@@ -322,7 +322,7 @@ exports.updateTaskStatus = async (req, res) => {
       .populate("status", "name type")
       .populate("activeStatus", "name type");
 
-    emitEvent(req, "taskChanged", updatedTask);
+    await emitToTask(req, updatedTask, "taskChanged", updatedTask);
     emitDashboardUpdate(req);
     return res.status(200).json({
       success: true,
@@ -821,13 +821,23 @@ exports.deleteTask = async (req, res) => {
         .json({ success: false, message: "Task not found" });
     }
 
+    const populatedTask = await Task.findById(req.params.id)
+      .populate({
+        path: "assignedTo",
+        select: "user",
+      })
+      .session(session);
+
     await Task.deleteOne({ _id: task._id }).session(session);
     await TimeLog.deleteMany({ task: task._id }).session(session);
 
     await session.commitTransaction();
-
-    emitEvent(req, "taskChanged", task._id);
+    
+    await emitToTask(req, populatedTask, "taskChanged", {
+      taskId: populatedTask._id,
+    });
     emitDashboardUpdate(req);
+
     return res.status(204).send();
   } catch (err) {
     await session.abortTransaction();

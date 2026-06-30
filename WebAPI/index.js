@@ -64,9 +64,25 @@ mongoose
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
 
-  socket.on("join", (userId) => {
-    socket.join(userId);
-    console.log(`User ${userId} joined their private notification room`);
+  socket.on("join", (data) => {
+    const { userId, role, departments = [] } = data || {};
+
+    if (!userId) {
+      console.warn("join event received without userId:", data);
+      return;
+    }
+
+    socket.join(userId.toString());
+
+    if (role) socket.join(role);
+
+    departments.forEach((dep) => {
+      socket.join(`department:${dep}`);
+    });
+
+    console.log(`${userId} joined`);
+    console.log(`Role: ${role}`);
+    console.log(`Departments: ${departments.join(", ")}`);
   });
 
   socket.on("disconnect", () => {

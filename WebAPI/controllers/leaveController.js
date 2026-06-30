@@ -6,7 +6,7 @@ const {
   hasLeaveOverlap,
 } = require("../utils/leaveHelpers");
 const sendNotification = require("../utils/notifier");
-const { emitDashboardUpdate } = require("../utils/socket");
+const { emitDashboardUpdate, emitToLeaveUsers } = require("../utils/socket");
 const LeaveBalance = require("../models/LeaveBalance");
 const { now } = require("../utils/dateHelper");
 const { buildApprovalFlow } = require("../utils/leaveApprovalFlow");
@@ -255,7 +255,7 @@ exports.applyLeave = async (req, res) => {
       );
     }
 
-    emitEvent(req, "leaveChanged");
+    await emitToLeaveUsers(req, leave.user, "leaveChanged", leave);
     emitDashboardUpdate(req);
 
     res.status(201).json(leave);
@@ -461,7 +461,7 @@ exports.getAllLeaves = async (req, res) => {
     }
 
     if (view === "leave-history") {
-      let query = {status: "Approved"};
+      let query = { status: "Approved" };
 
       if (filterStart && filterEnd) {
         query.$or = [
@@ -852,8 +852,7 @@ exports.processLeave = async (req, res) => {
         io,
       );
 
-      emitEvent(req, "leaveChanged", leave);
-      emitEvent(req, "leaveChanged", leave, leave.user);
+      await emitToLeaveUsers(req, leave.user, "leaveChanged", leave);
       emitDashboardUpdate(req);
       return res.json(leave);
     }
@@ -901,8 +900,7 @@ exports.processLeave = async (req, res) => {
         );
       }
 
-      emitEvent(req, "leaveChanged");
-      emitEvent(req, "leaveChanged", leave, leave.user);
+      await emitToLeaveUsers(req, leave.user, "leaveChanged", leave);
       emitDashboardUpdate(req);
 
       return res.json({
@@ -1038,8 +1036,7 @@ exports.processLeave = async (req, res) => {
         io,
       );
     }
-    emitEvent(req, "leaveChanged");
-    emitEvent(req, "leaveChanged", leave, leave.user);
+    await emitToLeaveUsers(req, leave.user, "leaveChanged", leave);
     emitDashboardUpdate(req);
     res.json(leave);
   } catch (err) {
@@ -1172,8 +1169,7 @@ exports.updateLeave = async (req, res) => {
     leave.currentLevel = 0;
     leave.status = "Pending";
     await leave.save();
-    emitEvent(req, "leaveChanged");
-    emitEvent(req, "leaveChanged", leave, leave.user);
+    await emitToLeaveUsers(req, leave.user, "leaveChanged", leave);
     emitDashboardUpdate(req);
     res.json(leave);
   } catch (err) {
@@ -1205,8 +1201,9 @@ exports.deleteLeave = async (req, res) => {
         message: "Unauthorized to delete",
       });
     }
-    emitEvent(req, "leaveChanged");
-    emitEvent(req, "leaveChanged", leave._id, leave.user);
+    await emitToLeaveUsers(req, leave.user, "leaveChanged", {
+      leaveId: leave._id,
+    });
     emitDashboardUpdate(req);
     return res.json({ message: "Deleted successfully" });
   } catch (err) {

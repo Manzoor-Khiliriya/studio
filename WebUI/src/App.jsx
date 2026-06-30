@@ -33,7 +33,7 @@ function AppContent() {
   const user = useSelector((state) => state.auth.user);
   useEffect(() => {
     if (user?._id) {
-      connectSocket(user._id);
+      connectSocket(user);
     }
   }, [user]);
 

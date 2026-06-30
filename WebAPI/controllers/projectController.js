@@ -3,17 +3,11 @@ const Project = require("../models/Project");
 const Task = require("../models/Task");
 const TimeLog = require("../models/TimeLog");
 const { formatDate } = require("../utils/dateHelper");
-const { emitDashboardUpdate } = require("../utils/socket");
+const { emitDashboardUpdate, emitToProject } = require("../utils/socket");
 const { calculateEstimatedHours } = require("../utils/taskHelpers");
 const {
   calculateWorkingDaysFromHolidaySet,
 } = require("../utils/workerHelpers");
-
-const emitEvent = (req, event, data) => {
-  const io = req.app.get("socketio");
-  if (!io) return;
-  io.emit(event, data);
-};
 
 exports.createProject = async (req, res) => {
   try {
@@ -40,7 +34,7 @@ exports.createProject = async (req, res) => {
       startDate,
       endDate,
     });
-    emitEvent(req, "projectChanged", project);
+    await emitToProject(req, project._id, "projectChanged", project);
     emitDashboardUpdate(req);
     return res.status(201).json({
       success: true,
@@ -330,7 +324,7 @@ exports.updateProject = async (req, res) => {
         .json({ success: false, message: "Project not found" });
     }
 
-    emitEvent(req, "projectChanged", project);
+    await emitToProject(req, project._id, "projectChanged", project);
     emitDashboardUpdate(req);
     return res.status(200).json({
       success: true,
@@ -383,7 +377,7 @@ exports.updateProjectPayment = async (req, res) => {
       });
     }
 
-    emitEvent(req, "projectChanged", project);
+    await emitToProject(req, project._id, "projectChanged", project);
     emitDashboardUpdate(req);
 
     return res.status(200).json({
@@ -420,7 +414,9 @@ exports.deleteProject = async (req, res) => {
     await Task.deleteMany({ project: projectId });
     await Project.deleteOne({ _id: projectId });
 
-    emitEvent(req, "projectChanged", projectId);
+    await emitToProject(req, project._id, "projectDeleted", {
+      projectId: project._id,
+    });
     emitDashboardUpdate(req);
     return res.status(200).json({
       success: true,

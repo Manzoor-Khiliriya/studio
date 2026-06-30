@@ -17,7 +17,13 @@ exports.login = async (req, res) => {
     }
     const user = await User.findOne({ email })
       .select("+password")
-      .populate("employee");
+      .populate({
+        path: "employee",
+        populate: {
+          path: "departments",
+          select: "name",
+        },
+      });
     if (!user || !(await comparePassword(password, user.password))) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
@@ -60,7 +66,7 @@ exports.forgotPassword = async (req, res) => {
         type: "reset",
         title: "Password Reset OTP",
         otp: otp,
-        message: "A password reset request was generated. Check your email."
+        message: "A password reset request was generated. Check your email.",
       },
       req.app.get("socketio"),
     );

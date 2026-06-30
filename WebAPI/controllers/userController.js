@@ -3,20 +3,13 @@ const Employee = require("../models/Employee");
 const { sanitizeUser } = require("../utils/userHelpers");
 const { hashPassword } = require("../utils/authHelpers");
 const sendNotification = require("../utils/notifier");
-const { emitDashboardUpdate } = require("../utils/socket");
+const {
+  emitDashboardUpdate,
+  emitToEmployeeHierarchy,
+  emitToRole,
+} = require("../utils/socket");
 const { now } = require("../utils/dateHelper");
 const DeleteRequest = require("../models/DeleteRequest");
-
-const emitEvent = (req, event, data, userId = null) => {
-  const io = req.app.get("socketio");
-  if (!io) return;
-
-  if (userId) {
-    io.to(userId.toString()).emit(event, data);
-  } else {
-    io.emit(event, data);
-  }
-};
 
 exports.createUser = async (req, res) => {
   try {
@@ -180,14 +173,19 @@ exports.createUser = async (req, res) => {
         user,
         {
           type: "system",
-          password
+          password,
         },
         io,
       );
     } catch (notifErr) {
       console.error("Notification failed:", notifErr.message);
     }
-    emitEvent(req, "employeeChanged", sanitizeUser(result));
+    await emitToEmployeeHierarchy(
+      req,
+      result._id,
+      "employeeChanged",
+      sanitizeUser(result),
+    );
     emitDashboardUpdate(req);
     res.status(201).json(sanitizeUser(result));
   } catch (err) {
@@ -394,7 +392,12 @@ exports.updateUser = async (req, res) => {
       upsert: true,
     });
     const updated = await User.findById(user._id).populate("employee").lean();
-    emitEvent(req, "employeeChanged", sanitizeUser(updated));
+    await emitToEmployeeHierarchy(
+      req,
+      updated._id,
+      "employeeChanged",
+      sanitizeUser(updated),
+    );
     emitDashboardUpdate(req);
     res.json(sanitizeUser(updated));
   } catch (err) {
@@ -445,10 +448,11 @@ exports.changeUserStatus = async (req, res) => {
     }
     existingUser.status = req.body.status;
     await existingUser.save();
-    emitEvent(req, "employeeChanged", {
+    await emitToEmployeeHierarchy(req, existingUser._id, "employeeChanged", {
       userId: existingUser._id,
       status: existingUser.status,
     });
+
     emitDashboardUpdate(req);
     res.json({
       message: `User is now ${existingUser.status}`,
@@ -469,7 +473,10 @@ exports.deleteUser = async (req, res) => {
     if (targetUser.role !== "Admin") {
       await User.findByIdAndDelete(req.params.id);
       await Employee.findOneAndDelete({ user: targetUser._id });
-      emitEvent(req, "employeeChanged", targetUser._id);
+      await emitToEmployeeHierarchy(req, targetUser._id, "employeeChanged", {
+        userId: targetUser._id,
+      });
+
       emitDashboardUpdate(req);
       return res.json({ message: "User deleted successfully." });
     }
@@ -496,7 +503,7 @@ exports.deleteUser = async (req, res) => {
       approvals: [req.user._id],
     });
 
-    emitEvent(req, "deleteRequestChanged", request);
+    emitToRole(req, "Admin", "deleteRequestChanged", request);
     return res.json({
       message: "Delete request sent to all admins for approval.",
       requestId: request._id,
@@ -525,7 +532,7 @@ exports.respondToDeleteRequest = async (req, res) => {
       request.rejections.push(req.user._id);
       request.status = "Rejected";
       await request.save();
-      emitEvent(req, "deleteRequestChanged", request);
+      emitToRole(req, "Admin", "deleteRequestChanged", request);
       return res.json({ message: "Delete request rejected." });
     }
 
@@ -547,7 +554,7 @@ exports.respondToDeleteRequest = async (req, res) => {
 
       await User.findByIdAndDelete(request.targetUser);
       await Employee.findOneAndDelete({ user: request.targetUser });
-      emitEvent(req, "employeeChanged", request.targetUser);
+      emitToRole(req, "Admin", "employeeChanged", request.targetUser);
       emitDashboardUpdate(req);
       return res.json({
         message: "All admins approved. Admin deleted successfully.",
@@ -555,7 +562,7 @@ exports.respondToDeleteRequest = async (req, res) => {
     }
 
     await request.save();
-    emitEvent(req, "deleteRequestChanged", request);
+    emitToRole(req, "Admin", "deleteRequestChanged", request);
     return res.json({
       message: "Approval recorded. Waiting for other admins.",
     });

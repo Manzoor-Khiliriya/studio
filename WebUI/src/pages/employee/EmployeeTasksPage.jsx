@@ -50,6 +50,7 @@ export default function MyTasksPage() {
 
 
   useSocketEvents({
+    onProjectChange: refetch,
     onTaskChange: refetch,
     onAllocationChange: refetch,
   });

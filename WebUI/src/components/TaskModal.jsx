@@ -232,55 +232,6 @@ export default function TaskModal({
           </div>
         </div>
 
-        <div className="grid grid-cols-12 gap-4">
-
-          <div className="col-span-12 md:col-span-6">
-            <InputGroup label="Initiative Status">
-              <HiOutlineArrowPath className="input-icon" />
-              <CustomDropdown
-                value={formData.status}
-                onChange={(val) =>
-                  setFormData({
-                    ...formData,
-                    status: val,
-                  })
-                }
-                options={statuses
-                  .filter(item => item.status === "Enable")
-                  .map(item => ({
-                    label: item.name,
-                    value: item._id,
-                  }))}
-                className="w-full"
-                buttonClass="form-input text-xs font-bold pl-10"
-              />
-            </InputGroup>
-          </div>
-
-          <div className="col-span-12 md:col-span-6">
-            <InputGroup label="Active Status">
-              <HiOutlineSquares2X2 className="input-icon" />
-              <CustomDropdown
-                value={formData.activeStatus}
-                onChange={(val) =>
-                  setFormData({
-                    ...formData,
-                    activeStatus: val,
-                  })
-                }
-                options={activeStatuses
-                  .filter(item => item.status === "Enable")
-                  .map(item => ({
-                    label: item.name,
-                    value: item._id,
-                  }))}
-                className="w-full"
-                buttonClass="form-input text-xs font-bold pl-10"
-              />
-            </InputGroup>
-          </div>
-        </div>
-
         {/* Description / Metadata */}
         <InputGroup label="Task Description">
           <HiOutlineInformationCircle className="input-icon !top-6 translate-y-0" />

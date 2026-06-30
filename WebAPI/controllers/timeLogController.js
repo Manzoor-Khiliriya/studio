@@ -3,7 +3,7 @@ const Task = require("../models/Task");
 const Employee = require("../models/Employee");
 const mongoose = require("mongoose");
 const { applyProficiency } = require("../utils/userHelpers");
-const { emitDashboardUpdate } = require("../utils/socket");
+const { emitDashboardUpdate, emitToTask } = require("../utils/socket");
 const { getToday, now } = require("../utils/dateHelper");
 
 const emitEvent = (req, event, data, userId = null) => {
@@ -82,8 +82,10 @@ exports.startTimer = async (req, res) => {
     );
 
     await session.commitTransaction();
-    emitEvent(req, "taskChanged", { taskId });
-    emitEvent(req, "timeLogChanged", log[0], userId);
+    await emitToTask(req, taskId, "taskChanged", {
+      taskId,
+    });
+    await emitToTask(req, taskId, "timeLogChanged", log[0]);
     emitDashboardUpdate(req);
     res.status(201).json(log[0]);
   } catch (err) {
@@ -129,7 +131,15 @@ exports.togglePause = async (req, res) => {
       isRunning: true,
       dateString: active.dateString,
     });
-    emitEvent(req, "timeLogChanged", { status: newType, log: newLog }, userId);
+    await emitToTask(req, active.task, "timeLogChanged", {
+      status: newType,
+      log: newLog,
+    });
+
+    await emitToTask(req, active.task, "taskChanged", {
+      taskId: active.task,
+    });
+
     emitDashboardUpdate(req);
     res.json({ status: newType, log: newLog });
   } catch (err) {
@@ -161,8 +171,12 @@ exports.stopTimer = async (req, res) => {
     log.action = "Stop";
 
     await log.save();
-    emitEvent(req, "taskChanged", { taskId: log.task });
-    emitEvent(req, "timeLogChanged", log, req.user._id);
+    await emitToTask(req, log.task, "taskChanged", {
+      taskId: log.task,
+    });
+
+    await emitToTask(req, log.task, "timeLogChanged", log);
+
     emitDashboardUpdate(req);
     res.json({ message: "Session Terminated", log });
   } catch (err) {
