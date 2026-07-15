@@ -7,6 +7,7 @@ import { useGetHolidaysQuery } from '../../services/holidayApi';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { HiChevronDown, HiChevronUp, HiOutlineQueueList, HiOutlineFlag } from 'react-icons/hi2';
 import { useSocketEvents } from '../../hooks/useSocketEvents';
+import Loader from '../../components/Loader';
 
 const PROJECT_COLORS = [
   {
@@ -119,7 +120,7 @@ const AdminProjectCalendar = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [hoveredProjectId, setHoveredProjectId] = useState(null);
 
-  const { data: projectStacks, refetch: refetchProjects } = useGetProjectCalendarQuery("");
+  const { data: projectStacks, refetch: refetchProjects, isLoading } = useGetProjectCalendarQuery("");
   const { data: holidaysData, refetch: refetchHolidays } = useGetHolidaysQuery();
 
   useSocketEvents({
@@ -283,6 +284,8 @@ const AdminProjectCalendar = () => {
 
   const pageTitle = "Project Calendar";
   const iconText = pageTitle.charAt(0).toUpperCase();
+
+  if (isLoading) return <Loader />;
 
   return (
     <div className="max-w-[1750px] mx-auto  p-8 bg-slate-100 min-h-[83vh]">
