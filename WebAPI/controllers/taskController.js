@@ -96,6 +96,7 @@ exports.createTask = async (req, res) => {
       task: populatedTask,
     });
   } catch (err) {
+    console.error(err)
     return res
       .status(500)
       .json({ success: false, message: "Internal server error" });

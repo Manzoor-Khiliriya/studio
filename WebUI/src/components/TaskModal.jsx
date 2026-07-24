@@ -39,9 +39,10 @@ export default function TaskModal({
 
   const { data: estimateData, isFetching: isCalculating } = useGetProjectEstimateQuery(
     formData.project,
-    { skip: !formData.project || !isOpen,
+    {
+      skip: !formData.project || !isOpen,
       refetchOnMountOrArgChange: true
-     }
+    }
   );
 
   const { data: statuses = [] } =
@@ -232,6 +233,57 @@ export default function TaskModal({
           </div>
         </div>
 
+        {/* Status & Active Status */}
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12 md:col-span-6">
+            <InputGroup label="Initiative Status">
+              <HiOutlineSquares2X2 className="input-icon" />
+              <CustomDropdown
+                value={formData.status}
+                onChange={(val) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    status: val,
+                  }))
+                }
+                options={statuses
+                  .filter((item) => item.status === "Enable")
+                  .map((item) => ({
+                    label: item.name,
+                    value: item._id,
+                  }))}
+                placeholder="Select Initiative Status"
+                className="w-full"
+                buttonClass="form-input pl-10"
+              />
+            </InputGroup>
+          </div>
+
+          <div className="col-span-12 md:col-span-6">
+            <InputGroup label="Active Status">
+              <HiOutlineArrowPath className="input-icon" />
+              <CustomDropdown
+                value={formData.activeStatus}
+                onChange={(val) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    activeStatus: val,
+                  }))
+                }
+                options={activeStatuses
+                  .filter((item) => item.status === "Enable")
+                  .map((item) => ({
+                    label: item.name,
+                    value: item._id,
+                  }))}
+                placeholder="Select Active Status"
+                className="w-full"
+                buttonClass="form-input pl-10"
+              />
+            </InputGroup>
+          </div>
+        </div>
+
         {/* Description / Metadata */}
         <InputGroup label="Task Description">
           <HiOutlineInformationCircle className="input-icon !top-6 translate-y-0" />
@@ -243,6 +295,7 @@ export default function TaskModal({
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           />
         </InputGroup>
+
       </form>
     </CommonModal>
   );

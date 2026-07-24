@@ -277,11 +277,11 @@ const AdminTaskPerformancePage = () => {
                                 <div className="flex items-center justify-end gap-5 border-l border-slate-100 pl-5 w-1/4">
                                   <Metric
                                     label="Done"
-                                    value={`${(task.consumedHours || 0).toFixed(1)}h`}
+                                    value={`${(task.consumedHours || 0).toFixed(1)} h`}
                                   />
                                   <Metric
                                     label="Target"
-                                    value={`${task.allocatedTime}h`}
+                                    value={`${(task.allocatedTime || 0).toFixed(1)} h`}
                                   />
                                   {isTaskOver ? (
                                     <div className="text-right bg-rose-50 px-2 rounded border border-rose-100">
@@ -293,7 +293,7 @@ const AdminTaskPerformancePage = () => {
                                         {(
                                           task.consumedHours -
                                           task.allocatedTime
-                                        ).toFixed(1)}
+                                          || 0).toFixed(1)}
                                         h
                                       </span>
                                     </div>
@@ -306,8 +306,7 @@ const AdminTaskPerformancePage = () => {
                                         {(
                                           task.allocatedTime -
                                           task.consumedHours
-                                        ).toFixed(1)}
-                                        h
+                                        || 0).toFixed(1)} h
                                       </span>
                                     </div>
                                   )}

@@ -583,6 +583,12 @@ exports.getTaskPerformanceReport = async (req, res) => {
           },
         },
       },
+      {
+        $sort: {
+          createdAt: -1,
+          _id: -1,
+        },
+      },
     ]);
     const totalProjects = await Project.countDocuments(projectQuery);
 
