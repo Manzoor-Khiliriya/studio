@@ -622,7 +622,7 @@ exports.getAllLeaves = async (req, res) => {
     // --- VIEW 3: QUOTA ---
     if (view === "quota") {
       const userQuery = {
-        role: { $in: ["Employee", "Manager", "Hr Manager"] },
+        role: { $ne: "Admin" },
       };
       if (search) {
         userQuery.name = { $regex: search, $options: "i" };

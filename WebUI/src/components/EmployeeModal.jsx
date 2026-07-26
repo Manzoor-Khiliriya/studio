@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   HiOutlineUser, HiOutlineBriefcase, HiOutlineLockClosed,
   HiOutlineChartBar, HiOutlineEye, HiOutlineEyeSlash,
@@ -61,18 +61,23 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
   );
 
   const isEmployeeRole = ["Employee", "Hr Employee", "GAD Employee"].includes(formData.role);
-  const managers = (isEmployeeRole && !formData.departments.length)
-    ? []
-    : (departmentUsers.managers || []);
-  const admins = (isEmployeeRole && !formData.departments.length)
-    ? []
-    : (departmentUsers.admins || []);
-  const hrManagers = (departmentUsers.hrManagers || []).filter((hr) => {
-    return !(
-      editData?.user?._id === hr._id &&
-      formData.role !== "Hr Manager"
-    );
-  });
+  const managers = useMemo(() => (
+    (isEmployeeRole && !formData.departments.length)
+      ? []
+      : (departmentUsers.managers || [])
+  ), [isEmployeeRole, formData.departments, departmentUsers.managers]);
+
+  const admins = useMemo(() => (
+    (isEmployeeRole && !formData.departments.length)
+      ? []
+      : (departmentUsers.admins || [])
+  ), [isEmployeeRole, formData.departments, departmentUsers.admins]);
+
+  const hrManagers = useMemo(() => (
+    (departmentUsers.hrManagers || []).filter((hr) => (
+      !(editData?.user?._id === hr._id && formData.role !== "Hr Manager")
+    ))
+  ), [departmentUsers.hrManagers, editData, formData.role]);
 
   const activeDepartments = departments.filter(
     (dept) => dept.status === "Enable"
@@ -126,21 +131,21 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
   }, [editData, isOpen]);
 
   useEffect(() => {
-    setFormData((prev) => ({
-      ...prev,
+    setFormData((prev) => {
+      const nextManager = managers.some((m) => m._id === prev.manager) ? prev.manager : "";
+      const nextAdmin = prev.admin.filter((id) => admins.some((a) => a._id === id));
+      const nextHrManager = hrManagers.some((h) => h._id === prev.hrManager) ? prev.hrManager : "";
 
-      manager: managers.some((m) => m._id === prev.manager)
-        ? prev.manager
-        : "",
+      const adminChanged =
+        nextAdmin.length !== prev.admin.length ||
+        nextAdmin.some((id, i) => id !== prev.admin[i]);
 
-      admin: prev.admin.filter((id) =>
-        admins.some((a) => a._id === id)
-      ),
+      if (nextManager === prev.manager && !adminChanged && nextHrManager === prev.hrManager) {
+        return prev;
+      }
 
-      hrManager: hrManagers.some((h) => h._id === prev.hrManager)
-        ? prev.hrManager
-        : "",
-    }));
+      return { ...prev, manager: nextManager, admin: nextAdmin, hrManager: nextHrManager };
+    });
   }, [managers, admins, hrManagers]);
 
   const handleChange = (e) => {
