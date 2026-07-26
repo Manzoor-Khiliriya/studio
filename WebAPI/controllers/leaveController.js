@@ -623,6 +623,7 @@ exports.getAllLeaves = async (req, res) => {
     if (view === "quota") {
       const userQuery = {
         role: { $ne: "Admin" },
+        status: "Enable",
       };
       if (search) {
         userQuery.name = { $regex: search, $options: "i" };
