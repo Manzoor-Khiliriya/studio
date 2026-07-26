@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { FiClock, FiMinusCircle, FiActivity } from "react-icons/fi";
 
-export default function TaskCard({ task, isTracking }) {
+export default function TaskCard({ user, task, isTracking }) {
   const getStatusStyles = (status) => {
     switch (status) {
       case "In progress":
@@ -45,19 +45,23 @@ export default function TaskCard({ task, isTracking }) {
               </span>
 
               {/* ROLE */}
-              <span className="px-2 py-1 text-[9px] font-bold bg-slate-100 text-slate-900 rounded-md">
-                {task.allocation?.role || "Main"}
-              </span>
+              {user?.role !== "Admin" && (
+                <>
+                  <span className="px-2 py-1 text-[9px] font-bold bg-slate-100 text-slate-900 rounded-md">
+                    {task.allocation?.role || "Main"}
+                  </span>
 
-              {/* QUEUE PRIORITY */}
-              <span className="px-2 py-1 text-[9px] font-bold bg-red-100 text-red-600 rounded-md">
-                Priority {task.allocation?.priorityOrder || "-"}
-              </span>
+                  {/* QUEUE PRIORITY */}
+                  <span className="px-2 py-1 text-[9px] font-bold bg-red-100 text-red-600 rounded-md">
+                    Priority {task.allocation?.priorityOrder || "-"}
+                  </span>
 
-              {/* HOURS */}
-              <span className="px-2 py-1 text-[9px] font-bold bg-yellow-100 text-gray-900 rounded-md">
-                {task.allocation?.todayAllocatedFormatted || "0 Hrs 0 Mins 0 Secs"}
-              </span>
+                  {/* HOURS */}
+                  <span className="px-2 py-1 text-[9px] font-bold bg-yellow-100 text-gray-900 rounded-md">
+                    {task.allocation?.todayAllocatedFormatted || "0 Hrs 0 Mins 0 Secs"}
+                  </span>
+                </>
+              )}
             </div>
 
             {isTracking && (

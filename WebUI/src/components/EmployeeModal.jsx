@@ -104,11 +104,10 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
         manager:
           editData?.manager && typeof editData.manager === "object"
             ? editData.manager._id
-            : "Not Available",
+            : "",
         admin:
           (editData?.admin || [])
-            .filter((a) => a && typeof a === "object")
-            .map((a) => a._id),
+            .map((a) => (typeof a === "object" ? a._id : a)),
         hrManager:
           editData?.hrManager && typeof editData.hrManager === "object"
             ? editData.hrManager._id
@@ -124,6 +123,24 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
       });
     }
   }, [editData, isOpen]);
+
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+
+      manager: managers.some((m) => m._id === prev.manager)
+        ? prev.manager
+        : "",
+
+      admin: prev.admin.filter((id) =>
+        admins.some((a) => a._id === id)
+      ),
+
+      hrManager: hrManagers.some((h) => h._id === prev.hrManager)
+        ? prev.hrManager
+        : "",
+    }));
+  }, [managers, admins, hrManagers]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

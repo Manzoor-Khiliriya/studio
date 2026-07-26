@@ -170,6 +170,7 @@ export default function AdminOverView() {
                                                 {paginatedMissions.length > 0 ? (
                                                     paginatedMissions.map((task) => (
                                                         <TaskCard
+                                                            user={user}
                                                             key={task.id}
                                                             task={task}
                                                             isTracking={runningTask === task.title}

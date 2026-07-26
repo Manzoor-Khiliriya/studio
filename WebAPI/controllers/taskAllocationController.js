@@ -98,9 +98,13 @@ exports.getEmployeeAllocations = async (req, res) => {
 
     const validAllocations = allocations.filter((allocation) => {
       const project = allocation.task?.project;
+      const role = allocation.employee?.user?.role;
+
       if (!project) return false;
+      if (role === "Admin") return false;
       if (project.deleteStatus === "Enable") return false;
-      if (["Submitted", "Inactive", "On hold"].includes(project.status)) return false;
+      if (["Submitted", "Inactive", "On hold"].includes(project.status))
+        return false;
 
       return true;
     });
