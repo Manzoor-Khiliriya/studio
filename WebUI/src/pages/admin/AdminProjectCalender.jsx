@@ -120,7 +120,9 @@ const AdminProjectCalendar = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [hoveredProjectId, setHoveredProjectId] = useState(null);
 
-  const { data: projectStacks, refetch: refetchProjects, isLoading } = useGetProjectCalendarQuery("");
+  const { data: projectStacks, refetch: refetchProjects, isLoading, isFetching } = useGetProjectCalendarQuery("", {
+    refetchOnMountOrArgChange: true,
+  });
   const { data: holidaysData, refetch: refetchHolidays } = useGetHolidaysQuery();
 
   useSocketEvents({
@@ -285,7 +287,7 @@ const AdminProjectCalendar = () => {
   const pageTitle = "Project Calendar";
   const iconText = pageTitle.charAt(0).toUpperCase();
 
-  if (isLoading) return <Loader />;
+  if (isLoading || isFetching) return <Loader />;
 
   return (
     <div className="max-w-[1750px] mx-auto  p-8 bg-slate-100 min-h-[83vh]">
