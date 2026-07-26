@@ -56,6 +56,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
         ["Employee", "Hr Employee", "GAD Employee"].includes(formData.role)
         && !formData.departments.length
       ),
+      refetchOnMountOrArgChange: true,
     }
   );
 
