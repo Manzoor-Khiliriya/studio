@@ -117,6 +117,16 @@ export default function TaskModal({
       return;
     }
 
+    if (!formData.status) {
+      toast.error("Select Initiative Status");
+      return;
+    }
+
+    if (!formData.activeStatus) {
+      toast.error("Select Active Status");
+      return;
+    }
+
     const loadingToast = toast.loading(isEditing ? "Synchronizing updates..." : "Initializing task...");
 
     try {
