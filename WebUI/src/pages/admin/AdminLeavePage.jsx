@@ -189,7 +189,7 @@ export default function AdminLeavePage() {
       endDate: customDates.end,
     },
     {
-      refetchOnMountOrArgChange: false,
+      refetchOnMountOrArgChange: true,
       keepUnusedDataFor: 300,
     },
   );

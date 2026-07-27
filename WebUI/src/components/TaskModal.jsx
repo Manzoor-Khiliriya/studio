@@ -246,7 +246,7 @@ export default function TaskModal({
         {/* Status & Active Status */}
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12 md:col-span-6">
-            <InputGroup label="Initiative Status">
+            <InputGroup label="Initiative Status *">
               <HiOutlineSquares2X2 className="input-icon" />
               <CustomDropdown
                 value={formData.status}
@@ -270,7 +270,7 @@ export default function TaskModal({
           </div>
 
           <div className="col-span-12 md:col-span-6">
-            <InputGroup label="Active Status">
+            <InputGroup label="Active Status *">
               <HiOutlineArrowPath className="input-icon" />
               <CustomDropdown
                 value={formData.activeStatus}
