@@ -123,7 +123,9 @@ const AdminProjectCalendar = () => {
   const { data: projectStacks, refetch: refetchProjects, isLoading, isFetching } = useGetProjectCalendarQuery("", {
     refetchOnMountOrArgChange: true,
   });
-  const { data: holidaysData, refetch: refetchHolidays } = useGetHolidaysQuery();
+  const { data: holidaysData, refetch: refetchHolidays } = useGetHolidaysQuery("", {
+    refetchOnMountOrArgChange: true,
+  });
 
   useSocketEvents({
     onProjectChange: refetchProjects,
