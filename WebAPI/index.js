@@ -25,6 +25,7 @@ const server = http.createServer(app);
 const helmet = require("helmet");
 const compression = require("compression");
 const rateLimit = require("express-rate-limit");
+const initializeAdmin = require("./utils/initialAdmin");
 
 app.set("trust proxy", 1);
 app.use(helmet());
@@ -54,8 +55,11 @@ app.use(express.json());
 
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => {
+  .then(async () => {
     console.log("DB Connected");
+
+    await initializeAdmin();
+
     const cronJobs = require("./utils/cronJobs");
     cronJobs(io);
   })

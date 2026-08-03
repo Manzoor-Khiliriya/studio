@@ -111,7 +111,7 @@ exports.createUser = async (req, res) => {
       password: await hashPassword(password),
       plainPassword: password,
       role: role || "Employee",
-      designation: designation || "Junior Developer",
+      designation: designation || null,
       status: "Enable",
     });
 
