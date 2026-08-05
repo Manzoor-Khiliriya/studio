@@ -213,7 +213,7 @@ exports.updateTask = async (req, res) => {
             emp.user,
             {
               type: "task",
-              message: `A new task "${task.title}" has been assigned to you under project"${updated.project?.title}". Please check it out.`,
+              message: `A new task "${task.title}" has been assigned to you under project "${updated.project?.title}". Please check it out.`,
               taskId: task._id,
             },
             io,
