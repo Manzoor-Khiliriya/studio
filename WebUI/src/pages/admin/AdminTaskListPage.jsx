@@ -523,7 +523,7 @@ export default function AdminTasksPage() {
                       }}
                       options={[
                         { label: "All Phases", value: "All" },
-                        ...statuses.map(item => ({
+                        ...statuses.filter((item) => item.status === "Enable").map(item => ({
                           label: item.name,
                           value: item._id,
                         })),
