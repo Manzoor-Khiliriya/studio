@@ -186,7 +186,7 @@ const AdminTaskPerformancePage = () => {
                         <p
                           className={`text-[10px] font-black uppercase text-center ${isExpanded ? "text-white" : "text-slate-800"}`}
                         >
-                          {group?.projectType}
+                          {group?.projectType?.name || ""}
                         </p>
                       </div>
 
