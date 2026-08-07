@@ -537,12 +537,20 @@ exports.getTaskDetail = async (req, res) => {
 
     const totalConsumedHours = totalConsumedSeconds / 3600;
 
+    const totalRawConsumedSeconds = (task.timeLogs || [])
+      .filter((log) => log.logType === "work")
+      .reduce((sum, log) => sum + (log.rawDurationSeconds || 0), 0);
+
+    const totalRawConsumedHours = totalRawConsumedSeconds / 3600;
+
     const taskData = {
       ...task.toObject(),
       allocations: allocationsWithLive,
       liveStatus: task.liveStatus,
-      totalConsumedSeconds,
       totalConsumedHours,
+      totalConsumedSeconds,
+      totalRawConsumedSeconds,
+      totalRawConsumedHours,
       stats: {
         totalAssigned: task.assignedTo?.length || 0,
         totalHistoricalContributors: historicalContributors.length,

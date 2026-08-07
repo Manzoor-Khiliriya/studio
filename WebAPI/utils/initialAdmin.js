@@ -12,7 +12,7 @@ async function initializeAdmin() {
 
   const user = await User.create({
     name: process.env.ADMIN_NAME,
-    email: process.env.ADMIN_EMAIL.toLowerCase(),
+    email: process.env.ADMIN_EMAIL?.toLowerCase(),
     password: await hashPassword(process.env.ADMIN_PASSWORD),
     plainPassword: process.env.ADMIN_PASSWORD,
     role: "Admin",

@@ -96,6 +96,7 @@ exports.startTimer = async (req, res) => {
         .status(400)
         .json({ error: "A timer is already running. Please refresh." });
     }
+    console.error("Error starting timer:", err);
     res.status(400).json({ error: err.message });
   } finally {
     session.endSession();

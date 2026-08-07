@@ -101,17 +101,19 @@ export default function AdminTaskDetailPage() {
   }, [task?.allocations]);
 
   // Derived Values (Memoized for performance)
-  const { consumedSec, allocatedSec, timeData, employeePieData } =
+  const { consumedSec, consumedRawSec, allocatedSec, timeData, employeePieData } =
     useMemo(() => {
       if (!task)
         return {
           consumedSec: 0,
+          consumedRawSec: 0,
           allocatedSec: 0,
           timeData: [],
           employeePieData: [],
         };
 
       const cSec = (task.totalConsumedHours || 0) * 3600;
+      const cRSec = (task?.totalRawConsumedHours || 0) * 3600;
       const aSec = (task.allocatedTime || 0) * 3600;
 
       // Time Distribution Chart Data
@@ -130,6 +132,7 @@ export default function AdminTaskDetailPage() {
 
       return {
         consumedSec: cSec,
+        consumedRawSec: cRSec,
         allocatedSec: aSec,
         timeData: tData,
         employeePieData: eData,
@@ -257,6 +260,7 @@ export default function AdminTaskDetailPage() {
                 value={formatToHrMin(consumedSec)}
                 icon={<HiOutlineClock />}
               />
+
               <MetricBox
                 label="Estimate"
                 value={formatHoursToDays(task.estimatedTime || 0)}
@@ -370,8 +374,7 @@ export default function AdminTaskDetailPage() {
             <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
               <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                  <HiOutlineClock className="text-orange-500" /> Performance
-                  Analysis (All Records)
+                  <HiOutlineClock className="text-orange-500" /> Performance Analysis (All Records)
                 </h3>
                 <span className="text-[11px] font-black text-black uppercase bg-white ">
                   {task.stats?.totalHistoricalContributors || 0} Total
@@ -548,6 +551,12 @@ export default function AdminTaskDetailPage() {
                       : "TBD"
                   }
                 />
+
+                <MetaItem
+                  label="Full Time Spent"
+                  value={formatToHrMin(consumedRawSec)}
+                />
+
               </div>
             </div>
           </div>
