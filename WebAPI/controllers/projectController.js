@@ -448,6 +448,23 @@ exports.getTaskPerformanceReport = async (req, res) => {
       { $skip: skip },
       { $limit: parseInt(limit) },
 
+      // Resolve projectType name
+      {
+        $lookup: {
+          from: "taskstatuses",
+          localField: "projectType",
+          foreignField: "_id",
+          as: "projectTypeData",
+        },
+      },
+      {
+        $addFields: {
+          projectTypeName: {
+            $arrayElemAt: ["$projectTypeData.name", 0],
+          },
+        },
+      },
+
       // Get tasks
       {
         $lookup: {
@@ -546,7 +563,7 @@ exports.getTaskPerformanceReport = async (req, res) => {
         $group: {
           _id: "$_id",
           projectCode: { $first: "$projectCode" },
-          projectType: { $first: "$projectType" },
+          projectType: { $first: "$projectTypeName" },
           title: { $first: "$title" },
           endDate: { $first: "$endDate" },
           createdAt: { $first: "$createdAt" },

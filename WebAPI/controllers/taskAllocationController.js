@@ -79,6 +79,10 @@ exports.getEmployeeAllocations = async (req, res) => {
           {
             path: "project",
             select: "title projectType status deleteStatus",
+            populate: {
+              path: "projectType",
+              select: "name",
+            },
           },
           {
             path: "timeLogs",
