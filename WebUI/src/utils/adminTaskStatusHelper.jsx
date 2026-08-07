@@ -3,9 +3,10 @@ import { FiEdit, FiTrash2 } from "react-icons/fi";
 export const getTaskStatusColumns = ({
     onEdit,
     onDelete,
+    type = "status",
 }) => [
         {
-            header: "Status Name",
+            header: type === "projectType" ? "Project Type Name" : "Status Name",
             render: (item) => (
                 <div className="font-bold text-[12px] text-slate-700">
                     {item.name}

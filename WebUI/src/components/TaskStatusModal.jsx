@@ -5,7 +5,8 @@ import { HiOutlineSquares2X2 } from "react-icons/hi2";
 import CustomDropdown from "./CustomDropdown";
 import {
   useCreateTaskStatusMutation,
-useUpdateTaskStatusMasterMutation} from "../services/taskApi";
+  useUpdateTaskStatusMasterMutation
+} from "../services/taskApi";
 
 export default function TaskStatusModal({
   isOpen,
@@ -88,16 +89,18 @@ export default function TaskStatusModal({
       onClose={onClose}
       title={
         isEditing
-          ? `Update ${
-              type === "status"
-                ? "Initiative Status"
-                : "Active Status"
-            }`
-          : `Create ${
-              type === "status"
-                ? "Initiative Status"
-                : "Active Status"
-            }`
+          ? `Update ${type === "status"
+            ? "Initiative Status"
+            : type === "activeStatus"
+              ? "Active Status"
+              : "Project Type"
+          }`
+          : `Create ${type === "status"
+            ? "Initiative Status"
+            : type === "activeStatus"
+              ? "Active Status"
+              : "Project Type"
+          }`
       }
       submitText={isEditing ? "Update" : "Create"}
       onSubmit={handleSubmit}
@@ -105,7 +108,15 @@ export default function TaskStatusModal({
       maxWidth="max-w-lg"
     >
       <div className="space-y-4">
-        <InputGroup label="Status Name *">
+        <InputGroup
+          label={
+            type === "status"
+              ? "Status Name *"
+              : type === "activeStatus"
+                ? "Status Name *"
+                : "Project Type Name *"
+          }
+        >
           <HiOutlineSquares2X2 className="input-icon" />
           <input
             value={formData.name}
@@ -116,7 +127,11 @@ export default function TaskStatusModal({
               })
             }
             className="form-input"
-            placeholder="Enter status name"
+            placeholder={
+              type === "projectType"
+                ? "Enter project type name"
+                : "Enter status name"
+            }
           />
         </InputGroup>
 

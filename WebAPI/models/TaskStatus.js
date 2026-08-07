@@ -10,7 +10,7 @@ const taskStatusSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["status", "activeStatus"],
+      enum: ["status", "activeStatus", "projectType"],
       required: true,
     },
     order: {

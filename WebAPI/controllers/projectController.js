@@ -111,7 +111,6 @@ exports.getAllProjects = async (req, res) => {
           { projectCode: { $regex: search, $options: "i" } },
           { title: { $regex: search, $options: "i" } },
           { clientName: { $regex: search, $options: "i" } },
-          { projectType: { $regex: search, $options: "i" } },
           { status: { $regex: search, $options: "i" } },
           { invoiceNumber: { $regex: search, $options: "i" } },
         ];
@@ -173,6 +172,7 @@ exports.getAllProjects = async (req, res) => {
 
     const projects = await Project.find(query)
       .sort({ createdAt: -1 })
+      .populate("projectType", "name type status")
       .populate({
         path: "tasks",
         match: {

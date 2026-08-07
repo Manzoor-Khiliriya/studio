@@ -132,12 +132,14 @@ export default function AdminTasksPage() {
     useGetTaskStatusesQuery(
       settingsTab === "Initiative Status"
         ? "status"
-        : "activeStatus"
-      ,
+        : settingsTab === "Active Status"
+          ? "activeStatus"
+          : "projectType",
       {
-        refetchOnMountOrArgChange:
-          true,
+        refetchOnMountOrArgChange: true,
       });
+
+  const { data: projectTypeOptions = [] } = useGetTaskStatusesQuery("projectType");
 
   const [deleteTask, { isLoading: isDeletingTask }] = useDeleteTaskMutation();
   const [updateProject, { isLoading: isDeactivating }] =
@@ -214,8 +216,14 @@ export default function AdminTasksPage() {
         onDelete: (row) => {
           setStatusToDelete(row);
         },
+        type:
+          settingsTab === "Initiative Status"
+            ? "status"
+            : settingsTab === "Active Status"
+              ? "activeStatus"
+              : "projectType",
       }),
-    []
+    [settingsTab]
   );
 
   const selectedProjects =
@@ -370,7 +378,7 @@ export default function AdminTasksPage() {
     const rows = projectGroups.map((p) => [
       p.projectCode,
       p.title,
-      p.projectType,
+      p.projectType?.name || "",
       p.clientName || "Direct Client",
       p.createdAt ? new Date(p.createdAt).toLocaleDateString("en-IN") : "",
       p.status,
@@ -585,9 +593,7 @@ export default function AdminTasksPage() {
                     Project Type
                   </label>
                   <CustomDropdown
-                    value={
-                      activeTab === "live" ? liveProjectType : allProjectType
-                    }
+                    value={activeTab === "live" ? liveProjectType : allProjectType}
                     onChange={(val) => {
                       if (activeTab === "live") {
                         setLiveProjectType(val);
@@ -596,7 +602,10 @@ export default function AdminTasksPage() {
                       }
                       setCurrentPage(1);
                     }}
-                    options={["All", "Standard Exterior", "Standard Interior", "Revision Exterior", "Revision Interior", "Interior Design and Fitout"]}
+                    options={[
+                      { label: "All", value: "All" },
+                      ...projectTypeOptions.filter((item) => item.status === "Enable").map((pt) => ({ label: pt.name, value: pt._id })),
+                    ]}
                     className="min-w-35"
                   />
                 </div>
@@ -796,7 +805,7 @@ export default function AdminTasksPage() {
         {activeTab === "Settings" ? (
           <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm p-6">
             <div className="inline-flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200 shadow-sm mb-3">
-              {["Initiative Status", "Active Status"].map((tab) => (
+              {["Initiative Status", "Active Status", "Project Type"].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setSettingsTab(tab)}
@@ -888,7 +897,7 @@ export default function AdminTasksPage() {
                               Project Type
                             </span>
                             <TruncateText
-                              text={project?.projectType}
+                              text={project?.projectType?.name}
                               className="text-[11px] text-center font-bold w-30 text-slate-800 font-mono uppercase"
                             />
                           </div>
@@ -1271,7 +1280,9 @@ export default function AdminTasksPage() {
         type={
           settingsTab === "Initiative Status"
             ? "status"
-            : "activeStatus"
+            : settingsTab === "Active Status"
+              ? "activeStatus"
+              : "projectType"
         }
       />
 

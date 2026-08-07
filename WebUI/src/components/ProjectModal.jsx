@@ -14,16 +14,18 @@ import {
   useUpdateProjectMutation
 } from "../services/projectApi";
 import CustomDropdown from "./CustomDropdown";
+import { useGetTaskStatusesQuery } from "../services/taskApi";
 
 export default function ProjectModal({ isOpen, onClose, editProject = null, activeTab }) {
   const isEditing = !!editProject;
 
   const [createProject, { isLoading: isCreating }] = useCreateProjectMutation();
   const [updateProject, { isLoading: isUpdating }] = useUpdateProjectMutation();
+  const { data: projectTypes = [] } = useGetTaskStatusesQuery("projectType");
 
   const [formData, setFormData] = useState({
     projectCode: "",
-    projectType: "Standard Exterior",
+    projectType: "",
     title: "",
     clientName: "",
     startDate: "",
@@ -36,7 +38,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
     if (editProject && isOpen) {
       setFormData({
         projectCode: editProject.projectCode || "",
-        projectType: editProject.projectType || "Standard Exterior",
+        projectType: editProject.projectType?._id || editProject.projectType || "",
         title: editProject.title || "",
         clientName: editProject.clientName || "",
         startDate: editProject.startDate ? new Date(editProject.startDate).toISOString().split('T')[0] : "",
@@ -47,7 +49,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
     } else if (isOpen) {
       setFormData({
         projectCode: "",
-        projectType: "Standard Exterior",
+        projectType: projectTypes[0]?._id || "",
         title: "",
         clientName: "",
         startDate: "",
@@ -131,13 +133,12 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
               onChange={(val) =>
                 setFormData({ ...formData, projectType: val })
               }
-              options={[
-                { label: "Standard Exterior", value: "Standard Exterior" },
-                { label: "Standard Interior", value: "Standard Interior" },
-                { label: "Revision Exterior", value: "Revision Exterior" },
-                { label: "Revision Interior", value: "Revision Interior" },
-                { label: "Interior Design and Fitout", value: "Interior Design and Fitout" }
-              ]}
+              options={projectTypes
+                .filter((item) => item.status === "Enable")
+                .map((pt) => ({
+                  label: pt.name,
+                  value: pt._id,
+                }))}
               className="w-full"
               buttonClass="form-input text-xs font-bold pl-10"
             />
