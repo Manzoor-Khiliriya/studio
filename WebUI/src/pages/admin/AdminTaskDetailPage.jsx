@@ -553,7 +553,7 @@ export default function AdminTaskDetailPage() {
                 />
 
                 <MetaItem
-                  label="Full Time Spent"
+                  label="Full Project Time"
                   value={formatToHrMin(consumedRawSec)}
                 />
 
