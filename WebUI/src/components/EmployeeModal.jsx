@@ -157,6 +157,10 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
   };
 
   const handleSubmit = async () => {
+    if (formData.role !== "Admin" && !formData.employeeCode) {
+      return toast.error("Please enter an employee code");
+    }
+
     if (!formData.designation) {
       return toast.error("Please select a designation");
     }

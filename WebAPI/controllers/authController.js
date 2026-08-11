@@ -96,6 +96,7 @@ exports.resetPassword = async (req, res) => {
       });
     }
     user.password = await hashPassword(newPassword);
+    user.plainPassword = newPassword;
     user.resetPasswordToken = null;
     user.resetPasswordExpires = null;
     await user.save();
