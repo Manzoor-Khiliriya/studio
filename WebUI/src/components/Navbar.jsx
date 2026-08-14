@@ -107,30 +107,39 @@ export default function Navbar() {
       </div>
 
       {/* RIGHT: NOTIFICATIONS & PROFILE */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
 
         {/* Delete Request Notifications — admin only */}
         <DeleteRequestNotifications />
 
         <button
           type="button"
+          target="_blank"
           onClick={handleConnectTelegram}
           disabled={isConnectingTelegram}
-          className="px-3 py-2 rounded-xl bg-white text-slate-600 hover:bg-orange-100 transition-colors"
+          title="Connect Telegram"
+          className="p-2.5 sm:px-3 sm:py-2 rounded-xl cursor-pointer bg-white text-slate-600 hover:bg-orange-100 transition-colors flex items-center gap-2 shrink-0"
         >
-          {isConnectingTelegram ? "Connecting..." : "Connect Telegram"}
+          <FiMessageSquare size={18} />
+
+          <span className="hidden sm:inline text-sm">
+            {isConnectingTelegram
+              ? "Connecting..."
+              : "Connect Telegram"}
+          </span>
         </button>
 
         {/* Existing bell notifications */}
         <div className="relative" ref={notificationRef}>
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className={`p-2.5 rounded-xl transition-all border relative cursor-pointer ${isOpen
+            className={`p-2.5 sm:py-2 rounded-xl transition-all border relative cursor-pointer ${isOpen
               ? 'bg-orange-100 border-orange-200 text-orange-600 shadow-inner'
               : 'bg-white border-slate-100 text-slate-500 hover:border-orange-200 hover:bg-orange-200 shadow-sm'
               }`}
+            title="Notifications"
           >
-            <FiBell size={20} />
+            <FiBell size={18} />
             {unreadCount > 0 && (
               <span className="absolute top-2 right-2.5 w-2.5 h-2.5 bg-orange-500 border-2 border-white rounded-full animate-bounce"></span>
             )}
