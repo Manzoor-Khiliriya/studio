@@ -118,7 +118,7 @@ export default function Navbar() {
           onClick={handleConnectTelegram}
           disabled={isConnectingTelegram}
           title="Connect Telegram"
-          className="p-2.5 sm:px-3 sm:py-2 rounded-xl cursor-pointer bg-white text-slate-600 hover:bg-orange-100 transition-colors flex items-center gap-2 shrink-0"
+          className="p-2.5 rounded-xl cursor-pointer bg-white text-slate-600 hover:bg-orange-100 transition-colors flex items-center gap-2 shrink-0"
         >
           <FiMessageSquare size={18} />
 
@@ -133,7 +133,7 @@ export default function Navbar() {
         <div className="relative" ref={notificationRef}>
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className={`p-2.5 sm:py-2 rounded-xl transition-all border relative cursor-pointer ${isOpen
+            className={`p-2.5 rounded-xl transition-all border relative cursor-pointer ${isOpen
               ? 'bg-orange-100 border-orange-200 text-orange-600 shadow-inner'
               : 'bg-white border-slate-100 text-slate-500 hover:border-orange-200 hover:bg-orange-200 shadow-sm'
               }`}
