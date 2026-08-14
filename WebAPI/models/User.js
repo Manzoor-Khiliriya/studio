@@ -22,7 +22,15 @@ const userSchema = new mongoose.Schema(
     plainPassword: { type: String, select: false },
     role: {
       type: String,
-      enum: ["Admin", "Employee", "Manager","Hr Employee", "Hr Manager" ,"GAD Employee", "GAD Manager"],
+      enum: [
+        "Admin",
+        "Employee",
+        "Manager",
+        "Hr Employee",
+        "Hr Manager",
+        "GAD Employee",
+        "GAD Manager",
+      ],
       default: "Employee",
       index: true,
     },
@@ -45,6 +53,18 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
     resetPasswordExpires: {
+      type: Date,
+      default: null,
+    },
+    telegramChatId: {
+      type: String,
+      default: null,
+    },
+    telegramConnectToken: {
+      type: String,
+      default: null,
+    },
+    telegramConnectTokenExpires: {
       type: Date,
       default: null,
     },

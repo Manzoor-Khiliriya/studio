@@ -33,7 +33,7 @@ const sendNotification = async (recipient, data, io) => {
     let finalSubject = subject || "System Notification";
 
     if (type === "reset" && otp) {
-      finalSubject = "🔐 Password Reset Verification Code";
+      finalSubject = "Password Reset Verification Code";
       finalHtml = `
         <div style="font-family: sans-serif; border: 1px solid #e2e8f0; padding: 30px; border-radius: 20px; max-width: 500px;">
           <h2 style="color: #f97316; margin-bottom: 20px;">Password Reset</h2>
@@ -44,7 +44,7 @@ const sendNotification = async (recipient, data, io) => {
           <p style="font-size: 12px; color: #94a3b8;">This code will expire in 15 minutes. If you did not request this, please ignore this email.</p>
         </div>`;
     } else if (type === "system" && password) {
-      finalSubject = "🚀 Your Account Credentials";
+      finalSubject = "Your Account Credentials";
       finalHtml = `<div style="font-family: sans-serif; border: 1px solid #f97316; padding: 20px; border-radius: 15px;">
           <h2>Welcome, ${recipient.name}!</h2>
           <p>Login with: <br> <b>Email:</b> ${recipient.email} <br> <b>Password:</b> ${password}</p>

@@ -173,6 +173,7 @@ exports.createUser = async (req, res) => {
         user,
         {
           type: "system",
+          message: "Your account has been created successfully.",
           password,
         },
         io,

@@ -15,6 +15,7 @@ import { useNavigate } from "react-router-dom";
 import logo from "../assets/Sandd-Studio-Orange-BG.jpg";
 import DeleteRequestNotifications from "./DeleteRequestNotifications"; // add this
 import { useSocketEvents } from "../hooks/useSocketEvents";
+import { useConnectTelegramMutation } from "../services/userApi";
 
 export default function Navbar() {
   const { user } = useSelector((state) => state.auth);
@@ -26,6 +27,8 @@ export default function Navbar() {
   const { data: notifications = [], refetch } = useGetNotificationsQuery();
   const [markNotificationsRead] = useMarkNotificationsReadMutation();
   const [markNotificationRead] = useMarkNotificationReadMutation();
+  const [connectTelegram, { isLoading: isConnectingTelegram }] =
+    useConnectTelegramMutation();
 
   useSocketEvents({
     onNotificationChange: refetch,
@@ -70,6 +73,18 @@ export default function Navbar() {
     reset: "/reset-password",
   };
 
+  const handleConnectTelegram = async () => {
+    try {
+      const response = await connectTelegram().unwrap();
+
+      if (response.telegramUrl) {
+        window.location.href = response.telegramUrl;
+      }
+    } catch (error) {
+      console.error("Telegram connection error:", error);
+    }
+  };
+
   return (
     <header className="h-[7vh] flex items-center justify-between px-6 md:px-12 bg-[#ee4123] text-gray-200 font-primary backdrop-blur-md sticky top-0 z-40">
 
@@ -96,6 +111,15 @@ export default function Navbar() {
 
         {/* Delete Request Notifications — admin only */}
         <DeleteRequestNotifications />
+
+        <button
+          type="button"
+          onClick={handleConnectTelegram}
+          disabled={isConnectingTelegram}
+          className="px-3 py-2 rounded-xl bg-white text-slate-600 hover:bg-orange-100 transition-colors"
+        >
+          {isConnectingTelegram ? "Connecting..." : "Connect Telegram"}
+        </button>
 
         {/* Existing bell notifications */}
         <div className="relative" ref={notificationRef}>

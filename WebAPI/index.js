@@ -20,6 +20,7 @@ const taskAllocationRoutes = require("./routes/taskAllocationRoutes");
 const departmentRoutes = require("./routes/departmentRoutes");
 const designationRoutes = require("./routes/designationRoutes");
 const taskStatusRoutes = require("./routes/taskStatusRoutes");
+const telegramRoutes = require("./routes/telegramRoutes");
 const app = express();
 const server = http.createServer(app);
 const helmet = require("helmet");
@@ -113,6 +114,8 @@ app.use("/api/task-allocations", taskAllocationRoutes);
 app.use("/api/departments", departmentRoutes);
 app.use("/api/designations", designationRoutes);
 app.use("/api/task-status", taskStatusRoutes);
+app.use("/api/telegram", telegramRoutes);
+
 
 app.use((err, req, res, next) => {
   console.error(err);

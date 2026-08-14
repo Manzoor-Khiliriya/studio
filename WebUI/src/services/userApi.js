@@ -92,6 +92,12 @@ export const userApi = apiSlice.injectEndpoints({
         { type: "Employee", id: "LIST" },
       ],
     }),
+    connectTelegram: builder.mutation({
+      query: () => ({
+        url: "/telegram/connect",
+        method: "GET",
+      }),
+    }),
   }),
 });
 
@@ -106,4 +112,5 @@ export const {
   useGetDepartmentOptionsQuery,
   useGetPendingDeleteRequestsQuery,
   useRespondToDeleteRequestMutation,
+  useConnectTelegramMutation
 } = userApi;
