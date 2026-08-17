@@ -55,33 +55,10 @@ app.use(
 );
 app.use(express.json());
 
-// mongoose
-//   .connect(process.env.MONGO_URI)
-//   .then(async () => {
-//     console.log("DB Connected");
-
-//     await initializeAdmin();
-
-//     const cronJobs = require("./utils/cronJobs");
-//     cronJobs(io);
-//   })
-//   .catch((err) => console.log(err));
-
 mongoose
   .connect(process.env.MONGO_URI)
   .then(async () => {
     console.log("DB Connected");
-    console.log("Database:", mongoose.connection.name);
-    console.log("Host:", mongoose.connection.host);
-
-    const collections = await mongoose.connection.db
-      .listCollections()
-      .toArray();
-
-    console.log(
-      "Collections:",
-      collections.map((c) => c.name),
-    );
 
     await initializeAdmin();
 

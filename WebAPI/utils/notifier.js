@@ -32,10 +32,22 @@ const sendNotification = async (recipient, data, io) => {
 
     if (recipient.telegramChatId) {
       try {
-        await sendTelegramMessage(
-          recipient.telegramChatId,
-          `🔔 <b>${subject || "HRMS Notification"}</b>\n\n${message}`,
-        );
+        let telegramMessage = `🔔 <b>${subject || "HRMS Notification"}</b>\n\n${message}`;
+
+        if (type === "reset" && otp) {
+          telegramMessage = `
+🔐 <b>Password Reset Verification</b>
+
+Your password reset OTP is:
+
+<code>${otp}</code>
+
+⏳ This code will expire in 15 minutes.
+If you did not request this, please ignore this message.
+`;
+        }
+
+        await sendTelegramMessage(recipient.telegramChatId, telegramMessage);
       } catch (error) {
         console.error("Telegram notification failed:", error);
       }
@@ -89,7 +101,6 @@ const sendNotification = async (recipient, data, io) => {
         html: finalHtml,
       });
     }
-    
   } catch (error) {
     console.error("Email/Notification Error:", error);
     throw error;
