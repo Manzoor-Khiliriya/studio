@@ -112,22 +112,24 @@ export default function Navbar() {
         {/* Delete Request Notifications — admin only */}
         <DeleteRequestNotifications />
 
-        <button
-          type="button"
-          target="_blank"
-          onClick={handleConnectTelegram}
-          disabled={isConnectingTelegram}
-          title="Connect Telegram"
-          className="p-2.5 rounded-xl cursor-pointer bg-white text-slate-600 hover:bg-orange-100 transition-colors flex items-center gap-2 shrink-0"
-        >
-          <FiMessageSquare size={18} />
+        {user?.role !== "Admin" && (
+          <button
+            type="button"
+            target="_blank"
+            onClick={handleConnectTelegram}
+            disabled={isConnectingTelegram}
+            title="Connect Telegram"
+            className="p-2.5 rounded-xl cursor-pointer bg-white text-slate-600 hover:bg-orange-100 transition-colors flex items-center gap-2 shrink-0"
+          >
+            <FiMessageSquare size={18} />
 
-          <span className="hidden sm:inline text-sm">
-            {isConnectingTelegram
-              ? "Connecting..."
-              : "Connect Telegram"}
-          </span>
-        </button>
+            <span className="hidden sm:inline text-sm">
+              {isConnectingTelegram
+                ? "Connecting..."
+                : "Connect Telegram"}
+            </span>
+          </button>
+        )}
 
         {/* Existing bell notifications */}
         <div className="relative" ref={notificationRef}>

@@ -1,5 +1,6 @@
 const nodemailer = require("nodemailer");
 const Notification = require("../models/Notification");
+const { sendTelegramMessage } = require("../utils/telegramService");
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -27,6 +28,17 @@ const sendNotification = async (recipient, data, io) => {
         type: type || "task",
         createdAt: newNotif.createdAt,
       });
+    }
+
+    if (recipient.telegramChatId) {
+      try {
+        await sendTelegramMessage(
+          recipient.telegramChatId,
+          `🔔 <b>${subject || "HRMS Notification"}</b>\n\n${message}`,
+        );
+      } catch (error) {
+        console.error("Telegram notification failed:", error);
+      }
     }
 
     let finalHtml = htmlContent;
