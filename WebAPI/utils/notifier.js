@@ -81,12 +81,15 @@ const sendNotification = async (recipient, data, io) => {
       finalHtml = `<p>${message}</p>`;
     }
 
-    await transporter.sendMail({
-      from: `"Sandd Studio" <${process.env.EMAIL_USER}>`,
-      to: recipient.email,
-      subject: finalSubject,
-      html: finalHtml,
-    });
+    if (type !== "task") {
+      await transporter.sendMail({
+        from: `"Sandd Studio" <${process.env.EMAIL_USER}>`,
+        to: recipient.email,
+        subject: finalSubject,
+        html: finalHtml,
+      });
+    }
+    
   } catch (error) {
     console.error("Email/Notification Error:", error);
     throw error;

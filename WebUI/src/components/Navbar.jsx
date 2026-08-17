@@ -74,13 +74,18 @@ export default function Navbar() {
   };
 
   const handleConnectTelegram = async () => {
+    const telegramTab = window.open("", "_blank");
+
     try {
       const response = await connectTelegram().unwrap();
 
-      if (response.telegramUrl) {
-        window.location.href = response.telegramUrl;
+      if (response.telegramUrl && telegramTab) {
+        telegramTab.location.href = response.telegramUrl;
+      } else {
+        telegramTab?.close();
       }
     } catch (error) {
+      telegramTab?.close();
       console.error("Telegram connection error:", error);
     }
   };

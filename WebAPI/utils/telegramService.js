@@ -2,14 +2,29 @@ const { TelegramBot } = require("node-telegram-bot-api");
 const User = require("../models/User");
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
+const webhookUrl = process.env.TELEGRAM_WEBHOOK_URL; 
 
 if (!token) {
   console.warn("TELEGRAM_BOT_TOKEN is not configured");
 }
 
+if (!webhookUrl) {
+  console.warn("TELEGRAM_WEBHOOK_URL is not configured"); 
+}
+
 const bot = token
-  ? new TelegramBot(token, { polling: true })
+  ? new TelegramBot(token)
   : null;
+
+const initTelegramWebhook = async () => {
+  if (!bot || !webhookUrl) return;
+  try {
+    await bot.setWebHook(webhookUrl);
+    console.log("Telegram webhook set:", webhookUrl);
+  } catch (err) {
+    console.error("Failed to set webhook:", err.message);
+  }
+};
 
 const sendTelegramMessage = async (chatId, message) => {
   if (!bot) {
@@ -36,7 +51,6 @@ const sendTelegramMessage = async (chatId, message) => {
   }
 };
 
-// Handle Telegram /start command
 if (bot) {
   bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
     try {
@@ -99,4 +113,5 @@ if (bot) {
 module.exports = {
   bot,
   sendTelegramMessage,
+  initTelegramWebhook, 
 };

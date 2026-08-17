@@ -27,7 +27,7 @@ const helmet = require("helmet");
 const compression = require("compression");
 const rateLimit = require("express-rate-limit");
 const initializeAdmin = require("./utils/initialAdmin");
-require("./utils/telegramService");
+const { initTelegramWebhook } = require("./utils/telegramService");
 
 app.set("trust proxy", 1);
 app.use(helmet());
@@ -55,10 +55,33 @@ app.use(
 );
 app.use(express.json());
 
+// mongoose
+//   .connect(process.env.MONGO_URI)
+//   .then(async () => {
+//     console.log("DB Connected");
+
+//     await initializeAdmin();
+
+//     const cronJobs = require("./utils/cronJobs");
+//     cronJobs(io);
+//   })
+//   .catch((err) => console.log(err));
+
 mongoose
   .connect(process.env.MONGO_URI)
   .then(async () => {
     console.log("DB Connected");
+    console.log("Database:", mongoose.connection.name);
+    console.log("Host:", mongoose.connection.host);
+
+    const collections = await mongoose.connection.db
+      .listCollections()
+      .toArray();
+
+    console.log(
+      "Collections:",
+      collections.map((c) => c.name),
+    );
 
     await initializeAdmin();
 
@@ -116,7 +139,11 @@ app.use("/api/departments", departmentRoutes);
 app.use("/api/designations", designationRoutes);
 app.use("/api/task-status", taskStatusRoutes);
 app.use("/api/telegram", telegramRoutes);
-
+app.post("/api/telegram-webhook", express.json(), (req, res) => {
+  const { bot } = require("./utils/telegramService");
+  bot.processUpdate(req.body);
+  res.sendStatus(200);
+});
 
 app.use((err, req, res, next) => {
   console.error(err);
@@ -128,4 +155,7 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on ${PORT}`));
+server.listen(PORT, () => {
+  console.log(`Server running on ${PORT}`);
+  initTelegramWebhook();
+});
