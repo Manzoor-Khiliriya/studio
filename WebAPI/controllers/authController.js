@@ -73,7 +73,7 @@ exports.forgotPassword = async (req, res) => {
     res.json({ message: "Verification code sent to your email" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json(err);
   }
 };
 
