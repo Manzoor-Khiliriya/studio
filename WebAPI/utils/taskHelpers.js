@@ -1,9 +1,12 @@
+const moment = require("moment-timezone");
 const Holiday = require("../models/Holiday");
 const { formatDate } = require("../utils/dateHelper");
 
-const isWeekend = (date) => {
-  const d = new Date(date).getDay();
-  return d === 0 || d === 6;
+const TIMEZONE = "Asia/Kolkata";
+
+const isWeekend = (d) => {
+  const day = moment(d).tz(TIMEZONE).day();
+  return day === 0 || day === 6;
 };
 
 const calculateEstimatedHours = async (start, end) => {
@@ -22,21 +25,20 @@ const calculateEstimatedHours = async (start, end) => {
     date: { $gte: startDate, $lte: endDate }
   }).select("date");
 
-  const holidaySet = new Set(
-    holidays.map(h => formatDate(h.date))
-  );
+  const holidaySet = new Set(holidays.map(h => formatDate(h.date)));
 
   let days = 0;
-  const current = new Date(startDate);
+  let current = moment(startDate).tz(TIMEZONE);
+  const endMoment = moment(endDate).tz(TIMEZONE);
 
-  while (current <= endDate) {
-    const dateStr = formatDate(current);
+  while (current.isSameOrBefore(endMoment, "day")) {
+    const dateStr = current.format("YYYY-MM-DD");
 
-    if (!isWeekend(current) && !holidaySet.has(dateStr)) {
+    if (!isWeekend(current.toDate()) && !holidaySet.has(dateStr)) {
       days++;
     }
 
-    current.setDate(current.getDate() + 1);
+    current = current.add(1, "day");
   }
 
   return days * 9;

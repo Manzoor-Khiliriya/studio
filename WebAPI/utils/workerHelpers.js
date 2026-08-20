@@ -1,7 +1,13 @@
+const moment = require("moment-timezone");
 const Holiday = require("../models/Holiday");
-const { formatDate, startOfDay, endOfDay } = require("../utils/dateHelper");
+const { formatDate, startOfDay, endOfDay } = require("./dateHelper");
 
-const isWeekend = (d) => [0, 6].includes(d.getDay());
+const TIMEZONE = "Asia/Kolkata";
+
+const isWeekend = (d) => {
+  const day = moment(d).tz(TIMEZONE).day();
+  return day === 0 || day === 6;
+};
 
 const toValidDate = (value) => {
   const d = new Date(value);
@@ -33,37 +39,36 @@ const calculateEmployeeAvailableHours = async (
   const holidaySet = new Set(holidays.map((h) => formatDate(h.date)));
 
   let days = 0;
-  const current = new Date(effectiveStart);
+  let current = moment(effectiveStart).tz(TIMEZONE);
+  const endMoment = moment(endDate).tz(TIMEZONE);
 
-  while (current <= endDate) {
-    const dateStr = formatDate(current);
+  while (current.isSameOrBefore(endMoment, "day")) {
+    const dateStr = current.format("YYYY-MM-DD");
 
-    if (!isWeekend(current) && !holidaySet.has(dateStr)) {
+    if (!isWeekend(current.toDate()) && !holidaySet.has(dateStr)) {
       days++;
     }
 
-    current.setDate(current.getDate() + 1);
+    current = current.add(1, "day");
   }
 
   return days * 9;
 };
 
 const calculateWorkingDaysFromHolidaySet = (startDate, endDate, holidaySet) => {
-  const start = startOfDay(startDate);
-  const end = endOfDay(endDate);
+  let current = moment(startOfDay(startDate)).tz(TIMEZONE);
+  const end = moment(endOfDay(endDate)).tz(TIMEZONE);
 
   let count = 0;
-  const current = new Date(start);
 
-  while (current <= end) {
-    const dateStr = formatDate(current);
-    const isWeekend = current.getDay() === 0 || current.getDay() === 6;
+  while (current.isSameOrBefore(end, "day")) {
+    const dateStr = current.format("YYYY-MM-DD");
 
-    if (!isWeekend && !holidaySet.has(dateStr)) {
+    if (!isWeekend(current.toDate()) && !holidaySet.has(dateStr)) {
       count++;
     }
 
-    current.setDate(current.getDate() + 1);
+    current = current.add(1, "day");
   }
 
   return count;
