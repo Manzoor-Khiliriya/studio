@@ -37,11 +37,11 @@ export default function TaskModal({
   const [createTask, { isLoading: isCreating }] = useCreateTaskMutation();
   const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation();
 
-  const { data: estimateData, isFetching: isCalculating } = useGetProjectEstimateQuery(
+  const { data: estimateData, isFetching: isCalculating, refetch: refetchEstimate } = useGetProjectEstimateQuery(
     formData.project,
     {
       skip: !formData.project || !isOpen,
-      refetchOnMountOrArgChange: true
+      refetchOnMountOrArgChange: true,
     }
   );
 
@@ -60,14 +60,13 @@ export default function TaskModal({
     });
 
   useEffect(() => {
-    if (!isEditing && estimateData) {
-      setFormData((prev) => ({
-        ...prev,
-        estimatedTime: String(estimateData || 0),
-        allocatedTime: String(estimateData || 0),
-      }));
-    }
-  }, [estimateData, isEditing]);
+    if (!isOpen || isCalculating || estimateData === undefined) return;
+    setFormData((prev) => ({
+      ...prev,
+      estimatedTime: String(estimateData ?? 0),
+      allocatedTime: isEditing ? prev.allocatedTime : String(estimateData ?? 0),
+    }));
+  }, [isOpen, estimateData, isCalculating, isEditing, formData.project]);
 
   useEffect(() => {
     if (isOpen) {
@@ -75,7 +74,7 @@ export default function TaskModal({
         setFormData({
           title: editTask.title || "",
           project: singleProject?._id || editTask.project?._id || editTask.project || "",
-          estimatedTime: String(editTask.estimatedTime || 8),
+          estimatedTime: "",   // ← left blank; sync effect will fill it with the fresh value
           allocatedTime: String(editTask.allocatedTime || 8),
           priority: editTask.priority || "Medium",
           description: editTask.description || "",
@@ -83,29 +82,24 @@ export default function TaskModal({
           activeStatus: editTask?.activeStatus?._id || editTask.activeStatus || "",
         });
       } else if (singleProject) {
-        setFormData({
+        setFormData((prev) => ({
+          ...prev,
           title: "",
           project: singleProject._id,
-          estimatedTime: "",
-          allocatedTime: "",
           priority: "Medium",
           description: "",
           status: "",
           activeStatus: "",
-        });
+        }));
       }
     }
   }, [editTask, isOpen, singleProject]);
 
   useEffect(() => {
-    if (!formData.project) return;
-
-    setFormData((prev) => ({
-      ...prev,
-      estimatedTime: "",
-      allocatedTime: ""
-    }));
-  }, [formData.project]);
+    if (isOpen && formData.project) {
+      refetchEstimate();
+    }
+  }, [isOpen, formData.project]);
 
   const handleSubmit = async () => {
     if (!formData.project) {
