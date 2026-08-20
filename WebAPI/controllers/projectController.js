@@ -324,6 +324,22 @@ exports.updateProject = async (req, res) => {
         .json({ success: false, message: "Project not found" });
     }
 
+    if (updateData.startDate || updateData.endDate) {
+      const estimatedTime = await calculateEstimatedHours(
+        project.startDate,
+        project.endDate,
+      );
+
+      await Task.updateMany(
+        { project: project._id },
+        {
+          $set: {
+            estimatedTime,
+          },
+        },
+      );
+    }
+
     await emitToProject(req, project._id, "projectChanged", project);
     emitDashboardUpdate(req);
     return res.status(200).json({

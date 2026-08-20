@@ -96,7 +96,12 @@ export default function AdminTaskAllocationPage() {
                                             <th className="w-2/6 px-2 py-2 text-left text-[10px] uppercase font-black text-slate-500">Project Type</th>
                                             <th className="w-1/8 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Priority</th>
                                             <th className="w-1/8 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Role</th>
-                                            <th className="w-2/6 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Today</th>
+                                            <th className="w-1/6 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">
+                                                Target Hrs
+                                            </th>
+                                            <th className="w-1/6 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">
+                                                Actual Hrs
+                                            </th>
                                             <th className="w-1/10 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Action</th>
                                         </tr>
                                     </thead>
@@ -145,17 +150,23 @@ export default function AdminTaskAllocationPage() {
                                                                 {allocation.role}
                                                             </p>
                                                         </td>
-                                                        <td className="w-2/6 px-2 py-2">
-                                                            <div className="flex items-center gap-3 text-[10px] font-black">
-                                                                <span className="text-slate-700 w-[65px] shrink-0">
-                                                                    {allocation.todayAllocatedFormatted || "0h 0m 0s"}
-                                                                </span>
-                                                                {allocation.isOverWorked ? (
-                                                                    <span className="text-rose-600">+ {allocation.overWorkedFormatted}</span>
-                                                                ) : (
-                                                                    <span className="text-emerald-600">{allocation.todayWorkedFormatted || "0h 0m 0s"}</span>
-                                                                )}
-                                                            </div>
+                                                        {/* TARGET HRS */}
+                                                        <td className="w-1/6 px-2 py-2">
+                                                            <p className="text-[10px] font-black text-slate-700">
+                                                                {allocation.todayAllocatedFormatted || "0h 0m 0s"}
+                                                            </p>
+                                                        </td>
+
+                                                        {/* ACTUAL HRS */}
+                                                        <td className="w-1/6 px-2 py-2">
+                                                            <p
+                                                                className={`text-[10px] font-black ${allocation.isOverWorked
+                                                                        ? "text-rose-600"
+                                                                        : "text-emerald-600"
+                                                                    }`}
+                                                            >
+                                                                {allocation.todayWorkedFormatted || "0h 0m 0s"}
+                                                            </p>
                                                         </td>
                                                         <td className="w-1/10 px-2 py-2">
                                                             <button

@@ -206,6 +206,7 @@ export default function EmployeeDashboard() {
                   label="Live Tasks"
                   value={allActiveTasks.length}
                   icon={<FiTarget className="text-rose-500" />}
+                  onClick={() => navigate("/my-tasks")}
                 />
               </>
             )}
@@ -213,6 +214,7 @@ export default function EmployeeDashboard() {
               label="Upcoming Leaves"
               value={summaryData?.approvedLeavesCount || 0}
               icon={<FiBriefcase className="text-blue-500" />}
+              onClick={() => navigate("/my-leaves")}
             />
             <StatCard
               label="Attendance Timer"
