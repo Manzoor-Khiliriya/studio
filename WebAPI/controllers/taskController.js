@@ -162,11 +162,11 @@ exports.updateTask = async (req, res) => {
 
       const newAllocations = assignedTo
         .filter((empId) => !existingEmployeeIds.includes(empId.toString()))
-        .map((empId, index) => ({
+        .map((empId) => ({
           task: task._id,
           employee: empId,
           role: "Main",
-          priorityOrder: index + 1,
+          priorityOrder: 1,
         }));
 
       if (newAllocations.length > 0) {

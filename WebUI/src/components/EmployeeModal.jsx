@@ -44,11 +44,9 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
     });
 
   const {
-    data: departmentUsers = {
-      managers: [],
-      admins: [],
-      hrManagers: []
-    },
+    data: departmentUsers = { managers: [], admins: [], hrManagers: [] },
+    isFetching: isDeptUsersFetching,
+    isUninitialized: isDeptUsersUninitialized,
   } = useGetDepartmentOptionsQuery(
     formData.departments.length ? formData.departments : null,
     {
@@ -59,7 +57,6 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
       refetchOnMountOrArgChange: true,
     }
   );
-
   const isEmployeeRole = ["Employee", "Hr Employee", "GAD Employee"].includes(formData.role);
   const managers = useMemo(() => (
     (isEmployeeRole && !formData.departments.length)
@@ -131,6 +128,8 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
   }, [editData, isOpen]);
 
   useEffect(() => {
+    if (isDeptUsersFetching || isDeptUsersUninitialized) return;
+
     setFormData((prev) => {
       const nextManager = managers.some((m) => m._id === prev.manager) ? prev.manager : "";
       const nextAdmin = prev.admin.filter((id) => admins.some((a) => a._id === id));
@@ -146,7 +145,7 @@ export default function EmployeeModal({ isOpen, onClose, editData = null, role =
 
       return { ...prev, manager: nextManager, admin: nextAdmin, hrManager: nextHrManager };
     });
-  }, [managers, admins, hrManagers]);
+  }, [managers, admins, hrManagers, isDeptUsersFetching, isDeptUsersUninitialized]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

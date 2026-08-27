@@ -251,7 +251,7 @@ export default function EmployeeLeavePage() {
       <main className="max-w-[1750px] mx-auto px-8 -mt-10 pb-20">
         {/* TACTICAL FILTER BAR */}
 
-        <div className="relative flex flex-wrap items-center gap-4 mb-8 bg-white/90 backdrop-blur-xl p-1.5 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="relative z-50 flex flex-wrap items-center gap-4 mb-8 bg-white/90 backdrop-blur-xl p-1.5 rounded-2xl border border-slate-200 shadow-sm">
           <CustomDropdown
             value={typeFilter}
             onChange={(val) => {
@@ -408,7 +408,7 @@ export default function EmployeeLeavePage() {
             </div>
           </div>
         </div>
-      </main>
+      </main >
 
       <LeaveModal
         isOpen={isModalOpen}
@@ -425,12 +425,12 @@ export default function EmployeeLeavePage() {
         confirmText="Delete"
         variant="danger"
       />
-    </div>
+    </div >
   );
 }
 
 const StatBox = ({ label, value, unit, color, icon }) => (
-  <div className="p-10 rounded-[3rem] bg-white border border-slate-200 shadow-xl shadow-slate-200/30 relative overflow-hidden group hover:border-orange-500/30 transition-all duration-500">
+  <div className="p-10 rounded-[3rem] bg-white border border-slate-200 shadow-xl shadow-slate-200/30 relative overflow-visible group hover:border-orange-500/30 transition-all duration-500">
     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 relative">
       {label}
     </p>

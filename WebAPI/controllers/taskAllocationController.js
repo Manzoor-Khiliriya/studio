@@ -153,7 +153,7 @@ exports.getEmployeeAllocations = async (req, res) => {
       const m = Math.floor((todayWorkedSeconds % 3600) / 60);
       const s = todayWorkedSeconds % 60;
 
-      allocation._doc.todayWorkedFormatted = `${h}h ${m}m`;
+      allocation._doc.todayWorkedFormatted = `${h}h ${m}m ${s}s`;
       allocation._doc.todayWorkedHours = workedHours;
       const todayAllocation = allocation.dailyAllocations?.find(
         (d) => d.date === today,

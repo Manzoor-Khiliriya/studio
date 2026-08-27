@@ -3,8 +3,15 @@ import { useGetEmployeeAllocationsQuery } from "../../services/taskAllocationApi
 import Loader from "../../components/Loader";
 import PageHeader from "../../components/PageHeader";
 import { useSocketEvents } from "../../hooks/useSocketEvents";
-import { FiEdit, FiEdit2 } from "react-icons/fi";
+import { FiEdit } from "react-icons/fi";
 import AllocationModal from "../../components/AllocationModal";
+
+const calculateProficiency = (workedHours, allocatedSeconds) => {
+    if (!allocatedSeconds || allocatedSeconds === 0) return null;
+    if (!workedHours || workedHours === 0) return 100;
+    const allocatedHours = allocatedSeconds / 3600;
+    return Math.round((allocatedHours / workedHours) * 100);
+};
 
 export default function AdminTaskAllocationPage() {
     const [selectedAllocation, setSelectedAllocation] = useState(null);
@@ -91,18 +98,21 @@ export default function AdminTaskAllocationPage() {
                                 <table className="w-full table-fixed">
                                     <thead className="bg-slate-50 border-b border-slate-200">
                                         <tr>
-                                            <th className="w-2/9 px-2 py-2 text-left text-[10px] uppercase font-black text-slate-500">Project</th>
-                                            <th className="w-2/6 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Task</th>
-                                            <th className="w-2/6 px-2 py-2 text-left text-[10px] uppercase font-black text-slate-500">Project Type</th>
-                                            <th className="w-1/8 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Priority</th>
-                                            <th className="w-1/8 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Role</th>
-                                            <th className="w-1/6 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">
+                                            <th className="w-[13%] px-2 py-2 text-left text-[10px] uppercase font-black text-slate-500">Project</th>
+                                            <th className="w-[18%] px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Task</th>
+                                            <th className="w-[15%] px-2 py-2 text-left text-[10px] uppercase font-black text-slate-500">Project Type</th>
+                                            <th className="w-[7%] px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Priority</th>
+                                            <th className="w-[7%] px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Role</th>
+                                            <th className="w-[11%] px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">
                                                 Target Hrs
                                             </th>
-                                            <th className="w-1/6 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">
+                                            <th className="w-[11%] px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">
                                                 Actual Hrs
                                             </th>
-                                            <th className="w-1/10 px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Action</th>
+                                            <th className="w-[10%] px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">
+                                                Proficiency
+                                            </th>
+                                            <th className="w-[8%] px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Action</th>
                                         </tr>
                                     </thead>
                                 </table>
@@ -119,12 +129,12 @@ export default function AdminTaskAllocationPage() {
                                                 ];
                                                 return sorted.map((allocation) => (
                                                     <tr key={allocation._id} className={`border-t border-slate-100 ${allocation.isCurrentlyWorking ? "bg-emerald-100" : ""}`}>
-                                                        <td className="w-2/9 px-2 py-2">
+                                                        <td className="w-[13%] px-2 py-2">
                                                             <p className="text-[10px] font-black text-slate-700 uppercase truncate">
                                                                 {allocation.task?.project?.title}
                                                             </p>
                                                         </td>
-                                                        <td className="w-2/6 px-1 py-2">
+                                                        <td className="w-[18%] px-1 py-2">
                                                             <div className="flex items-center gap-2">
                                                                 <p className="text-[10px] font-black text-slate-700 uppercase truncate">
                                                                     {allocation.task?.title}
@@ -137,38 +147,62 @@ export default function AdminTaskAllocationPage() {
                                                                 )}
                                                             </div>
                                                         </td>
-                                                        <td className="w-2/6 px-2 py-2">
+                                                        <td className="w-[15%] px-2 py-2">
                                                             <p className="text-[10px] font-black text-slate-700 truncate">
                                                                 {allocation.task?.project?.projectType?.name || ""}
                                                             </p>
                                                         </td>
-                                                        <td className="w-1/8 px-2 py-2">
+                                                        <td className="w-[7%] px-2 py-2">
                                                             <p className="text-[10px] font-black text-slate-700">{allocation.priorityOrder}</p>
                                                         </td>
-                                                        <td className="w-1/8 px-2 py-2">
+                                                        <td className="w-[7%] px-2 py-2">
                                                             <p className={`text-[10px] font-black ${allocation.role === "Main" ? "text-orange-600" : "text-slate-700"}`}>
                                                                 {allocation.role}
                                                             </p>
                                                         </td>
                                                         {/* TARGET HRS */}
-                                                        <td className="w-1/6 px-2 py-2">
+                                                        <td className="w-[11%] px-2 py-2">
                                                             <p className="text-[10px] font-black text-slate-700">
                                                                 {allocation.todayAllocatedFormatted || "0h 0m 0s"}
                                                             </p>
                                                         </td>
 
                                                         {/* ACTUAL HRS */}
-                                                        <td className="w-1/6 px-2 py-2">
+                                                        <td className="w-[11%] px-2 py-2">
                                                             <p
                                                                 className={`text-[10px] font-black ${allocation.isOverWorked
-                                                                        ? "text-rose-600"
-                                                                        : "text-emerald-600"
+                                                                    ? "text-rose-600"
+                                                                    : "text-emerald-600"
                                                                     }`}
                                                             >
                                                                 {allocation.todayWorkedFormatted || "0h 0m 0s"}
                                                             </p>
                                                         </td>
-                                                        <td className="w-1/10 px-2 py-2">
+
+                                                        {/* PROFICIENCY */}
+                                                        <td className="w-[10%] px-2 py-2">
+                                                            {(() => {
+                                                                const proficiency = calculateProficiency(
+                                                                    allocation.todayWorkedHours,
+                                                                    allocation.todayAllocatedSeconds
+                                                                );
+                                                                if (proficiency === null) {
+                                                                    return <p className="text-[10px] font-black text-slate-400">100%</p>;
+                                                                }
+                                                                const colorClass =
+                                                                    proficiency >= 100
+                                                                        ? "text-emerald-600"
+                                                                        : proficiency >= 70
+                                                                            ? "text-amber-600"
+                                                                            : "text-rose-600";
+                                                                return (
+                                                                    <p className={`text-[10px] font-black ${colorClass}`}>
+                                                                        {proficiency}%
+                                                                    </p>
+                                                                );
+                                                            })()}
+                                                        </td>
+                                                        <td className="w-[8%] px-2 py-2">
                                                             <button
                                                                 onClick={() => setSelectedAllocation(allocation)}
                                                                 className="text-yellow-500 hover:text-yellow-600 rounded-lg transition-all duration-200 active:scale-90 cursor-pointer"
