@@ -11,26 +11,20 @@ export const taskAllocationApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: [{ type: "TaskAllocation", id: "EMPLOYEE_WORKLOAD" }],
     }),
     getEmployeeAllocations: builder.query({
-      query: () => ({
+      query: ({ date, employeeName } = {}) => ({
         url: "/task-allocations/employee-allocation",
-      }),
-
-      transformResponse: (response) => response.employees || [],
-
-      providesTags: [
-        {
-          type: "TaskAllocation",
-
-          id: "EMPLOYEE_WORKLOAD",
+        params: {
+          ...(date ? { date } : {}),
+          ...(employeeName ? { employeeName } : {}),
         },
-      ],
+      }),
+      transformResponse: (response) => response.employees || [],
+      providesTags: [{ type: "TaskAllocation", id: "EMPLOYEE_WORKLOAD" }],
     }),
   }),
 });
 
 export const {
   useUpdateTaskAllocationMutation,
-  useDeleteTaskAllocationMutation,
   useGetEmployeeAllocationsQuery,
-  useUpdateDailyAllocationMutation,
 } = taskAllocationApiSlice;

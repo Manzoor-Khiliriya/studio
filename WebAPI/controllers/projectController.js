@@ -11,9 +11,23 @@ const {
 
 exports.createProject = async (req, res) => {
   try {
-    const { projectCode, projectType, title, clientName, startDate, endDate } =
-      req.body;
-    if (!projectCode || !projectType || !title || !startDate || !endDate) {
+    const {
+      projectCode,
+      projectType,
+      projectCategory,
+      title,
+      clientName,
+      startDate,
+      endDate,
+    } = req.body;
+    if (
+      !projectCode ||
+      !projectType ||
+      !projectCategory ||
+      !title ||
+      !startDate ||
+      !endDate
+    ) {
       return res
         .status(400)
         .json({ success: false, message: "Missing required fields" });
@@ -29,6 +43,7 @@ exports.createProject = async (req, res) => {
     const project = await Project.create({
       projectCode: projectCode.toUpperCase(),
       projectType,
+      projectCategory,
       title,
       clientName,
       startDate,
@@ -686,7 +701,7 @@ exports.getProjectCalendarStacks = async (req, res) => {
 
           extendedProps: {
             projectCode: "$projectCode",
-
+            projectCategory: "$projectCategory",
             tasks: {
               $map: {
                 input: "$taskList",

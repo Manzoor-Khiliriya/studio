@@ -26,6 +26,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
   const [formData, setFormData] = useState({
     projectCode: "",
     projectType: "",
+    projectCategory: "",
     title: "",
     clientName: "",
     startDate: "",
@@ -39,6 +40,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
       setFormData({
         projectCode: editProject.projectCode || "",
         projectType: editProject.projectType?._id || editProject.projectType || "",
+        projectCategory: editProject?.projectCategory || "",
         title: editProject.title || "",
         clientName: editProject.clientName || "",
         startDate: editProject.startDate ? new Date(editProject.startDate).toISOString().split('T')[0] : "",
@@ -50,6 +52,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
       setFormData({
         projectCode: "",
         projectType: projectTypes[0]?._id || "",
+        projectCategory: "",
         title: "",
         clientName: "",
         startDate: "",
@@ -61,7 +64,7 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
   }, [editProject, isOpen]);
 
   const handleSubmit = async () => {
-    if (!formData.projectCode || !formData.title || !formData.startDate || !formData.endDate) {
+    if (!formData.projectCode || !formData.title || !formData.projectCategory || !formData.startDate || !formData.endDate) {
       return toast.error("Required fields missing");
     }
 
@@ -144,6 +147,26 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
             />
           </InputGroup>
 
+          <InputGroup label="Project Category *">
+            <HiOutlineFlag className="input-icon" />
+
+            <CustomDropdown
+              value={formData.projectCategory}
+              onChange={(val) =>
+                setFormData({ ...formData, projectCategory: val })
+              }
+              options={[
+                { label: "3D Visualization", value: "3D Visualization" },
+                { label: "Interior Design", value: "Interior Design" },
+                { label: "R&D", value: "R&D" },
+              ]}
+              className="w-full"
+              placeholder="Select Project Category"
+              buttonClass="form-input text-xs font-bold pl-10"
+            />
+          </InputGroup>
+
+          <div className="col-span-1 md:col-span-2">
           <InputGroup label="Client Name">
             <HiOutlineUser className="input-icon" />
             <input
@@ -153,63 +176,64 @@ export default function ProjectModal({ isOpen, onClose, editProject = null, acti
               onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
             />
           </InputGroup>
-
-          <InputGroup label="Start Date *">
-            <HiOutlineCalendarDays className="input-icon" />
-            <input
-              type="date"
-              required
-              className="form-input text-[11px] font-bold"
-              value={formData.startDate}
-              onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-            />
-          </InputGroup>
-
-          <InputGroup label="End Date *">
-            <HiOutlineCalendarDays className="input-icon" />
-            <input
-              type="date"
-              required
-              className="form-input text-[11px] font-bold"
-              value={formData.endDate}
-              onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-            />
-          </InputGroup>
-          {isEditing && (
-            <>
-              <InputGroup label="Status">
-                <HiOutlineFlag className={`input-icon`} />
-                <CustomDropdown
-                  value={formData.status}
-                  onChange={(val) =>
-                    setFormData({ ...formData, status: val })
-                  }
-                  options={[
-                    { label: "Active", value: "Active" },
-                    { label: "On hold", value: "On hold" },
-                    { label: "Submitted", value: "Submitted" },
-                    { label: "Inactive", value: "Inactive" }
-                  ]}
-                  className="w-full"
-                  buttonClass="form-input text-xs font-bold pl-10"
-                />
-              </InputGroup>
-
-
-              <InputGroup label="Status Date">
-                <HiOutlineCalendarDays className="input-icon" />
-                <input
-                  type="date"
-                  className="form-input text-[11px] font-bold"
-                  value={formData.statusChangedAt}
-                  onChange={(e) => setFormData({ ...formData, statusChangedAt: e.target.value })}
-                />
-              </InputGroup>
-
-            </>
-          )}
         </div>
-      </form>
-    </CommonModal>
+
+        <InputGroup label="Start Date *">
+          <HiOutlineCalendarDays className="input-icon" />
+          <input
+            type="date"
+            required
+            className="form-input text-[11px] font-bold"
+            value={formData.startDate}
+            onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+          />
+        </InputGroup>
+
+        <InputGroup label="End Date *">
+          <HiOutlineCalendarDays className="input-icon" />
+          <input
+            type="date"
+            required
+            className="form-input text-[11px] font-bold"
+            value={formData.endDate}
+            onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+          />
+        </InputGroup>
+        {isEditing && (
+          <>
+            <InputGroup label="Status">
+              <HiOutlineFlag className={`input-icon`} />
+              <CustomDropdown
+                value={formData.status}
+                onChange={(val) =>
+                  setFormData({ ...formData, status: val })
+                }
+                options={[
+                  { label: "Active", value: "Active" },
+                  { label: "On hold", value: "On hold" },
+                  { label: "Submitted", value: "Submitted" },
+                  { label: "Inactive", value: "Inactive" }
+                ]}
+                className="w-full"
+                buttonClass="form-input text-xs font-bold pl-10"
+              />
+            </InputGroup>
+
+
+            <InputGroup label="Status Date">
+              <HiOutlineCalendarDays className="input-icon" />
+              <input
+                type="date"
+                className="form-input text-[11px] font-bold"
+                value={formData.statusChangedAt}
+                onChange={(e) => setFormData({ ...formData, statusChangedAt: e.target.value })}
+              />
+            </InputGroup>
+
+          </>
+        )}
+      </div>
+    </form>
+    </CommonModal >
   );
 }

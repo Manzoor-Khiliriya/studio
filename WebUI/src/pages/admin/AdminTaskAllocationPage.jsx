@@ -1,39 +1,59 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useGetEmployeeAllocationsQuery } from "../../services/taskAllocationApi";
 import Loader from "../../components/Loader";
 import PageHeader from "../../components/PageHeader";
 import { useSocketEvents } from "../../hooks/useSocketEvents";
-import { FiEdit } from "react-icons/fi";
+import { FiEdit, FiCalendar } from "react-icons/fi";
 import AllocationModal from "../../components/AllocationModal";
+import useDebounce from "../../hooks/useDebounce";
+import { HiOutlineXMark } from "react-icons/hi2";
 
-const calculateProficiency = (workedHours, allocatedSeconds) => {
-    if (!allocatedSeconds || allocatedSeconds === 0) return null;
-    if (!workedHours || workedHours === 0) return 100;
-    const allocatedHours = allocatedSeconds / 3600;
-    return Math.round((allocatedHours / workedHours) * 100);
-};
+const getTodayStr = () => new Date().toISOString().split("T")[0];
 
 export default function AdminTaskAllocationPage() {
     const [selectedAllocation, setSelectedAllocation] = useState(null);
+    const [selectedDate, setSelectedDate] = useState(getTodayStr());
+    const [nameFilter, setNameFilter] = useState("");
+
+    const todayStr = getTodayStr();
+    const isToday = selectedDate === todayStr;
+
+    const minDate = useMemo(() => {
+        const d = new Date();
+        d.setFullYear(d.getFullYear() - 1);
+        return d.toISOString().split("T")[0];
+    }, []);
+
+    const debouncedNameFilter = useDebounce(
+        nameFilter.length > 1 ? nameFilter : "",
+        400,
+    );
+
+    const hasActiveFilters = !isToday || nameFilter.length > 0;
+
+    const clearFilters = () => {
+        setSelectedDate(todayStr);
+        setNameFilter("");
+    };
 
     const {
         data: employees = [],
         isLoading,
+        isFetching,
         refetch,
     } = useGetEmployeeAllocationsQuery(
-        undefined,
+        { date: selectedDate, employeeName: debouncedNameFilter },
         {
             refetchOnMountOrArgChange: true,
-            refetchOnFocus: true,
-            refetchOnReconnect: true,
-            pollingInterval: 30000,
+            refetchOnFocus: isToday,
+            refetchOnReconnect: isToday,
+            pollingInterval: isToday ? 30000 : 0,
         }
     );
-
     useSocketEvents({
-        onTaskChange: refetch,
-        onAllocationChange: refetch,
-        onTimeLogChange: refetch,
+        onTaskChange: isToday ? refetch : undefined,
+        onAllocationChange: isToday ? refetch : undefined,
+        onTimeLogChange: isToday ? refetch : undefined,
     });
 
     if (isLoading) return <Loader message="Loading task allocations..." />;
@@ -55,6 +75,37 @@ export default function AdminTaskAllocationPage() {
                         subtitle="Manage employee task priorities and allocations."
                     />
                     <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100 shadow-sm">
+                            <input
+                                type="text"
+                                placeholder="Search employee..."
+                                value={nameFilter}
+                                onChange={(e) => setNameFilter(e.target.value)}
+                                className="text-[11px] font-black text-slate-700 bg-transparent outline-none w-32"
+                            />
+                        </div>
+                        <div className="flex items-center cursor-pointer gap-2 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100 shadow-sm">
+                            <FiCalendar size={14} className="text-slate-400" />
+                            <input
+                                type="date"
+                                value={selectedDate}
+                                min={minDate}
+                                max={todayStr}
+                                onChange={(e) => setSelectedDate(e.target.value)}
+                                className="text-[11px] font-black text-slate-700 bg-transparent outline-none cursor-pointer"
+                            />
+                        </div>
+
+                        {hasActiveFilters && (
+                            <button
+                                onClick={clearFilters}
+                                className="shadow-sm flex items-center gap-1.5 px-4 py-2.5 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-2xl transition-all font-black text-[10px] uppercase tracking-widest cursor-pointer"
+                            >
+                                <HiOutlineXMark size={16} strokeWidth={2.5} />
+                                <span>RESET FILTERS</span>
+                            </button>
+                        )}
+
                         <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100 shadow-sm">
                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200 pr-3">
                                 Employees
@@ -70,10 +121,12 @@ export default function AdminTaskAllocationPage() {
                     <div className="flex flex-col items-center justify-center min-h-[50vh]">
                         <div className="py-10 text-center">
                             <h3 className="text-lg font-black text-slate-800">
-                                No Active Allocations Found
+                                {isToday ? "No Active Allocations Found" : "No Allocations Found"}
                             </h3>
                             <p className="mt-2 text-sm text-slate-600">
-                                No employee task allocations are available yet.
+                                {isToday
+                                    ? "No employee task allocations are available yet."
+                                    : `No employee task allocations are available for ${selectedDate}.`}
                             </p>
                         </div>
                     </div>
@@ -182,12 +235,9 @@ export default function AdminTaskAllocationPage() {
                                                         {/* PROFICIENCY */}
                                                         <td className="w-[10%] px-2 py-2">
                                                             {(() => {
-                                                                const proficiency = calculateProficiency(
-                                                                    allocation.todayWorkedHours,
-                                                                    allocation.todayAllocatedSeconds
-                                                                );
-                                                                if (proficiency === null) {
-                                                                    return <p className="text-[10px] font-black text-slate-400">100%</p>;
+                                                                const proficiency = allocation.proficiency;
+                                                                if (proficiency === null || proficiency === undefined) {
+                                                                    return <p className="text-[10px] font-black text-emerald-600">100%</p>;
                                                                 }
                                                                 const colorClass =
                                                                     proficiency >= 100

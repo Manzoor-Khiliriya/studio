@@ -77,42 +77,77 @@ const TaskGridView = ({ tasks, userId }) => {
     });
   };
 
-  const { gridData, totalHoursStr, taskCount } = useMemo(() => {
-    if (!tasks || !tasks.length) return { gridData: [], totalHoursStr: "00 Hrs 00 Mins", taskCount: 0 };
+  const { gridData, totalHoursStr, totalRawHoursStr, taskCount } = useMemo(() => {
+    if (!tasks || !tasks.length) {
+      return {
+        gridData: [],
+        totalHoursStr: "00 Hrs 00 Mins",
+        totalRawHoursStr: "00 Hrs 00 Mins",
+        taskCount: 0,
+      };
+    }
 
     const start = new Date(dateRange.start);
     const end = new Date(dateRange.end);
     end.setHours(23, 59, 59, 999);
 
     let totalAllSeconds = 0;
+    let totalAllRawSeconds = 0;
 
-    const data = tasks.map((task) => {
-      const rangeSeconds = (task.timeLogs || [])
-        .filter((log) => {
+    const data = tasks
+      .map((task) => {
+        const userLogs = (task.timeLogs || []).filter((log) => {
           const logDate = new Date(log.startTime);
+
           return (
             log.logType === "work" &&
             logDate >= start &&
             logDate <= end &&
             (log.user?._id || log.user) === userId
           );
-        })
-        .reduce((acc, log) => acc + (log.durationSeconds || 0), 0);
+        });
 
-      totalAllSeconds += rangeSeconds;
-      return {
-        id: task._id,
-        title: task.title,
-        projectTitle: task.project?.title || "N/A",
-        timeStr: formatToHrMin(rangeSeconds),
-        hasActivity: rangeSeconds > 0,
-      };
-    }).filter((item) => item.hasActivity);
+        const durationSeconds = userLogs.reduce(
+          (acc, log) => acc + (log.durationSeconds || 0),
+          0
+        );
 
-    return { gridData: data, totalHoursStr: formatToHrMin(totalAllSeconds), taskCount: data.length };
+        const rawDurationSeconds = userLogs.reduce(
+          (acc, log) => acc + (log.rawDurationSeconds || 0),
+          0
+        );
+
+        totalAllSeconds += durationSeconds;
+        totalAllRawSeconds += rawDurationSeconds;
+
+        return {
+          id: task._id,
+          title: task.title,
+          projectTitle: task.project?.title || "N/A",
+
+          // Proficiency time
+          seconds: durationSeconds,
+
+          // Actual/raw time
+          rawSeconds: rawDurationSeconds,
+
+          timeStr: formatToHrMin(durationSeconds),
+          rawTimeStr: formatToHrMin(rawDurationSeconds),
+
+          hasActivity: durationSeconds > 0 || rawDurationSeconds > 0,
+        };
+      })
+      .filter((item) => item.hasActivity);
+
+    return {
+      gridData: data,
+      totalHoursStr: formatToHrMin(totalAllSeconds),
+      totalRawHoursStr: formatToHrMin(totalAllRawSeconds),
+      taskCount: data.length,
+    };
   }, [tasks, dateRange, userId]);
 
-  const INITIAL_COUNT = 4;
+  const INITIAL_COUNT = 3;
 
   const visibleData = expanded
     ? gridData
@@ -158,8 +193,21 @@ const TaskGridView = ({ tasks, userId }) => {
         {/* Stats Summary */}
         <div className="flex gap-10">
           <div className="text-center">
-            <p className="text-[10px] text-slate-900 font-black text-sm leading-none mb-1">{totalHoursStr}</p>
-            <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest">Worked Hours</p>
+            <p className="text-[10px] text-slate-900 font-black text-sm leading-none mb-1">
+              {totalRawHoursStr}
+            </p>
+            <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest">
+              Actual Hours
+            </p>
+          </div>
+
+          <div className="text-center">
+            <p className="text-[10px] text-slate-900 font-black text-sm leading-none mb-1">
+              {totalHoursStr}
+            </p>
+            <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest">
+              Proficiency Hours
+            </p>
           </div>
           <div className="text-center">
             <p className="text-[10px] text-slate-900 font-black text-sm leading-none mb-1">{taskCount}</p>
@@ -168,7 +216,7 @@ const TaskGridView = ({ tasks, userId }) => {
         </div>
       </div>
 
-      <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 px-6 ${gridData.length > INITIAL_COUNT ? 'py-1.5' : 'py-4 mb-1'}`}>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 px-6 ${gridData.length > INITIAL_COUNT ? 'py-1.5' : 'py-4 mb-1'}`}>
         {gridData.length > 0 ? (
           visibleData.map((item) => (
             <div
@@ -179,13 +227,30 @@ const TaskGridView = ({ tasks, userId }) => {
                 {item.title} ({item.projectTitle})
               </h4> */}
               <TruncateText
-                maxWidth="max-w-[80px]"
+                maxWidth="max-w-[100px]"
                 text={`${item.title} (${item.projectTitle})`}
                 className="text-[10px] font-black uppercase text-white truncate mr-4"
               />
-              <p className="text-[9px] font-black text-white shrink-0 opacity-90">
-                {item.timeStr}
-              </p>
+              <div className="flex items-end gap-3 shrink-0">
+                <div className="flex flex-col items-end">
+
+                  <span className="text-[9px] font-black text-white">
+                    {item.rawTimeStr}
+                  </span>
+                  <span className="mx-auto text-[7px] font-bold text-white uppercase">
+                    Actual Hours
+                  </span>
+                </div>
+
+                <div className="flex flex-col items-end mt-1">
+                  <span className="text-[9px] font-black text-white">
+                    {item.timeStr}
+                  </span>
+                  <span className="mx-auto text-[7px] font-bold text-white uppercase">
+                    Proficiency Hours
+                  </span>
+                </div>
+              </div>
             </div>
           ))
         ) : (
@@ -291,7 +356,8 @@ export default function EmployeeDetailPage() {
               date: dateKey,
               tasks: {},
               totalDaySeconds: 0,
-              rawDate: dateObj
+              totalRawDaySeconds: 0,
+              rawDate: dateObj,
             };
           }
 
@@ -301,12 +367,19 @@ export default function EmployeeDetailPage() {
               title: task.title,
               projectTitle: task.project?.title || "N/A",
               seconds: 0,
+              rawSeconds: 0,
               allocated: (task.allocatedTime || 0) * 3600,
             };
           }
 
-          logsByDate[dateKey].tasks[task._id].seconds += log.durationSeconds || 0;
-          logsByDate[dateKey].totalDaySeconds += log.durationSeconds || 0;
+          const durationSeconds = log.durationSeconds || 0;
+          const rawDurationSeconds = log.rawDurationSeconds || 0;
+
+          logsByDate[dateKey].tasks[task._id].seconds += durationSeconds;
+          logsByDate[dateKey].tasks[task._id].rawSeconds += rawDurationSeconds;
+
+          logsByDate[dateKey].totalDaySeconds += durationSeconds;
+          logsByDate[dateKey].totalRawDaySeconds += rawDurationSeconds;
         });
     });
 
@@ -326,8 +399,6 @@ export default function EmployeeDetailPage() {
 
   const activeTasks = currentlyAssigned;
   const liveTasks = currentlyAssigned.filter((t) => ["In progress"].includes(t.liveStatus));
-  const paginatedAllTasks = workedAndAssigned.slice(taskPage * itemsPerPage, (taskPage + 1) * itemsPerPage);
-  const effectiveHours = employee ? ((540 * (employee.proficiency || 100)) / 6000).toFixed(1) : 0;
 
   const handleConfirmDelete = async () => {
     const t = toast.loading("Processing...");
@@ -384,8 +455,8 @@ export default function EmployeeDetailPage() {
                 </h1>
                 <div className="flex items-center gap-3">
                   <StatusBadge status={employee?.user?.status} />
-                  <span className="h-1 w-1 rounded-full bg-slate-300" />
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
                     {employee?.user?.designation?.name || "Field Operator"}
                   </span>
                 </div>
@@ -412,12 +483,31 @@ export default function EmployeeDetailPage() {
       <main className="px-8 -mt-8">
         <div className="grid lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8 space-y-8">
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
               {(role === "Employee" || role === "Manager") && (
                 <MetricBox label="Proficiency" value={`${employee?.proficiency || ""}%`} icon={<HiOutlineLightningBolt />} color="text-orange-500" />
               )}
+              {(role === "Employee" || role === "Manager") && (
+                <MetricBox
+                  label={`Avg Proficiency (${employee?.proficiencyDaysCount ?? 0} days)`}
+                  value={
+                    employee?.avgProficiencyLast30Days !== null &&
+                      employee?.avgProficiencyLast30Days !== undefined
+                      ? `${employee.avgProficiencyLast30Days}%`
+                      : "N/A"
+                  }
+                  icon={<HiOutlineLightningBolt />}
+                  color={
+                    employee?.avgProficiencyLast30Days >= 100
+                      ? "text-emerald-500"
+                      : employee?.avgProficiencyLast30Days >= 70
+                        ? "text-amber-500"
+                        : "text-rose-500"
+                  }
+                />
+              )}
               {(role !== "Admin") && (
-                <MetricBox label="Shift Capacity" value={`${effectiveHours}h`} icon={<HiOutlineClock />} color="text-slate-500" />
+                <MetricBox label="Shift Capacity" value={`9 hours`} icon={<HiOutlineClock />} color="text-slate-500" />
               )}
               {(role === "Employee" || role === "Manager" || (role === "Admin" && currentlyAssigned.length > 0)) && (
                 <MetricBox label="Active Tasks" value={activeTasks.length} icon={<HiOutlineInboxStack />} color="text-slate-500" />
@@ -471,9 +561,18 @@ export default function EmployeeDetailPage() {
                         </div>
                       </div>
 
-                      <span className="text-[11px] font-black text-black">
-                        {formatToHrMin(lastActiveDay.totalDaySeconds)}
-                      </span>
+                      <div className="flex items-end gap-3">
+                        <div className="text-center">
+                          <p className="text-[10px] text-slate-900 font-black text-sm leading-none mb-1">{formatToHrMin(lastActiveDay.totalRawDaySeconds)}</p>
+                          <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest">Actual Hours</p>
+                        </div>
+
+                        <div className="text-center">
+                          <p className="text-[10px] text-slate-900 font-black text-sm leading-none mb-1">{formatToHrMin(lastActiveDay.totalDaySeconds)}</p>
+                          <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest">Proficiency Hours</p>
+                        </div>
+
+                      </div>
                     </div>
 
                     {/* Scroll Area */}
@@ -500,9 +599,16 @@ export default function EmployeeDetailPage() {
                                   </span>
                                 </h4>
 
-                                <span className="text-[9px] font-bold text-slate-500 ml-2 shrink-0">
-                                  {formatToHrMin(task.seconds)}
-                                </span>
+                                <div className="flex items-end gap-3 ml-2 shrink-0">
+                                  <span className="text-[10px] text-slate-800 font-black text-sm leading-none">
+                                    {formatToHrMin(task?.rawSeconds)}
+                                  </span>
+
+                                  <span className="text-[10px] text-slate-800 font-black text-sm leading-none">
+                                    {formatToHrMin(task.seconds)}
+                                  </span>
+
+                                </div>
                               </div>
 
                               <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">

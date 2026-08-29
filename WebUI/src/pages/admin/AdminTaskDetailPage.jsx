@@ -201,7 +201,7 @@ export default function AdminTaskDetailPage() {
               </span>
               <div>
                 <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase mb-3 leading-none">
-                  {task.title}
+                  {task.title} - {task?.project?.title} ({task?.project?.projectCode})
                 </h1>
                 <div className="flex flex-wrap gap-2">
                   <Badge

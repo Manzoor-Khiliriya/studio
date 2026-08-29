@@ -152,6 +152,12 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleActiveTimerClick = (timer) => {
+    if (!timer?.taskId) return;
+
+    navigate(`/projects/${timer.taskId}`);
+  };
+
   return (
     <>
       <div className="min-h-[83vh] bg-slate-100">
@@ -231,32 +237,41 @@ const AdminDashboard = () => {
                   </span>
                   Active Timers
                 </h3>
-                {liveTracking.length > 0 && user?.role === "Admin" && (
-                  <button onClick={handleStopAll} disabled={isStoppingAll} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white rounded-full text-[10px] font-black uppercase tracking-tighter transition-all border border-red-100 cursor-pointer">
-                    <FiAlertTriangle size={12} /> {isStoppingAll ? 'Shutting Down...' : 'Stop All'}
-                  </button>
+                {user?.role === "Admin" && liveTracking.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 px-3 py-1.5">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                      </span>
+
+                      <span className="text-[10px] font-bold text-green-700 uppercase tracking-wide">
+                        {liveTracking.length} Active
+                      </span>
+                    </div>
+
+                    <button onClick={handleStopAll} disabled={isStoppingAll} title="Stop All Sessions" className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white rounded-full text-[10px] font-black uppercase tracking-tighter transition-all border border-red-100 cursor-pointer"> <FiAlertTriangle size={12} /> {isStoppingAll ? 'Shutting Down...' : 'Stop All'} </button>
+                  </div>
                 )}
               </div>
               <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
                 <AnimatePresence mode='popLayout'>
                   {liveTracking.length > 0 ? (
                     liveTracking.map((timer) => (
-                      <motion.div layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, x: 20 }} key={timer.id} className="flex items-center gap-4 p-4 bg-slate-100 rounded-[1.8rem] border border-transparent hover:border-gray-200 hover:bg-gray-200 transition-all group">
+                      <motion.div layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, x: 20 }} key={timer.id} onClick={() => handleActiveTimerClick(timer)} className="flex items-center gap-4 p-4 bg-slate-100 rounded-[1.8rem] border border-transparent hover:border-gray-200 hover:bg-gray-200 transition-all group">
                         <div className="relative shrink-0">
                           <img src={`https://ui-avatars.com/api/?name=${timer.employee}&background=2563eb&color=fff`} className="h-10 w-10 rounded-2xl object-cover" alt="user" />
                           <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></div>
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[11px] font-black text-slate-900 uppercase truncate">{timer.employee} {timer.employeeCode && `(${timer.employeeCode})`}</p>
-                          <p className="text-[9px] text-slate-600 font-bold uppercase truncate">{timer.task} ({timer.projectCode})</p>
+                          <p className="text-[9px] text-slate-600 font-bold uppercase truncate">{timer.task} - {timer?.projectTitle} ({timer.projectCode})</p>
                         </div>
                         {user?.role === "Admin" && (
                           <button
                             onClick={() => handleStopEmployee(timer)}
-                            className="text-red-500 hover:text-red-600 cursor-pointer transition-all"
-                            title='Stop Session'
-                          >
-                            <FiAlertTriangle size={12} />
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white rounded-full text-[10px] font-black uppercase tracking-tighter transition-all border border-red-100 cursor-pointer" title="Stop Session">
+                            <FiAlertTriangle size={12} /> {"Stop Session"}
                           </button>
                         )}
                       </motion.div>
@@ -382,7 +397,7 @@ const AdminDashboard = () => {
             )}
           </div>
         </div>
-      </div>
+      </div >
       <ConfirmModal
         isOpen={confirmState.open}
         onClose={() => setConfirmState({ open: false })}

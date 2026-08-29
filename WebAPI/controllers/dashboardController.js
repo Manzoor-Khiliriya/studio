@@ -47,7 +47,7 @@ exports.getSummary = async (req, res) => {
           .populate({
             path: "task",
             select: "title project",
-            populate: { path: "project", select: "projectCode" },
+            populate: { path: "project", select: "projectCode title" },
           })
           .lean(),
         Attendance.find()
@@ -164,7 +164,9 @@ exports.getSummary = async (req, res) => {
           userId: t.user?._id,
           employee: t.user?.name,
           employeeCode: t.user?.employee?.employeeCode,
+          taskId: t.task?._id,
           task: t.task?.title,
+          projectTitle: t.task?.project?.title,
           projectCode: t.task?.project?.projectCode || "N/A",
           since: t.startTime,
         })),
@@ -202,7 +204,7 @@ exports.getSummary = async (req, res) => {
         })
           .populate({
             path: "project",
-            match: { status: "Active" },
+            match: { status: "Active", deleteStatus: "Disable" },
             select: "title projectCode",
           })
           .populate("timeLogs")

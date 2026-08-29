@@ -1,5 +1,7 @@
 const Employee = require("../models/Employee");
+const TaskAllocation = require("../models/TaskAllocation");
 const User = require("../models/User");
+const { getToday } = require("../utils/dateHelper");
 
 exports.getAllEmployees = async (req, res) => {
   try {
@@ -133,7 +135,51 @@ exports.getEmployeeProfile = async (req, res) => {
       });
     }
 
-    res.json(employee);
+    // --- Average proficiency over the last 30 worked days ---
+    const allocations = await TaskAllocation.find({ employee: employee._id })
+      .select("dailyAllocations")
+      .lean();
+
+    // Group proficiency by date across all of this employee's tasks,
+    // since they may have multiple allocations on the same day.
+    const byDate = {};
+
+    allocations.forEach((allocation) => {
+      (allocation.dailyAllocations || []).forEach((day) => {
+        if (day.proficiency === null || day.proficiency === undefined) return;
+
+        if (!byDate[day.date]) {
+          byDate[day.date] = { sum: 0, count: 0 };
+        }
+        byDate[day.date].sum += day.proficiency;
+        byDate[day.date].count += 1;
+      });
+    });
+
+    const today = getToday();
+
+    const dayLevelProficiencies = Object.entries(byDate)
+      .filter(([date]) => date < today)
+      .map(([date, { sum, count }]) => ({
+        date,
+        proficiency: sum / count,
+      }))
+      .sort((a, b) => (a.date < b.date ? 1 : -1)) 
+      .slice(0, 30);
+
+    const avgProficiencyLast30Days =
+      dayLevelProficiencies.length > 0
+        ? Math.round(
+            dayLevelProficiencies.reduce((acc, d) => acc + d.proficiency, 0) /
+              dayLevelProficiencies.length,
+          )
+        : null;
+
+    res.json({
+      ...employee,
+      avgProficiencyLast30Days,
+      proficiencyDaysCount: dayLevelProficiencies.length,
+    });
   } catch (err) {
     res.status(500).json({
       error: err.message,

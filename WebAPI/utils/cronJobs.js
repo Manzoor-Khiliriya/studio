@@ -9,10 +9,12 @@ const LeaveSetting = require("../models/LeaveSetting");
 const User = require("../models/User");
 const JobTracker = require("../models/JobTracker");
 const Notification = require("../models/Notification");
-const { calculateLeaveDays } = require("../utils/leaveHelpers");
-const { now } = require("../utils/dateHelper");
+const { calculateLeaveDays } = require("./leaveHelpers");
+const { now, getYesterday } = require("./dateHelper");
 const Employee = require("../models/Employee");
 const { applyProficiency } = require("./userHelpers");
+const TaskAllocation = require("../models/TaskAllocation");
+const { calculateProficiency } = require("./proficiencyHelper");
 
 //
 // 🔥 HELPER (timezone-safe)
@@ -22,6 +24,64 @@ const getCutoffDate = () => {
   d.setMonth(d.getMonth() - 13);
   return d;
 };
+
+async function finalizeDailyProficiency(dateStr) {
+  console.log(`📊 Finalizing proficiency for ${dateStr}...`);
+
+  const allocations = await TaskAllocation.find({
+    "dailyAllocations.date": dateStr,
+  })
+    .populate({
+      path: "task",
+      select: "timeLogs",
+      populate: {
+        path: "timeLogs",
+        select: "rawDurationSeconds dateString user logType",
+      },
+    })
+    .populate({
+      path: "employee",
+      populate: { path: "user", select: "_id" },
+    });
+
+  const bulkOps = [];
+
+  for (const allocation of allocations) {
+    if (!allocation.employee?.user?._id) continue;
+
+    const dayAllocation = allocation.dailyAllocations.find(
+      (d) => d.date === dateStr,
+    );
+    const allocatedSeconds = dayAllocation?.allocatedSeconds ?? 0;
+
+    const workedSeconds = (allocation.task?.timeLogs || [])
+      .filter(
+        (log) =>
+          log.user?.toString() === allocation.employee.user._id.toString() &&
+          log.dateString === dateStr &&
+          log.logType === "work",
+      )
+      .reduce((acc, log) => acc + (log.rawDurationSeconds || 0), 0);
+
+    const workedHours = workedSeconds / 3600;
+    const proficiency = calculateProficiency(workedHours, allocatedSeconds);
+
+    bulkOps.push({
+      updateOne: {
+        filter: { _id: allocation._id, "dailyAllocations.date": dateStr },
+        update: { $set: { "dailyAllocations.$.proficiency": proficiency } },
+      },
+    });
+  }
+
+  if (bulkOps.length) {
+    await TaskAllocation.bulkWrite(bulkOps);
+  }
+
+  console.log(
+    `✅ Finalized proficiency for ${bulkOps.length} allocations (${dateStr})`,
+  );
+}
 
 //
 // 🔥 1. CLEANUP (SAFE)
@@ -60,9 +120,17 @@ async function runCleanupSafe() {
     const tIds = tasks.map((t) => t._id);
 
     await TimeLog.deleteMany({ task: { $in: tIds } });
+    await TaskAllocation.deleteMany({ task: { $in: tIds } });
     await Task.deleteMany({ project: { $in: pIds } });
     await Project.deleteMany({ _id: { $in: pIds } });
   }
+
+  const staleAllocationResult = await TaskAllocation.deleteMany({
+    updatedAt: { $lt: cutoff },
+  });
+  console.log(
+    `🗑 Deleted ${staleAllocationResult.deletedCount} stale task allocations older than 13 months.`,
+  );
 
   await Attendance.deleteMany({
     clockIn: { $lt: cutoff },
@@ -233,6 +301,9 @@ async function runMidnightShutdown() {
     const activeLogs = await TimeLog.find({ isRunning: true });
     const midnight = new Date(currentTime);
     midnight.setHours(0, 0, 0, 0);
+
+    const yesterdayStr = getYesterday();
+
     for (const log of activeLogs) {
       const startTime = new Date(log.startTime);
       const proficiency = Math.max(
@@ -313,6 +384,7 @@ async function runMidnightShutdown() {
       await record.save();
     }
     console.log(`🕛 Clocked out ${activeAttendance.length} users`);
+    await finalizeDailyProficiency(yesterdayStr);
     console.log("✅ Midnight shutdown complete");
   } catch (err) {
     console.error("❌ Midnight shutdown failed:", err.message);

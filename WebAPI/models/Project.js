@@ -13,6 +13,11 @@ const projectSchema = new mongoose.Schema(
       ref: "TaskStatus",
       required: true,
     },
+    projectCategory: {
+      type: String,
+      enum: ["3D Visualization", "Interior Design", "R&D"],
+      required: true,
+    },
     title: { type: String, required: true },
     clientName: { type: String },
     startDate: { type: Date, required: true },

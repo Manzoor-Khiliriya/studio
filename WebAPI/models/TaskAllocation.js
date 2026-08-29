@@ -27,6 +27,7 @@ const taskAllocationSchema = new mongoose.Schema(
       {
         date: String,
         allocatedSeconds: Number,
+        proficiency: { type: Number, default: null }
       },
     ],
   },

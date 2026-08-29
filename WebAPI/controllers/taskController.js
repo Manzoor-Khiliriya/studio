@@ -546,7 +546,7 @@ exports.getTaskDetail = async (req, res) => {
     const taskData = {
       ...task.toObject(),
       allocations: allocationsWithLive,
-      liveStatus: task.liveStatus,
+      liveStatus: task?.liveStatus,
       totalConsumedHours,
       totalConsumedSeconds,
       totalRawConsumedSeconds,
