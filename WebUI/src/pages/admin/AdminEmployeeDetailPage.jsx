@@ -507,7 +507,7 @@ export default function EmployeeDetailPage() {
                 />
               )}
               {(role !== "Admin") && (
-                <MetricBox label="Shift Capacity" value={`9 hours`} icon={<HiOutlineClock />} color="text-slate-500" />
+                <MetricBox label="Shift Capacity" value={employee?.dailyWorkLimit} icon={<HiOutlineClock />} color="text-slate-500" />
               )}
               {(role === "Employee" || role === "Manager" || (role === "Admin" && currentlyAssigned.length > 0)) && (
                 <MetricBox label="Active Tasks" value={activeTasks.length} icon={<HiOutlineInboxStack />} color="text-slate-500" />
