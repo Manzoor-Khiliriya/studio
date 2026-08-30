@@ -19,57 +19,46 @@ export const useSocketEvents = ({
     if (!socket) return;
 
     const handleEmployee = () => {
-      console.log("👨‍💼 Employee changed");
       onEmployeeChange?.();
     };
 
     const handleProject = () => {
-      console.log("📁 Project changed");
       onProjectChange?.();
     };
 
     const handleTask = () => {
-      console.log("📌 Task changed");
       onTaskChange?.();
     };
 
     const handleTimeLog = () => {
-      console.log("⏱ TimeLog changed");
       onTimeLogChange?.();
     };
 
     const handleAttendance = () => {
-      console.log("📅 Attendance changed");
       onAttendanceChange?.();
     };
 
     const handleLeave = () => {
-      console.log("🏖 Leave changed");
       onLeaveChange?.();
     };
 
     const handleHoliday = () => {
-      console.log("🎉 Holiday changed");
       onHolidayChange?.();
     };
 
     const handleNotification = () => {
-      console.log("🔔 Notification changed");
       onNotificationChange?.();
     };
 
     const handleDashboard = () => {
-      console.log("📊 Dashboard updated");
       onDashboardUpdate?.();
     };
 
     const handleAllocation = () => {
-      console.log("🧩 Allocation changed");
       onAllocationChange?.();
     };
 
     const handleDeleteRequest = () => {
-      console.log("🧩 Delete Request changed");
       onDeleteRequestChange?.();
     };
 

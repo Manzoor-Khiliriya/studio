@@ -191,7 +191,12 @@ const TaskGridView = ({ tasks, userId }) => {
         </div>
 
         {/* Stats Summary */}
-        <div className="flex gap-10">
+        <div className="flex gap-3">
+          <div className="text-center">
+            <p className="text-[10px] text-slate-900 font-black text-sm leading-none mb-1">{taskCount}</p>
+            <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest">Total Tasks</p>
+          </div>
+
           <div className="text-center">
             <p className="text-[10px] text-slate-900 font-black text-sm leading-none mb-1">
               {totalRawHoursStr}
@@ -208,10 +213,6 @@ const TaskGridView = ({ tasks, userId }) => {
             <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest">
               Proficiency Hours
             </p>
-          </div>
-          <div className="text-center">
-            <p className="text-[10px] text-slate-900 font-black text-sm leading-none mb-1">{taskCount}</p>
-            <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest">Total Tasks</p>
           </div>
         </div>
       </div>

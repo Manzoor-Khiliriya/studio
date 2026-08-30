@@ -42,6 +42,7 @@ export const userApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, { id }) => [
         { type: "User", id },
         { type: "User", id: "LIST" },
+        { type: "Employee", id }, 
         { type: "Employee", id: "LIST" },
       ],
     }),
@@ -54,6 +55,7 @@ export const userApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, { id }) => [
         { type: "User", id },
         { type: "User", id: "LIST" },
+        { type: "Employee", id }, 
         { type: "Employee", id: "LIST" },
       ],
     }),
@@ -62,8 +64,9 @@ export const userApi = apiSlice.injectEndpoints({
         url: `/users/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [
+      invalidatesTags: (result, error, id) => [
         { type: "User", id: "LIST" },
+        { type: "Employee", id },
         { type: "Employee", id: "LIST" },
         { type: "DeleteRequest", id: "LIST" },
       ],
@@ -112,5 +115,5 @@ export const {
   useGetDepartmentOptionsQuery,
   useGetPendingDeleteRequestsQuery,
   useRespondToDeleteRequestMutation,
-  useConnectTelegramMutation
+  useConnectTelegramMutation,
 } = userApi;

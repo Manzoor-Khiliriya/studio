@@ -21,6 +21,8 @@ exports.getSummary = async (req, res) => {
       }).select("user");
 
       const employeeUserIds = managedEmployees.map((e) => e.user);
+      const adminUsers = await User.find({ role: "Admin" }).select("_id");
+      const adminIds = adminUsers.map((a) => a._id);
 
       const [
         totalActiveEmployees,
@@ -29,7 +31,6 @@ exports.getSummary = async (req, res) => {
         uniqueProjects,
         activeTimers,
         attendanceToday,
-        adminUsers,
       ] = await Promise.all([
         User.countDocuments({
           status: "Enable",
@@ -38,7 +39,11 @@ exports.getSummary = async (req, res) => {
         Attendance.countDocuments({ date: today, clockOut: null }),
         Task.find().populate("timeLogs"),
         Project.countDocuments({ deleteStatus: "Disable" }),
-        TimeLog.find({ isRunning: true, logType: "work" })
+        TimeLog.find({
+          isRunning: true,
+          logType: "work",
+          user: { $nin: adminIds },
+        })
           .populate({
             path: "user",
             select: "name",
@@ -60,8 +65,6 @@ exports.getSummary = async (req, res) => {
             },
           })
           .lean(),
-
-        User.find({ role: "Admin" }).select("_id"),
       ]);
 
       const tasksWithVirtuals = allTasks.map((task) => ({
@@ -78,7 +81,6 @@ exports.getSummary = async (req, res) => {
         status: "Pending",
       });
 
-      const adminIds = adminUsers.map((a) => a._id);
       const rawActivity = await TimeLog.find({
         clearedByAdmin: false,
         user: { $nin: adminIds },
@@ -446,7 +448,6 @@ exports.getManagerDashboard = async (req, res) => {
         projectCode: t.task?.project?.projectCode || "N/A",
         since: t.startTime,
       })),
-
     });
   } catch (err) {
     res.status(500).json({

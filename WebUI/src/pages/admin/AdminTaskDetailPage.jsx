@@ -27,6 +27,7 @@ import StatusUpdateModal from "../../components/StatusUpdateModal";
 import TaskModal from "../../components/TaskModal";
 import { useSocketEvents } from "../../hooks/useSocketEvents";
 import { useUpdateTaskAllocationMutation } from "../../services/taskAllocationApi";
+import TruncateText from "../../components/TruncateText";
 
 // --- UTILITY: FORMAT SECONDS TO HH:MM:SS ---
 const formatToHrMin = (totalSeconds) => {
@@ -200,8 +201,13 @@ export default function AdminTaskDetailPage() {
                 {task.title?.charAt(0)}
               </span>
               <div>
-                <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase mb-3 leading-none">
-                  {task.title} - {task?.project?.title} ({task?.project?.projectCode})
+                <h1 className="flex gap-2 text-4xl font-black text-slate-900 tracking-tighter uppercase mb-3 leading-none">
+                  {task.title} -
+                  <TruncateText
+                    maxWidth="max-w-[400px]"
+                    text={`${task?.project?.title}`}
+                    className=""
+                  />
                 </h1>
                 <div className="flex flex-wrap gap-2">
                   <Badge

@@ -14,7 +14,6 @@ const NotificationHandler = ({ userId }) => {
     if (!socket) return;
 
     const handleNotification = (data) => {
-      console.log("🔔 Notification:", data);
 
       toast(data.message);
 

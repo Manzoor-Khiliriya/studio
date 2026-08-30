@@ -11,7 +11,6 @@ export const connectSocket = (user) => {
   });
 
   socket.on("connect", () => {
-    console.log("✅ Socket connected:", socket.id);
     socket.emit("join", {
       userId: user._id,
       role: user.role,

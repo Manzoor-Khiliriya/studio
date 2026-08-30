@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { HiOutlineCalendarDays, HiOutlineShieldCheck, HiOutlineIdentification, HiOutlineEnvelope, HiOutlineEyeSlash, HiOutlineEye } from "react-icons/hi2";
 import { FiEdit, FiTrash2 } from "react-icons/fi";
+import TruncateText from "../components/TruncateText";
 
 const PasswordCell = ({ emp }) => {
   const [showPassword, setShowPassword] = useState(false);
@@ -38,9 +39,11 @@ export const getEmployeeColumns = ({ role, onEdit, onDelete, onToggle }) => [
           </div>
           <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${emp.user?.status === "Enable" ? "bg-emerald-500" : "bg-rose-500"}`} />
         </div>
-        <p className="font-bold text-slate-800 text-[12px] uppercase tracking-tight">
-          {emp.user?.name || "Unknown"}
-        </p>
+        <TruncateText
+          maxWidth="max-w-[120px]"
+          text={emp.user?.name || "Unknown"}
+          className="font-bold text-slate-800 text-[12px] uppercase tracking-tight"
+        />
       </div>
     )
   },
@@ -114,26 +117,26 @@ export const getEmployeeColumns = ({ role, onEdit, onDelete, onToggle }) => [
     header: "Password",
     render: (emp) => <PasswordCell emp={emp} />
   },
-  {
-    header: "Joining Date",
-    render: (emp) => (
-      <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500">
-        <HiOutlineCalendarDays size={15} className="text-slate-400" />
-        <span>
-          {emp.joinedDate
-            ? new Date(emp.joinedDate).toLocaleDateString(
-              "en-IN",
-              {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-              }
-            )
-            : "---"}
-        </span>
-      </div>
-    )
-  },
+  // {
+  //   header: "Joining Date",
+  //   render: (emp) => (
+  //     <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500">
+  //       <HiOutlineCalendarDays size={15} className="text-slate-400" />
+  //       <span>
+  //         {emp.joinedDate
+  //           ? new Date(emp.joinedDate).toLocaleDateString(
+  //             "en-IN",
+  //             {
+  //               day: "2-digit",
+  //               month: "short",
+  //               year: "numeric",
+  //             }
+  //           )
+  //           : "---"}
+  //       </span>
+  //     </div>
+  //   )
+  // },
   {
     header: "Proficiency",
     className: "text-center",
