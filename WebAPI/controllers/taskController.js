@@ -7,10 +7,11 @@ const TaskAllocation = require("../models/TaskAllocation");
 const sendTaskNotification = require("../utils/notifier");
 const { calculateEstimatedHours } = require("../utils/taskHelpers");
 const { emitDashboardUpdate, emitToTask } = require("../utils/socket");
-const { getToday } = require("../utils/dateHelper");
+const { getToday, now } = require("../utils/dateHelper");
 const User = require("../models/User");
 const { ROLE, STATUS } = require("../utils/constant");
 const TaskStatus = require("../models/TaskStatus");
+const { applyProficiency } = require("../utils/userHelpers");
 
 const emitEvent = (req, event, data, userIds = []) => {
   const io = req.app.get("socketio");
@@ -96,7 +97,7 @@ exports.createTask = async (req, res) => {
       task: populatedTask,
     });
   } catch (err) {
-    console.error(err)
+    console.error(err);
     return res
       .status(500)
       .json({ success: false, message: "Internal server error" });
@@ -131,6 +132,54 @@ exports.updateTask = async (req, res) => {
       : [];
 
     const removed = oldAssigneeIds.filter((id) => !newAssignedIds.includes(id));
+    // Stop any running timer for employees removed from this task
+    if (removed.length) {
+      const currentTime = now();
+
+      for (const employeeId of removed) {
+        const employee = await Employee.findById(employeeId).select("user");
+
+        if (!employee?.user) continue;
+
+        const runningLog = await TimeLog.findOne({
+          user: employee.user,
+          task: task._id,
+          isRunning: true,
+        });
+
+        if (!runningLog) continue;
+
+        const rawSeconds = Math.max(
+          0,
+          Math.floor((currentTime - new Date(runningLog.startTime)) / 1000),
+        );
+
+        if (runningLog.logType === "work") {
+          const { adjustedSeconds } = await applyProficiency(
+            employee.user,
+            rawSeconds,
+          );
+
+          runningLog.rawDurationSeconds = rawSeconds;
+          runningLog.durationSeconds = adjustedSeconds;
+        } else {
+          // Break time is stored without proficiency adjustment
+          runningLog.rawDurationSeconds = rawSeconds;
+          runningLog.durationSeconds = rawSeconds;
+        }
+
+        runningLog.endTime = currentTime;
+        runningLog.isRunning = false;
+        runningLog.action = "Stop";
+
+        await runningLog.save();
+
+        // Immediately update removed employee's dashboard
+        emitEvent(req, "timeLogChanged", runningLog, [employee.user]);
+
+        emitEvent(req, "taskChanged", { taskId: task._id }, [employee.user]);
+      }
+    }
     if (title) task.title = title;
     if (priority) task.priority = priority;
     if (description !== undefined) task.description = description;
@@ -253,6 +302,7 @@ exports.updateTask = async (req, res) => {
       task: updated,
     });
   } catch (err) {
+    console.error(err);
     return res
       .status(500)
       .json({ success: false, message: "Internal server error" });
@@ -841,7 +891,7 @@ exports.deleteTask = async (req, res) => {
     await TimeLog.deleteMany({ task: task._id }).session(session);
 
     await session.commitTransaction();
-    
+
     await emitToTask(req, populatedTask, "taskChanged", {
       taskId: populatedTask._id,
     });

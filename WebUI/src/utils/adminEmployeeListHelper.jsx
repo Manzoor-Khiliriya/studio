@@ -40,7 +40,7 @@ export const getEmployeeColumns = ({ role, onEdit, onDelete, onToggle }) => [
           <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${emp.user?.status === "Enable" ? "bg-emerald-500" : "bg-rose-500"}`} />
         </div>
         <TruncateText
-          maxWidth="max-w-[120px]"
+          maxWidth="max-w-[200px]"
           text={emp.user?.name || "Unknown"}
           className="font-bold text-slate-800 text-[12px] uppercase tracking-tight"
         />

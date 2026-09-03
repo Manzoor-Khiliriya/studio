@@ -38,6 +38,14 @@ const formatToHrMin = (totalSeconds) => {
     .padStart(2, "0")} Mins ${seconds.toString().padStart(2, "0")} Secs`;
 };
 
+const formatToHrMinShort = (totalSeconds) => {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${hours}h ${minutes}m ${seconds}s`;
+};
+
 // --- UTILITY: DYNAMIC COLOR MAPPING BASED ON TASK ---
 const getTaskColor = (taskId) => {
   if (!taskId) return "bg-slate-500";
@@ -131,8 +139,8 @@ const TaskGridView = ({ tasks, userId }) => {
           // Actual/raw time
           rawSeconds: rawDurationSeconds,
 
-          timeStr: formatToHrMin(durationSeconds),
-          rawTimeStr: formatToHrMin(rawDurationSeconds),
+          timeStr: formatToHrMinShort(durationSeconds),
+          rawTimeStr: formatToHrMinShort(rawDurationSeconds),
 
           hasActivity: durationSeconds > 0 || rawDurationSeconds > 0,
         };
@@ -228,8 +236,8 @@ const TaskGridView = ({ tasks, userId }) => {
                 {item.title} ({item.projectTitle})
               </h4> */}
               <TruncateText
-                maxWidth="max-w-[100px]"
-                text={`${item.title} (${item.projectTitle})`}
+                maxWidth="max-w-[200px]"
+                text={`${item.projectTitle} (${item.title})`}
                 className="text-[10px] font-black uppercase text-white truncate mr-4"
               />
               <div className="flex items-end gap-3 shrink-0">
@@ -594,9 +602,9 @@ export default function EmployeeDetailPage() {
                             <div key={idx} className="space-y-2">
                               <div className="flex justify-between items-end">
                                 <h4 className="text-[10px] font-black uppercase text-slate-800 truncate">
-                                  {task.title}{" "}
+                                  {task.projectTitle}{" "} ({task.title})
                                   <span className="text-slate-800">
-                                    ({task.projectTitle})
+                                    
                                   </span>
                                 </h4>
 

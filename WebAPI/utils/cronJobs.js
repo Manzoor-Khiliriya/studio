@@ -462,7 +462,7 @@ module.exports = (io) => {
 
           log.endTime = currentTime;
           log.isRunning = false;
-          log.action = "Auto Stop";
+          log.action = "Stop";
 
           await log.save();
 

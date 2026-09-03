@@ -13,7 +13,7 @@ const startOfDay = (date) => moment(date).tz(TIMEZONE).startOf("day").toDate();
 
 const endOfDay = (date) => moment(date).tz(TIMEZONE).endOf("day").toDate();
 
-const now = () => moment().tz("Asia/Kolkata").toDate();
+const now = () => moment().tz(TIMEZONE).toDate();
 
 module.exports = {
   getToday,

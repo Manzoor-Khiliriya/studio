@@ -28,6 +28,7 @@ const AdminDashboard = () => {
     action: null,
     payload: null,
   });
+  const [timerSearch, setTimerSearch] = useState("");
 
   const {
     data: adminData,
@@ -158,6 +159,15 @@ const AdminDashboard = () => {
     navigate(`/projects/${timer.taskId}`);
   };
 
+  const filteredLiveTracking = liveTracking.filter((timer) => {
+    const term = timerSearch.trim().toLowerCase();
+    if (!term) return true;
+    return (
+      timer.employee?.toLowerCase().includes(term) ||
+      timer.employeeCode?.toLowerCase().includes(term)
+    );
+  });
+
   return (
     <>
       <div className="min-h-[83vh] bg-slate-100">
@@ -237,8 +247,22 @@ const AdminDashboard = () => {
                   </span>
                   Active Timers
                 </h3>
+
+                {/* {liveTracking.length > 0 && (
+                  
+                )} */}
+
                 {user?.role === "Admin" && liveTracking.length > 0 && (
                   <div className="flex items-center gap-2">
+                    <div className="">
+                      <input
+                        type="text"
+                        value={timerSearch}
+                        onChange={(e) => setTimerSearch(e.target.value)}
+                        placeholder="Search by employee name..."
+                        className="w-full px-3 py-2 bg-slate-100 rounded-2xl text-[11px] font-bold text-slate-700 placeholder:text-slate-400 placeholder:font-semibold tracking-wide outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+                      />
+                    </div>
                     <div className="flex items-center gap-2 px-3 py-1.5">
                       <span className="relative flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -253,11 +277,16 @@ const AdminDashboard = () => {
                     <button onClick={handleStopAll} disabled={isStoppingAll} title="Stop All Sessions" className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white rounded-full text-[10px] font-black uppercase tracking-tighter transition-all border border-red-100 cursor-pointer"> <FiAlertTriangle size={12} /> {isStoppingAll ? 'Shutting Down...' : 'Stop All'} </button>
                   </div>
                 )}
+
+
               </div>
+
+
               <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
                 <AnimatePresence mode='popLayout'>
-                  {liveTracking.length > 0 ? (
-                    liveTracking.map((timer) => (
+
+                  {filteredLiveTracking.length > 0 ? (
+                    filteredLiveTracking.map((timer) => (
                       <motion.div layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, x: 20 }} key={timer.id} onClick={() => handleActiveTimerClick(timer)} className="flex items-center gap-4 p-4 bg-slate-100 rounded-[1.8rem] border border-transparent hover:border-gray-200 hover:bg-gray-200 transition-all group">
                         <div className="relative shrink-0">
                           <img src={`https://ui-avatars.com/api/?name=${timer.employee}&background=2563eb&color=fff`} className="h-10 w-10 rounded-2xl object-cover" alt="user" />
@@ -269,7 +298,10 @@ const AdminDashboard = () => {
                         </div>
                         {user?.role === "Admin" && (
                           <button
-                            onClick={() => handleStopEmployee(timer)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStopEmployee(timer);
+                            }}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white rounded-full text-[10px] font-black uppercase tracking-tighter transition-all border border-red-100 cursor-pointer" title="Stop Session">
                             <FiAlertTriangle size={12} /> {"Stop Session"}
                           </button>

@@ -42,6 +42,8 @@ function AppContent() {
   useEffect(() => {
     if (!user?._id) return;
 
+    sendHeartbeat().unwrap().catch((err) => console.warn("Heartbeat failed:", err));
+    
     const interval = setInterval(() => {
       sendHeartbeat().unwrap().catch(() => { });
     }, 60000);

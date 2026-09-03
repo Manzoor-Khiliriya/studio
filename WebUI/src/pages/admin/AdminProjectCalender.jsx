@@ -8,6 +8,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { HiChevronDown, HiChevronUp, HiOutlineQueueList, HiOutlineFlag, HiOutlineTag } from 'react-icons/hi2';
 import { useSocketEvents } from '../../hooks/useSocketEvents';
 import Loader from '../../components/Loader';
+import PageHeader from '../../components/PageHeader';
 
 const PROJECT_COLORS = [
   { normal: "bg-blue-700 hover:bg-blue-600", expanded: "bg-blue-700", ring: "ring-blue-500/20 border-blue-400" },
@@ -243,99 +244,112 @@ const AdminProjectCalendar = () => {
   if (isLoading || isFetching) return <Loader />;
 
   return (
-    <div className="max-w-[1750px] mx-auto  p-8 bg-slate-100 min-h-[83vh]">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <span className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center text-white font-black text-2xl italic shadow-lg shadow-orange-200">
-              {iconText}
-            </span>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">{pageTitle}</h1>
-          </div>
-          <p className="text-slate-500 text-sm font-medium ml-1">
-            {activeTab === 'all' ? "Full Project Timeline" : "Deadline View"}
-            {categoryFilter !== "All" && ` · ${categoryFilter}`}
-          </p>
-        </div>
+    <div className="max-w-[1750px] mx-auto min-h-[83vh] bg-slate-100">
+      <div className="bg-white border-b border-slate-200 pt-10 pb-12">
+        <div className="mx-auto px-8">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
 
-        <div className="flex flex-col items-center gap-3 flex-wrap justify-end">
-          {/* CATEGORY FILTER */}
-          {categoryOptions.length > 1 && (
-            <div className="relative w-[400px]">
-              <button
-                onClick={() => setShowCategoryMenu((prev) => !prev)}
-                className="flex w-full justify-center items-center gap-2 px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-orange-600 border border-slate-200 shadow-sm text-white hover:border-orange-400 transition-all cursor-pointer"
-              >
-                <HiOutlineTag size={14} className="text-white" />
-                {categoryFilter === "All" ? "All Project Categories" : categoryFilter}
-                <HiChevronDown size={14} className={`transition-transform ${showCategoryMenu ? "rotate-180" : ""}`} />
-              </button>
-
-              {showCategoryMenu && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowCategoryMenu(false)}
-                  />
-                  <div className="absolute right-0 mt-2 w-full bg-white border border-slate-200 rounded-2xl shadow-xl z-50 py-2 overflow-hidden">
-                    {categoryOptions.map((cat) => (
-                      <button
-                        key={cat}
-                        onClick={() => {
-                          setCategoryFilter(cat);
-                          setShowCategoryMenu(false);
-                          setExpandedProjects(new Set());
-                        }}
-                        className={`w-full text-center px-4 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${
-                          categoryFilter === cat
-                            ? "bg-orange-50 text-orange-600"
-                            : "text-slate-600 hover:bg-slate-50"
-                        }`}
-                      >
-                        {cat === "All" ? "All Project Categories" : cat}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
+            {/* LEFT — Icon + Title + Subtitle */}
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <span className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center text-white font-black text-2xl italic shadow-lg shadow-orange-200">
+                  P
+                </span>
+                <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">
+                  Project Calendar
+                </h1>
+              </div>
+              <p className="text-slate-500 text-sm font-medium ml-1">
+                {activeTab === 'all' ? "Full Project Timeline" : "Deadline View"}
+                {categoryFilter !== "All" && ` · ${categoryFilter}`}
+              </p>
             </div>
-          )}
 
-          {/* VIEW TABS */}
-          <div className="flex w-[400px] bg-slate-100 p-1.5 rounded-2xl border border-slate-200 shadow-inner">
-            <button
-              onClick={() => { setActiveTab('all'); setExpandedProjects(new Set()); }}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${activeTab === 'all' ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
-            >
-              <HiOutlineQueueList size={16} />
-              All Project Dates
-            </button>
-            <button
-              onClick={() => { setActiveTab('deadline'); setExpandedProjects(new Set()); }}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${activeTab === 'deadline' ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
-            >
-              <HiOutlineFlag size={16} />
-              Deadlines Only
-            </button>
+            {/* RIGHT — Category filter (above) + Tabs (below) */}
+            <div className="flex flex-col items-end gap-3">
+
+              {/* CATEGORY FILTER */}
+              {categoryOptions.length > 1 && (
+                <div className="relative w-[400px]">
+                  <button
+                    onClick={() => setShowCategoryMenu((prev) => !prev)}
+                    className="flex w-full justify-center items-center gap-2 px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-orange-600 border border-slate-200 shadow-sm text-white hover:border-orange-400 transition-all cursor-pointer"
+                  >
+                    <HiOutlineTag size={14} className="text-white" />
+                    {categoryFilter === "All" ? "All Project Categories" : categoryFilter}
+                    <HiChevronDown size={14} className={`transition-transform ${showCategoryMenu ? "rotate-180" : ""}`} />
+                  </button>
+
+                  {showCategoryMenu && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setShowCategoryMenu(false)}
+                      />
+                      <div className="absolute right-0 mt-2 w-full bg-white border border-slate-200 rounded-2xl shadow-xl z-50 py-2 overflow-hidden">
+                        {categoryOptions.map((cat) => (
+                          <button
+                            key={cat}
+                            onClick={() => {
+                              setCategoryFilter(cat);
+                              setShowCategoryMenu(false);
+                              setExpandedProjects(new Set());
+                            }}
+                            className={`w-full text-center px-4 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${categoryFilter === cat
+                                ? "bg-orange-50 text-orange-600"
+                                : "text-slate-600 hover:bg-slate-50"
+                              }`}
+                          >
+                            {cat === "All" ? "All Project Categories" : cat}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* VIEW TABS */}
+              <div className="flex w-[400px] bg-slate-100 p-1.5 rounded-2xl border border-slate-200 shadow-inner">
+                <button
+                  onClick={() => { setActiveTab('all'); setExpandedProjects(new Set()); }}
+                  className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${activeTab === 'all' ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  <HiOutlineQueueList size={16} />
+                  All Project Dates
+                </button>
+                <button
+                  onClick={() => { setActiveTab('deadline'); setExpandedProjects(new Set()); }}
+                  className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${activeTab === 'deadline' ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  <HiOutlineFlag size={16} />
+                  Deadlines Only
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="modern-calendar-wrapper border border-slate-100 rounded-md overflow-hidden bg-slate-50/20 p-2">
-        <FullCalendar
-          ref={calendarRef}
-          plugins={[dayGridPlugin, interactionPlugin]}
-          initialView="dayGridMonth"
-          events={allEvents}
-          eventContent={renderEventContent}
-          headerToolbar={{ left: 'prev,next today', center: 'title', right: 'dayGridMonth,dayGridWeek' }}
-          height="auto"
-          dayMaxEvents={false}
-          displayEventTime={false}
-          fixedWeekCount={false}
-          eventClick={(info) => info.jsEvent.preventDefault()}
-        />
-      </div>
+      <main className="max-w-[1750px] mx-auto px-8 pb-10 -mt-5">
+        <div className="bg-white  overflow-hidden">
+          <div className="modern-calendar-wrapper">
+            <FullCalendar
+              ref={calendarRef}
+              plugins={[dayGridPlugin, interactionPlugin]}
+              initialView="dayGridMonth"
+              events={allEvents}
+              eventContent={renderEventContent}
+              headerToolbar={{ left: 'prev,next today', center: 'title', right: 'dayGridMonth,dayGridWeek' }}
+              height="auto"
+              dayMaxEvents={false}
+              displayEventTime={false}
+              fixedWeekCount={false}
+              eventClick={(info) => info.jsEvent.preventDefault()}
+            />
+          </div>
+        </div>
+      </main>
     </div>
   );
 };

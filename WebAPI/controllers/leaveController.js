@@ -11,7 +11,7 @@ const LeaveBalance = require("../models/LeaveBalance");
 const { now } = require("../utils/dateHelper");
 const { buildApprovalFlow } = require("../utils/leaveApprovalFlow");
 const Employee = require("../models/Employee");
-const Department = require("../models/Department");
+const moment = require("moment-timezone");
 
 const emitEvent = (req, event, data, userId = null) => {
   const io = req.app.get("socketio");
@@ -43,6 +43,12 @@ const getTakenDays = async (userId, type, currentYearOnly = true) => {
   }
 
   return total;
+};
+
+const getLeaveTypeAdjustment = async (userId, type) => {
+  const year = now().getFullYear();
+  const balance = await LeaveBalance.findOne({ user: userId, year, type });
+  return balance?.initialAdjustment || 0;
 };
 
 //
@@ -193,7 +199,8 @@ exports.applyLeave = async (req, res) => {
       }
     } else if (!["LOP"].includes(type)) {
       const taken = await getTakenDays(userId, type, true);
-      const quota = setting?.yearlyQuota || 10;
+      const adjustment = await getLeaveTypeAdjustment(userId, type); // 🔥 added
+      const quota = (setting?.yearlyQuota || 10) + adjustment; // 🔥 changed
 
       if (taken + requestedDays > quota) {
         return res.status(400).json({
@@ -294,47 +301,37 @@ exports.getAllLeaves = async (req, res) => {
     let filterStart = null;
     let filterEnd = null;
 
+    const TIMEZONE = "Asia/Kolkata";
+
     if (dateRange && dateRange !== "all") {
-      const currentTime = now();
-      const start = now();
-      const end = now();
+      const currentTime = moment().tz(TIMEZONE);
+      let start, end;
 
       if (dateRange === "today") {
-        start.setHours(0, 0, 0, 0);
-        end.setHours(23, 59, 59, 999);
+        start = currentTime.clone().startOf("day");
+        end = currentTime.clone().endOf("day");
       } else if (dateRange === "upcoming") {
-        start.setDate(start.getDate() + 1);
-        start.setHours(0, 0, 0, 0);
-        end.setFullYear(currentTime.getFullYear() + 2);
+        start = currentTime.clone().add(1, "day").startOf("day");
+        end = currentTime.clone().add(2, "years");
       } else if (dateRange === "current-week") {
-        start.setDate(currentTime.getDate() - 6);
-        start.setHours(0, 0, 0, 0);
-        end.setTime(currentTime.getTime());
-        end.setHours(23, 59, 59, 999);
+        start = currentTime.clone().subtract(6, "days").startOf("day");
+        end = currentTime.clone().endOf("day");
       } else if (dateRange === "last-week") {
-        start.setDate(currentTime.getDate() - 13);
-        start.setHours(0, 0, 0, 0);
-        end.setDate(currentTime.getDate() - 7);
-        end.setHours(23, 59, 59, 999);
+        start = currentTime.clone().subtract(13, "days").startOf("day");
+        end = currentTime.clone().subtract(7, "days").endOf("day");
       } else if (dateRange === "current-month") {
-        start.setDate(1); // First of this month
-        start.setHours(0, 0, 0, 0);
-        end.setMonth(currentTime.getMonth() + 1, 0); // Last day of this month
-        end.setHours(23, 59, 59, 999);
+        start = currentTime.clone().startOf("month");
+        end = currentTime.clone().endOf("month");
       } else if (dateRange === "last-month") {
-        start.setMonth(currentTime.getMonth() - 1, 1); // First of last month
-        start.setHours(0, 0, 0, 0);
-        end.setMonth(currentTime.getMonth(), 0); // Last day of last month
-        end.setHours(23, 59, 59, 999);
+        start = currentTime.clone().subtract(1, "month").startOf("month");
+        end = currentTime.clone().subtract(1, "month").endOf("month");
       } else if (dateRange === "custom" && customStart && customEnd) {
-        start.setTime(new Date(customStart).getTime());
-        start.setHours(0, 0, 0, 0);
-        end.setTime(new Date(customEnd).getTime());
-        end.setHours(23, 59, 59, 999);
+        start = moment.tz(customStart, TIMEZONE).startOf("day");
+        end = moment.tz(customEnd, TIMEZONE).endOf("day");
       }
 
-      filterStart = start;
-      filterEnd = end;
+      filterStart = start?.toDate();
+      filterEnd = end?.toDate();
     }
 
     if (view === "my-leaves") {
@@ -390,7 +387,7 @@ exports.getAllLeaves = async (req, res) => {
     // --- VIEW 1: REQUESTS (Filtered & Sorted by CREATED date) ---
     if (view === "requests") {
       let query;
-      if (req.user.role === "Hr Employee") {
+      if (req.user.role === "Hr Employee" || req.user.role === "Admin") {
         query = {};
       } else if (["Manager", "GAD Manager"].includes(req.user.role)) {
         query = {
@@ -676,12 +673,14 @@ exports.getAllLeaves = async (req, res) => {
                 adjustment: balance?.initialAdjustment || 0,
               };
             } else {
-              const quota = setting ? setting.yearlyQuota : 10;
+              const adjustment = await getLeaveTypeAdjustment(user._id, t); // 🔥 added
+              const quota = (setting ? setting.yearlyQuota : 10) + adjustment; // 🔥 adjustment applied
               const taken = await getTakenDays(user._id, t, true);
               userBalances[t] = {
                 quota,
                 taken,
                 remaining: Math.max(0, quota - taken),
+                adjustment, // 🔥 now exposed for every type
               };
             }
           }
@@ -991,13 +990,12 @@ exports.processLeave = async (req, res) => {
           taken += await calculateLeaveDays(l.startDate, l.endDate);
         }
 
-        const quota = setting?.yearlyQuota || 10;
+        const adjustment = await getLeaveTypeAdjustment(leave.user, leave.type); // 🔥 added
+        const quota = (setting?.yearlyQuota || 10) + adjustment; // 🔥 changed
 
         if (taken + requestedDays > quota) {
           return res.status(400).json({
-            message: `Cannot approve. Insufficient ${leave.type} balance. Available: ${
-              quota - taken
-            } Leaves`,
+            message: `Cannot approve. Insufficient ${leave.type} balance. Available: ${quota - taken} Leaves`,
           });
         }
       }
@@ -1144,7 +1142,11 @@ exports.updateLeave = async (req, res) => {
         taken += await calculateLeaveDays(l.startDate, l.endDate);
       }
 
-      const quota = setting?.yearlyQuota || 10;
+      const adjustment = await getLeaveTypeAdjustment(
+        leave.user,
+        updatedLeave.type,
+      ); // 🔥 added
+      const quota = (setting?.yearlyQuota || 10) + adjustment; // 🔥 changed
 
       if (taken + requestedDays > quota) {
         return res.status(400).json({
@@ -1215,24 +1217,31 @@ exports.deleteLeave = async (req, res) => {
 exports.updateEarnedAdjustment = async (req, res) => {
   try {
     const { userId, value } = req.body;
+    const leaveType = req.body.leaveType || "Earned Leave"; // 🔥 now generic
     const year = new Date().getFullYear();
+
     let balance = await LeaveBalance.findOne({
       user: userId,
       year,
-      type: "Earned Leave",
+      type: leaveType,
     });
+
     if (!balance) {
       balance = await LeaveBalance.create({
         user: userId,
         year,
-        type: "Earned Leave",
+        type: leaveType,
       });
     }
+
     balance.initialAdjustment = Number(value) || 0;
     await balance.save();
+
     emitEvent(req, "leaveChanged");
+    emitDashboardUpdate(req);
+
     res.json({
-      message: "Adjustment updated",
+      message: `${leaveType} adjustment updated`,
       balance,
     });
   } catch (err) {

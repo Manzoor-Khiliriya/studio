@@ -32,18 +32,15 @@ export const StatusBadge = ({ status }) => {
   );
 };
 
-const renderQuotaCell = (balance, colorClass = "text-slate-900", isAccrual = false) => {
+const renderQuotaCell = (balance, colorClass = "text-slate-900", isAccrual = false, onAdjust) => {
   if (!balance) return <span className="text-[10px] text-slate-300 italic tracking-widest">—</span>;
 
   const total = isAccrual
-    ? balance.earned +
-    (balance.carryForward || 0) +
-    (balance.adjustment || 0)
+    ? balance.earned + (balance.carryForward || 0) + (balance.adjustment || 0)
     : balance.quota;
 
   return (
-    <div className="flex flex-col py-1 group">
-      {/* Primary Info: Remaining Days */}
+    <div className="flex flex-col py-1 group relative">
       <div className="flex items-baseline gap-1">
         <span className={`text-[11px] font-black tracking-tighter ${colorClass}`}>
           {balance.remaining}
@@ -51,7 +48,6 @@ const renderQuotaCell = (balance, colorClass = "text-slate-900", isAccrual = fal
         <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Days Remaining</span>
       </div>
 
-      {/* Secondary Info: Tiny high-density metadata */}
       <div className="flex items-center gap-2 mt-0.5 border-t border-slate-100 pt-0.5 opacity-80 group-hover:opacity-100 transition-opacity">
         <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tight">
           Used: <span className="text-slate-900 font-black">{balance.taken}</span>
@@ -61,6 +57,15 @@ const renderQuotaCell = (balance, colorClass = "text-slate-900", isAccrual = fal
           Total: <span className="text-slate-900 font-black">{total}</span>
         </span>
       </div>
+
+      {onAdjust && (
+        <button
+          onClick={onAdjust}
+          className="text-[8px] font-black text-orange-500 hover:underline text-left mt-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+        >
+          Adjust
+        </button>
+      )}
     </div>
   );
 };
@@ -177,17 +182,26 @@ export const getAdminLeaveColumns = (role, userId, onAction, onEdit, onDelete) =
   {
     header: "Actions",
     render: (req) => {
-      const currentStep = req.approvalFlow?.find(step => {
-        if (step.approver) {
-          return String(step.approver) === String(userId);
-        }
+      const currentStep = req.approvalFlow?.[req.currentLevel];
 
-        return step.role === role;
-      });
+      const isMyTurn = currentStep && (
+        (currentStep.approver && String(currentStep.approver) === String(userId)) ||
+        (currentStep.approvers?.length && currentStep.approvers.some(id => String(id) === String(userId))) ||
+        (!currentStep.approver && !currentStep.approvers?.length && currentStep.role === role)
+      );
+
+      const canAct = req.status === "Pending" && isMyTurn;
+
+      const isAssignedAdmin = role === "Admin" && req.approvalFlow?.some(step =>
+        (step.approver && String(step.approver) === String(userId)) ||
+        (step.approvers?.length && step.approvers.some(id => String(id) === String(userId)))
+      );
+
+      const canManage = role === "Hr Manager" || isAssignedAdmin;
 
       return (
         <div className="flex items-start gap-2">
-          {currentStep?.status === "Pending" ? (
+          {canAct ? (
             <>
               <button
                 onClick={() => onAction(req._id, "Approved", req)}
@@ -204,14 +218,23 @@ export const getAdminLeaveColumns = (role, userId, onAction, onEdit, onDelete) =
               >
                 <HiOutlineXCircle size={20} />
               </button>
+
+
             </>
           ) : (
-            <button className="text-slate-500 hover:text-slate-600  transition-all cursor-not-allowed">
+            <button
+              className="text-slate-500 hover:text-slate-600 transition-all cursor-not-allowed"
+              title={
+                req.status !== "Pending"
+                  ? `Already ${req.status}`
+                  : `Awaiting ${currentStep?.role || "another approver"}'s decision`
+              }
+            >
               <HiOutlineLockClosed size={18} />
             </button>
           )}
 
-          {(role === "Admin" || role === "Hr Manager") && (
+          {canManage && (
             <>
               <button onClick={() => onEdit(req)} className="text-yellow-500 hover:text-yellow-600 hover:scale-110 transition-transform cursor-pointer" title="Update Leave Details">
                 <HiOutlinePencilSquare size={18} />
@@ -221,39 +244,26 @@ export const getAdminLeaveColumns = (role, userId, onAction, onEdit, onDelete) =
               </button>
             </>
           )}
+
         </div>
       )
     }
   },
 ];
 
-export const getQuotaColumns = (setAdjustUser, setAdjustValue) => [
+export const getQuotaColumns = (onAdjust) => [
   {
     header: "Employee",
     render: (r) => (
       <span className="font-black text-slate-900 text-[11px] uppercase">{r?.employee?.user?.name} {`(${r?.employee?.employeeCode ? r?.employee?.employeeCode : ''})`}</span>
     ),
   },
-  { header: "Earned Leave", render: (r) => renderQuotaCell(r.balances?.["Earned Leave"], "text-emerald-600", true) },
-  { header: "Casual Leave", render: (r) => renderQuotaCell(r.balances?.["Casual Leave"], "text-yellow-600") },
-  { header: "Sick Leave", render: (r) => renderQuotaCell(r.balances?.["Sick Leave"], "text-orange-600") },
-  { header: "Bereavement", render: (r) => renderQuotaCell(r.balances?.["Bereavement Leave"], "text-blue-600") },
-  { header: "Paternity", render: (r) => renderQuotaCell(r.balances?.["Paternity Leave"], "text-indigo-600") },
-  { header: "Maternity", render: (r) => renderQuotaCell(r.balances?.["Maternity Leave"], "text-pink-600") },
-  {
-    header: "Adjust",
-    render: (r) => (
-      <button
-        onClick={() => {
-          setAdjustUser(r);
-          setAdjustValue(r.balances?.["Earned Leave"]?.adjustment || 0);
-        }}
-        className="text-[9px] font-black text-orange-600 hover:underline cursor-pointer"
-      >
-        Adjust Earned Leave
-      </button>
-    )
-  }
+  { header: "Earned Leave", render: (r) => renderQuotaCell(r.balances?.["Earned Leave"], "text-emerald-600", true, () => onAdjust(r, "Earned Leave")) },
+  { header: "Casual Leave", render: (r) => renderQuotaCell(r.balances?.["Casual Leave"], "text-yellow-600", false, () => onAdjust(r, "Casual Leave")) },
+  { header: "Sick Leave", render: (r) => renderQuotaCell(r.balances?.["Sick Leave"], "text-orange-600", false, () => onAdjust(r, "Sick Leave")) },
+  { header: "Bereavement", render: (r) => renderQuotaCell(r.balances?.["Bereavement Leave"], "text-blue-600", false, () => onAdjust(r, "Bereavement Leave")) },
+  { header: "Paternity", render: (r) => renderQuotaCell(r.balances?.["Paternity Leave"], "text-indigo-600", false, () => onAdjust(r, "Paternity Leave")) },
+  { header: "Maternity", render: (r) => renderQuotaCell(r.balances?.["Maternity Leave"], "text-pink-600", false, () => onAdjust(r, "Maternity Leave")) },
 ];
 
 /**
