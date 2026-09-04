@@ -34,8 +34,13 @@ app.use(helmet());
 app.use(compression());
 app.use(
   rateLimit({
-    windowMs: 15 * 60 * 1000,
+    windowMs: 10 * 60 * 1000,
     max: 5000,
+    handler: (req, res, next, options) => {
+      res.status(options.statusCode).json({
+        error: "Too many requests. Please try again later.",
+      });
+    },
   }),
 );
 
