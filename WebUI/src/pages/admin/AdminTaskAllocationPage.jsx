@@ -8,7 +8,10 @@ import AllocationModal from "../../components/AllocationModal";
 import useDebounce from "../../hooks/useDebounce";
 import { HiOutlineXMark } from "react-icons/hi2";
 
-const getTodayStr = () => new Date().toISOString().split("T")[0];
+const getTodayStr = () => {
+  const now = new Date();
+  return now.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+};
 
 export default function AdminTaskAllocationPage() {
   const [selectedAllocation, setSelectedAllocation] = useState(null);
@@ -21,7 +24,7 @@ export default function AdminTaskAllocationPage() {
   const minDate = useMemo(() => {
     const d = new Date();
     d.setFullYear(d.getFullYear() - 1);
-    return d.toISOString().split("T")[0];
+    return d.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
   }, []);
 
   const debouncedNameFilter = useDebounce(
@@ -75,42 +78,42 @@ export default function AdminTaskAllocationPage() {
           iconText="T"
         />
 
-        <main className="max-w-[1750px] mx-auto px-8 pb-10 -mt-10">
+        <main className="max-w-[1750px] mx-auto px-4 sm:px-6 lg:px-8 pb-6 sm:pb-10 -mt-6 sm:-mt-10">
           {/* FILTER BAR */}
-          <div className="bg-white/90 backdrop-blur-xl border border-slate-200 p-5 rounded-[2.5rem] shadow-xl shadow-slate-200/50 mb-8 flex flex-wrap items-center gap-4">
-            <div className="relative flex-1 min-w-[200px] group">
+          <div className="bg-white/90 backdrop-blur-xl border border-slate-200 p-4 sm:p-5 rounded-2xl sm:rounded-[2.5rem] shadow-xl shadow-slate-200/50 mb-6 sm:mb-8 flex flex-wrap items-center gap-3 sm:gap-4">
+            <div className="relative flex-1 min-w-[160px] sm:min-w-[200px] group">
               <input
                 type="text"
                 placeholder="Search by employee..."
                 value={nameFilter}
                 onChange={(e) => setNameFilter(e.target.value)}
-                className="w-full px-6 py-3.5 bg-white border border-slate-200 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/5 outline-none font-bold text-xs transition-all shadow-sm"
+                className="w-full px-4 sm:px-6 py-3 sm:py-3.5 bg-white border border-slate-200 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/5 outline-none font-bold text-xs transition-all shadow-sm"
               />
             </div>
 
-            <div className="flex items-center gap-2 bg-slate-100/80 px-4 py-3.5 rounded-xl border border-slate-200/50 shadow-sm cursor-pointer">
-              <FiCalendar size={14} className="text-slate-400" />
+            <div className="flex items-center gap-2 bg-slate-100/80 px-3 sm:px-4 py-3 sm:py-3.5 rounded-xl border border-slate-200/50 shadow-sm cursor-pointer shrink-0">
+              <FiCalendar size={14} className="text-slate-400 shrink-0" />
               <input
                 type="date"
                 value={selectedDate}
                 min={minDate}
                 max={todayStr}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="text-[11px] font-black text-slate-600 bg-transparent outline-none cursor-pointer"
+                className="text-[10px] sm:text-[11px] font-black text-slate-600 bg-transparent outline-none cursor-pointer w-[105px] sm:w-auto"
               />
             </div>
 
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}
-                className="shadow-sm flex items-center gap-2 px-6 py-3.5 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all font-bold text-xs cursor-pointer"
+                className="shadow-sm flex items-center gap-2 px-4 sm:px-6 py-3 sm:py-3.5 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all font-bold text-xs cursor-pointer shrink-0"
               >
                 <HiOutlineXMark size={18} strokeWidth={2.5} />
-                <span>RESET FILTERS</span>
+                <span className="hidden sm:inline">RESET FILTERS</span>
               </button>
             )}
 
-            <div className="flex items-center gap-3 bg-slate-100/80 px-4 py-3.5 rounded-xl border border-slate-200/50 shadow-sm ml-auto">
+            <div className="flex items-center gap-3 bg-slate-100/80 px-4 py-3 sm:py-3.5 rounded-xl border border-slate-200/50 shadow-sm w-full sm:w-auto sm:ml-auto justify-center sm:justify-start">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-300 pr-3">
                 Employees
               </span>
@@ -135,7 +138,7 @@ export default function AdminTaskAllocationPage() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4">
               {employees.map((group) => (
                 <div
                   key={group.employee._id}
@@ -152,118 +155,117 @@ export default function AdminTaskAllocationPage() {
                   </div>
 
                   {/* FIXED HEADER */}
-                  <table className="w-full table-fixed">
-                    <thead className="bg-slate-50 border-b border-slate-200">
-                      <tr>
-                        <th className="w-[13%] px-2 py-2 text-left text-[10px] uppercase font-black text-slate-500">Project</th>
-                        <th className="w-[18%] px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Task</th>
-                        <th className="w-[15%] px-2 py-2 text-left text-[10px] uppercase font-black text-slate-500">Project Type</th>
-                        <th className="w-[7%] px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Priority</th>
-                        <th className="w-[7%] px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Role</th>
-                        <th className="w-[11%] px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">
-                          Target Hrs
-                        </th>
-                        <th className="w-[11%] px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">
-                          Actual Hrs
-                        </th>
-                        <th className="w-[10%] px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">
-                          Proficiency
-                        </th>
-                        <th className="w-[8%] px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Action</th>
-                      </tr>
-                    </thead>
-                  </table>
+                  <div className="overflow-x-auto custom-scrollbar">
+                    <div className="min-w-[720px]">
+                      {/* FIXED HEADER */}
+                      <table className="w-full table-fixed">
+                        <thead className="bg-slate-50 border-b border-slate-200">
+                          <tr>
+                            <th className="w-[13%] px-2 py-2 text-left text-[10px] uppercase font-black text-slate-500">Project</th>
+                            <th className="w-[18%] px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Task</th>
+                            <th className="w-[15%] px-2 py-2 text-left text-[10px] uppercase font-black text-slate-500">Project Type</th>
+                            <th className="w-[7%] px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Priority</th>
+                            <th className="w-[7%] px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Role</th>
+                            <th className="w-[11%] px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Target Hrs</th>
+                            <th className="w-[11%] px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Actual Hrs</th>
+                            <th className="w-[10%] px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Proficiency</th>
+                            <th className="w-[8%] px-1 py-2 text-left text-[10px] uppercase font-black text-slate-500">Action</th>
+                          </tr>
+                        </thead>
+                      </table>
 
-                  {/* SCROLLABLE BODY */}
-                  <div className="overflow-y-auto max-h-[84px] custom-scrollbar">
-                    <table className="w-full table-fixed">
-                      <tbody>
-                        {(() => {
-                          const live = group.tasks.find(a => a.isCurrentlyWorking);
-                          const sorted = [
-                            ...(live ? [live] : []),
-                            ...group.tasks.filter(a => a._id !== live?._id),
-                          ];
-                          return sorted.map((allocation) => (
-                            <tr key={allocation._id} className={`border-t border-slate-100 ${allocation.isCurrentlyWorking ? "bg-emerald-100" : ""}`}>
-                              <td className="w-[13%] px-2 py-2">
-                                <p className="text-[10px] font-black text-slate-700 uppercase truncate">
-                                  {allocation.task?.project?.title}
-                                </p>
-                              </td>
-                              <td className="w-[18%] px-1 py-2">
-                                <div className="flex items-center gap-2">
-                                  <p className="text-[10px] font-black text-slate-700 uppercase truncate">
-                                    {allocation.task?.title}
-                                  </p>
-                                  {allocation.isCurrentlyWorking && (
-                                    <span className="inline-flex shrink-0 items-center gap-1 text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse inline-block" />
-                                      Live
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="w-[15%] px-2 py-2">
-                                <p className="text-[10px] font-black text-slate-700 truncate">
-                                  {allocation.task?.project?.projectType?.name || ""}
-                                </p>
-                              </td>
-                              <td className="w-[7%] px-2 py-2">
-                                <p className="text-[10px] font-black text-slate-700">{allocation.priorityOrder}</p>
-                              </td>
-                              <td className="w-[7%] px-2 py-2">
-                                <p className={`text-[10px] font-black ${allocation.role === "Main" ? "text-orange-600" : "text-slate-700"}`}>
-                                  {allocation.role}
-                                </p>
-                              </td>
-                              <td className="w-[11%] px-2 py-2">
-                                <p className="text-[10px] font-black text-slate-700">
-                                  {allocation.todayAllocatedFormatted || "0h 0m 0s"}
-                                </p>
-                              </td>
-                              <td className="w-[11%] px-2 py-2">
-                                <p
-                                  className={`text-[10px] font-black ${allocation.isOverWorked
-                                    ? "text-rose-600"
-                                    : "text-emerald-600"
-                                    }`}
-                                >
-                                  {allocation.todayWorkedFormatted || "0h 0m 0s"}
-                                </p>
-                              </td>
-                              <td className="w-[10%] px-2 py-2">
-                                {(() => {
-                                  const proficiency = allocation.proficiency;
-                                  if (proficiency === null || proficiency === undefined) {
-                                    return <p className="text-[10px] font-black text-emerald-600">100%</p>;
-                                  }
-                                  const colorClass =
-                                    proficiency >= 100
-                                      ? "text-emerald-600"
-                                      : proficiency >= 70
-                                        ? "text-amber-600"
-                                        : "text-rose-600";
-                                  return (
-                                    <p className={`text-[10px] font-black ${colorClass}`}>
-                                      {proficiency}%
+                      {/* SCROLLABLE BODY (vertical only now, horizontal handled by parent) */}
+                      <div className="overflow-y-auto max-h-[84px] custom-scrollbar">
+                        <table className="w-full table-fixed">
+                          <tbody>
+                            {(() => {
+                              const live = group.tasks.find(a => a.isCurrentlyWorking);
+                              const sorted = [
+                                ...(live ? [live] : []),
+                                ...group.tasks.filter(a => a._id !== live?._id),
+                              ];
+                              return sorted.map((allocation) => (
+                                <tr key={allocation._id} className={`border-t border-slate-100 ${allocation.isCurrentlyWorking ? "bg-emerald-100" : ""}`}>
+                                  <td className="w-[13%] px-2 py-2">
+                                    <p className="text-[10px] font-black text-slate-700 uppercase truncate">
+                                      {allocation.task?.project?.title}
                                     </p>
-                                  );
-                                })()}
-                              </td>
-                              <td className="w-[8%] px-2 py-2">
-                                <button
-                                  onClick={() => setSelectedAllocation(allocation)}
-                                  className="text-yellow-500 hover:text-yellow-600 rounded-lg transition-all duration-200 active:scale-90 cursor-pointer"
-                                >
-                                  <FiEdit size={18} />
-                                </button>
-                              </td>
-                            </tr>
-                          ));
-                        })()}
-                      </tbody>
-                    </table>
+                                  </td>
+                                  <td className="w-[18%] px-1 py-2">
+                                    <div className="flex items-center gap-2">
+                                      <p className="text-[10px] font-black text-slate-700 uppercase truncate">
+                                        {allocation.task?.title}
+                                      </p>
+                                      {allocation.isCurrentlyWorking && (
+                                        <span className="inline-flex shrink-0 items-center gap-1 text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                                          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse inline-block" />
+                                          Live
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="w-[15%] px-2 py-2">
+                                    <p className="text-[10px] font-black text-slate-700 truncate">
+                                      {allocation.task?.project?.projectType?.name || ""}
+                                    </p>
+                                  </td>
+                                  <td className="w-[7%] px-2 py-2">
+                                    <p className="text-[10px] font-black text-slate-700">{allocation.priorityOrder}</p>
+                                  </td>
+                                  <td className="w-[7%] px-2 py-2">
+                                    <p className={`text-[10px] font-black ${allocation.role === "Main" ? "text-orange-600" : "text-slate-700"}`}>
+                                      {allocation.role}
+                                    </p>
+                                  </td>
+                                  <td className="w-[11%] px-2 py-2">
+                                    <p className="text-[10px] font-black text-slate-700">
+                                      {allocation.todayAllocatedFormatted || "0h 0m 0s"}
+                                    </p>
+                                  </td>
+                                  <td className="w-[11%] px-2 py-2">
+                                    <p
+                                      className={`text-[10px] font-black ${allocation.isOverWorked
+                                        ? "text-rose-600"
+                                        : "text-emerald-600"
+                                        }`}
+                                    >
+                                      {allocation.todayWorkedFormatted || "0h 0m 0s"}
+                                    </p>
+                                  </td>
+                                  <td className="w-[10%] px-2 py-2">
+                                    {(() => {
+                                      const proficiency = allocation.proficiency;
+                                      if (proficiency === null || proficiency === undefined) {
+                                        return <p className="text-[10px] font-black text-emerald-600">100%</p>;
+                                      }
+                                      const colorClass =
+                                        proficiency >= 100
+                                          ? "text-emerald-600"
+                                          : proficiency >= 70
+                                            ? "text-amber-600"
+                                            : "text-rose-600";
+                                      return (
+                                        <p className={`text-[10px] font-black ${colorClass}`}>
+                                          {proficiency}%
+                                        </p>
+                                      );
+                                    })()}
+                                  </td>
+                                  <td className="w-[8%] px-2 py-2">
+                                    <button
+                                      onClick={() => setSelectedAllocation(allocation)}
+                                      className="text-yellow-500 hover:text-yellow-600 rounded-lg transition-all duration-200 active:scale-90 cursor-pointer"
+                                    >
+                                      <FiEdit size={18} />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ));
+                            })()}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}

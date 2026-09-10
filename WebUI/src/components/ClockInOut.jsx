@@ -27,12 +27,12 @@ export default function ClockInOut({
     : "Not Started";
 
   useEffect(() => {
-    const taskId =
-      activeTimer?.taskId ||
-      activeTimer?.task?._id;
+    const taskId = activeTimer?.taskId || activeTimer?.task?._id;
 
     if (taskId) {
       setSelectedTaskId(taskId.toString());
+    } else {
+      setSelectedTaskId(""); // 👈 reset when there's no active timer
     }
   }, [activeTimer]);
 

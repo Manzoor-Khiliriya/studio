@@ -1,6 +1,13 @@
 const calculateProficiency = (workedHours, allocatedSeconds) => {
-  if (!allocatedSeconds || allocatedSeconds === 0) return null;
-  if (!workedHours || workedHours === 0) return 100;
+  const hasAllocation = allocatedSeconds && allocatedSeconds > 0;
+  const hasWorked = workedHours && workedHours > 0;
+
+  if (!hasAllocation) {
+    return hasWorked ? 100 : null;
+  }
+
+  if (!hasWorked) return 100;
+
   const allocatedHours = allocatedSeconds / 3600;
   return Math.round((allocatedHours / workedHours) * 100);
 };

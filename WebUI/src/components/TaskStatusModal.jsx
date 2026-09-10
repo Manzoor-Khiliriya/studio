@@ -93,13 +93,17 @@ export default function TaskStatusModal({
             ? "Initiative Status"
             : type === "activeStatus"
               ? "Active Status"
-              : "Project Type"
+              : type === "taskStatus"
+                ? "Task Status"
+                : "Project Type"
           }`
           : `Create ${type === "status"
             ? "Initiative Status"
             : type === "activeStatus"
               ? "Active Status"
-              : "Project Type"
+              : type === "taskStatus"
+                ? "Task Status"
+                : "Project Type"
           }`
       }
       submitText={isEditing ? "Update" : "Create"}
@@ -114,7 +118,9 @@ export default function TaskStatusModal({
               ? "Status Name *"
               : type === "activeStatus"
                 ? "Status Name *"
-                : "Project Type Name *"
+                : type === "taskStatus"
+                  ? "Task Status Name *"
+                  : "Project Type Name *"
           }
         >
           <HiOutlineSquares2X2 className="input-icon" />

@@ -19,6 +19,7 @@ export default function MyTasksPage() {
   const [taskSearch, setTaskSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [liveStatusFilter, setLiveStatusFilter] = useState("All");
+  const [taskStatusFilter, setTaskStatusFilter] = useState("All");
   const [activeStatusFilter, setActiveStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(5);
@@ -33,6 +34,7 @@ export default function MyTasksPage() {
     search: debouncedSearch,
     status: statusFilter === "All" ? "" : statusFilter,
     liveStatus: liveStatusFilter === "All" ? "" : liveStatusFilter,
+    taskStatus: taskStatusFilter === "All" ? "" : taskStatusFilter,
     activeStatus: activeStatusFilter === "All" ? "" : activeStatusFilter,
   });
 
@@ -48,6 +50,10 @@ export default function MyTasksPage() {
         true,
     });
 
+  const { data: taskStatuses = [] } =
+    useGetTaskStatusesQuery("taskStatus", {
+      refetchOnMountOrArgChange: true,
+    });
 
   useSocketEvents({
     onProjectChange: refetch,
@@ -60,6 +66,7 @@ export default function MyTasksPage() {
     setTaskSearch("");
     setStatusFilter("All");
     setLiveStatusFilter("All");
+    setTaskStatusFilter("All");
     setActiveStatusFilter("All");
     setCurrentPage(1);
   };
@@ -160,12 +167,22 @@ export default function MyTasksPage() {
       ),
     },
     {
+      header: <span className={headerClass}>Task Status</span>,
+      className: "text-center",
+      cellClassName: "text-center",
+      render: (task) => (
+        <span className={`text-[10px] text-slate-900 font-black`}>
+          {task?.taskStatus?.name || "N/A"}
+        </span>
+      )
+    },
+    {
       header: <span className={headerClass}>Initiative Status</span>,
       className: "text-center",
       cellClassName: "text-center",
       render: (task) => (
         <span className={`text-[10px] text-slate-900 font-black`}>
-          {task?.status?.name || ""}
+          {task?.status?.name || "N/A"}
         </span>
       )
     },
@@ -175,7 +192,7 @@ export default function MyTasksPage() {
       cellClassName: "text-center",
       render: (task) => (
         <span className={`text-[10px] text-slate-900 font-black`}>
-          {task?.activeStatus?.name || ""}
+          {task?.activeStatus?.name || "N/A"}
         </span>
       )
     },
@@ -183,7 +200,7 @@ export default function MyTasksPage() {
 
   if (isLoading) return <Loader message="Accessing Task Data..." />;
 
-  const hasActiveFilters = searchTerm || taskSearch || statusFilter !== "All" || liveStatusFilter !== "All" || activeStatusFilter !== "All";
+  const hasActiveFilters = searchTerm || taskSearch || statusFilter !== "All" || liveStatusFilter !== "All" || taskStatusFilter !== "All" || activeStatusFilter !== "All";
 
   return (
     <div className="max-w-[1750px] mx-auto min-h-[83vh] bg-slate-100">
@@ -225,6 +242,23 @@ export default function MyTasksPage() {
                   { label: "Started", value: "Started" },
                 ]}
 
+                className="min-w-[180px]"
+                buttonClass="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 shadow-sm"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[9px] font-black text-slate-400 uppercase ml-1 tracking-widest">Task Status</label>
+              <CustomDropdown
+                value={taskStatusFilter}
+                onChange={(val) => { setTaskStatusFilter(val); setCurrentPage(1); }}
+                options={[
+                  { label: "All Task Status", value: "All" },
+                  ...taskStatuses.map(item => ({
+                    label: item.name,
+                    value: item._id,
+                  })),
+                ]}
                 className="min-w-[180px]"
                 buttonClass="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-700 shadow-sm"
               />

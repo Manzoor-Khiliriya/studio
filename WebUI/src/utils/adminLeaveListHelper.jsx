@@ -8,6 +8,7 @@ import {
   HiOutlinePencilSquare,
   HiOutlineTrash
 } from "react-icons/hi2";
+import TruncateText from "../components/TruncateText";
 
 /**
  * StatusBadge Component
@@ -90,9 +91,11 @@ export const getAdminLeaveColumns = (role, userId, onAction, onEdit, onDelete) =
     header: "Leave Reason",
     className: "text-left",
     render: (req) => (
-      <p className="text-[10px] text-slate-700 font-black uppercase truncate max-w-[280px] italic">
-        {req.reason || "No operational context provided"}
-      </p>
+      <TruncateText
+        maxWidth="max-w-[280px]"
+        text={req.reason || "No operational context provided"}
+        className="text-[10px] text-slate-700 font-black uppercase italic"
+      />
     )
   },
   {

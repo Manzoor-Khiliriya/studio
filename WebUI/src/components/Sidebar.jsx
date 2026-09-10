@@ -210,14 +210,6 @@ export default function Sidebar() {
               <>
                 <span className="text-2xl">{link.icon}</span>
                 <span className="text-[9px] font-black uppercase tracking-widest">{link.label}</span>
-
-                {/* Minimal Mobile Indicator */}
-                {isActive && (
-                  <motion.div
-                    layoutId="mobileActive"
-                    className="w-1 h-1 rounded-full bg-[#ee4123] mt-0.5"
-                  />
-                )}
               </>
             )}
           </NavLink>
@@ -281,7 +273,7 @@ export default function Sidebar() {
                   className="w-full flex items-center justify-center gap-4 py-5 bg-slate-900 text-white font-black rounded-[2rem] shadow-2xl shadow-slate-200 mt-4"
                 >
                   <HiLogout size={22} className="text-orange-50" />
-                  <span className="tracking-widest uppercase text-xs">Terminate Session</span>
+                  <span className="tracking-widest uppercase text-xs">Sign Out</span>
                 </button>
               </div>
             </motion.div>

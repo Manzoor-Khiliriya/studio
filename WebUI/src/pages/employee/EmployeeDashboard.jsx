@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useRef, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiZap, FiClock, FiTarget, FiBriefcase, FiActivity, FiLock } from "react-icons/fi";
+import { FiClock, FiTarget, FiBriefcase, FiActivity, FiLock } from "react-icons/fi";
 import { HiOutlineBolt } from 'react-icons/hi2';
 import { toast } from "react-hot-toast";
 import { useGetDashboardSummaryQuery } from "../../services/dashboardApi";
@@ -21,13 +21,11 @@ import { useNavigate } from "react-router-dom";
 export default function EmployeeDashboard() {
   const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
-  const timerRef = useRef(null);
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
     type: null
   });
   const [liveSeconds, setLiveSeconds] = useState(0);
-  const [todaySeconds, setTodaySeconds] = useState(0);
   const [shiftSeconds, setShiftSeconds] = useState(0);
   const [runningTask, setRunningTask] = useState(null);
   const [isOnBreak, setIsOnBreak] = useState(false);
@@ -49,6 +47,7 @@ export default function EmployeeDashboard() {
   const [clockOut, { isLoading: isClockingOut }] = useClockOutMutation();
   const { data: logsData, isSuccess: logsLoaded, refetch: refetchLogs } = useGetMyTodayLogsQuery(undefined, {
     skip: !isTaskUser,
+    refetchOnFocus: true,
   });
   const [stopTimer] = useStopTimerMutation();
 
@@ -72,6 +71,32 @@ export default function EmployeeDashboard() {
     },
   });
 
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && isTaskUser) {
+        refetchLogs();
+        refetch();
+        refetchSummary();
+      }
+    };
+
+    const handleFocus = () => {
+      if (isTaskUser) {
+        refetchLogs();
+        refetch();
+        refetchSummary();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [isTaskUser, refetchLogs, refetch, refetchSummary]);
+
   const allActiveTasks = useMemo(() => {
     return summaryData?.taskSnapshot || [];
   }, [summaryData]);
@@ -85,32 +110,30 @@ export default function EmployeeDashboard() {
     if (!logsLoaded || !logsData) return;
     const { logs, totalSecondsWorkedToday } = logsData;
     const activeLog = logs.find(log => log.isRunning);
-    const hasRunning = !!activeLog;
     const isBreak = activeLog?.logType === "break";
 
     setRunningTask(activeLog?.task?.title || null);
     setIsOnBreak(isBreak);
-    setLiveSeconds(totalSecondsWorkedToday || 0);
-    if (hasRunning && !isBreak) {
-      const interval = setInterval(() => {
-        setLiveSeconds(prev => prev + 1);
-      }, 1000);
+
+    if (activeLog && !isBreak) {
+      const startTime = new Date(activeLog.startTime).getTime();
+      const elapsedAtFetch = Math.max(0, Math.floor((Date.now() - startTime) / 1000));
+      const baselineSeconds = Math.max(0, (totalSecondsWorkedToday || 0) - elapsedAtFetch);
+
+      const tick = () => {
+        const liveElapsed = Math.max(0, Math.floor((Date.now() - startTime) / 1000));
+        setLiveSeconds(baselineSeconds + liveElapsed);
+      };
+
+      tick();
+      const interval = setInterval(tick, 1000);
       return () => clearInterval(interval);
+    } else {
+      setLiveSeconds(totalSecondsWorkedToday || 0);
     }
   }, [logsData, logsLoaded]);
 
   const isOnShift = attendanceStatus?.clockIn && !attendanceStatus?.clockOut;
-
-  useEffect(() => {
-    if (logsLoaded && logsData) {
-      const { logs, totalSecondsWorkedToday } = logsData;
-      const activeLog = logs.find(log => log.isRunning);
-      setRunningTask(activeLog?.task?.title || null);
-      setIsOnBreak(activeLog?.logType === "break");
-      setTodaySeconds(totalSecondsWorkedToday || 0);
-    }
-  }, [logsData, logsLoaded]);
-
 
   // Shift Timer Ticker
   useEffect(() => {

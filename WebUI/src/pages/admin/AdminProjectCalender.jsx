@@ -227,7 +227,7 @@ const AdminProjectCalendar = () => {
                       ? 'text-blue-500'
                       : 'text-slate-400'
                     }`}>
-                    {task.liveStatus}
+                    {task?.liveStatus}
                   </span>
                 </div>
               ))}

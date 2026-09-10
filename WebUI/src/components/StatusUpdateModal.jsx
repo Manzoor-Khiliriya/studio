@@ -7,9 +7,9 @@ import { toast } from "react-hot-toast";
 import CustomDropdown from "./CustomDropdown";
 
 export default function StatusUpdateModal({ isOpen, onClose, task }) {
-  // Use the new status-specific mutation
   const [status, setStatus] = useState("");
   const [activeStatus, setActiveStatus] = useState("");
+  const [taskStatus, setTaskStatus] = useState("");
 
   const { data: statuses = [] } =
     useGetTaskStatusesQuery("status", {
@@ -25,13 +25,19 @@ export default function StatusUpdateModal({ isOpen, onClose, task }) {
         true,
     });
 
-  const [updateStatus, { isLoading }] = useUpdateTaskStatusMutation();
+  const { data: taskStatuses = [] } =
+    useGetTaskStatusesQuery("taskStatus", {
+      skip: !isOpen,
+      refetchOnMountOrArgChange: true,
+    });
 
+  const [updateStatus, { isLoading }] = useUpdateTaskStatusMutation();
 
   useEffect(() => {
     if (task) {
       setStatus(task?.status?._id || "");
       setActiveStatus(task?.activeStatus?._id || "");
+      setTaskStatus(task?.taskStatus?._id || "");
     }
   }, [task]);
 
@@ -40,7 +46,8 @@ export default function StatusUpdateModal({ isOpen, onClose, task }) {
       await updateStatus({
         id: task._id,
         status,
-        activeStatus
+        activeStatus,
+        taskStatus,
       }).unwrap();
 
       toast.success("Task status updated!");
@@ -62,6 +69,24 @@ export default function StatusUpdateModal({ isOpen, onClose, task }) {
       cancelText="Cancel"
     >
       <div className="space-y-5">
+        <InputGroup label="Task Status">
+          <HiOutlineSquares2X2 className="input-icon" />
+
+          <CustomDropdown
+            value={taskStatus}
+            onChange={setTaskStatus}
+            options={taskStatuses
+              .filter((item) => item.status === "Enable")
+              .map((item) => ({
+                label: item.name,
+                value: item._id,
+              }))}
+            className="w-full"
+            buttonClass="form-input text-xs font-bold pl-10"
+            placeholder="Select Task Status"
+          />
+        </InputGroup>
+
         <InputGroup label="Initiative Status">
           <HiOutlineArrowPath className="input-icon" />
           <CustomDropdown
@@ -95,6 +120,7 @@ export default function StatusUpdateModal({ isOpen, onClose, task }) {
             placeholder="Select Active Status"
           />
         </InputGroup>
+
       </div>
     </CommonModal>
   );

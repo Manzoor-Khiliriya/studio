@@ -658,7 +658,8 @@ exports.heartbeat = async (req, res) => {
     await User.findByIdAndUpdate(req.user._id, {
       lastActiveAt: now(),
     });
-    res.sendStatus(200);
+
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

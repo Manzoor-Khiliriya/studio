@@ -5,40 +5,13 @@ import { HiOutlineArrowPath, HiOutlineTrash, HiOutlineUserPlus } from "react-ico
 const headerClass =
   "text-[10px] font-black uppercase tracking-widest text-slate-400";
 
-const renderStatusBadge = (status) => {
-  const themes = {
-    completed: "text-emerald-600",
-    "on hold": "text-blue-600",
-    "feedback pending": "text-yellow-600",
-    "final rendering": "text-orange-600",
-    postproduction: "text-purple-600",
+const getStatusColor = (status) => {
+  const statusMap = {
+    "in progress": "text-green-600",
+    "started": "text-blue-600",
   };
 
-  const themeClass =
-    themes[status?.toLowerCase()] || "text-slate-500";
-
-  return (
-    <span className={`inline-block text-[9px] font-black px-3 py-1 rounded-full tracking-widest ${themeClass}`}>
-      {status}
-    </span>
-  );
-};
-
-const renderActiveStatus = (status) => {
-  const isFinal = status === "Final";
-  const isPreFinal = status === "Pre-Final";
-
-  let textColor = "text-slate-500";
-  if (isFinal) textColor = "text-emerald-600";
-  else if (isPreFinal) textColor = "text-orange-600";
-
-  return (
-    <div className="flex justify-center">
-      <span className={`text-[10px] font-black tracking-tighter ${textColor}`}>
-        {status || "DRAFT-1"}
-      </span>
-    </div>
-  );
+  return statusMap[status?.toLowerCase()] || "text-yellow-600";
 };
 
 const renderUtilization = (task) => {
@@ -71,148 +44,155 @@ const renderUtilization = (task) => {
   );
 };
 
-const getStatusColor = (status) => {
-  const statusMap = {
-    "in progress": "text-green-600",
-    "started": "text-blue-600",
-  };
-
-  return statusMap[status?.toLowerCase()] || "text-yellow-600";
-};
-
-export const getAdminTaskColumns = (role, onEdit, onStatusUpdate, onAssignTeam, onDelete) => [
-  {
-    header: <span className={headerClass}>Task Title</span>,
-    className: "text-left",
-    render: (task) => (
-      <p className="font-black text-slate-900 text-[11px] uppercase tracking-tight group-hover:text-orange-600 transition-colors">
-        {task.title}
-      </p>
-    ),
-  },
-
-  {
-    header: <span className={headerClass}>Task Details</span>,
-    className: "text-left",
-    render: (task) => (
-      <p className="text-[9px] font-bold text-slate-600 line-clamp-1 italic">
-        {task.description || "No task details."}
-      </p>
-    ),
-  },
-
-  {
-    header: <span className={headerClass}>Team Members</span>,
-    className: "text-center",
-    cellClassName: "text-center",
-    render: (task) => {
-      const employeeCodes = task.assignedTo
-        ?.map((emp) => {
-          const name = emp.user?.name
-            ? emp.user.name.charAt(0).toUpperCase() + emp.user.name.slice(1).toLowerCase()
-            : "Unknown";
-
-          const code = emp.employeeCode?.trim();
-
-          // Only show (CODE) if code actually exists
-          return code ? `${name} (${code.toUpperCase()})` : name;
-        })
-        .join(", ");
-
-      return (
-        <div className="flex justify-center">
-          <span
-            title={employeeCodes || "No members assigned"}
-            className="text-orange-500 text-[11px] font-black cursor-pointer transition-transform hover:scale-110"
-          >
-            {task.assignedTo?.length || 0}
-          </span>
-        </div>
-      );
+export const getAdminTaskColumns = (
+  role,
+  onEdit,
+  onStatusUpdate,
+  onAssignTeam,
+  onDelete,
+) => [
+    {
+      header: <span className={headerClass}>Task Title</span>,
+      className: "text-left",
+      render: (task) => (
+        <p className="font-black text-slate-900 text-[11px] uppercase tracking-tight group-hover:text-orange-600 transition-colors">
+          {task.title}
+        </p>
+      ),
     },
-  },
-  {
-    header: <span className={headerClass}>Resource Usage</span>,
-    className: "text-left",
-    render: (task) => renderUtilization(task),
-  },
-  {
-    header: <span className={headerClass}>Live Status</span>,
-    className: "text-center",
-    cellClassName: "text-center",
-    render: (task) => (
-      <span className={`text-[9px] font-black ${getStatusColor(task.liveStatus)}`}>
-        {task.liveStatus || "To Be Started"}
-      </span>
-    ),
-  },
-  {
-    header: <span className={headerClass}>Initiative Status</span>,
-    className: "text-center",
-    cellClassName: "text-center",
-    render: (task) =>
-    (
-      <span className={`text-[9px] text-slate-900 font-black`}>
-        {task?.status?.name || ""}
-      </span>
-    )
-  },
-  {
-    header: <span className={headerClass}>Active Status</span>,
-    className: "text-center",
-    cellClassName: "text-center",
-    render: (task) => (
-      <span className={`text-[9px] text-slate-900 font-black`}>
-        {task?.activeStatus?.name || ""}
-      </span>
-    )
-  },
-  {
-    header: <span className={headerClass}>Actions</span>,
-    className: "text-center",
-    cellClassName: "text-center",
-    render: (task) => (
-      <div className="flex justify-center gap-2">
-        <button
-          onClick={(e) => { e.stopPropagation(); onAssignTeam(task); }}
-          title="Assign Team"
-          className="text-orange-500 hover:text-orange-600 transition-all active:scale-90 cursor-pointer"
-        >
-          <HiOutlineUserPlus size={18} />
-        </button>
 
-        <button
-          onClick={(e) => { e.stopPropagation(); onStatusUpdate(task); }}
-          title="Update Status"
-          className="text-emerald-500 hover:text-emerald-600 transition-all active:scale-90 cursor-pointer"
-        >
-          <HiOutlineArrowPath size={18} />
-        </button>
+    {
+      header: <span className={headerClass}>Task Details</span>,
+      className: "text-left",
+      render: (task) => (
+        <p className="text-[9px] font-bold text-slate-600 line-clamp-1 italic">
+          {task.description || "No task details."}
+        </p>
+      ),
+    },
 
-        {role === "Admin" && (
-          <>
-            <button
-              onClick={(e) => { e.stopPropagation(); onEdit(task); }}
-              title="Update Task"
-              className="text-amber-500 hover:text-amber-600 transition-all active:scale-90 cursor-pointer"
+    {
+      header: <span className={headerClass}>Team Members</span>,
+      className: "text-center",
+      cellClassName: "text-center",
+      render: (task) => {
+        const employeeCodes = task.assignedTo
+          ?.map((emp) => {
+            const name = emp.user?.name
+              ? emp.user.name.charAt(0).toUpperCase() + emp.user.name.slice(1).toLowerCase()
+              : "Unknown";
+
+            const code = emp.employeeCode?.trim();
+
+            // Only show (CODE) if code actually exists
+            return code ? `${name} (${code.toUpperCase()})` : name;
+          })
+          .join(", ");
+
+        return (
+          <div className="flex justify-center">
+            <span
+              title={employeeCodes || "No members assigned"}
+              className="text-orange-500 text-[11px] font-black cursor-pointer transition-transform hover:scale-110"
             >
-              <FiEdit size={18} />
-            </button>
+              {task.assignedTo?.length || 0}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      header: <span className={headerClass}>Resource Usage</span>,
+      className: "text-left",
+      render: (task) => renderUtilization(task),
+    },
+    {
+      header: <span className={headerClass}>Live Status</span>,
+      className: "text-center",
+      cellClassName: "text-center",
+      render: (task) => (
+        <span className={`text-[9px] font-black ${getStatusColor(task.liveStatus)}`}>
+          {task?.liveStatus || "To Be Started"}
+        </span>
+      ),
+    },
+    {
+      header: <span className={headerClass}>Task Status</span>,
+      className: "text-center",
+      cellClassName: "text-center",
+      render: (task) => (
+        <span className={`text-[9px] text-slate-900 font-black`}>
+          {task?.taskStatus?.name || ""}
+        </span>
+      )
+    },
+    {
+      header: <span className={headerClass}>Initiative Status</span>,
+      className: "text-center",
+      cellClassName: "text-center",
+      render: (task) =>
+      (
+        <span className={`text-[9px] text-slate-900 font-black`}>
+          {task?.status?.name || ""}
+        </span>
+      )
+    },
+    {
+      header: <span className={headerClass}>Active Status</span>,
+      className: "text-center",
+      cellClassName: "text-center",
+      render: (task) => (
+        <span className={`text-[9px] text-slate-900 font-black`}>
+          {task?.activeStatus?.name || ""}
+        </span>
+      )
+    },
+    {
+      header: <span className={headerClass}>Actions</span>,
+      className: "text-center",
+      cellClassName: "text-center",
+      render: (task) => (
+        <div className="flex justify-center gap-2">
+          <button
+            onClick={(e) => { e.stopPropagation(); onAssignTeam(task); }}
+            title="Assign Team"
+            className="text-orange-500 hover:text-orange-600 transition-all active:scale-90 cursor-pointer"
+          >
+            <HiOutlineUserPlus size={18} />
+          </button>
 
-            {/* --- NEW DELETE BUTTON --- */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(task);
-              }}
-              title="Delete Task"
-              className="text-rose-500 hover:text-rose-600 transition-all active:scale-90 cursor-pointer"
-            >
-              <HiOutlineTrash size={18} />
-            </button>
-          </>
-        )}
-      </div>
-    ),
-  },
-];
+          <button
+            onClick={(e) => { e.stopPropagation(); onStatusUpdate(task); }}
+            title="Update Status"
+            className="text-emerald-500 hover:text-emerald-600 transition-all active:scale-90 cursor-pointer"
+          >
+            <HiOutlineArrowPath size={18} />
+          </button>
+
+          {role === "Admin" && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); onEdit(task); }}
+                title="Update Task"
+                className="text-amber-500 hover:text-amber-600 transition-all active:scale-90 cursor-pointer"
+              >
+                <FiEdit size={18} />
+              </button>
+
+              {/* --- NEW DELETE BUTTON --- */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(task);
+                }}
+                title="Delete Task"
+                className="text-rose-500 hover:text-rose-600 transition-all active:scale-90 cursor-pointer"
+              >
+                <HiOutlineTrash size={18} />
+              </button>
+            </>
+          )}
+        </div>
+      ),
+    },
+  ];

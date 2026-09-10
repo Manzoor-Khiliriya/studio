@@ -6,7 +6,7 @@ import {
   useGetManagerDashboardQuery,
   useStopEmployeeSessionMutation
 } from '../../services/dashboardApi';
-import { HiOutlineArrowTrendingUp, HiOutlineBolt, HiOutlineUserGroup, HiOutlineFingerPrint, HiOutlineCalendarDays } from 'react-icons/hi2';
+import { HiOutlineArrowTrendingUp, HiOutlineBolt, HiOutlineUserGroup, HiOutlineFingerPrint, HiOutlineCalendarDays, HiOutlineMagnifyingGlass, HiOutlineXMark } from 'react-icons/hi2';
 import { BiTask, BiTimeFive, BiTrash } from 'react-icons/bi';
 import { FiAlertTriangle } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,6 +19,7 @@ import { useSocketEvents } from '../../hooks/useSocketEvents';
 import ConfirmModal from '../../components/ConfirmModal';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { useGetTaskStatusesQuery } from '../../services/taskApi';
 
 const AdminDashboard = () => {
   const { user } = useSelector((state) => state.auth);
@@ -29,6 +30,9 @@ const AdminDashboard = () => {
     payload: null,
   });
   const [timerSearch, setTimerSearch] = useState("");
+
+  const { data: taskStatusOptions = [] } =
+    useGetTaskStatusesQuery("taskStatus");
 
   const {
     data: adminData,
@@ -98,17 +102,34 @@ const AdminDashboard = () => {
   };
 
   const getFriendlyDate = (dateStr) => {
-    const today = new Date().toISOString().split('T')[0];
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    const today = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+    }).format(new Date());
 
-    if (dateStr === today) return "Today's Operations";
-    if (dateStr === yesterday) return "Yesterday";
+    const yesterday = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+    }).format(
+      new Date(Date.now() - 24 * 60 * 60 * 1000)
+    );
 
-    return new Date(dateStr).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    }).toUpperCase();
+    if (dateStr === today) {
+      return "Today's Operations";
+    }
+
+    if (dateStr === yesterday) {
+      return "Yesterday";
+    }
+
+    const [year, month, day] = dateStr.split("-");
+
+    const monthName = new Intl.DateTimeFormat("en-GB", {
+      month: "short",
+      timeZone: "UTC",
+    }).format(
+      new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)))
+    );
+
+    return `${day} ${monthName} ${year}`.toUpperCase();
   };
 
   const handleStopEmployee = (timer) => {
@@ -177,7 +198,7 @@ const AdminDashboard = () => {
           subtitle="Manage operational objectives and real-time resource utilization."
         />
 
-        <div className="mx-auto px-8 pb-10">
+        <div className="mx-auto px-4 sm:px-6 lg:px-8 pb-6 sm:pb-10">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-12 mt-10">
             <StatCard
               label="Live Projects"
@@ -217,7 +238,14 @@ const AdminDashboard = () => {
               value={stats.tasksInProgress || 0}
               icon={<HiOutlineArrowTrendingUp size={22} />}
               delay={0.4}
-              onClick={() => navigate("/projects")}
+              onClick={() =>
+                navigate("/projects", {
+                  state: {
+                    activeTab: "live",
+                    liveStatusFilter: "In progress",
+                  },
+                })
+              }
             />
 
             <StatCard
@@ -230,17 +258,22 @@ const AdminDashboard = () => {
                 navigate("/leaves", {
                   state: {
                     activeTab: "requests",
+                    statusFilter: "Pending",
+                    dateRange: "all",
                   },
                 })
               } />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8">
             {/* --- LIVE TRACKING --- */}
 
-            <div className={`bg-white rounded-[3rem] border border-slate-200 p-8 shadow-xl flex flex-col h-[700px] ${user?.role === "Admin" ? "lg:col-span-5" : "lg:col-span-12"}`}>
-              <div className="flex justify-between items-center mb-10 shrink-0">
-                <h3 className="font-black text-slate-900 text-sm uppercase tracking-widest flex items-center gap-3">
+            <div
+              className={`bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-200 p-4 sm:p-6 lg:p-8 shadow-xl flex flex-col h-[600px] sm:h-[700px] ${user?.role === "Admin" ? "lg:col-span-5" : "lg:col-span-12"
+                }`}
+            >
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-10 shrink-0 gap-4">
+                <h3 className="font-black text-slate-900 text-sm uppercase tracking-widest flex items-center gap-3 shrink-0">
                   <span className="relative flex h-3 w-3">
                     <span className="animate-ping absolute h-3 w-3 rounded-full bg-blue-400 opacity-75"></span>
                     <span className="relative h-3 w-3 rounded-full bg-blue-500"></span>
@@ -248,39 +281,55 @@ const AdminDashboard = () => {
                   Active Timers
                 </h3>
 
-                {/* {liveTracking.length > 0 && (
-                  
-                )} */}
-
                 {user?.role === "Admin" && liveTracking.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <div className="">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className="relative flex-1 w-full group">
+                      <HiOutlineMagnifyingGlass
+                        className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors"
+                        size={18}
+                      />
+
                       <input
                         type="text"
                         value={timerSearch}
                         onChange={(e) => setTimerSearch(e.target.value)}
                         placeholder="Search by employee name..."
-                        className="w-full px-3 py-2 bg-slate-100 rounded-2xl text-[11px] font-bold text-slate-700 placeholder:text-slate-400 placeholder:font-semibold tracking-wide outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+                        className="w-full pl-12 pr-15 py-1.5 bg-white border border-slate-200 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/5 outline-none font-bold text-[10px] transition-all shadow-sm"
                       />
+
+                      {timerSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setTimerSearch("")}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                          title="Clear search"
+                        >
+                          <HiOutlineXMark size={16} />
+                        </button>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-1.5">
+
+                    <div className="flex items-center gap-2 px-3 py-1.5 shrink-0">
                       <span className="relative flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                       </span>
-
                       <span className="text-[10px] font-bold text-green-700 uppercase tracking-wide">
                         {liveTracking.length} Active
                       </span>
                     </div>
 
-                    <button onClick={handleStopAll} disabled={isStoppingAll} title="Stop All Sessions" className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white rounded-full text-[10px] font-black uppercase tracking-tighter transition-all border border-red-100 cursor-pointer"> <FiAlertTriangle size={12} /> {isStoppingAll ? 'Shutting Down...' : 'Stop All'} </button>
+                    <button
+                      onClick={handleStopAll}
+                      disabled={isStoppingAll}
+                      title="Stop All Sessions"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white rounded-full text-[10px] font-black uppercase tracking-tighter transition-all border border-red-100 cursor-pointer shrink-0"
+                    >
+                      <FiAlertTriangle size={12} /> {isStoppingAll ? 'Shutting Down...' : 'Stop All'}
+                    </button>
                   </div>
                 )}
-
-
               </div>
-
 
               <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
                 <AnimatePresence mode='popLayout'>
@@ -317,33 +366,32 @@ const AdminDashboard = () => {
 
             {/* --- ACTIVITY LOG (DATE GROUPED) --- */}
             {user?.role === "Admin" && (
-              <div className="lg:col-span-7 bg-slate-900 rounded-[3rem] p-8 shadow-2xl border border-slate-800 flex flex-col h-[700px]">
-                <div className="flex justify-between items-center mb-10 shrink-0 px-2">
-                  <h3 className="font-black text-white text-sm uppercase tracking-widest">Log History</h3>
-                  {/* Legend */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                      <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">
-                        Attendance
-                      </span>
-                    </div>
+              <div className="lg:col-span-7 bg-slate-900 rounded-[2rem] sm:rounded-[3rem] p-4 sm:p-6 lg:p-8 shadow-2xl border border-slate-800 flex flex-col h-[650px] sm:h-[700px]">                <div className="flex justify-between items-center mb-10 shrink-0 px-2">
+                <h3 className="font-black text-white text-sm uppercase tracking-widest">Log History</h3>
+                {/* Legend */}
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                    <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">
+                      Attendance
+                    </span>
+                  </div>
 
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-orange-400" />
-                      <span className="text-[8px] font-black text-orange-400 uppercase tracking-widest">
-                        Task
-                      </span>
-                    </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full bg-orange-400" />
+                    <span className="text-[8px] font-black text-orange-400 uppercase tracking-widest">
+                      Task
+                    </span>
+                  </div>
 
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-red-400" />
-                      <span className="text-[8px] font-black text-red-400 uppercase tracking-widest">
-                        Difference
-                      </span>
-                    </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full bg-red-400" />
+                    <span className="text-[8px] font-black text-red-400 uppercase tracking-widest">
+                      Difference
+                    </span>
                   </div>
                 </div>
+              </div>
 
                 <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar space-y-12">
                   {Object.keys(groupedLogs).length > 0 ? (
@@ -352,8 +400,8 @@ const AdminDashboard = () => {
                       .map((date) => (
                         <div key={date} className="space-y-3">
                           {/* Date Heading Group */}
-                          <div className="flex justify-between items-center sticky top-0 z-10 bg-slate-900/80 backdrop-blur-sm py-1">
-                            <div className="flex items-center gap-3">
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-10 shrink-0 px-1 sm:px-2 gap-4">
+                            <div className="flex flex-wrap items-center gap-3">
                               <div className="bg-blue-500/10 p-2 rounded-xl">
                                 <HiOutlineCalendarDays className="text-blue-400" size={16} />
                               </div>
@@ -377,14 +425,13 @@ const AdminDashboard = () => {
                             {groupedLogs[date].map((log) => (
                               <div key={log.id} className="flex gap-6 items-start group">
                                 <div className="flex-1">
-                                  <div className="flex justify-between items-center bg-white/5 p-5 rounded-[1.8rem] border border-white/5 hover:border-white/10 transition-all">
-                                    <span className="font-black text-white text-xs uppercase tracking-tight">
-                                      {log.userName} {`(${log.employeeCode || ''})`}
-                                    </span>
-                                    <div className="flex flex-col items-end gap-2">
+                                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 bg-white/5 p-4 sm:p-5 rounded-[1.5rem] sm:rounded-[1.8rem] border border-white/5 hover:border-white/10 transition-all">                                    <span className="font-black text-white text-xs uppercase tracking-tight">
+                                    {log.userName} {`(${log.employeeCode || ''})`}
+                                  </span>
+                                    <div className="flex flex-col sm:items-end gap-2">
 
                                       {/* Values */}
-                                      <div className="flex items-center gap-3">
+                                      <div className="flex flex-wrap items-center gap-3">
 
                                         <span className="text-[10px] font-black text-emerald-400 tracking-tight tabular-nums flex items-center gap-1.5">
                                           <BiTimeFive

@@ -77,10 +77,11 @@ exports.getAllProjects = async (req, res) => {
       createdFrom,
       createdTo,
       taskSearch,
-      liveStatus,
       taskStatus,
-      projectType,
       status,
+      liveStatus,
+      projectStatus,
+      projectType,
       paymentStatus,
     } = req.query;
 
@@ -109,8 +110,8 @@ exports.getAllProjects = async (req, res) => {
       query.projectType = projectType;
     }
 
-    if (status && status !== "All") {
-      query.status = status;
+    if (projectStatus && projectStatus !== "All") {
+      query.status = projectStatus;
     }
 
     if (activeTab === "live") {
@@ -192,8 +193,10 @@ exports.getAllProjects = async (req, res) => {
         path: "tasks",
         match: {
           ...(taskSearch && { title: { $regex: taskSearch, $options: "i" } }),
-          ...(taskStatus && taskStatus !== "All" && { status: taskStatus }),
+          ...(status && status !== "All" && { status: status }),
+          ...(taskStatus && taskStatus !== "All" && { taskStatus: taskStatus }),
         },
+
         populate: [
           { path: "assignedTo", populate: { path: "user", select: "name" } },
           { path: "timeLogs" },
@@ -203,6 +206,10 @@ exports.getAllProjects = async (req, res) => {
           },
           {
             path: "activeStatus",
+            select: "name type status",
+          },
+          {
+            path: "taskStatus",
             select: "name type status",
           },
         ],
@@ -255,6 +262,7 @@ exports.getAllProjects = async (req, res) => {
 
     const isTaskFilterApplied =
       (taskSearch && taskSearch.trim() !== "") ||
+      (status && status !== "All") ||
       (taskStatus && taskStatus !== "All") ||
       (liveStatus && liveStatus !== "All");
 
@@ -686,8 +694,6 @@ exports.getProjectCalendarStacks = async (req, res) => {
           as: "taskList",
         },
       },
-
-      // ✅ get logs
       {
         $lookup: {
           from: "timelogs",
@@ -787,7 +793,7 @@ exports.getProjectCalendarStacks = async (req, res) => {
                 },
               },
             },
-
+            
             taskCount: { $size: "$taskList" },
           },
         },

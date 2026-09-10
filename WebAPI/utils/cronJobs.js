@@ -10,33 +10,49 @@ const User = require("../models/User");
 const JobTracker = require("../models/JobTracker");
 const Notification = require("../models/Notification");
 const { calculateLeaveDays } = require("./leaveHelpers");
-const { now, getYesterday } = require("./dateHelper");
+const {
+  now,
+  getYesterday,
+  formatDate,
+  startOfDay,
+  isSameDay,
+  isSameYear,
+  isSameMonth,
+} = require("./dateHelper");
 const Employee = require("../models/Employee");
 const { applyProficiency } = require("./userHelpers");
 const TaskAllocation = require("../models/TaskAllocation");
 const { calculateProficiency } = require("./proficiencyHelper");
+const moment = require("moment-timezone");
+const TIMEZONE = "Asia/Kolkata";
 
 //
 // 🔥 HELPER (timezone-safe)
 //
-const getCutoffDate = () => {
-  const d = now();
-  d.setMonth(d.getMonth() - 13);
-  return d;
-};
+const getCutoffDate = () =>
+  moment().tz(TIMEZONE).subtract(13, "months").toDate();
 
 async function finalizeDailyProficiency(dateStr) {
   console.log(`📊 Finalizing proficiency for ${dateStr}...`);
 
+  const dayLogs = await TimeLog.find({
+    dateString: dateStr,
+    logType: "work",
+  }).select("user task");
+
+  const workedTaskIds = [...new Set(dayLogs.map((l) => l.task.toString()))];
   const allocations = await TaskAllocation.find({
-    "dailyAllocations.date": dateStr,
+    $or: [
+      { "dailyAllocations.date": dateStr },
+      { task: { $in: workedTaskIds } },
+    ],
   })
     .populate({
       path: "task",
       select: "timeLogs",
       populate: {
         path: "timeLogs",
-        select: "rawDurationSeconds dateString user logType",
+        select: "rawDurationSeconds dateString user logType isRunning",
       },
     })
     .populate({
@@ -66,12 +82,29 @@ async function finalizeDailyProficiency(dateStr) {
     const workedHours = workedSeconds / 3600;
     const proficiency = calculateProficiency(workedHours, allocatedSeconds);
 
-    bulkOps.push({
-      updateOne: {
-        filter: { _id: allocation._id, "dailyAllocations.date": dateStr },
-        update: { $set: { "dailyAllocations.$.proficiency": proficiency } },
-      },
-    });
+    if (dayAllocation) {
+      bulkOps.push({
+        updateOne: {
+          filter: { _id: allocation._id, "dailyAllocations.date": dateStr },
+          update: { $set: { "dailyAllocations.$.proficiency": proficiency } },
+        },
+      });
+    } else if (workedSeconds > 0) {
+      bulkOps.push({
+        updateOne: {
+          filter: { _id: allocation._id },
+          update: {
+            $push: {
+              dailyAllocations: {
+                date: dateStr,
+                allocatedSeconds: 0,
+                proficiency,
+              },
+            },
+          },
+        },
+      });
+    }
   }
 
   if (bulkOps.length) {
@@ -91,17 +124,9 @@ async function runCleanupSafe() {
 
   const job = await JobTracker.findOne({ name: "data-cleanup" });
 
-  if (job?.lastRun) {
-    const last = new Date(job.lastRun);
-
-    if (
-      last.getFullYear() === currentTime.getFullYear() &&
-      last.getMonth() === currentTime.getMonth() &&
-      last.getDate() === currentTime.getDate()
-    ) {
-      console.log("⏭ Cleanup already ran today");
-      return;
-    }
+  if (job?.lastRun && isSameDay(job.lastRun, currentTime)) {
+    console.log("⏭ Cleanup already ran today");
+    return;
   }
 
   console.log("🧹 Running cleanup...");
@@ -136,8 +161,7 @@ async function runCleanupSafe() {
     clockIn: { $lt: cutoff },
   });
 
-  const oneMonthAgo = now();
-  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+  const oneMonthAgo = moment().tz(TIMEZONE).subtract(1, "month").toDate();
 
   const notificationResult = await Notification.deleteMany({
     createdAt: { $lt: oneMonthAgo },
@@ -165,16 +189,9 @@ async function runMonthlyAccrualSafe() {
 
   const job = await JobTracker.findOne({ name: "monthly-accrual" });
 
-  if (job?.lastRun) {
-    const last = new Date(job.lastRun);
-
-    if (
-      last.getFullYear() === currentTime.getFullYear() &&
-      last.getMonth() === currentTime.getMonth()
-    ) {
-      console.log("⏭ Monthly accrual already ran");
-      return;
-    }
+  if (job?.lastRun && isSameMonth(job?.lastRun, currentTime)) {
+    console.log("⏭ Monthly accrual already ran");
+    return;
   }
 
   console.log("🚀 Running monthly accrual...");
@@ -182,7 +199,7 @@ async function runMonthlyAccrualSafe() {
   const users = await User.find({ role: "Employee" });
   const setting = await LeaveSetting.findOne({ leaveType: "Earned Leave" });
 
-  const currentYear = currentTime.getFullYear();
+  const currentYear = moment(currentTime).tz(TIMEZONE).year();
   const rate = setting?.accrualRate || 0;
 
   for (const user of users) {
@@ -216,13 +233,9 @@ async function runYearlyCarryForwardSafe() {
 
   const job = await JobTracker.findOne({ name: "yearly-carry-forward" });
 
-  if (job?.lastRun) {
-    const last = new Date(job.lastRun);
-
-    if (last.getFullYear() === currentTime.getFullYear()) {
-      console.log("⏭ Carry forward already ran");
-      return;
-    }
+  if (job?.lastRun && isSameYear(job?.lastRun, currentTime)) {
+    console.log("⏭ Carry forward already ran");
+    return;
   }
 
   console.log("🚀 Running yearly carry forward...");
@@ -230,7 +243,7 @@ async function runYearlyCarryForwardSafe() {
   const users = await User.find({ role: "Employee" });
   const setting = await LeaveSetting.findOne({ leaveType: "Earned Leave" });
 
-  const currentYear = currentTime.getFullYear();
+  const currentYear = moment(currentTime).tz(TIMEZONE).year();
   const nextYear = currentYear + 1;
 
   for (const user of users) {
@@ -299,8 +312,7 @@ async function runMidnightShutdown() {
       employees.map((e) => [e.user.toString(), e.proficiency ?? 100]),
     );
     const activeLogs = await TimeLog.find({ isRunning: true });
-    const midnight = new Date(currentTime);
-    midnight.setHours(0, 0, 0, 0);
+    const midnight = startOfDay(currentTime);
 
     const yesterdayStr = getYesterday();
 
@@ -368,7 +380,7 @@ async function runMidnightShutdown() {
         durationSeconds: finalSeconds,
         logType: log.logType,
         isRunning: false,
-        dateString: midnight.toISOString().split("T")[0],
+        dateString: formatDate(midnight),
       });
     }
 
@@ -487,16 +499,17 @@ module.exports = (io) => {
 //
 // 🔥 SAFE FALLBACK (on server restart)
 //
+
 (async () => {
   const currentTime = now();
+  const curr = moment(currentTime).tz(TIMEZONE);
 
   await runCleanupSafe();
 
-  if (currentTime.getDate() === 1) {
+  if (curr.date() === 1) {
     await runMonthlyAccrualSafe();
   }
-
-  if (currentTime.getDate() === 1 && currentTime.getMonth() === 0) {
+  if (curr.date() === 1 && curr.month() === 0) {
     await runYearlyCarryForwardSafe();
   }
 })();

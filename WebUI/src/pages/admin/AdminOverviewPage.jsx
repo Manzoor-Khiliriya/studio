@@ -80,8 +80,7 @@ export default function AdminOverView() {
                 <PageHeader title="Overview" />
 
                 {/* --- STATS GRID (5 COLUMNS) --- */}
-                <div className="mx-auto px-8 pb-10">
-
+                <div className="mx-auto px-4 sm:px-6 lg:px-8 pb-6 sm:pb-10">
                     <div
                         className={`grid grid-cols-1 gap-6 my-8 md:grid-cols-3`}
                     >
@@ -99,22 +98,23 @@ export default function AdminOverView() {
 
                         <StatCard
                             label="Running Task"
-                            value={runningTask || "None"}
+                            value={runningTask || "No Task Running"}
                             icon={<BiTask />}
                         />
 
                     </div>
 
                     {/* --- MAIN CONTENT AREA --- */}
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8">
                         {!isUnLocked ? (
-                            <div className="col-span-12 py-20 flex items-center justify-center text-center">
+                            <div className="col-span-12 py-5 sm:py-10 px-2 flex items-center justify-center text-center">
                                 <motion.div
                                     initial={{ scale: 0.9, opacity: 0 }}
                                     animate={{ scale: 1, opacity: 1 }}
-                                    className="bg-white p-12 rounded-[3rem] border-2 border-slate-50 shadow-xl max-w-md w-full"
-                                >
-                                    <div className="w-24 h-24 bg-orange-50 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-8">
+                                    className="bg-white p-6 sm:p-10 md:p-12 rounded-[2rem] sm:rounded-[3rem] border-2 border-slate-50 shadow-xl max-w-md w-full"                            >
+                                    <div
+                                    className="w-20 h-20 sm:w-24 sm:h-24 bg-orange-50 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-6 sm:mb-8"
+                                     >
                                         <FiLock size={44} />
                                     </div>
 
@@ -165,7 +165,7 @@ export default function AdminOverView() {
                                             </h3>
                                         </div>
 
-                                        <div className="min-h-[500px] space-y-2">
+                                        <div className="min-h-[200px] space-y-2">
                                             <AnimatePresence mode="popLayout">
                                                 {paginatedMissions.length > 0 ? (
                                                     paginatedMissions.map((task) => (

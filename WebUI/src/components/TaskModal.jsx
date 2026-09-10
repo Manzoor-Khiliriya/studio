@@ -47,14 +47,14 @@ export default function TaskModal({
 
   const { data: statuses = [] } =
     useGetTaskStatusesQuery("status", {
-      skip: !isOpen,
+      skip: !isOpen || isEditing,
       refetchOnMountOrArgChange:
         true,
     });
 
   const { data: activeStatuses = [] } =
     useGetTaskStatusesQuery("activeStatus", {
-      skip: !isOpen,
+      skip: !isOpen || isEditing,
       refetchOnMountOrArgChange:
         true,
     });
@@ -111,14 +111,16 @@ export default function TaskModal({
       return;
     }
 
-    if (!formData.status) {
-      toast.error("Select Initiative Status");
-      return;
-    }
+    if (!isEditing) {
+      if (!formData.status) {
+        toast.error("Select Initiative Status");
+        return;
+      }
 
-    if (!formData.activeStatus) {
-      toast.error("Select Active Status");
-      return;
+      if (!formData.activeStatus) {
+        toast.error("Select Active Status");
+        return;
+      }
     }
 
     const loadingToast = toast.loading(isEditing ? "Synchronizing updates..." : "Initializing task...");
@@ -129,6 +131,11 @@ export default function TaskModal({
         allocatedTime: Number(formData.allocatedTime),
         estimatedTime: Number(formData.estimatedTime)
       };
+
+      if (isEditing) {
+        delete payload.status;
+        delete payload.activeStatus;
+      }
 
       if (isEditing) {
         await updateTask({ id: editTask._id, ...payload }).unwrap();
@@ -238,55 +245,57 @@ export default function TaskModal({
         </div>
 
         {/* Status & Active Status */}
-        <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-12 md:col-span-6">
-            <InputGroup label="Initiative Status *">
-              <HiOutlineSquares2X2 className="input-icon" />
-              <CustomDropdown
-                value={formData.status}
-                onChange={(val) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    status: val,
-                  }))
-                }
-                options={statuses
-                  .filter((item) => item.status === "Enable")
-                  .map((item) => ({
-                    label: item.name,
-                    value: item._id,
-                  }))}
-                placeholder="Select Initiative Status"
-                className="w-full"
-                buttonClass="form-input pl-10"
-              />
-            </InputGroup>
-          </div>
+        {!isEditing && (
+          <div className="grid grid-cols-12 gap-4">
+            <div className="col-span-12 md:col-span-6">
+              <InputGroup label="Initiative Status *">
+                <HiOutlineSquares2X2 className="input-icon" />
+                <CustomDropdown
+                  value={formData.status}
+                  onChange={(val) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      status: val,
+                    }))
+                  }
+                  options={statuses
+                    .filter((item) => item.status === "Enable")
+                    .map((item) => ({
+                      label: item.name,
+                      value: item._id,
+                    }))}
+                  placeholder="Select Initiative Status"
+                  className="w-full"
+                  buttonClass="form-input pl-10"
+                />
+              </InputGroup>
+            </div>
 
-          <div className="col-span-12 md:col-span-6">
-            <InputGroup label="Active Status *">
-              <HiOutlineArrowPath className="input-icon" />
-              <CustomDropdown
-                value={formData.activeStatus}
-                onChange={(val) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    activeStatus: val,
-                  }))
-                }
-                options={activeStatuses
-                  .filter((item) => item.status === "Enable")
-                  .map((item) => ({
-                    label: item.name,
-                    value: item._id,
-                  }))}
-                placeholder="Select Active Status"
-                className="w-full"
-                buttonClass="form-input pl-10"
-              />
-            </InputGroup>
+            <div className="col-span-12 md:col-span-6">
+              <InputGroup label="Active Status *">
+                <HiOutlineArrowPath className="input-icon" />
+                <CustomDropdown
+                  value={formData.activeStatus}
+                  onChange={(val) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      activeStatus: val,
+                    }))
+                  }
+                  options={activeStatuses
+                    .filter((item) => item.status === "Enable")
+                    .map((item) => ({
+                      label: item.name,
+                      value: item._id,
+                    }))}
+                  placeholder="Select Active Status"
+                  className="w-full"
+                  buttonClass="form-input pl-10"
+                />
+              </InputGroup>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Description / Metadata */}
         <InputGroup label="Task Description">

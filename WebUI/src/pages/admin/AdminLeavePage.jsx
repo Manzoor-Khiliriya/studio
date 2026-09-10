@@ -145,13 +145,17 @@ export default function AdminLeavePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState(
+    location.state?.statusFilter || "All"
+  );
   const [adjustUser, setAdjustUser] = useState(null);
   const [adjustType, setAdjustType] = useState(null); // 🔥 added
   const [adjustValue, setAdjustValue] = useState(0);
 
   // Filter State
-  const [dateRange, setDateRange] = useState("current-week");
+  const [dateRange, setDateRange] = useState(
+    location.state?.dateRange || "current-week"
+  );
   const [customDates, setCustomDates] = useState({ start: "", end: "" });
 
   // Modals State

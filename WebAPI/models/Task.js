@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { getToday } = require("../utils/dateHelper");
 
 const taskSchema = new mongoose.Schema(
   {
@@ -22,6 +23,10 @@ const taskSchema = new mongoose.Schema(
       ref: "TaskStatus",
     },
     activeStatus: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "TaskStatus",
+    },
+    taskStatus: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "TaskStatus",
     },
@@ -60,7 +65,7 @@ taskSchema.virtual("liveStatus").get(function () {
     return "To be started";
   }
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = getToday();
 
   const isRunningToday = this.timeLogs.some(
     (log) =>

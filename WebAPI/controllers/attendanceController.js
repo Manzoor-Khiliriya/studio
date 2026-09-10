@@ -1,8 +1,7 @@
 const Attendance = require("../models/Attendance");
 const User = require("../models/User");
-const moment = require("moment");
 const { emitDashboardUpdate } = require("../utils/socket");
-const { getToday, now } = require("../utils/dateHelper");
+const { getToday, now, getMonthRange } = require("../utils/dateHelper");
 
 const emitEvent = (req, event, data, userId = null) => {
   const io = req.app.get("socketio");
@@ -18,10 +17,17 @@ const emitEvent = (req, event, data, userId = null) => {
 exports.clockIn = async (req, res) => {
   try {
     const today = getToday();
-    let attendance = await Attendance.findOne({ user: req.user.id, date: today });
+    let attendance = await Attendance.findOne({
+      user: req.user.id,
+      date: today,
+    });
 
     const currentTime = now();
     if (attendance) {
+      if (attendance.clockOut === null) {
+        return res.status(400).json({ message: "Already clocked in." });
+      }
+
       attendance.clockOut = null;
       attendance.lastResumeTime = currentTime;
       await attendance.save();
@@ -35,7 +41,7 @@ exports.clockIn = async (req, res) => {
       date: today,
       clockIn: currentTime,
       lastResumeTime: currentTime,
-      totalSecondsWorked: 0
+      totalSecondsWorked: 0,
     });
 
     emitEvent(req, "attendanceChanged");
@@ -52,7 +58,7 @@ exports.clockOut = async (req, res) => {
     const record = await Attendance.findOne({
       user: req.user.id,
       date: today,
-      clockOut: null
+      clockOut: null,
     });
 
     if (!record) {
@@ -60,7 +66,9 @@ exports.clockOut = async (req, res) => {
     }
 
     const currentTime = now();
-    const sessionSeconds = Math.floor((currentTime - record.lastResumeTime) / 1000);
+    const sessionSeconds = Math.floor(
+      (currentTime - record.lastResumeTime) / 1000,
+    );
 
     record.clockOut = currentTime;
     record.totalSecondsWorked += sessionSeconds;
@@ -87,24 +95,28 @@ exports.getTodayStatus = async (req, res) => {
 
 exports.getAllAttendance = async (req, res) => {
   try {
-    const { startDate, endDate, userId, search, page = 1, limit = 10 } = req.query;
+    const {
+      startDate,
+      endDate,
+      userId,
+      search,
+      page = 1,
+      limit = 10,
+    } = req.query;
 
     let query = {};
 
-    if (search) {
+    if (userId) {
+      query.user = userId;
+    } else if (search) {
       const matchedUsers = await User.find({
-        name: { $regex: search, $options: "i" }
+        name: { $regex: search, $options: "i" },
       }).select("_id");
-
-      query.user = { $in: matchedUsers.map(u => u._id) };
+      query.user = { $in: matchedUsers.map((u) => u._id) };
     }
 
     if (startDate && endDate) {
       query.date = { $gte: startDate, $lte: endDate };
-    }
-
-    if (userId) {
-      query.user = userId;
     }
 
     const pageNum = parseInt(page);
@@ -119,8 +131,8 @@ exports.getAllAttendance = async (req, res) => {
         select: "name email",
         populate: {
           path: "employee",
-          select: "employeeCode"
-        }
+          select: "employeeCode",
+        },
       })
       .sort({ date: -1, clockIn: -1 })
       .skip(skip)
@@ -132,8 +144,8 @@ exports.getAllAttendance = async (req, res) => {
         total: totalRecords,
         page: pageNum,
         pages: Math.ceil(totalRecords / limitNum),
-        limit: limitNum
-      }
+        limit: limitNum,
+      },
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -148,12 +160,11 @@ exports.getEmployeeCalendar = async (req, res) => {
       return res.status(400).json({ message: "User ID is required" });
     }
 
-    const startOfMonth = moment([year, month - 1]).format("YYYY-MM-DD");
-    const endOfMonth = moment(startOfMonth).endOf("month").format("YYYY-MM-DD");
+    const { startOfMonth, endOfMonth } = getMonthRange(year, month);
 
     const records = await Attendance.find({
       user: userId,
-      date: { $gte: startOfMonth, $lte: endOfMonth }
+      date: { $gte: startOfMonth, $lte: endOfMonth },
     }).sort({ date: 1 });
 
     const calendarMap = records.reduce((acc, record) => {
@@ -165,7 +176,7 @@ exports.getEmployeeCalendar = async (req, res) => {
       userId,
       month,
       year,
-      records: calendarMap
+      records: calendarMap,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

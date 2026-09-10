@@ -3,7 +3,11 @@ const Task = require("../models/Task");
 const Employee = require("../models/Employee");
 const mongoose = require("mongoose");
 const { applyProficiency } = require("../utils/userHelpers");
-const { emitDashboardUpdate, emitToTask, emitToRole } = require("../utils/socket");
+const {
+  emitDashboardUpdate,
+  emitToTask,
+  emitToRole,
+} = require("../utils/socket");
 const { getToday, now } = require("../utils/dateHelper");
 
 const emitEvent = (req, event, data, userId = null) => {
@@ -30,20 +34,6 @@ exports.startTimer = async (req, res) => {
 
     const task = await Task.findOne({ _id: taskId, assignedTo: employee._id });
     if (!task) throw new Error("Task not found or not assigned to you.");
-
-    const logs = await TimeLog.find({
-      user: userId,
-      dateString: today,
-      logType: "work",
-    });
-    const hoursToday = logs.reduce(
-      (sum, l) => sum + (l.durationSeconds / 3600 || 0),
-      0,
-    );
-
-    if (hoursToday >= employee.dailyWorkLimit) {
-      throw new Error(`Daily limit reached (${employee.dailyWorkLimit} hrs).`);
-    }
 
     const activeLog = await TimeLog.findOne({ user: userId, isRunning: true });
 
@@ -104,11 +94,20 @@ exports.startTimer = async (req, res) => {
 };
 
 exports.togglePause = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const userId = req.user._id;
+    const active = await TimeLog.findOne({
+      user: userId,
+      isRunning: true,
+    }).session(session);
 
-    const active = await TimeLog.findOne({ user: userId, isRunning: true });
-    if (!active) return res.status(404).json({ message: "No active timer." });
+    if (!active) {
+      await session.abortTransaction();
+      return res.status(404).json({ message: "No active timer." });
+    }
 
     const currentTime = now();
     const rawSeconds = Math.max(
@@ -126,31 +125,40 @@ exports.togglePause = async (req, res) => {
 
     active.endTime = currentTime;
     active.isRunning = false;
-    await active.save();
+    await active.save({ session });
 
     const newType = active.logType === "work" ? "break" : "work";
 
-    const newLog = await TimeLog.create({
-      user: userId,
-      task: active.task,
-      startTime: now(),
-      logType: newType,
-      isRunning: true,
-      dateString: active.dateString,
-    });
+    const newLog = await TimeLog.create(
+      [
+        {
+          user: userId,
+          task: active.task,
+          startTime: now(),
+          logType: newType,
+          isRunning: true,
+          dateString: active.dateString,
+        },
+      ],
+      { session },
+    );
+
+    await session.commitTransaction();
+
     await emitToTask(req, active.task, "timeLogChanged", {
       status: newType,
-      log: newLog,
+      log: newLog[0],
     });
-
     await emitToTask(req, active.task, "taskChanged", {
       taskId: active.task,
     });
-
     emitDashboardUpdate(req);
-    res.json({ status: newType, log: newLog });
+    res.json({ status: newType, log: newLog[0] });
   } catch (err) {
+    await session.abortTransaction();
     res.status(500).json({ error: err.message });
+  } finally {
+    session.endSession();
   }
 };
 

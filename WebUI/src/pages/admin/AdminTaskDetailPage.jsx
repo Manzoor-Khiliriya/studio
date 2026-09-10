@@ -201,17 +201,28 @@ export default function AdminTaskDetailPage() {
                 {task.title?.charAt(0)}
               </span>
               <div>
-                <h1 className="flex gap-2 text-4xl font-black text-slate-900 tracking-tighter uppercase mb-3 leading-none">
-                  {task.title} -
+                <div className="flex items-center gap-3">
                   <TruncateText
-                    maxWidth="max-w-[400px]"
-                    text={`${task?.project?.title}`}
-                    className=""
+                    maxWidth="max-w-[300px]"
+                    text={`${task?.title}`}
+                    className="text-4xl font-black text-slate-900 tracking-tighter uppercase mb-3 leading-none"
                   />
-                </h1>
+                  <p className="text-4xl font-black text-slate-900 tracking-tighter uppercase mb-3 leading-none">
+                    -
+                  </p>
+                  <TruncateText
+                    maxWidth="max-w-[600px]"
+                    text={`${task?.project?.title}`}
+                    className="text-4xl font-black text-slate-900 tracking-tighter uppercase mb-3 leading-none"
+                  />
+                </div>
                 <div className="flex flex-wrap gap-2">
                   <Badge
                     text={task.liveStatus}
+                    className=" text-yellow-600 border-yellow-100"
+                  />
+                  <Badge
+                    text={task?.taskStatus?.name}
                     className=" text-blue-600 border-blue-100"
                   />
                   <Badge

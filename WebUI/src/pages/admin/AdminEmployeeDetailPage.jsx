@@ -407,7 +407,7 @@ export default function EmployeeDetailPage() {
   }, [workedAndAssigned, userId]);
 
   const activeTasks = currentlyAssigned;
-  const liveTasks = currentlyAssigned.filter((t) => ["In progress"].includes(t.liveStatus));
+  const liveTasks = currentlyAssigned.filter((t) => ["In progress"].includes(t?.liveStatus));
 
   const handleConfirmDelete = async () => {
     const t = toast.loading("Processing...");
@@ -604,7 +604,7 @@ export default function EmployeeDetailPage() {
                                 <h4 className="text-[10px] font-black uppercase text-slate-800 truncate">
                                   {task.projectTitle}{" "} ({task.title})
                                   <span className="text-slate-800">
-                                    
+
                                   </span>
                                 </h4>
 
@@ -670,8 +670,8 @@ export default function EmployeeDetailPage() {
                         >
                           <div className="flex justify-between items-start gap-2">
                             <p className="text-[11px] font-black uppercase tracking-tight text-white">
-                              {t.title}{" "}
-                              {t?.project?.title && `(${t.project.title})`}
+                              {t?.project?.title && `${t.project.title}`}
+                              {" "} ({t.title})
                             </p>
 
                             <span className="text-[7px] font-black uppercase text-orange-400">
@@ -681,7 +681,7 @@ export default function EmployeeDetailPage() {
 
                           <div className="flex justify-between items-end mt-2">
                             <span className="text-[8px] font-black uppercase tracking-widest text-orange-400">
-                              {t.liveStatus}
+                              {t?.liveStatus}
                             </span>
 
                             <span className="text-[8px] font-black uppercase tracking-widest text-slate-200">
@@ -887,8 +887,8 @@ function TaskSmallCard({ task, active, historical }) {
                 : "text-orange-700"
             }`}
         >
-          {task.title}{" "}
-          {task?.project?.title && `(${task.project.title})`}
+          {task?.project?.title && `${task.project.title}`}
+          {" "}({task.title})
         </p>
 
         {active ? (
@@ -928,7 +928,7 @@ function TaskSmallCard({ task, active, historical }) {
                 : "text-orange-500"
             }`}
         >
-          {task?.status?.name || ""}
+          {task?.status?.name || "N/A"}
         </span>
 
         <span
@@ -943,31 +943,6 @@ function TaskSmallCard({ task, active, historical }) {
           {task.allocatedTime || 0}H ALLOC
         </span>
       </div>
-    </div>
-  );
-}
-
-function PaginationControls({ current, total, setPage }) {
-  if (total <= 1) return null;
-  return (
-    <div className="flex items-center gap-1">
-      <button
-        disabled={current === 0}
-        onClick={() => setPage((p) => p - 1)}
-        className="p-1.5 hover:bg-slate-100 rounded-lg disabled:opacity-20 transition-all cursor-pointer"
-      >
-        <HiOutlineChevronLeft size={16} />
-      </button>
-      <span className="text-[10px] font-black text-slate-400 min-w-[30px] text-center">
-        {current + 1}/{total}
-      </span>
-      <button
-        disabled={current >= total - 1}
-        onClick={() => setPage((p) => p + 1)}
-        className="p-1.5 hover:bg-slate-100 rounded-lg disabled:opacity-20 transition-all cursor-pointer"
-      >
-        <HiOutlineChevronRight size={16} />
-      </button>
     </div>
   );
 }

@@ -268,7 +268,7 @@ export default function EmployeeListPage() {
   if (isLoading) return <Loader message="Accessing Workforce Database..." />;
 
   return (
-    <div className="max-w-[1750px] mx-auto min-h-[83vh] bg-slate-100">
+    <div className="max-w-[1750px] mx-auto min-h-[83vh] bg-slate-100 overflow-x-hidden">
       <PageHeader
         title={`${activeRole} Management`}
         subtitle="Manage workforce access and profiles."
@@ -304,12 +304,12 @@ export default function EmployeeListPage() {
 
       />
 
-      <main className="max-w-[1750px] mx-auto px-8 pb-10 -mt-10">
+      <main className="max-w-[1750px] mx-auto px-4 sm:px-6 lg:px-8 pb-6 sm:pb-10 -mt-6 sm:-mt-10">
         {/* SEARCH & FILTER BAR */}
         {activeRole !== "Settings" && (
-          <div className="bg-white/90 backdrop-blur-xl border border-slate-200 p-5 rounded-[2.5rem] shadow-xl shadow-slate-200/50 mb-8 flex flex-col gap-6">
+          <div className="bg-white/90 backdrop-blur-xl border border-slate-200 p-4 sm:p-5 rounded-2xl sm:rounded-[2.5rem] shadow-xl shadow-slate-200/50 mb-6 sm:mb-8 flex flex-col gap-4 sm:gap-6">
             <div className="flex flex-wrap items-center gap-4">
-              <div className="relative flex-1 w-full group">
+              <div className="relative flex-1 w-full lg:min-w-[250px] group">
                 <HiOutlineMagnifyingGlass
                   className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors"
                   size={18}
@@ -388,12 +388,12 @@ export default function EmployeeListPage() {
                   </button>
                 )}
 
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2 w-full lg:w-auto">
                 {addOptionsByTab[activeRole]?.map((item) => (
                   <button
                     key={item.role}
                     onClick={() => handleAddUser(item.role)}
-                    className="flex items-center gap-2 mx-1.5 px-3.5 py-3.5 bg-slate-50 border border-slate-100 text-[10px] font-black hover:bg-orange-600 hover:text-white rounded-xl transition-all uppercase tracking-widest shadow-lg shadow-orange-200 cursor-pointer"
+                    className="flex items-center gap-2 px-2 py-3 sm:px-3.5 sm:py-3.5 bg-slate-50 border border-slate-100 text-[10px] font-black hover:bg-orange-600 hover:text-white rounded-xl transition-all uppercase tracking-widest shadow-lg shadow-orange-200 cursor-pointer"
                   >
                     <HiOutlinePlusCircle size={18} />
                     <span>{item.label}</span>
@@ -404,7 +404,7 @@ export default function EmployeeListPage() {
               <button
                 onClick={() => setActiveRole("Settings")}
                 title="Go to Settings"
-                className="px-4 py-3.75 bg-slate-900 text-white rounded-2xl hover:bg-orange-600 transition-all cursor-pointer shadow-lg shadow-slate-200"
+                className="px-3 sm:px-4 py-3.5 bg-slate-900 text-white rounded-xl sm:rounded-2xl hover:bg-orange-600 transition-all cursor-pointer shadow-lg shadow-slate-200 shrink-0"
               >
                 <HiOutlineCog6Tooth size={18} />
               </button>
@@ -414,112 +414,113 @@ export default function EmployeeListPage() {
 
         {/* DATA TABLE CONTAINER */}
         {activeRole === "Settings" ? (
-          <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm p-6">
-            <div className="inline-flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200 shadow-sm mb-3">
-              {["Department", "Designation"].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setSettingsTab(tab)}
-                  className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${settingsTab === tab
-                    ? "bg-orange-600 text-white shadow-lg"
-                    : "text-slate-400 hover:text-slate-600"
-                    }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
+          <div className="bg-white rounded-2xl sm:rounded-[2rem] border border-slate-200 shadow-sm p-4 sm:p-6">
+            <div className="inline-flex max-w-full items-center bg-slate-100 p-1 rounded-xl sm:rounded-2xl border border-slate-200 shadow-sm mb-3">
+            {["Department", "Designation"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setSettingsTab(tab)}
+                className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${settingsTab === tab
+                  ? "bg-orange-600 text-white shadow-lg"
+                  : "text-slate-400 hover:text-slate-600"
+                  }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
 
             {settingsTab === "Department" ? (
-              <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-visible flex flex-col group/table">
-                <div className="rounded-t-[2rem] overflow-hidden">
-                  <Table
-                    columns={departmentColumns}
-                    data={departments}
-                    emptyMessage="No departments found."
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-visible flex flex-col group/table">
-                <div className="rounded-t-[2rem] overflow-hidden">
-                  <Table
-                    columns={designationColumns}
-                    data={designations}
-                    emptyMessage="No designations found."
-                  />
-                </div>
-              </div>
-            )}
-
+          <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-visible flex flex-col group/table">
+            <div className="rounded-t-[2rem] overflow-hidden">
+              <Table
+                columns={departmentColumns}
+                data={departments}
+                emptyMessage="No departments found."
+              />
+            </div>
           </div>
         ) : (
           <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-visible flex flex-col group/table">
             <div className="rounded-t-[2rem] overflow-hidden">
               <Table
-                columns={columns}
-                data={data?.employees || []}
-                onRowClick={(emp) =>
-                  navigate(`/employees/${emp.user?._id}`, {
-                    state: {
-                      page: currentPage,
-                      limit,
-                      searchTerm,
-                      statusFilter,
-                      activeRole,
-                      typeFilter,
-                    },
-                  })
-                }
-                emptyMessage={`No ${activeRole.toLowerCase()}s found.`}
-              />
-            </div>
-
-            {/* PAGINATION FOOTER */}
-            <div className="bg-slate-50/50 p-6 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6 rounded-b-[2rem]">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-sm">
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-100 pr-3">
-                    Page Limit
-                  </span>
-
-                  <CustomDropdown
-                    value={limit.toString()}
-                    onChange={(val) => {
-                      setLimit(Number(val));
-                      setCurrentPage(1);
-                    }}
-                    options={[5, 10, 25, 50].map((v) => ({
-                      label: `${v}`,
-                      value: v.toString(),
-                    }))}
-                    className="w-10"
-                    buttonClass="w-full p-1 bg-transparent text-[9px] font-black cursor-pointer text-slate-700 flex items-center gap-2"
-                  />
-                </div>
-                {data?.totalEmployees && (
-                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight ml-2">
-                    Total {data?.totalEmployees} {activeRole}s
-                  </span>
-                )}
-              </div>
-
-              <Pagination
-                pagination={{
-                  current: data?.currentPage,
-                  total: data?.totalPages,
-                  count: data?.totalEmployees,
-                  limit: limit,
-                }}
-                onPageChange={setCurrentPage}
-                loading={isFetching}
-                label="Employees"
+                columns={designationColumns}
+                data={designations}
+                emptyMessage="No designations found."
               />
             </div>
           </div>
         )}
 
-      </main>
+    </div>
+  ) : (
+    <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-visible flex flex-col group/table">
+      <div className="rounded-t-[2rem] overflow-hidden">
+        <Table
+          columns={columns}
+          data={data?.employees || []}
+          onRowClick={(emp) =>
+            navigate(`/employees/${emp.user?._id}`, {
+              state: {
+                page: currentPage,
+                limit,
+                searchTerm,
+                statusFilter,
+                activeRole,
+                typeFilter,
+              },
+            })
+          }
+          emptyMessage={`No ${activeRole.toLowerCase()}s found.`}
+        />
+      </div>
+
+      {/* PAGINATION FOOTER */}
+      <div className="bg-slate-50/50 p-6 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6 rounded-b-[2rem]">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-sm">
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-100 pr-3">
+              Page Limit
+            </span>
+
+            <CustomDropdown
+              value={limit.toString()}
+              onChange={(val) => {
+                setLimit(Number(val));
+                setCurrentPage(1);
+              }}
+              options={[5, 10, 25, 50].map((v) => ({
+                label: `${v}`,
+                value: v.toString(),
+              }))}
+              className="w-10"
+              buttonClass="w-full p-1 bg-transparent text-[9px] font-black cursor-pointer text-slate-700 flex items-center gap-2"
+            />
+          </div>
+          {data?.totalEmployees && (
+            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight ml-2">
+              Total {data?.totalEmployees} {activeRole}s
+            </span>
+          )}
+        </div>
+
+        <Pagination
+          pagination={{
+            current: data?.currentPage,
+            total: data?.totalPages,
+            count: data?.totalEmployees,
+            limit: limit,
+          }}
+          onPageChange={setCurrentPage}
+          loading={isFetching}
+          label="Employees"
+        />
+      </div>
+    </div>
+  )
+}
+
+      </main >
 
       <EmployeeModal
         isOpen={isEmployeeModalOpen}
@@ -595,6 +596,6 @@ export default function EmployeeListPage() {
         variant="danger"
       />
 
-    </div>
+    </div >
   );
 }
