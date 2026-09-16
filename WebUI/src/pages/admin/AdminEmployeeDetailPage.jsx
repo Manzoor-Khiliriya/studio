@@ -164,63 +164,41 @@ const TaskGridView = ({ tasks, userId }) => {
   return (
     <div className="bg-white border border-slate-200 rounded-[2.5rem] overflow-visible shadow-sm w-full">
 
-      <div className="bg-slate-50 rounded-t-[2.5rem] px-6 py-4 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-2 border-b border-slate-100">
-        {/* Modern Date Picker Container */}
-        <div className="flex items-center my-auto text-black overflow-hidden">
-          {/* Start Date */}
-          <div className="relative hover:bg-slate-200 rounded-[2rem] transition-colors cursor-pointer px-4 py-1">
-            <span className="text-[10px] font-black uppercase tracking-wider whitespace-nowrap">
+      <div className="bg-slate-50 rounded-t-[2.5rem] px-4 sm:px-6 py-4 flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 sm:gap-6 mb-2 border-b border-slate-100">
+        {/* Date Picker */}
+        <div className="flex items-center justify-center lg:justify-start text-black overflow-hidden">
+          <div className="relative hover:bg-slate-200 rounded-[2rem] transition-colors cursor-pointer px-3 sm:px-4 py-1">
+            <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider whitespace-nowrap">
               {formatDateDisplay(dateRange.start)}
             </span>
-            <input
-              type="date"
-              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-              value={dateRange.start}
+            <input type="date" className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" value={dateRange.start}
               onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-              onClick={(e) => e.target.showPicker?.()}
-            />
+              onClick={(e) => e.target.showPicker?.()} />
           </div>
-
           <div className="text-black font-black px-1 text-sm">-</div>
-
-          {/* End Date */}
-          <div className="relative hover:bg-slate-200 rounded-[2rem] transition-colors cursor-pointer px-4 py-1">
-            <span className="text-[10px] font-black uppercase tracking-wider whitespace-nowrap">
+          <div className="relative hover:bg-slate-200 rounded-[2rem] transition-colors cursor-pointer px-3 sm:px-4 py-1">
+            <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider whitespace-nowrap">
               {formatDateDisplay(dateRange.end)}
             </span>
-            <input
-              type="date"
-              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-              value={dateRange.end}
+            <input type="date" className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" value={dateRange.end}
               onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-              onClick={(e) => e.target.showPicker?.()}
-            />
+              onClick={(e) => e.target.showPicker?.()} />
           </div>
         </div>
 
-        {/* Stats Summary */}
-        <div className="flex gap-3">
+        {/* Stats — evenly split on mobile instead of hugging left */}
+        <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-3">
           <div className="text-center">
-            <p className="text-[10px] text-slate-900 font-black text-sm leading-none mb-1">{taskCount}</p>
-            <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest">Total Tasks</p>
+            <p className="text-[10px] text-slate-900 font-black leading-none mb-1">{taskCount}</p>
+            <p className="text-[7px] sm:text-[8px] font-black text-slate-700 uppercase tracking-widest">Total Tasks</p>
           </div>
-
           <div className="text-center">
-            <p className="text-[10px] text-slate-900 font-black text-sm leading-none mb-1">
-              {totalRawHoursStr}
-            </p>
-            <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest">
-              Actual Hours
-            </p>
+            <p className="text-[10px] text-slate-900 font-black leading-none mb-1">{totalRawHoursStr}</p>
+            <p className="text-[7px] sm:text-[8px] font-black text-slate-700 uppercase tracking-widest">Actual Hours</p>
           </div>
-
           <div className="text-center">
-            <p className="text-[10px] text-slate-900 font-black text-sm leading-none mb-1">
-              {totalHoursStr}
-            </p>
-            <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest">
-              Proficiency Hours
-            </p>
+            <p className="text-[10px] text-slate-900 font-black leading-none mb-1">{totalHoursStr}</p>
+            <p className="text-[7px] sm:text-[8px] font-black text-slate-700 uppercase tracking-widest">Proficiency Hours</p>
           </div>
         </div>
       </div>
@@ -434,8 +412,9 @@ export default function EmployeeDetailPage() {
 
   return (
     <div className="max-w-[1750px] mx-auto min-h-[83vh] bg-slate-100 pb-10 font-sans text-slate-900">
-      <header className="bg-white border-b border-slate-200 pt-8 pb-12 shadow-sm">
-        <div className="mx-auto px-8">
+
+      <header className="bg-white border-b border-slate-200 pt-6 sm:pt-8 pb-8 sm:pb-12 shadow-sm">
+        <div className="mx-auto px-4 sm:px-6 lg:px-8">
           <button
             onClick={() => {
               if (location.state) {
@@ -446,25 +425,25 @@ export default function EmployeeDetailPage() {
                 navigate("/employees");
               }
             }}
-            className="flex items-center gap-2 text-slate-400 hover:text-orange-600 font-black uppercase text-[10px] tracking-[0.2em] mb-8 transition-all group bg-transparent border-none cursor-pointer"
+            className="flex items-center gap-2 text-slate-400 hover:text-orange-600 font-black uppercase text-[10px] tracking-[0.2em] mb-6 sm:mb-8 transition-all group bg-transparent border-none cursor-pointer"
           >
             <HiOutlineArrowLeft strokeWidth={2.5} className="group-hover:-translate-x-1 transition-transform" />
             Back to Directory
           </button>
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex col-span-8 items-center gap-6">
-              <div className="w-20 h-20 bg-slate-900 rounded-[1.8rem] flex items-center justify-center text-orange-500 font-black text-4xl italic shadow-2xl shrink-0">
+            <div className="flex items-center gap-4 sm:gap-6 min-w-0">
+              <div className="w-14 h-14 sm:w-20 sm:h-20 bg-slate-900 rounded-[1.4rem] sm:rounded-[1.8rem] flex items-center justify-center text-orange-500 font-black text-2xl sm:text-4xl italic shadow-2xl shrink-0">
                 {employee?.user?.name?.charAt(0)}
               </div>
-              <div className="space-y-3">
-                <h1 className="text-4xl font-black tracking-tighter uppercase leading-none">
+              <div className="space-y-2 sm:space-y-3 min-w-0">
+                <h1 className="text-2xl sm:text-4xl font-black tracking-tighter uppercase leading-tight break-words">
                   {employee?.user?.name}
                   {employee?.employeeCode ? ` (${employee.employeeCode})` : ""}
                 </h1>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   <StatusBadge status={employee?.user?.status} />
-                  <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-slate-400 hidden xs:inline-block" />
                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
                     {employee?.user?.designation?.name || "Field Operator"}
                   </span>
@@ -472,25 +451,25 @@ export default function EmployeeDetailPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 px-1 w-full max-w-[545px]">
+            <div className="grid grid-cols-2 gap-3 w-full md:max-w-[545px]">
               <button
                 onClick={() => setIsEditModalOpen(true)}
-                className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest bg-slate-900 text-white hover:bg-orange-600 transition-all shadow-xl shadow-orange-100 active:scale-95 cursor-pointer"              >
-                <HiOutlinePencilSquare size={18} /> {`Update ${employee?.user?.role}`}
+                className="flex items-center justify-center gap-2 w-full py-3 sm:py-3.5 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-widest bg-slate-900 text-white hover:bg-orange-600 transition-all shadow-xl shadow-orange-100 active:scale-95 cursor-pointer text-center"
+              >
+                <HiOutlinePencilSquare size={16} className="shrink-0" /> <span className="truncate">{`Update ${employee?.user?.role}`}</span>
               </button>
               <button
                 onClick={() => setConfirmConfig({ isOpen: true, type: "delete" })}
-                className="flex items-center justify-center gap-2 bg-slate-900 text-white w-full py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-600 transition-all shadow-xl shadow-orange-100 active:scale-95 cursor-pointer"
+                className="flex items-center justify-center gap-2 bg-slate-900 text-white w-full py-3 sm:py-3.5 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-widest hover:bg-rose-600 transition-all shadow-xl shadow-orange-100 active:scale-95 cursor-pointer text-center"
               >
-                <HiOutlineTrash size={18} /> {`Delete ${employee?.user?.role}`}
+                <HiOutlineTrash size={16} className="shrink-0" /> <span className="truncate">{`Delete ${employee?.user?.role}`}</span>
               </button>
             </div>
           </div>
         </div>
-      </header>
-
-      <main className="px-8 -mt-8">
-        <div className="grid lg:grid-cols-12 gap-8">
+      </header >
+      <main className="px-4 sm:px-6 lg:px-8 -mt-6 sm:-mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
           <div className="lg:col-span-8 space-y-8">
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
               {(role === "Employee" || role === "Manager") && (
@@ -835,7 +814,7 @@ export default function EmployeeDetailPage() {
         confirmText={role === "Admin" ? "Send Request" : "Delete"}
         variant="danger"
       />
-    </div>
+    </div >
   );
 }
 

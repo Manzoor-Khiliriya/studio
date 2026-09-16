@@ -388,7 +388,7 @@ export default function EmployeeListPage() {
                   </button>
                 )}
 
-              <div className="flex flex-wrap gap-2 w-full lg:w-auto">
+              <div className="flex flex-wrap gap-4 w-full lg:w-auto">
                 {addOptionsByTab[activeRole]?.map((item) => (
                   <button
                     key={item.role}

@@ -13,7 +13,8 @@ import {
   HiOutlineFlag,
   HiCalendar,
   HiOutlineUser,
-  HiOutlineDocumentCheck
+  HiOutlineDocumentCheck,
+  HiOutlineClock
 } from "react-icons/hi2";
 import { FiMenu } from "react-icons/fi";
 import { HiLogout, HiOutlineCalendar } from "react-icons/hi";
@@ -40,6 +41,7 @@ export default function Sidebar() {
     { to: "/task-history", label: "Task History", icon: <HiOutlineDocumentCheck /> },
     { to: "/performance", label: "Performance", icon: <HiOutlineDocumentChartBar /> },
     { to: "/projects-calender", label: "Project Calender", icon: <HiCalendar /> },
+    { to: "/timelog-request", label: "Timelog Requests", icon: <HiOutlineClock /> },
     { to: "/attendance", label: "Attendance", icon: <HiOutlineViewColumns /> },
     { to: '/holidays', label: 'Holidays', icon: <HiOutlineFlag /> },
     { to: '/leaves', label: 'Leaves', icon: <HiOutlineCalendar /> },

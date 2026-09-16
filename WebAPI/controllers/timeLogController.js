@@ -184,6 +184,7 @@ exports.stopTimer = async (req, res) => {
     log.rawDurationSeconds = rawSeconds;
     log.durationSeconds = adjustedSeconds;
     log.action = "Stop";
+    log.stopReason = "manual";
 
     await log.save();
     await emitToTask(req, log.task, "taskChanged", {
@@ -258,6 +259,7 @@ exports.stopAllLiveSessions = async (req, res) => {
 
       log.endTime = currentTime;
       log.isRunning = false;
+      log.stopReason = "manual";
 
       return log.save();
     });
@@ -342,6 +344,7 @@ exports.stopEmployeeSession = async (req, res) => {
     activeLog.endTime = currentTime;
     activeLog.isRunning = false;
     activeLog.action = "Stop";
+    activeLog.stopReason = "manual";
 
     await activeLog.save();
     emitEvent(req, "taskChanged", {

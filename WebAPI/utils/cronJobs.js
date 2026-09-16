@@ -475,6 +475,7 @@ module.exports = (io) => {
           log.endTime = currentTime;
           log.isRunning = false;
           log.action = "Stop";
+          log.stopReason = "inactivity"; // 🔥 NEW
 
           await log.save();
 

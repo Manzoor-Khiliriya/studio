@@ -28,6 +28,7 @@ import { useHeartbeatMutation } from "./services/userApi";
 import EmployeeProfilePage from "./pages/employee/EmployeeProfilePage";
 import AdminTaskAllocationPage from "./pages/admin/AdminTaskAllocationPage";
 import AdminOverView from "./pages/admin/AdminOverviewPage";
+import AdminRequestPage from "./pages/admin/AdminRequestPage";
 
 function AppContent() {
   const user = useSelector((state) => state.auth.user);
@@ -43,12 +44,22 @@ function AppContent() {
     if (!user?._id) return;
 
     sendHeartbeat().unwrap().catch((err) => console.warn("Heartbeat failed:", err));
-    
+
     const interval = setInterval(() => {
       sendHeartbeat().unwrap().catch(() => { });
     }, 60000);
 
-    return () => clearInterval(interval);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        sendHeartbeat().unwrap().catch(() => { });
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, [user?._id, sendHeartbeat]);
 
   return (
@@ -74,6 +85,7 @@ function AppContent() {
                 <Route path="/projects/:id" element={<AdminTaskDetailPage />} />
                 <Route path="/performance" element={<AdminTaskPerformancePage />} />
                 <Route path="/projects-calender" element={<AdminProjectCalendar />} />
+                <Route path="/timelog-request" element={<AdminRequestPage />} />
               </Route>
             </Route>
 

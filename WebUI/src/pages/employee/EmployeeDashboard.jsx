@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiClock, FiTarget, FiBriefcase, FiActivity, FiLock } from "react-icons/fi";
-import { HiOutlineBolt } from 'react-icons/hi2';
+import { HiOutlineBolt, HiOutlineExclamationTriangle } from 'react-icons/hi2';
 import { toast } from "react-hot-toast";
 import { useGetDashboardSummaryQuery } from "../../services/dashboardApi";
 import { useGetMyTodayLogsQuery, useStopTimerMutation } from "../../services/timeLogApi";
@@ -17,6 +17,8 @@ import ConfirmModal from "../../components/ConfirmModal";
 import { useSelector } from "react-redux";
 import { BiTask } from "react-icons/bi";
 import { useNavigate } from "react-router-dom";
+import { useGetEligibleLogsQuery } from "../../services/timeLogAdjustmentApi";
+import RequestAdjustmentModal from "../../components/RequestAdjustmentModal";
 
 export default function EmployeeDashboard() {
   const { user } = useSelector((state) => state.auth);
@@ -32,8 +34,12 @@ export default function EmployeeDashboard() {
   const [forceStopSignal, setForceStopSignal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
-
+  const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
   const isTaskUser = ["Employee", "Manager"].includes(user?.role);
+
+  const { data: eligibleLogs = [] } = useGetEligibleLogsQuery(undefined, {
+    skip: !isTaskUser,
+  });
 
   const {
     data: summaryData,
@@ -204,6 +210,36 @@ export default function EmployeeDashboard() {
     <>
       <div className="min-h-[83vh] bg-[#f1f5f9]">
         <PageHeader title="Overview" />
+
+        {isTaskUser && eligibleLogs.length > 0 && (
+          <div className="mx-auto px-8 pt-6">
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-amber-50 border border-amber-200 rounded-[1.75rem]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center shrink-0">
+                  <HiOutlineExclamationTriangle className="text-amber-600" size={20} />
+                </div>
+                <div>
+                  <p className="text-[11px] font-black text-amber-800 uppercase tracking-widest">
+                    {eligibleLogs.length} session{eligibleLogs.length > 1 ? 's were' : ' was'} auto-stopped
+                  </p>
+                  <p className="text-[10px] text-amber-700 font-medium mt-0.5">
+                    If you were still working, you can request a time correction for admin review.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsAdjustmentModalOpen(true)}
+                className="shrink-0 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer"
+              >
+                Request Correction
+              </button>
+            </motion.div>
+          </div>
+        )}
 
         {/* --- STATS GRID (5 COLUMNS) --- */}
         <div className="mx-auto px-8 pb-10">
@@ -400,6 +436,11 @@ export default function EmployeeDashboard() {
         }
         confirmText="Clock Out"
         variant="error"
+      />
+
+      <RequestAdjustmentModal
+        isOpen={isAdjustmentModalOpen}
+        onClose={() => setIsAdjustmentModalOpen(false)}
       />
     </>
   );

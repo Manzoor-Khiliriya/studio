@@ -177,8 +177,9 @@ export default function AdminTaskDetailPage() {
 
   return (
     <div className="max-w-[1750px] mx-auto min-h-[83vh] bg-slate-100 pb-10">
-      <header className="bg-white border-b border-slate-200 pt-8 pb-10">
-        <div className="max-w-[1750px] mx-auto px-8">
+
+      <header className="bg-white border-b border-slate-200 pt-6 sm:pt-8 pb-8 sm:pb-10">
+        <div className="max-w-[1750px] mx-auto px-4 sm:px-6 lg:px-8">
           <button
             onClick={() => {
               if (location.state) {
@@ -191,87 +192,54 @@ export default function AdminTaskDetailPage() {
             }}
             className="flex items-center gap-2 text-slate-400 hover:text-orange-600 font-bold uppercase text-[10px] tracking-widest mb-6 border-none bg-transparent cursor-pointer transition-all group"
           >
-            <HiOutlineArrowLeft className="group-hover:-translate-x-1 transition-transform" />{" "}
-            Back to Directory
+            <HiOutlineArrowLeft className="group-hover:-translate-x-1 transition-transform" /> Back to Directory
           </button>
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center gap-5">
-              <span className="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center text-orange-500 font-black text-3xl italic shadow-xl">
+            <div className="flex items-start sm:items-center gap-4 sm:gap-5 min-w-0">
+              <span className="w-11 h-11 sm:w-14 sm:h-14 bg-slate-900 rounded-xl sm:rounded-2xl flex items-center justify-center text-orange-500 font-black text-xl sm:text-3xl italic shadow-xl shrink-0">
                 {task.title?.charAt(0)}
               </span>
-              <div>
-                <div className="flex items-center gap-3">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-2 sm:mb-3">
                   <TruncateText
-                    maxWidth="max-w-[300px]"
+                    maxWidth="max-w-[160px] sm:max-w-[300px]"
                     text={`${task?.title}`}
-                    className="text-4xl font-black text-slate-900 tracking-tighter uppercase mb-3 leading-none"
+                    className="text-xl sm:text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none"
                   />
-                  <p className="text-4xl font-black text-slate-900 tracking-tighter uppercase mb-3 leading-none">
-                    -
-                  </p>
+                  <p className="hidden sm:block text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">-</p>
                   <TruncateText
-                    maxWidth="max-w-[600px]"
+                    maxWidth="max-w-[200px] sm:max-w-[600px]"
                     text={`${task?.project?.title}`}
-                    className="text-4xl font-black text-slate-900 tracking-tighter uppercase mb-3 leading-none"
+                    className="text-xl sm:text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none"
                   />
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Badge
-                    text={task.liveStatus}
-                    className=" text-yellow-600 border-yellow-100"
-                  />
-                  <Badge
-                    text={task?.taskStatus?.name}
-                    className=" text-blue-600 border-blue-100"
-                  />
-                  <Badge
-                    text={task?.status?.name}
-                    className=" text-emerald-600 border-emerald-100"
-                  />
-                  <Badge
-                    text={task?.activeStatus?.name}
-                    className=" text-orange-600 border-orange-100"
-                  />
+                  <Badge text={task.liveStatus} className=" text-yellow-600 border-yellow-100" />
+                  <Badge text={task?.taskStatus?.name} className=" text-blue-600 border-blue-100" />
+                  <Badge text={task?.status?.name} className=" text-emerald-600 border-emerald-100" />
+                  <Badge text={task?.activeStatus?.name} className=" text-orange-600 border-orange-100" />
                   <Badge
                     text={task.priority}
-                    className={
-                      task.priority === "High"
-                        ? " text-rose-600 animate-pulse "
-                        : " text-amber-600"
-                    }
+                    className={task.priority === "High" ? " text-rose-600 animate-pulse " : " text-amber-600"}
                   />
                 </div>
               </div>
             </div>
 
-            <div className="flex gap-3">
-              <HeaderButton
-                onClick={() => setIsStatusModalOpen(true)}
-                icon={<HiOutlineArrowPath size={18} />}
-                text="Update Status"
-              />
-              <HeaderButton
-                onClick={() => setIsEditModalOpen(true)}
-                icon={<HiOutlinePencilSquare size={18} />}
-                text="Update Task"
-              />
-              <HeaderButton
-                onClick={() => setIsDeleteModalOpen(true)}
-                icon={<HiOutlineTrash size={18} />}
-                text="Delete Task"
-                variant="danger"
-              />
+            <div className="flex flex-wrap gap-3">
+              <HeaderButton onClick={() => setIsStatusModalOpen(true)} icon={<HiOutlineArrowPath size={18} />} text="Update Status" />
+              <HeaderButton onClick={() => setIsEditModalOpen(true)} icon={<HiOutlinePencilSquare size={18} />} text="Update Task" />
+              <HeaderButton onClick={() => setIsDeleteModalOpen(true)} icon={<HiOutlineTrash size={18} />} text="Delete Task" variant="danger" />
             </div>
           </div>
         </div>
       </header>
-
-      <main className=" mx-auto px-8 -mt-6">
-        <div className="grid lg:grid-cols-12 gap-8">
+      <main className="px-4 sm:px-6 lg:px-8 -mt-6 sm:-mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
           <div className="lg:col-span-8 space-y-8">
             {/* KPI Section */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <MetricBox
                 label="Time Spent"
                 value={formatToHrMin(consumedSec)}
@@ -389,21 +357,20 @@ export default function AdminTaskDetailPage() {
 
             {/* Performance Analysis List */}
             <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
-              <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+              <div className="px-5 sm:px-8 py-5 sm:py-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
                   <HiOutlineClock className="text-orange-500" /> Performance Analysis (All Records)
                 </h3>
-                <span className="text-[11px] font-black text-black uppercase bg-white ">
-                  {task.stats?.totalHistoricalContributors || 0} Total
-                  Contributors
+                <span className="text-[10px] sm:text-[11px] font-black text-black uppercase bg-white">
+                  {task.stats?.totalHistoricalContributors || 0} Total Contributors
                 </span>
               </div>
-              <div className="p-8 space-y-8">
+              <div className="p-5 sm:p-8 space-y-6 sm:space-y-8">
                 {task.stats?.historicalContributors?.length > 0 ? (
                   task.stats.historicalContributors.map((op, idx) => (
                     <div key={op.id || idx} className="space-y-3 group">
-                      <div className="flex justify-between items-end">
-                        <div className="flex flex-col">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-2">
+                        <div className="flex flex-col min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             {op.isCurrentlyAssigned && (
                               <span className=" text-emerald-600 text-[7px] font-black uppercase flex items-center gap-1">
@@ -411,11 +378,11 @@ export default function AdminTaskDetailPage() {
                               </span>
                             )}
                           </div>
-                          <h4 className="text-sm font-black text-slate-900 uppercase group-hover:text-orange-600 transition-colors">
+                          <h4 className="text-sm font-black text-slate-900 uppercase group-hover:text-orange-600 transition-colors truncate">
                             {op.name} {op.code && `(${op.code})`}
                           </h4>
                         </div>
-                        <div className="text-right">
+                        <div className="text-left sm:text-right shrink-0">
                           <span className="text-[10px] font-black text-slate-900 bg-slate-100 px-2 py-1 rounded-md">
                             {formatToHrMin(op.seconds)}
                           </span>
@@ -438,6 +405,7 @@ export default function AdminTaskDetailPage() {
                   </div>
                 )}
               </div>
+
             </div>
           </div>
 

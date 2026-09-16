@@ -34,6 +34,12 @@ const timeLogSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    stopReason: {
+      type: String,
+      enum: ["manual", "inactivity", "midnight"],
+      default: "manual",
+    },
+    hasAdjustmentRequest: { type: Boolean, default: false },
   },
   {
     timestamps: true,

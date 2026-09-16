@@ -28,6 +28,7 @@ export const apiSlice = createApi({
     "Designation",
     "DeleteRequest",
     "TaskStatus",
+    "TimeAdjustment", // 🔥 NEW
   ],
   endpoints: () => ({}),
 });

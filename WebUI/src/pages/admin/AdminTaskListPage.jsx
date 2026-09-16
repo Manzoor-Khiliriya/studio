@@ -386,7 +386,7 @@ export default function AdminTasksPage() {
       "No of Tasks",
       "Invoice Number",
       "Invoice Date",
-      "Pyament Status",
+      "Payment Status",
       "Payment Date",
       "Payment Remark"
     ];
@@ -917,7 +917,7 @@ export default function AdminTasksPage() {
                     >
                       <div className="px-3 sm:px-4 lg:px-6 py-3 sm:py-2 flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 hover:bg-slate-50/80 transition-all group/header border-b border-slate-100 last:border-0">
                         <div className="flex flex-col sm:flex-row sm:flex-wrap lg:flex-nowrap items-start gap-4 sm:gap-6 cursor-pointer flex-1 min-w-0 w-full">
-                          <div className="flex items-start flex-wrap gap-3 w-full sm:w-auto min-w-0 sm:min-w-[300px]">
+                          <div className={activeTab === "live" ? "flex items-start flex-wrap gap-3 w-full sm:w-auto min-w-0 sm:min-w-[300px]" : "flex items-start flex-wrap gap-2 w-full sm:w-auto min-w-0 sm:min-w-[240px]"}>
                             <div>
                               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
                                 Project Code
@@ -933,14 +933,14 @@ export default function AdminTasksPage() {
                                 Project Name
                               </p>
                               <TruncateText
-                                maxWidth="max-w-[200px] sm:max-w-[210px]"
+                                maxWidth={activeTab === "live" ? "max-w-[200px] sm:max-w-[210px]" : "max-w-[150px]"}
                                 text={project.title}
                                 className="text-sm font-black uppercase tracking-tight text-slate-900 group-hover/header:text-orange-600 transition-colors"
                               />
                             </div>
                           </div>
 
-                          <div className="flex flex-wrap items-start gap-3 sm:gap-4 w-full min-w-0">
+                          <div className="flex flex-wrap items-start gap-3 sm:gap-3 w-full min-w-0">
                             <div className="flex flex-col gap-1 items-center">
                               <span className="text-[9px] font-black text-center text-slate-400 uppercase tracking-[0.15em]">
                                 Project Type

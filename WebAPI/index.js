@@ -21,6 +21,7 @@ const departmentRoutes = require("./routes/departmentRoutes");
 const designationRoutes = require("./routes/designationRoutes");
 const taskStatusRoutes = require("./routes/taskStatusRoutes");
 const telegramRoutes = require("./routes/telegramRoutes");
+const timeAdjustmentRoutes = require("./routes/timeAdjustmentRoutes");
 const app = express();
 const server = http.createServer(app);
 const helmet = require("helmet");
@@ -126,6 +127,7 @@ app.post("/api/telegram-webhook", express.json(), (req, res) => {
   bot.processUpdate(req.body);
   res.sendStatus(200);
 });
+app.use("/api/time-adjustments", timeAdjustmentRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);

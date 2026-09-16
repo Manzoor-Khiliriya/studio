@@ -40,7 +40,7 @@ exports.getSummary = async (req, res) => {
         Project.countDocuments({ deleteStatus: "Disable" }),
         TimeLog.find({
           isRunning: true,
-          logType: "work",
+          logType: { $in: ["work", "break"] },
           user: { $nin: adminIds },
         })
           .populate({
@@ -170,6 +170,7 @@ exports.getSummary = async (req, res) => {
           projectTitle: t.task?.project?.title,
           projectCode: t.task?.project?.projectCode || "N/A",
           since: t.startTime,
+          status: t.logType,
         })),
         attendanceToday,
         recentActivity,

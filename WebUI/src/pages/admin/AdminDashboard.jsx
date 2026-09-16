@@ -19,7 +19,7 @@ import { useSocketEvents } from '../../hooks/useSocketEvents';
 import ConfirmModal from '../../components/ConfirmModal';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { useGetTaskStatusesQuery } from '../../services/taskApi';
+import CustomDropdown from '../../components/CustomDropdown';
 
 const AdminDashboard = () => {
   const { user } = useSelector((state) => state.auth);
@@ -30,9 +30,7 @@ const AdminDashboard = () => {
     payload: null,
   });
   const [timerSearch, setTimerSearch] = useState("");
-
-  const { data: taskStatusOptions = [] } =
-    useGetTaskStatusesQuery("taskStatus");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const {
     data: adminData,
@@ -182,11 +180,15 @@ const AdminDashboard = () => {
 
   const filteredLiveTracking = liveTracking.filter((timer) => {
     const term = timerSearch.trim().toLowerCase();
-    if (!term) return true;
-    return (
+    const matchesSearch =
+      !term ||
       timer.employee?.toLowerCase().includes(term) ||
-      timer.employeeCode?.toLowerCase().includes(term)
-    );
+      timer.employeeCode?.toLowerCase().includes(term);
+
+    const matchesStatus =
+      statusFilter === "all" || timer.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
   });
 
   return (
@@ -282,21 +284,20 @@ const AdminDashboard = () => {
                 </h3>
 
                 {user?.role === "Admin" && liveTracking.length > 0 && (
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <div className="relative flex-1 w-full group">
+                  <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
+                    {/* Search input */}
+                    <div className="relative flex-1 w-full min-w-[100px] group">
                       <HiOutlineMagnifyingGlass
                         className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors"
                         size={18}
                       />
-
                       <input
                         type="text"
                         value={timerSearch}
                         onChange={(e) => setTimerSearch(e.target.value)}
                         placeholder="Search by employee name..."
-                        className="w-full pl-12 pr-15 py-1.5 bg-white border border-slate-200 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/5 outline-none font-bold text-[10px] transition-all shadow-sm"
+                        className="w-full pl-12 pr-8 py-1.5 bg-white border border-slate-200 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/5 outline-none font-bold text-[10px] transition-all shadow-sm"
                       />
-
                       {timerSearch && (
                         <button
                           type="button"
@@ -309,13 +310,27 @@ const AdminDashboard = () => {
                       )}
                     </div>
 
+                    {/* Status filter pills — now a sibling, not nested inside the input wrapper */}
+                    <CustomDropdown
+                      value={statusFilter}
+                      onChange={(val) => setStatusFilter(val)}
+                      options={[
+                        { value: "all", label: "All Log Type" },
+                        { value: "work", label: "Working" },
+                        { value: "break", label: "On Break" },
+                      ]}
+                      placeholder="Filter by Status"
+                      className=" max-w-[100px] "
+                      buttonClass="py-1.5 px-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-[10px] font-black tracking-widest transition-all cursor-pointer text-slate-500 hover:text-slate-800 max-w-[100px] shrink-0"
+                    />
+
                     <div className="flex items-center gap-2 px-3 py-1.5 shrink-0">
                       <span className="relative flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                       </span>
                       <span className="text-[10px] font-bold text-green-700 uppercase tracking-wide">
-                        {liveTracking.length} Active
+                        {filteredLiveTracking.length} {statusFilter === "all" ? "Active" : statusFilter === "break" ? "On Break" : "Working"}
                       </span>
                     </div>
 
@@ -339,21 +354,34 @@ const AdminDashboard = () => {
                       <motion.div layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, x: 20 }} key={timer.id} onClick={() => handleActiveTimerClick(timer)} className="flex items-center gap-4 p-4 bg-slate-100 rounded-[1.8rem] border border-transparent hover:border-gray-200 hover:bg-gray-200 transition-all group">
                         <div className="relative shrink-0">
                           <img src={`https://ui-avatars.com/api/?name=${timer.employee}&background=2563eb&color=fff`} className="h-10 w-10 rounded-2xl object-cover" alt="user" />
-                          <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></div>
+                          <div className={`absolute -bottom-1 -right-1 w-3 h-3 border-2 border-white rounded-full ${timer.status === "break" ? "bg-amber-500" : "bg-emerald-500"
+                            }`}></div>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[11px] font-black text-slate-900 uppercase truncate">{timer.employee} {timer.employeeCode && `(${timer.employeeCode})`}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-[11px] font-black text-slate-900 uppercase truncate">
+                              {timer.employee} {timer.employeeCode && `(${timer.employeeCode})`}
+                            </p>
+                          </div>
                           <p className="text-[9px] text-slate-600 font-bold uppercase truncate">{timer.task} - {timer?.projectTitle} ({timer.projectCode})</p>
                         </div>
                         {user?.role === "Admin" && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleStopEmployee(timer);
-                            }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white rounded-full text-[10px] font-black uppercase tracking-tighter transition-all border border-red-100 cursor-pointer" title="Stop Session">
-                            <FiAlertTriangle size={12} /> {"Stop Session"}
-                          </button>
+                          <>
+                            <span className={`tracking-tighter px-3 py-1.5 rounded-full text-[10px] font-black uppercase ${timer.status === "break"
+                              ? "bg-amber-100 text-amber-700 border border-amber-200"
+                              : "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                              }`}>
+                              {timer.status === "break" ? "On Break" : "Working"}
+                            </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStopEmployee(timer);
+                              }}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white rounded-full text-[10px] font-black uppercase tracking-tighter transition-all border border-red-100 cursor-pointer" title="Stop Session">
+                              <FiAlertTriangle size={12} /> {"Stop Session"}
+                            </button>
+                          </>
                         )}
                       </motion.div>
                     ))
