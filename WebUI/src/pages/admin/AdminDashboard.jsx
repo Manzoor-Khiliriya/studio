@@ -6,7 +6,7 @@ import {
   useGetManagerDashboardQuery,
   useStopEmployeeSessionMutation
 } from '../../services/dashboardApi';
-import { HiOutlineArrowTrendingUp, HiOutlineBolt, HiOutlineUserGroup, HiOutlineFingerPrint, HiOutlineCalendarDays, HiOutlineMagnifyingGlass, HiOutlineXMark, HiOutlineUsers } from 'react-icons/hi2';
+import { HiOutlineArrowTrendingUp, HiOutlineBolt, HiOutlineUserGroup, HiOutlineFingerPrint, HiOutlineCalendarDays, HiOutlineMagnifyingGlass, HiOutlineXMark, HiOutlineUsers, HiOutlineClock } from 'react-icons/hi2';
 import { BiTask, BiTimeFive, BiTrash } from 'react-icons/bi';
 import { FiAlertTriangle } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -31,6 +31,15 @@ const AdminDashboard = () => {
   });
   const [timerSearch, setTimerSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   const {
     data: adminData,
@@ -75,7 +84,6 @@ const AdminDashboard = () => {
 
   const stats = data?.stats || {};
   const liveTracking = data?.liveTracking || [];
-  const nonWorkingEmployees = data?.nonWorkingEmployees || [];
   const recentActivity = data?.recentActivity || [];
 
   // 🔥 NEW: breakdown counts for the status summary row (always full counts, not affected by search/filter)
@@ -222,13 +230,6 @@ const AdminDashboard = () => {
 
         <div className="mx-auto px-4 sm:px-6 lg:px-8 pb-6 sm:pb-10">
           <div className={user?.role === "Admin" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 mt-10" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-12 mt-10"}>
-            <StatCard
-              label="Live Projects"
-              value={stats.totalProjects || 0}
-              icon={<HiOutlineClipboardList size={22} />}
-              delay={0.1}
-              onClick={() => navigate("/projects")}
-            />
 
             <StatCard
               label="Total Employees"
@@ -275,6 +276,14 @@ const AdminDashboard = () => {
             )}
 
             <StatCard
+              label="Live Projects"
+              value={stats.totalProjects || 0}
+              icon={<HiOutlineClipboardList size={22} />}
+              delay={0.1}
+              onClick={() => navigate("/projects")}
+            />
+
+            <StatCard
               label="Task In Progress"
               value={stats.tasksInProgress || 0}
               icon={<HiOutlineArrowTrendingUp size={22} />}
@@ -304,6 +313,16 @@ const AdminDashboard = () => {
                   },
                 })
               } />
+
+            {user?.role === "Admin" && (
+              // 🔥 RENAMED: "Active On Projects" -> "Project Attendance" (matches reference)
+              <StatCard
+                label="Current Time"
+                value={new Date().toLocaleTimeString() || 0}
+                icon={<HiOutlineClock size={22} />}
+                delay={0.4}
+              />
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8">
