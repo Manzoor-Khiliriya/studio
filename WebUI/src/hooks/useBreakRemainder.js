@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-const BREAK_REMINDER_THRESHOLD = 2 * 60; // 15 minutes before first nudge
+const BREAK_REMINDER_THRESHOLD = 15 * 60; // 15 minutes before first nudge
 const BREAK_REMINDER_REPEAT = 10 * 60;    // remind again every 10 minutes after that
 const CHECK_INTERVAL = 30 * 1000;         // check every 30 seconds
 
