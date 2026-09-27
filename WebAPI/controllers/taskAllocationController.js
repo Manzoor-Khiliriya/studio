@@ -1,6 +1,9 @@
 const TaskAllocation = require("../models/TaskAllocation");
 const { getToday } = require("../utils/dateHelper");
-const { computeWorkedSeconds, calculateProficiency } = require("../utils/proficiencyHelper");
+const {
+  computeWorkedSeconds,
+  calculateProficiency,
+} = require("../utils/proficiencyHelper");
 
 const emitEvent = (req, event, data, userIds = []) => {
   const io = req.app.get("socketio");
@@ -60,7 +63,9 @@ exports.updateTaskAllocation = async (req, res) => {
 exports.getEmployeeAllocations = async (req, res) => {
   try {
     const requestedDate = req.query.date || getToday();
-    const employeeNameFilter = (req.query.employeeName || "").trim().toLowerCase();
+    const employeeNameFilter = (req.query.employeeName || "")
+      .trim()
+      .toLowerCase();
     const today = getToday();
     const isToday = requestedDate === today;
 
@@ -84,7 +89,8 @@ exports.getEmployeeAllocations = async (req, res) => {
           },
           {
             path: "timeLogs",
-            select: "rawDurationSeconds dateString user logType isRunning startTime",
+            select:
+              "rawDurationSeconds dateString user logType isRunning startTime",
           },
           { path: "status", select: "name type" },
           { path: "activeStatus", select: "name type" },
@@ -100,7 +106,8 @@ exports.getEmployeeAllocations = async (req, res) => {
 
       if (isToday) {
         if (project.deleteStatus === "Enable") return false;
-        if (["Submitted", "Inactive", "On hold"].includes(project.status)) return false;
+        if (["Submitted", "Inactive", "On hold"].includes(project.status))
+          return false;
       }
 
       return true;
@@ -143,13 +150,16 @@ exports.getEmployeeAllocations = async (req, res) => {
 
       allocation._doc.todayWorkedFormatted = `${h}h ${m}m ${s}s`;
       allocation._doc.todayWorkedHours = workedHours;
+      allocation._doc.todayWorkedSeconds = workedSeconds;
 
-      allocation._doc.isCurrentlyWorking = isToday && (allocation.task?.timeLogs || []).some(
-        (log) =>
-          log.user?.toString() === allocation.employee.user._id.toString() &&
-          log.isRunning === true &&
-          log.logType === "work",
-      );
+      allocation._doc.isCurrentlyWorking =
+        isToday &&
+        (allocation.task?.timeLogs || []).some(
+          (log) =>
+            log.user?.toString() === allocation.employee.user._id.toString() &&
+            log.isRunning === true &&
+            log.logType === "work",
+        );
 
       const ah = Math.floor(allocatedSeconds / 3600);
       const am = Math.floor((allocatedSeconds % 3600) / 60);
@@ -163,6 +173,9 @@ exports.getEmployeeAllocations = async (req, res) => {
       allocation._doc.todayAllocatedSeconds = allocatedSeconds;
       allocation._doc.isOverWorked = workedSeconds > allocatedSeconds;
       allocation._doc.overWorkedFormatted = `${oh}h ${om}m`;
+      const diffSeconds = Math.max(0, workedSeconds - allocatedSeconds);
+      const diffHours = +(diffSeconds / 3600).toFixed(2);
+      allocation._doc.diffHours = diffHours;
 
       if (isToday) {
         const proficiency = calculateProficiency(workedHours, allocatedSeconds);
@@ -171,8 +184,13 @@ exports.getEmployeeAllocations = async (req, res) => {
         if (dayAllocation) {
           bulkOps.push({
             updateOne: {
-              filter: { _id: allocation._id, "dailyAllocations.date": requestedDate },
-              update: { $set: { "dailyAllocations.$.proficiency": proficiency } },
+              filter: {
+                _id: allocation._id,
+                "dailyAllocations.date": requestedDate,
+              },
+              update: {
+                $set: { "dailyAllocations.$.proficiency": proficiency },
+              },
             },
           });
         }

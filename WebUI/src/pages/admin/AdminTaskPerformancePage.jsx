@@ -15,6 +15,7 @@ import {
 import { useSocketEvents } from "../../hooks/useSocketEvents";
 import useDebounce from "../../hooks/useDebounce";
 import CustomDropdown from "../../components/CustomDropdown";
+import { useNavigate } from "react-router-dom";
 
 // --- SUB-COMPONENT: COMPACT PROGRESS BAR WITH BREAKPOINTS ---
 const CustomProgressBar = ({ percentage, isOver }) => {
@@ -65,6 +66,7 @@ const Metric = ({ label, value, colorClass = "text-slate-700" }) => (
 );
 
 const AdminTaskPerformancePage = () => {
+  const navigate = useNavigate();
   const [expandedProject, setExpandedProject] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -240,14 +242,23 @@ const AdminTaskPerformancePage = () => {
                       >
                         <div className="p-4 space-y-2">
                           {group.taskList?.map((task) => {
+                            if (!task) return null;
+
                             const taskPerc = task.progressPercent ?? 0;
                             const isTaskOver = taskPerc > 100;
 
                             return (
                               <div
                                 key={task._id || `${group._id}-${task.title}`}
-                                className="bg-white p-3 rounded-xl border border-slate-200 flex flex-col md:flex-row md:items-center gap-4"
-                              >
+                                onClick={() => {
+                                  if (task._id) {
+                                    navigate(`/projects/${task._id}`);
+                                  }
+                                }}
+                                className={`bg-white p-3 rounded-xl border border-slate-200 flex flex-col md:flex-row md:items-center gap-4 ${task._id
+                                    ? "cursor-pointer hover:border-orange-300 hover:shadow-sm transition-all"
+                                    : ""
+                                  }`}>
                                 <div className="md:w-1/3 min-w-0">
                                   <h4 className="font-black text-slate-900 text-[11px] uppercase truncate">
                                     {task.title} - {task?.description}
@@ -306,7 +317,7 @@ const AdminTaskPerformancePage = () => {
                                         {(
                                           task.allocatedTime -
                                           task.consumedHours
-                                        || 0).toFixed(1)} h
+                                          || 0).toFixed(1)} h
                                       </span>
                                     </div>
                                   )}

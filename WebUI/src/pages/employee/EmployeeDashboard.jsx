@@ -4,7 +4,7 @@ import { FiClock, FiTarget, FiBriefcase, FiActivity, FiLock } from "react-icons/
 import { HiOutlineBolt, HiOutlineExclamationTriangle } from 'react-icons/hi2';
 import { toast } from "react-hot-toast";
 import { useGetDashboardSummaryQuery } from "../../services/dashboardApi";
-import { useGetMyTodayLogsQuery, useStopTimerMutation } from "../../services/timeLogApi";
+import { useGetMyTodayLogsQuery, useStopTimerMutation, useTogglePauseMutation } from "../../services/timeLogApi";
 import { useGetTodayStatusQuery, useClockInMutation, useClockOutMutation } from "../../services/attendanceApi";
 import ClockInOut from "../../components/ClockInOut";
 import TaskCard from "../../components/TaskCard";
@@ -19,6 +19,8 @@ import { BiTask } from "react-icons/bi";
 import { useNavigate } from "react-router-dom";
 import { useGetEligibleLogsQuery } from "../../services/timeLogAdjustmentApi";
 import RequestAdjustmentModal from "../../components/RequestAdjustmentModal";
+import BreakReminderNotification from "../../components/BreakReminderNotification";
+import { useBreakReminder } from "../../hooks/useBreakRemainder";
 
 export default function EmployeeDashboard() {
   const { user } = useSelector((state) => state.auth);
@@ -37,7 +39,7 @@ export default function EmployeeDashboard() {
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
   const isTaskUser = ["Employee", "Manager"].includes(user?.role);
 
-  const { data: eligibleLogs = [] } = useGetEligibleLogsQuery(undefined, {
+  const { data: eligibleLogs = [], refetch: refetchEligibleLogs } = useGetEligibleLogsQuery(undefined, {
     skip: !isTaskUser,
   });
 
@@ -56,6 +58,7 @@ export default function EmployeeDashboard() {
     refetchOnFocus: true,
   });
   const [stopTimer] = useStopTimerMutation();
+  const [togglePause] = useTogglePauseMutation(); // 🔥 NEW
 
   const isSyncingAttendance = isClockingIn || isClockingOut;
 
@@ -74,6 +77,9 @@ export default function EmployeeDashboard() {
     },
     onAllocationChange: () => {
       refetchSummary();
+    },
+    onTimeAdjustmentChange: () => {
+      refetchEligibleLogs();
     },
   });
 
@@ -138,6 +144,30 @@ export default function EmployeeDashboard() {
       setLiveSeconds(totalSecondsWorkedToday || 0);
     }
   }, [logsData, logsLoaded]);
+
+  const activeBreakLog = isTaskUser && logsLoaded && logsData
+    ? logsData.logs.find((log) => log.isRunning && log.logType === "break")
+    : null;
+
+  useBreakReminder(activeBreakLog, (minutesOnBreak) => {
+    toast.custom(
+      (t) => (
+        <BreakReminderNotification
+          t={t}
+          minutes={minutesOnBreak}
+          onResume={async () => {
+            try {
+              await togglePause().unwrap();
+              toast.success("Back to work!");
+            } catch {
+              toast.error("Failed to resume");
+            }
+          }}
+        />
+      ),
+      { id: "break-reminder", duration: 15000, position: "top-right" }
+    );
+  });
 
   const isOnShift = attendanceStatus?.clockIn && !attendanceStatus?.clockOut;
 

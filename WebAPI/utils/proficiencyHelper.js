@@ -18,7 +18,7 @@ const computeWorkedSeconds = (allocation, dateStr) => {
       (log) =>
         log.user?.toString() === allocation.employee.user._id.toString() &&
         log.dateString === dateStr &&
-        log.logType === "work",
+        log.logType === "work",``
     )
     .reduce((acc, log) => {
       if (log.isRunning) {

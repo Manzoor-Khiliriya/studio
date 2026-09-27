@@ -186,12 +186,12 @@ export default function AdminTaskAllocationPage() {
                               ];
                               return sorted.map((allocation) => (
                                 <tr key={allocation._id} className={`border-t border-slate-100 ${allocation.isCurrentlyWorking ? "bg-emerald-100" : ""}`}>
-                                  <td className="w-[13%] px-2 py-2">
+                                  <td className="w-[13%] px-2 py-2 align-middle">
                                     <p className="text-[10px] font-black text-slate-700 uppercase truncate">
                                       {allocation.task?.project?.title}
                                     </p>
                                   </td>
-                                  <td className="w-[18%] px-1 py-2">
+                                  <td className="w-[18%] px-1 py-2 align-middle">
                                     <div className="flex items-center gap-2">
                                       <p className="text-[10px] font-black text-slate-700 uppercase truncate">
                                         {allocation.task?.title}
@@ -204,25 +204,32 @@ export default function AdminTaskAllocationPage() {
                                       )}
                                     </div>
                                   </td>
-                                  <td className="w-[15%] px-2 py-2">
+                                  <td className="w-[15%] px-2 py-2 align-middle">
                                     <p className="text-[10px] font-black text-slate-700 truncate">
                                       {allocation.task?.project?.projectType?.name || ""}
                                     </p>
                                   </td>
-                                  <td className="w-[7%] px-2 py-2">
+                                  <td className="w-[7%] px-2 py-2 align-middle">
                                     <p className="text-[10px] font-black text-slate-700">{allocation.priorityOrder}</p>
                                   </td>
-                                  <td className="w-[7%] px-2 py-2">
+                                  <td className="w-[7%] px-2 py-2 align-middle">
                                     <p className={`text-[10px] font-black ${allocation.role === "Main" ? "text-orange-600" : "text-slate-700"}`}>
                                       {allocation.role}
                                     </p>
                                   </td>
-                                  <td className="w-[11%] px-2 py-2">
-                                    <p className="text-[10px] font-black text-slate-700">
-                                      {allocation.todayAllocatedFormatted || "0h 0m 0s"}
-                                    </p>
+                                  <td className="w-[11%] px-2 py-2 align-middle relative">
+                                    <div className="relative inline-block">
+                                      {allocation.diffHours > 0 && (
+                                        <span className="absolute -top-3 -right-2 text-[8px] font-bold text-blue-600 leading-none">
+                                          +{allocation.diffHours} h
+                                        </span>
+                                      )}
+                                      <p className="text-[10px] font-black text-slate-700">
+                                        {allocation.todayAllocatedFormatted || "0h 0m 0s"}
+                                      </p>
+                                    </div>
                                   </td>
-                                  <td className="w-[11%] px-2 py-2">
+                                  <td className="w-[11%] px-2 py-3 align-middle">
                                     <p
                                       className={`text-[10px] font-black ${allocation.isOverWorked
                                         ? "text-rose-600"
@@ -232,7 +239,7 @@ export default function AdminTaskAllocationPage() {
                                       {allocation.todayWorkedFormatted || "0h 0m 0s"}
                                     </p>
                                   </td>
-                                  <td className="w-[10%] px-2 py-2">
+                                  <td className="w-[10%] px-2 py-2 align-middle">
                                     {(() => {
                                       const proficiency = allocation.proficiency;
                                       if (proficiency === null || proficiency === undefined) {
@@ -251,7 +258,7 @@ export default function AdminTaskAllocationPage() {
                                       );
                                     })()}
                                   </td>
-                                  <td className="w-[8%] px-2 py-2">
+                                  <td className="w-[8%] px-2 py-2 align-middle">
                                     <button
                                       onClick={() => setSelectedAllocation(allocation)}
                                       className="text-yellow-500 hover:text-yellow-600 rounded-lg transition-all duration-200 active:scale-90 cursor-pointer"

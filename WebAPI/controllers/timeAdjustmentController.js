@@ -3,6 +3,7 @@ const TimeAdjustmentRequest = require("../models/TimeAdjustment");
 const { applyProficiency } = require("../utils/userHelpers");
 const { now } = require("../utils/dateHelper");
 const moment = require("moment-timezone");
+const { emitToUser, emitToRole, emitDashboardUpdate } = require("../utils/socket");
 const TIMEZONE = "Asia/Kolkata";
 
 exports.getEligibleLogs = async (req, res) => {
@@ -19,6 +20,7 @@ exports.getEligibleLogs = async (req, res) => {
       isRunning: false,
       stopReason: { $in: ["inactivity", "midnight"] },
       hasAdjustmentRequest: false,
+      dismissed: false,
       endTime: { $gte: cutoff },
     })
       .populate({
@@ -30,6 +32,41 @@ exports.getEligibleLogs = async (req, res) => {
       .lean();
 
     res.json(logs);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+exports.dismissEligibleLog = async (req, res) => {
+  try {
+    const { timeLogId } = req.params;
+    const userId = req.user._id;
+
+    const log = await TimeLog.findOne({ _id: timeLogId, user: userId });
+    if (!log) return res.status(404).json({ error: "Time log not found" });
+
+    if (log.stopReason === "manual") {
+      return res.status(400).json({
+        error:
+          "This session was stopped manually and has no correction prompt to dismiss",
+      });
+    }
+
+    if (log.hasAdjustmentRequest) {
+      return res.status(400).json({
+        error:
+          "A request already exists for this session, it cannot be dismissed",
+      });
+    }
+
+    log.dismissed = true;
+    await log.save();
+
+    // 🔥 NEW: let this user's other open tabs/devices know the eligible list changed
+    emitToUser(req, userId, "timeAdjustmentChanged", { timeLogId: log._id });
+
+    res.json({ message: "Dismissed", timeLogId: log._id });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal server error" });
@@ -92,6 +129,15 @@ exports.requestAdjustment = async (req, res) => {
 
     log.hasAdjustmentRequest = true;
     await log.save();
+
+    // 🔥 NEW: notify all admins a new correction request needs review
+    emitToRole(req, "Admin", "timeAdjustmentChanged", {
+      requestId: adjustment._id,
+      type: "new",
+    });
+
+    // 🔥 NEW: let this employee's other tabs know their eligible list changed too
+    emitToUser(req, userId, "timeAdjustmentChanged", { timeLogId: log._id });
 
     res.status(201).json(adjustment);
   } catch (err) {
@@ -187,6 +233,18 @@ exports.reviewAdjustmentRequest = async (req, res) => {
     request.reviewedAt = now();
     if (adminNote) request.adminNote = adminNote.trim();
     await request.save();
+
+    // 🔥 NEW: notify the employee their request was resolved
+    emitToUser(req, request.user, "timeAdjustmentChanged", {
+      requestId: request._id,
+      decision,
+    });
+
+    // 🔥 NEW: if approved, the underlying TimeLog/dashboard data changed — refresh those views too
+    if (decision === "Approved") {
+      emitToUser(req, request.user, "timeLogChanged", { timeLogId: request.timeLog });
+      emitDashboardUpdate(req);
+    }
 
     res.json(request);
   } catch (err) {

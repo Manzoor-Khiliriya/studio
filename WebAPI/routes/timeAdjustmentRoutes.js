@@ -17,6 +17,12 @@ router.get(
   timeAdjustmentController.getEligibleLogs,
 );
 
+router.patch(
+  "/eligible/:timeLogId/dismiss",
+  authorize(ROLE.EMPLOYEE, ROLE.MANAGER),
+  timeAdjustmentController.dismissEligibleLog,
+);
+
 // Submit a correction request
 router.post(
   "/",

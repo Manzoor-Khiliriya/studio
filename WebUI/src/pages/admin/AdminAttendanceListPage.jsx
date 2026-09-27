@@ -1,13 +1,8 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo } from "react";
 import {
-  HiOutlineAdjustmentsHorizontal,
   HiOutlineXMark,
   HiOutlineArrowRight,
   HiOutlineMagnifyingGlass,
-  HiOutlineCalendarDays,
-  HiOutlineListBullet,
-  HiOutlineChevronLeft,
-  HiOutlineChevronRight,
   HiOutlineArrowDownTray,
 } from "react-icons/hi2";
 import {
@@ -22,11 +17,6 @@ import {
   endOfMonth,
   subMonths,
   format,
-  eachDayOfInterval,
-  startOfISOWeek,
-  endOfISOWeek,
-  isSameMonth,
-  addMonths,
   subMonths as dateFnsSubMonths,
 } from "date-fns";
 import { useGetAllAttendanceQuery } from "../../services/attendanceApi";
@@ -109,13 +99,14 @@ export default function AttendanceManagement() {
   });
 
   const attendanceData = data?.records || [];
-  const pagination = data?.pagination || { total: 0, pages: 1 };
 
-  const calendarDays = useMemo(() => {
-    const start = startOfISOWeek(startOfMonth(currentMonth));
-    const end = endOfISOWeek(endOfMonth(currentMonth));
-    return eachDayOfInterval({ start, end });
-  }, [currentMonth]);
+  const attendanceSummary = data?.summary || {
+    totalEmployees: 0,
+    clockedInCount: 0,
+    clockedOutCount: 0,
+    notClockedInCount: 0,
+  };
+  const pagination = data?.pagination || { total: 0, pages: 1 };
 
   const handleRangeChange = (value) => {
     setRangeType(value);
@@ -352,43 +343,93 @@ export default function AttendanceManagement() {
 
         {/* DATA VIEW CONTAINER */}
         {activeTab === "logs" ? (
-          <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-visible flex flex-col group/table">
-            <div className="rounded-t-[2rem] overflow-hidden">
-              <Table
-                columns={columns}
-                data={attendanceData}
-                emptyMessage="No attendance records found."
-              />
-            </div>
-            <div className="bg-slate-50/50 p-6 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6 rounded-b-[2rem]">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-sm">
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-100 pr-3">
-                    Page Limit
-                  </span>
-                  <CustomDropdown
-                    value={limit.toString()}
-                    onChange={(val) => setLimit(Number(val))}
-                    options={[5, 10, 25, 50].map((v) => ({
-                      label: `${v}`,
-                      value: v.toString(),
-                    }))}
-                    className="w-10"
-                    buttonClass="w-full p-1 bg-transparent text-[9px] font-black cursor-pointer text-slate-700 flex items-center gap-2"
-                  />
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+
+              {/* Total Employees */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  Total Employees
                 </div>
-                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight ml-2">
-                  Total {pagination.total} records
-                </span>
+
+                <div className="text-2xl font-black text-slate-800 mt-2">
+                  {attendanceSummary.totalEmployees}
+                </div>
               </div>
-              <Pagination
-                pagination={{ current: page, total: pagination.pages }}
-                onPageChange={setPage}
-                loading={isFetching}
-                label="Logs"
-              />
+
+              {/* Clocked In */}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 shadow-sm">
+                <div className="text-[10px] font-black uppercase tracking-widest text-emerald-600">
+                  Clocked In
+                </div>
+
+                <div className="text-2xl font-black text-emerald-700 mt-2">
+                  {attendanceSummary.clockedInCount}
+                </div>
+              </div>
+
+              {/* Clocked Out */}
+              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 shadow-sm">
+                <div className="text-[10px] font-black uppercase tracking-widest text-blue-600">
+                  Clocked Out
+                </div>
+
+                <div className="text-2xl font-black text-blue-700 mt-2">
+                  {attendanceSummary.clockedOutCount}
+                </div>
+              </div>
+
+              {/* Not Clocked In */}
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-5 shadow-sm">
+                <div className="text-[10px] font-black uppercase tracking-widest text-red-600">
+                  Not Clocked In
+                </div>
+
+                <div className="text-2xl font-black text-red-700 mt-2">
+                  {attendanceSummary.notClockedInCount}
+                </div>
+              </div>
+
             </div>
-          </div>
+            <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-visible flex flex-col group/table">
+              <div className="rounded-t-[2rem] overflow-hidden">
+
+                <Table
+                  columns={columns}
+                  data={attendanceData}
+                  emptyMessage="No attendance records found."
+                />
+              </div>
+              <div className="bg-slate-50/50 p-6 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6 rounded-b-[2rem]">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-sm">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-100 pr-3">
+                      Page Limit
+                    </span>
+                    <CustomDropdown
+                      value={limit.toString()}
+                      onChange={(val) => setLimit(Number(val))}
+                      options={[5, 10, 25, 50].map((v) => ({
+                        label: `${v}`,
+                        value: v.toString(),
+                      }))}
+                      className="w-10"
+                      buttonClass="w-full p-1 bg-transparent text-[9px] font-black cursor-pointer text-slate-700 flex items-center gap-2"
+                    />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight ml-2">
+                    Total {pagination.total} records
+                  </span>
+                </div>
+                <Pagination
+                  pagination={{ current: page, total: pagination.pages }}
+                  onPageChange={setPage}
+                  loading={isFetching}
+                  label="Logs"
+                />
+              </div>
+            </div>
+          </>
         ) : (
           <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm p-6 min-h-[600px]">
             {isLeaveLoading ? (

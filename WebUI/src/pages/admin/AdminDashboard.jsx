@@ -6,14 +6,14 @@ import {
   useGetManagerDashboardQuery,
   useStopEmployeeSessionMutation
 } from '../../services/dashboardApi';
-import { HiOutlineArrowTrendingUp, HiOutlineBolt, HiOutlineUserGroup, HiOutlineFingerPrint, HiOutlineCalendarDays, HiOutlineMagnifyingGlass, HiOutlineXMark } from 'react-icons/hi2';
+import { HiOutlineArrowTrendingUp, HiOutlineBolt, HiOutlineUserGroup, HiOutlineFingerPrint, HiOutlineCalendarDays, HiOutlineMagnifyingGlass, HiOutlineXMark, HiOutlineUsers } from 'react-icons/hi2';
 import { BiTask, BiTimeFive, BiTrash } from 'react-icons/bi';
 import { FiAlertTriangle } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import Loader from '../../components/Loader';
 import StatCard from '../../components/StatCard';
-import { HiOutlineClipboardList } from 'react-icons/hi';
+import { HiOutlineClipboardList, HiOutlineStatusOnline } from 'react-icons/hi';
 import PageHeader from '../../components/PageHeader';
 import { useSocketEvents } from '../../hooks/useSocketEvents';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -75,7 +75,25 @@ const AdminDashboard = () => {
 
   const stats = data?.stats || {};
   const liveTracking = data?.liveTracking || [];
+  const nonWorkingEmployees = data?.nonWorkingEmployees || [];
   const recentActivity = data?.recentActivity || [];
+
+  // 🔥 NEW: breakdown counts for the status summary row (always full counts, not affected by search/filter)
+  const activeOnTaskCount = liveTracking.filter(
+    (t) => t.displayStatus === "work"
+  ).length;
+
+  const onBreakCount = liveTracking.filter(
+    (t) => t.displayStatus === "break"
+  ).length;
+
+  const nonWorkingCount = liveTracking.filter(
+    (t) => t.displayStatus === "non-working"
+  ).length;
+
+  const notClockedInCount = liveTracking.filter(
+    (t) => t.displayStatus === "not-clocked-in"
+  ).length;
 
   const groupedLogs = recentActivity.reduce((groups, log) => {
     const date = log.dateString;
@@ -180,13 +198,15 @@ const AdminDashboard = () => {
 
   const filteredLiveTracking = liveTracking.filter((timer) => {
     const term = timerSearch.trim().toLowerCase();
+
     const matchesSearch =
       !term ||
       timer.employee?.toLowerCase().includes(term) ||
       timer.employeeCode?.toLowerCase().includes(term);
 
     const matchesStatus =
-      statusFilter === "all" || timer.status === statusFilter;
+      statusFilter === "all" ||
+      timer.displayStatus === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
@@ -201,7 +221,7 @@ const AdminDashboard = () => {
         />
 
         <div className="mx-auto px-4 sm:px-6 lg:px-8 pb-6 sm:pb-10">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-12 mt-10">
+          <div className={user?.role === "Admin" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 mt-10" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-12 mt-10"}>
             <StatCard
               label="Live Projects"
               value={stats.totalProjects || 0}
@@ -211,10 +231,10 @@ const AdminDashboard = () => {
             />
 
             <StatCard
-              label="Active Employees"
-              value={stats.totalActiveEmployees || 0}
-              icon={<HiOutlineUserGroup size={22} />}
-              delay={0.2}
+              label="Total Employees"
+              value={user?.role === "Admin" ? data?.allEmployeesCount || 0 : stats.totalActiveEmployees || 0}
+              icon={<HiOutlineUsers size={22} />}
+              delay={0.4}
               onClick={
                 user?.role === "Admin"
                   ? () => navigate("/employees")
@@ -223,7 +243,7 @@ const AdminDashboard = () => {
             />
 
             <StatCard
-              label="On Duty"
+              label="Total Attendance"
               value={stats.attendanceLive || 0}
               variant={stats.attendanceLive > 0 ? "active" : "default"}
               icon={<HiOutlineFingerPrint size={22} />}
@@ -234,6 +254,25 @@ const AdminDashboard = () => {
                   : undefined
               }
             />
+
+            {user?.role === "Admin" && (
+              <StatCard
+                label="Project Workforce"
+                value={stats.totalActiveEmployees || 0}
+                icon={<HiOutlineUserGroup size={22} />}
+                delay={0.2}
+              />
+            )}
+
+            {user?.role === "Admin" && (
+              // 🔥 RENAMED: "Active On Projects" -> "Project Attendance" (matches reference)
+              <StatCard
+                label="Project Attendance"
+                value={data?.clockedInEmployeesCount || 0}
+                icon={<HiOutlineStatusOnline size={22} />}
+                delay={0.4}
+              />
+            )}
 
             <StatCard
               label="Task In Progress"
@@ -274,7 +313,7 @@ const AdminDashboard = () => {
               className={`bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-200 p-4 sm:p-6 lg:p-8 shadow-xl flex flex-col h-[600px] sm:h-[700px] ${user?.role === "Admin" ? "lg:col-span-5" : "lg:col-span-12"
                 }`}
             >
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-10 shrink-0 gap-4">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 shrink-0 gap-4">
                 <h3 className="font-black text-slate-900 text-sm uppercase tracking-widest flex items-center gap-3 shrink-0">
                   <span className="relative flex h-3 w-3">
                     <span className="animate-ping absolute h-3 w-3 rounded-full bg-blue-400 opacity-75"></span>
@@ -283,7 +322,7 @@ const AdminDashboard = () => {
                   Active Timers
                 </h3>
 
-                {user?.role === "Admin" && liveTracking.length > 0 && (
+                {(user?.role === "Admin" || user?.role === "Manager") && (
                   <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
                     {/* Search input */}
                     <div className="relative flex-1 w-full min-w-[100px] group">
@@ -310,17 +349,19 @@ const AdminDashboard = () => {
                       )}
                     </div>
 
-                    {/* Status filter pills — now a sibling, not nested inside the input wrapper */}
+                    {/* Status filter dropdown */}
                     <CustomDropdown
                       value={statusFilter}
                       onChange={(val) => setStatusFilter(val)}
                       options={[
-                        { value: "all", label: "All Log Type" },
-                        { value: "work", label: "Working" },
+                        { value: "all", label: "All Log Types" },
+                        { value: "work", label: "Active On Task" },
                         { value: "break", label: "On Break" },
+                        { value: "non-working", label: "Available" },
+                        { value: "not-clocked-in", label: "Not Clocked In" },
                       ]}
                       placeholder="Filter by Status"
-                      className=" max-w-[100px] "
+                      className=" max-w-[100px] min-w-[100px]"
                       buttonClass="py-1.5 px-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-[10px] font-black tracking-widest transition-all cursor-pointer text-slate-500 hover:text-slate-800 max-w-[100px] shrink-0"
                     />
 
@@ -330,32 +371,88 @@ const AdminDashboard = () => {
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                       </span>
                       <span className="text-[10px] font-bold text-green-700 uppercase tracking-wide">
-                        {filteredLiveTracking.length} {statusFilter === "all" ? "Active" : statusFilter === "break" ? "On Break" : "Working"}
+                        {filteredLiveTracking.length}{" "}
+                        {statusFilter === "all"
+                          ? "Employees"
+                          : statusFilter === "break"
+                            ? "On Break"
+                            : statusFilter === "non-working"
+                              ? "Available"
+                              : statusFilter === "not-clocked-in"
+                                ? "Not Clocked In"
+                                : "Active On Task"}
                       </span>
                     </div>
 
-                    <button
-                      onClick={handleStopAll}
-                      disabled={isStoppingAll}
-                      title="Stop All Sessions"
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white rounded-full text-[10px] font-black uppercase tracking-tighter transition-all border border-red-100 cursor-pointer shrink-0"
-                    >
-                      <FiAlertTriangle size={12} /> {isStoppingAll ? 'Shutting Down...' : 'Stop All'}
-                    </button>
+                    {user?.role === "Admin" && (
+                      <button
+                        onClick={handleStopAll}
+                        disabled={isStoppingAll}
+                        title="Stop All Sessions"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white rounded-full text-[10px] font-black uppercase tracking-tighter transition-all border border-red-100 cursor-pointer shrink-0"
+                      >
+                        <FiAlertTriangle size={12} /> {isStoppingAll ? 'Shutting Down...' : 'Stop All'}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
+
+              {/* 🔥 NEW: status summary row, matches reference image */}
+              {(user?.role === "Admin" || user?.role === "Manager") && (
+                <div className="flex flex-wrap justify-between items-center gap-x-6 gap-y-1 mb-2 sm:mb-3 px-1 shrink-0">
+                  <span className="text-[10px] font-black text-emerald-600 uppercase tracking-wide">
+                    Active on task : {String(activeOnTaskCount).padStart(2, "0")}
+                  </span>
+
+                  <span className="text-[10px] font-black text-yellow-700 uppercase tracking-wide">
+                    On break : {String(onBreakCount).padStart(2, "0")}
+                  </span>
+
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-wide">
+                    Available : {String(nonWorkingCount).padStart(2, "0")}
+                  </span>
+
+                  <span className="text-[10px] font-black text-blue-600 uppercase tracking-wide">
+                    Not clocked in : {String(notClockedInCount).padStart(2, "0")}
+                  </span>
+                </div>
+              )}
 
               <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
                 <AnimatePresence mode='popLayout'>
 
                   {filteredLiveTracking.length > 0 ? (
                     filteredLiveTracking.map((timer) => (
-                      <motion.div layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, x: 20 }} key={timer.id} onClick={() => handleActiveTimerClick(timer)} className="flex items-center gap-4 p-4 bg-slate-100 rounded-[1.8rem] border border-transparent hover:border-gray-200 hover:bg-gray-200 transition-all group">
+                      <motion.div
+                        layout
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        key={timer.id}
+                        onClick={() => handleActiveTimerClick(timer)}
+                        className={`flex items-center gap-4 p-4 bg-slate-100 rounded-[1.8rem] border border-transparent transition-all group ${timer.isNonWorking
+                          ? "opacity-70"
+                          : "hover:border-gray-200 hover:bg-gray-200 cursor-pointer"
+                          }`}
+                      >
                         <div className="relative shrink-0">
-                          <img src={`https://ui-avatars.com/api/?name=${timer.employee}&background=2563eb&color=fff`} className="h-10 w-10 rounded-2xl object-cover" alt="user" />
-                          <div className={`absolute -bottom-1 -right-1 w-3 h-3 border-2 border-white rounded-full ${timer.status === "break" ? "bg-amber-500" : "bg-emerald-500"
-                            }`}></div>
+                          <img
+                            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(timer.employee || "")}&background=2563eb&color=fff`}
+                            className="h-10 w-10 rounded-2xl object-cover"
+                            alt="user"
+                          />
+
+                          <div
+                            className={`absolute -bottom-1 -right-1 w-3 h-3 border-2 border-white rounded-full ${timer.displayStatus === "break"
+                              ? "bg-amber-500"
+                              : timer.displayStatus === "not-clocked-in"
+                                ? "bg-blue-500"
+                                : timer.displayStatus === "non-working"
+                                  ? "bg-slate-400"
+                                  : "bg-emerald-500"
+                              }`}
+                          />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
@@ -363,24 +460,49 @@ const AdminDashboard = () => {
                               {timer.employee} {timer.employeeCode && `(${timer.employeeCode})`}
                             </p>
                           </div>
-                          <p className="text-[9px] text-slate-600 font-bold uppercase truncate">{timer.task} - {timer?.projectTitle} ({timer.projectCode})</p>
+                          <p className="text-[9px] text-slate-600 font-bold uppercase truncate">
+                            {timer.displayStatus === "work" || timer.displayStatus === "break"
+                              ? `${timer.task} - ${timer?.projectTitle} (${timer.projectCode})`
+                              : "No active task"}
+                          </p>
                         </div>
-                        {user?.role === "Admin" && (
+                        {(user?.role === "Admin" || user?.role === "Manager") && (
                           <>
-                            <span className={`tracking-tighter px-3 py-1.5 rounded-full text-[10px] font-black uppercase ${timer.status === "break"
-                              ? "bg-amber-100 text-amber-700 border border-amber-200"
-                              : "bg-emerald-100 text-emerald-700 border border-emerald-200"
-                              }`}>
-                              {timer.status === "break" ? "On Break" : "Working"}
+
+                            {/* 🔥 RENAMED: "Working" -> "Active on task" */}
+                            <span
+                              className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase ${timer.displayStatus === "not-clocked-in"
+                                ? "bg-blue-50 text-blue-600 border border-blue-200"
+                                : timer.displayStatus === "non-working"
+                                  ? "bg-white text-slate-500 border border-slate-200"
+                                  : timer.displayStatus === "break"
+                                    ? "bg-amber-100 text-amber-700 border border-amber-200"
+                                    : "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                                }`}
+                            >
+                              {timer.displayStatus === "not-clocked-in"
+                                ? "Not Clocked In"
+                                : timer.displayStatus === "non-working"
+                                  ? "Available"
+                                  : timer.displayStatus === "break"
+                                    ? "On Break"
+                                    : "Active On Task"}
                             </span>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleStopEmployee(timer);
-                              }}
-                              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white rounded-full text-[10px] font-black uppercase tracking-tighter transition-all border border-red-100 cursor-pointer" title="Stop Session">
-                              <FiAlertTriangle size={12} /> {"Stop Session"}
-                            </button>
+                            {(timer.displayStatus === "work" ||
+                              timer.displayStatus === "break") &&
+                              user?.role === "Admin" && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStopEmployee(timer);
+                                  }}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white rounded-full text-[10px] font-black uppercase tracking-tighter transition-all border border-red-100 cursor-pointer"
+                                  title="Stop Session"
+                                >
+                                  <FiAlertTriangle size={12} />
+                                  Stop Session
+                                </button>
+                              )}
                           </>
                         )}
                       </motion.div>

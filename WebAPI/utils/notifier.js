@@ -78,21 +78,42 @@ If you did not request this, please ignore this message.
           <p>Login with: <br> <b>Email:</b> ${recipient.email} <br> <b>Password:</b> ${password}</p>
         </div>`;
     } else if (type === "leave") {
-      const isApproved = message.includes("Approved");
-      finalSubject = isApproved
-        ? "✅ Leave Request Approved"
-        : "❌ Leave Request Rejected";
+      const isApproved = message.includes("has been Approved");
+      const isRejected = message.includes("has been rejected");
+
+      if (isApproved) {
+        finalSubject = "✅ Leave Request Approved";
+      } else if (isRejected) {
+        finalSubject = "❌ Leave Request Rejected";
+      } else {
+        finalSubject = "🔔 New Leave Request";
+      }
+
       finalHtml = `
     <div style="font-family: sans-serif; border: 1px solid #e2e8f0; padding: 30px; border-radius: 20px; max-width: 500px;">
-      <h2 style="color: ${isApproved ? "#22c55e" : "#ef4444"}; margin-bottom: 20px;">
-        Leave ${isApproved ? "Approved" : "Rejected"}
+      <h2 style="color: ${
+        isApproved ? "#22c55e" : isRejected ? "#ef4444" : "#f97316"
+      }; margin-bottom: 20px;">
+        ${
+          isApproved
+            ? "Leave Approved"
+            : isRejected
+              ? "Leave Rejected"
+              : "New Leave Request"
+        }
       </h2>
+
       <p style="color: #475569;">Hi ${recipient.name},</p>
-      <p style="color: #475569;">${message}</p>
+
+      <p style="color: #475569;">
+        ${message}
+      </p>
+
       <p style="font-size: 12px; color: #94a3b8; margin-top: 20px;">
         Please log in to view your leave details.
       </p>
-    </div>`;
+    </div>
+  `;
     } else if (!htmlContent) {
       finalHtml = `<p>${message}</p>`;
     }

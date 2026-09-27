@@ -856,14 +856,34 @@ exports.getMyTasks = async (req, res) => {
       allocationMap[a.task.toString()] = a;
     });
 
+    const today = getToday(); // 🔥 moved out of the map loop, same value every iteration
+
     let finalTasks = tasks.map((task) => {
       const totalSeconds = (task.timeLogs || []).reduce(
         (acc, log) => acc + (log.durationSeconds || 0),
         0,
       );
 
+      // 🔥 NEW: today's worked seconds specifically (not all-time total),
+      // so the diff compares like-for-like against today's allocation
+      const todayWorkedSeconds = (task.timeLogs || [])
+        .filter(
+          (log) =>
+            log.dateString === today &&
+            log.logType === "work" &&
+            log.user?.toString() === req.user._id.toString(),
+        )
+        .reduce((acc, log) => {
+          if (log.isRunning) {
+            const liveSeconds = Math.floor(
+              (Date.now() - new Date(log.startTime).getTime()) / 1000,
+            );
+            return acc + Math.max(0, liveSeconds);
+          }
+          return acc + (log.rawDurationSeconds || 0);
+        }, 0);
+
       const allocation = allocationMap[task._id.toString()];
-      const today = getToday();
       const todayAllocation = allocation?.dailyAllocations?.find(
         (d) => d.date === today,
       );
@@ -871,6 +891,13 @@ exports.getMyTasks = async (req, res) => {
       const ah = Math.floor(todayAllocatedSeconds / 3600);
       const am = Math.floor((todayAllocatedSeconds % 3600) / 60);
       const as_ = todayAllocatedSeconds % 60;
+
+      // 🔥 NEW: diff, only meaningful when over target, in hours (2 decimals)
+      const diffSeconds = Math.max(
+        0,
+        todayWorkedSeconds - todayAllocatedSeconds,
+      );
+      const diffHours = +(diffSeconds / 3600).toFixed(2);
 
       return {
         ...task.toObject(),
@@ -883,6 +910,7 @@ exports.getMyTasks = async (req, res) => {
               priorityOrder: allocation.priorityOrder,
               todayAllocatedSeconds,
               todayAllocatedFormatted: `${ah}h ${am}m ${as_}s`,
+              diffHours, // 🔥 NEW
             }
           : null,
       };

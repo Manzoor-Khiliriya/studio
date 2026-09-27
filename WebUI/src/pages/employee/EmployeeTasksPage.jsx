@@ -119,12 +119,17 @@ export default function MyTasksPage() {
       ),
     },
     {
-      header: <span className={headerClass}>Allocated Time</span>,
+      header: <span className={headerClass}>Target Time</span>,
       className: "text-center",
       cellClassName: "text-center",
       render: (row) => {
         return (
           <div className="py-2">
+            {row?.allocation?.diffHours > 0 && (
+              <p className="text-[9px] font-bold text-blue-600 leading-tight text-right">
+                +{row.allocation.diffHours} h
+              </p>
+            )}
             <p className={`text-[10px] font-black tracking-wider text-slate-600`}>
               {row?.allocation?.todayAllocatedFormatted || "0 Hrs 0 Mins 0 Secs"}
             </p>

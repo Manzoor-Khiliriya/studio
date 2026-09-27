@@ -22,6 +22,7 @@ const {
 const Employee = require("../models/Employee");
 const { applyProficiency } = require("./userHelpers");
 const TaskAllocation = require("../models/TaskAllocation");
+const TimeAdjustment = require("../models/TimeAdjustment");
 const { calculateProficiency } = require("./proficiencyHelper");
 const moment = require("moment-timezone");
 const TIMEZONE = "Asia/Kolkata";
@@ -159,6 +160,11 @@ async function runCleanupSafe() {
 
   await Attendance.deleteMany({
     clockIn: { $lt: cutoff },
+  });
+
+  await TimeAdjustment.deleteMany({
+    createdAt: { $lt: cutoff },
+    status: { $in: ["Approved", "Rejected"] },
   });
 
   const oneMonthAgo = moment().tz(TIMEZONE).subtract(1, "month").toDate();

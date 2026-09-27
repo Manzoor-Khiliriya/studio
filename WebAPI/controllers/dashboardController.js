@@ -9,6 +9,9 @@ const Project = require("../models/Project");
 const TaskAllocation = require("../models/TaskAllocation");
 const { getToday, now } = require("../utils/dateHelper");
 
+const moment = require("moment-timezone");
+const TIMEZONE = "Asia/Kolkata";
+
 exports.getSummary = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -23,20 +26,35 @@ exports.getSummary = async (req, res) => {
       const adminUsers = await User.find({ role: "Admin" }).select("_id");
       const adminIds = adminUsers.map((a) => a._id);
 
+      const NON_ADMIN_ROLES = [
+        "Employee",
+        "Manager",
+        "Hr Employee",
+        "Hr Manager",
+        "GAD Employee",
+        "GAD Manager",
+      ];
+
+      const activityWindowStart = moment()
+        .tz(TIMEZONE)
+        .subtract(30, "days")
+        .format("YYYY-MM-DD");
+
       const [
         totalActiveEmployees,
         clockedInNow,
-        allTasks,
+        inProgressTaskIds, // 🔥 CHANGED: was `allTasks` from Task.find().populate("timeLogs")
         uniqueProjects,
         activeTimers,
         attendanceToday,
+        allNonAdminUsers,
       ] = await Promise.all([
         User.countDocuments({
           status: "Enable",
           role: { $in: ["Employee", "Manager"] },
         }),
         Attendance.countDocuments({ date: today, clockOut: null }),
-        Task.find().populate("timeLogs"),
+        TimeLog.distinct("task", { isRunning: true, logType: "work" }),
         Project.countDocuments({ deleteStatus: "Disable" }),
         TimeLog.find({
           isRunning: true,
@@ -45,7 +63,7 @@ exports.getSummary = async (req, res) => {
         })
           .populate({
             path: "user",
-            select: "name",
+            select: "name role",
             populate: { path: "employee", select: "employeeCode" },
           })
           .populate({
@@ -54,40 +72,71 @@ exports.getSummary = async (req, res) => {
             populate: { path: "project", select: "projectCode title" },
           })
           .lean(),
-        Attendance.find()
+        Attendance.find({ date: { $gte: activityWindowStart } })
           .populate({
             path: "user",
-            select: "name",
+            select: "name role",
             populate: {
               path: "employee",
               select: "employeeCode",
             },
           })
           .lean(),
+        User.find({
+          status: "Enable",
+          role: { $in: NON_ADMIN_ROLES },
+        })
+          .select("name role")
+          .populate({
+            path: "employee",
+            select: "employeeCode",
+          })
+          .lean(),
       ]);
 
-      const tasksWithVirtuals = allTasks.map((task) => ({
-        ...task.toObject(),
-        liveStatus: task.liveStatus,
-      }));
+      const allEmployeesCount = allNonAdminUsers.length;
 
-      const inProgressTasks = tasksWithVirtuals.filter(
-        (t) => t.liveStatus === "In progress",
-      ).length;
+      const inProgressTasks = inProgressTaskIds.length;
 
       const pendingLeaves = await Leave.countDocuments({
         user: { $in: employeeUserIds },
         status: "Pending",
       });
 
+      const activeTimerUserIds = new Set(
+        activeTimers.map((t) => t.user?._id?.toString()).filter(Boolean),
+      );
+
+      const clockedInEmployeesCount = attendanceToday.filter(
+        (attendance) =>
+          attendance.user &&
+          attendance.date === today &&
+          !attendance.clockOut &&
+          ["Employee", "Manager"].includes(attendance.user.role),
+      ).length;
+
+      const nonWorkingEmployees = allNonAdminUsers
+        .filter(
+          (u) =>
+            ["Employee", "Manager"].includes(u.role) &&
+            !activeTimerUserIds.has(u._id.toString()),
+        )
+        .map((u) => ({
+          id: u._id,
+          name: u.name,
+          role: u.role,
+          employeeCode: u.employee?.employeeCode || "N/A",
+        }));
+
       const rawActivity = await TimeLog.find({
         clearedByAdmin: false,
         user: { $nin: adminIds },
+        dateString: { $gte: activityWindowStart },
       })
         .sort({ createdAt: -1 })
         .populate({
           path: "user",
-          select: "name",
+          select: "name role",
           populate: { path: "employee", select: "employeeCode" },
         })
         .populate("task", "title")
@@ -99,12 +148,13 @@ exports.getSummary = async (req, res) => {
         const groupKey = `${log.user?._id}_${log.dateString}`;
 
         if (!groupedActivity[groupKey]) {
-          const allDayLogs = await TimeLog.find({
-            user: log.user?._id,
-            dateString: log.dateString,
-            logType: "work",
-            isRunning: false,
-          });
+          const allDayLogs = rawActivity.filter(
+            (l) =>
+              l.user?._id?.toString() === log.user?._id?.toString() &&
+              l.dateString === log.dateString &&
+              l.logType === "work" &&
+              !l.isRunning,
+          );
 
           const totalSeconds = allDayLogs.reduce(
             (acc, curr) => acc + (curr.rawDurationSeconds || 0),
@@ -151,6 +201,66 @@ exports.getSummary = async (req, res) => {
 
       const recentActivity = Object.values(groupedActivity).slice(0, 15);
 
+      const activeTimerMap = new Map(
+        activeTimers.map((timer) => [timer.user?._id?.toString(), timer]),
+      );
+
+      const attendanceMap = new Map(
+        attendanceToday.map((attendance) => [
+          attendance.user?._id?.toString(),
+          attendance,
+        ]),
+      );
+
+      const liveTracking = allNonAdminUsers
+        .filter((u) => ["Employee", "Manager"].includes(u.role))
+        .map((user) => {
+          const uid = user._id.toString();
+
+          const timer = activeTimerMap.get(uid);
+          const attendance = attendanceMap.get(uid);
+
+          const isAttendanceClockedIn =
+            attendance && attendance.date === today && !attendance.clockOut;
+
+          let displayStatus;
+
+          if (!isAttendanceClockedIn) {
+            displayStatus = "not-clocked-in";
+          } else if (timer?.logType === "work") {
+            displayStatus = "work";
+          } else if (timer?.logType === "break") {
+            displayStatus = "break";
+          } else {
+            displayStatus = "non-working";
+          }
+
+          return {
+            id: timer?._id || user._id,
+            userId: user._id,
+
+            employee: user.name,
+            employeeCode: user.employee?.employeeCode || "N/A",
+            role: user.role,
+
+            attendanceStatus: isAttendanceClockedIn
+              ? "Clocked In"
+              : "Not Clocked In",
+
+            taskId: timer?.task?._id || null,
+            task: timer?.task?.title || null,
+            projectTitle: timer?.task?.project?.title || null,
+            projectCode: timer?.task?.project?.projectCode || "N/A",
+
+            since: timer?.startTime || null,
+            status: timer?.logType || null,
+
+            displayStatus,
+
+            isTaskRunning: !!timer,
+          };
+        });
+
       return res.json({
         role: "Admin",
         stats: {
@@ -160,18 +270,10 @@ exports.getSummary = async (req, res) => {
           tasksInProgress: inProgressTasks,
           totalProjects: uniqueProjects,
         },
-        liveTracking: activeTimers.map((t) => ({
-          id: t._id,
-          userId: t.user?._id,
-          employee: t.user?.name,
-          employeeCode: t.user?.employee?.employeeCode,
-          taskId: t.task?._id,
-          task: t.task?.title,
-          projectTitle: t.task?.project?.title,
-          projectCode: t.task?.project?.projectCode || "N/A",
-          since: t.startTime,
-          status: t.logType,
-        })),
+        liveTracking,
+        nonWorkingEmployees,
+        allEmployeesCount,
+        clockedInEmployeesCount,
         attendanceToday,
         recentActivity,
       });
@@ -362,9 +464,10 @@ exports.getManagerDashboard = async (req, res) => {
     const [
       totalActiveEmployees,
       clockedInNow,
-      allTasks,
+      inProgressTaskIds, // 🔥 CHANGED: was `allTasks` from Task.find().populate("timeLogs")
       uniqueProjects,
       activeTimers,
+      allActiveUsers,
     ] = await Promise.all([
       User.countDocuments({
         _id: { $in: employeeUserIds },
@@ -378,7 +481,10 @@ exports.getManagerDashboard = async (req, res) => {
         clockOut: null,
       }),
 
-      Task.find().populate("timeLogs"),
+      // 🔥 CHANGED: replaces Task.find().populate("timeLogs") entirely.
+      // liveStatus === "In progress" is exactly "has a currently running work TimeLog",
+      // so this one distinct() query gives the same answer with none of the overhead.
+      TimeLog.distinct("task", { isRunning: true, logType: "work" }),
 
       Project.countDocuments({
         deleteStatus: "Disable",
@@ -387,7 +493,7 @@ exports.getManagerDashboard = async (req, res) => {
       TimeLog.find({
         user: { $in: employeeUserIds },
         isRunning: true,
-        logType: "work",
+        logType: { $in: ["work", "break"] },
       })
         .populate({
           path: "user",
@@ -402,20 +508,26 @@ exports.getManagerDashboard = async (req, res) => {
           select: "title project",
           populate: {
             path: "project",
-            select: "projectCode",
+            select: "title projectCode",
           },
+        })
+        .lean(),
+
+      User.find({
+        _id: { $in: employeeUserIds },
+        status: "Enable",
+        role: "Employee",
+      })
+        .select("name")
+        .populate({
+          path: "employee",
+          select: "employeeCode",
         })
         .lean(),
     ]);
 
-    const tasksWithVirtuals = allTasks.map((task) => ({
-      ...task.toObject(),
-      liveStatus: task.liveStatus,
-    }));
-
-    const inProgressTasks = tasksWithVirtuals.filter(
-      (t) => t.liveStatus === "In progress",
-    ).length;
+    // 🔥 CHANGED: was tasksWithVirtuals.filter(...).length — now just the array length
+    const inProgressTasks = inProgressTaskIds.length;
 
     const pendingLeaves = await Leave.countDocuments({
       user: { $in: employeeUserIds },
@@ -427,6 +539,18 @@ exports.getManagerDashboard = async (req, res) => {
         },
       },
     });
+
+    const activeTimerUserIds = new Set(
+      activeTimers.map((t) => t.user?._id?.toString()).filter(Boolean),
+    );
+
+    const nonWorkingEmployees = allActiveUsers
+      .filter((u) => !activeTimerUserIds.has(u._id.toString()))
+      .map((u) => ({
+        id: u._id,
+        name: u.name,
+        employeeCode: u.employee?.employeeCode || "N/A",
+      }));
 
     return res.json({
       role: "Manager",
@@ -445,9 +569,12 @@ exports.getManagerDashboard = async (req, res) => {
         employee: t.user?.name,
         employeeCode: t.user?.employee?.employeeCode,
         task: t.task?.title,
+        projectTitle: t.task?.project?.title,
         projectCode: t.task?.project?.projectCode || "N/A",
         since: t.startTime,
+        status: t.logType,
       })),
+      nonWorkingEmployees,
     });
   } catch (err) {
     res.status(500).json({

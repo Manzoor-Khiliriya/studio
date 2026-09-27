@@ -40,6 +40,7 @@ const timeLogSchema = new mongoose.Schema(
       default: "manual",
     },
     hasAdjustmentRequest: { type: Boolean, default: false },
+    dismissed: { type: Boolean, default: false },
   },
   {
     timestamps: true,
