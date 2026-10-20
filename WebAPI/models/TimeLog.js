@@ -18,7 +18,11 @@ const timeLogSchema = new mongoose.Schema(
     endTime: { type: Date },
     durationSeconds: { type: Number, default: 0 },
     rawDurationSeconds: { type: Number, default: 0 },
-    logType: { type: String, enum: ["work", "break"], default: "work" },
+    logType: {
+      type: String,
+      enum: ["work", "break", "lunch"],
+      default: "work",
+    },
     action: {
       type: String,
       enum: ["Start", "Stop", null],
@@ -40,6 +44,7 @@ const timeLogSchema = new mongoose.Schema(
       default: "manual",
     },
     hasAdjustmentRequest: { type: Boolean, default: false },
+    fromLunch: { type: Boolean, default: false },
     dismissed: { type: Boolean, default: false },
   },
   {

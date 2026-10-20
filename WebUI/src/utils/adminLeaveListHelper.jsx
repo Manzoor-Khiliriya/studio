@@ -92,7 +92,7 @@ export const getAdminLeaveColumns = (role, userId, onAction, onEdit, onDelete) =
     className: "text-left",
     render: (req) => (
       <TruncateText
-        maxWidth="max-w-[280px]"
+        maxWidth="max-w-[220px]"
         text={req.reason || "No operational context provided"}
         className="text-[10px] text-slate-700 font-black uppercase italic"
       />
@@ -118,6 +118,25 @@ export const getAdminLeaveColumns = (role, userId, onAction, onEdit, onDelete) =
         <HiOutlineCalendar className="text-orange-500" size={13} />
         <p className="text-[10px] text-slate-700 font-black tracking-widest uppercase">
           {new Date(req.startDate).toLocaleDateString('en-IN')} — {new Date(req.endDate).toLocaleDateString('en-IN')}
+        </p>
+      </div>
+    ),
+  },
+  {
+    header: "Resume Date",
+    className: "text-center",
+    render: (req) => (
+      <div className="flex items-center justify-center gap-2">
+        <HiOutlineCalendar className="text-emerald-500" size={13} />
+        <p className="text-[10px] text-slate-700 font-black tracking-widest uppercase">
+          {req.resumeDate
+            ? new Date(req.resumeDate).toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              timeZone: "Asia/Kolkata",
+            })
+            : "Not specified"}
         </p>
       </div>
     ),
@@ -292,7 +311,7 @@ export const getCasualLopColumns = () => [
     header: "Leave Reason",
     className: "text-left",
     render: (req) => (
-      <p className="text-[10px] text-slate-700 font-black uppercase truncate max-w-[280px] italic">
+      <p className="text-[10px] text-slate-700 font-black uppercase truncate max-w-[220px] italic">
         {req.reason || "No operational context provided"}
       </p>
     )
@@ -317,6 +336,25 @@ export const getCasualLopColumns = () => [
         <HiOutlineCalendar className="text-orange-500" size={13} />
         <p className="text-[10px] text-slate-700 font-black tracking-widest uppercase">
           {new Date(req.startDate).toLocaleDateString('en-IN')} — {new Date(req.endDate).toLocaleDateString('en-IN')}
+        </p>
+      </div>
+    ),
+  },
+  {
+    header: "Resume Date",
+    className: "text-center",
+    render: (req) => (
+      <div className="flex items-center justify-center gap-2">
+        <HiOutlineCalendar className="text-emerald-500" size={13} />
+        <p className="text-[10px] text-slate-700 font-black tracking-widest uppercase">
+          {req.resumeDate
+            ? new Date(req.resumeDate).toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              timeZone: "Asia/Kolkata",
+            })
+            : "Not specified"}
         </p>
       </div>
     ),
@@ -353,7 +391,7 @@ export const getCompensatoryOffColumns = () => [
     header: "Leave Reason",
     className: "text-left",
     render: (req) => (
-      <p className="text-[10px] text-slate-700 font-black uppercase truncate max-w-[280px] italic">
+      <p className="text-[10px] text-slate-700 font-black uppercase truncate max-w-[220px] italic">
         {req.reason || "No operational context provided"}
       </p>
     )
@@ -378,6 +416,25 @@ export const getCompensatoryOffColumns = () => [
         <HiOutlineCalendar className="text-orange-500" size={13} />
         <p className="text-[10px] text-slate-700 font-black tracking-widest uppercase">
           {new Date(req.startDate).toLocaleDateString('en-IN')} — {new Date(req.endDate).toLocaleDateString('en-IN')}
+        </p>
+      </div>
+    ),
+  },
+  {
+    header: "Resume Date",
+    className: "text-center",
+    render: (req) => (
+      <div className="flex items-center justify-center gap-2">
+        <HiOutlineCalendar className="text-emerald-500" size={13} />
+        <p className="text-[10px] text-slate-700 font-black tracking-widest uppercase">
+          {req.resumeDate
+            ? new Date(req.resumeDate).toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              timeZone: "Asia/Kolkata",
+            })
+            : "Not specified"}
         </p>
       </div>
     ),

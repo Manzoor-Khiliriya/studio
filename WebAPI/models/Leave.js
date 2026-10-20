@@ -46,6 +46,11 @@ const leaveSchema = new mongoose.Schema(
       default: "Pending",
     },
 
+    resumeDate: {
+      type: Date,
+      required: true,
+    },
+
     approvedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -112,6 +117,10 @@ const leaveSchema = new mongoose.Schema(
 leaveSchema.pre("validate", function () {
   if (this.endDate < this.startDate) {
     throw new Error("End date cannot be before start date");
+  }
+
+  if (this.resumeDate && this.resumeDate <= this.endDate) {
+    throw new Error("Resume date must be after the end date");
   }
 });
 

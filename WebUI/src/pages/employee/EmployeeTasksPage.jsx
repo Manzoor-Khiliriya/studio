@@ -125,9 +125,9 @@ export default function MyTasksPage() {
       render: (row) => {
         return (
           <div className="py-2">
-            {row?.allocation?.diffHours > 0 && (
+            {(row?.allocation?.diffHours > 0 || row?.allocation?.diffMinutes > 0) && (
               <p className="text-[9px] font-bold text-blue-600 leading-tight text-right">
-                +{row.allocation.diffHours} h
+                +{row.allocation.diffFormatted}
               </p>
             )}
             <p className={`text-[10px] font-black tracking-wider text-slate-600`}>

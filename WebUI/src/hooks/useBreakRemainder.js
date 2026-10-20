@@ -1,107 +1,257 @@
 import { useEffect, useRef } from "react";
 
-const BREAK_REMINDER_THRESHOLD = 15 * 60; // 15 minutes before first nudge
-const BREAK_REMINDER_REPEAT = 10 * 60;    // remind again every 10 minutes after that
-const CHECK_INTERVAL = 30 * 1000;         // check every 30 seconds
+// Reminder thresholds
+const NORMAL_BREAK_THRESHOLD = 2 * 60; // 2 minutes
+const LUNCH_BREAK_THRESHOLD = 60 * 60; // 1 hour
 
-// Play a short reminder tone, same approach as useReminder's playReminderSound
+// Repeat every 5 minutes
+const BREAK_REMINDER_REPEAT = 5 * 60;
+
+// Check every 30 seconds
+const CHECK_INTERVAL = 30 * 1000;
+
+// ---------------------------------------------------------
+// PLAY REMINDER SOUND
+// ---------------------------------------------------------
+
 const playReminderSound = () => {
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  const oscillator = ctx.createOscillator();
-  const gain = ctx.createGain();
-  oscillator.connect(gain);
-  gain.connect(ctx.destination);
-  oscillator.frequency.setValueAtTime(880, ctx.currentTime);
-  oscillator.frequency.setValueAtTime(660, ctx.currentTime + 0.1);
-  oscillator.frequency.setValueAtTime(880, ctx.currentTime + 0.2);
-  gain.gain.setValueAtTime(0.3, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-  oscillator.start(ctx.currentTime);
-  oscillator.stop(ctx.currentTime + 0.5);
+  try {
+    const AudioContext =
+      window.AudioContext || window.webkitAudioContext;
+
+    if (!AudioContext) return;
+
+    const ctx = new AudioContext();
+
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+
+    oscillator.frequency.setValueAtTime(
+      880,
+      ctx.currentTime,
+    );
+
+    oscillator.frequency.setValueAtTime(
+      660,
+      ctx.currentTime + 0.1,
+    );
+
+    oscillator.frequency.setValueAtTime(
+      880,
+      ctx.currentTime + 0.2,
+    );
+
+    gain.gain.setValueAtTime(
+      0.3,
+      ctx.currentTime,
+    );
+
+    gain.gain.exponentialRampToValueAtTime(
+      0.001,
+      ctx.currentTime + 0.5,
+    );
+
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.5);
+
+    oscillator.onended = () => {
+      ctx.close();
+    };
+  } catch (error) {
+    console.error("Reminder sound error:", error);
+  }
 };
 
-const showBrowserNotification = (minutesOnBreak, onClickFocus) => {
-  if (!("Notification" in window) || Notification.permission !== "granted") {
+// ---------------------------------------------------------
+// BROWSER NOTIFICATION
+// ---------------------------------------------------------
+
+const showBrowserNotification = (
+  minutesOnBreak,
+  breakType,
+  onClickFocus,
+) => {
+  if (
+    !("Notification" in window) ||
+    Notification.permission !== "granted"
+  ) {
     return false;
   }
 
-  const notification = new Notification("HRMS • Still On Break", {
-    body: `You've been on break for ${minutesOnBreak} minutes. Resume work when you're ready.`,
-    icon: "/favicon.ico",
-    badge: "/favicon.ico",
-    tag: "hrms-break-reminder",
-    requireInteraction: true,
-  });
+  const isLunch = breakType === "lunch";
 
-  notification.onclick = () => {
-    onClickFocus?.();
-    notification.close();
-  };
+  const title = isLunch
+    ? "HRMS • Lunch Break Reminder"
+    : "HRMS • Still On Break";
 
-  playReminderSound();
-  return true;
+  const body = isLunch
+    ? `You've been on lunch break for ${minutesOnBreak} minutes. Resume work when you're ready.`
+    : `You've been on break for ${minutesOnBreak} minutes. Resume work when you're ready.`;
+
+  try {
+    const notification = new Notification(title, {
+      body,
+      icon: "/favicon.ico",
+      badge: "/favicon.ico",
+      tag: isLunch
+        ? "hrms-lunch-reminder"
+        : "hrms-break-reminder",
+      requireInteraction: true,
+    });
+
+    notification.onclick = () => {
+      onClickFocus?.();
+      notification.close();
+    };
+
+    playReminderSound();
+
+    return true;
+  } catch (error) {
+    console.error("Browser notification error:", error);
+    return false;
+  }
 };
 
-/**
- * Watches an active break TimeLog and fires a reminder (browser notification,
- * or an in-app fallback via onReminder) once BREAK_REMINDER_THRESHOLD is
- * crossed, repeating every BREAK_REMINDER_REPEAT while the break continues.
- *
- * @param {object|null} activeBreakLog - the currently running break TimeLog, or null/undefined if not on break
- * @param {(minutesOnBreak: number) => void} onReminder - called when a reminder should show in-app (e.g. a toast), only if the browser notification couldn't be shown and the tab is visible
- */
-export const useBreakReminder = (activeBreakLog, onReminder) => {
+// ---------------------------------------------------------
+// BREAK REMINDER HOOK
+// ---------------------------------------------------------
+
+export const useBreakReminder = (
+  activeBreakLog,
+  onReminder,
+) => {
   const lastReminderAtRef = useRef(0);
 
-  // Request notification permission once, on mount
+  const onReminderRef = useRef(onReminder);
+
+  // Keep callback updated without resetting the interval.
+  useEffect(() => {
+    onReminderRef.current = onReminder;
+  }, [onReminder]);
+
+  // -------------------------------------------------------
+  // NOTIFICATION PERMISSION
+  // -------------------------------------------------------
+
   useEffect(() => {
     if (!("Notification" in window)) return;
+
     if (Notification.permission === "default") {
       Notification.requestPermission();
     }
   }, []);
 
+  // -------------------------------------------------------
+  // REMINDER TIMER
+  // -------------------------------------------------------
+
   useEffect(() => {
     if (!activeBreakLog) {
-      lastReminderAtRef.current = 0; // reset so next break starts fresh
+      lastReminderAtRef.current = 0;
       return;
     }
 
-    const startTime = new Date(activeBreakLog.startTime).getTime();
+    const breakType = activeBreakLog.logType;
+
+    const isLunch = breakType === "lunch";
+
+    // Different thresholds for lunch and normal breaks.
+    const reminderThreshold = isLunch
+      ? LUNCH_BREAK_THRESHOLD
+      : NORMAL_BREAK_THRESHOLD;
+
+    const startTime = new Date(
+      activeBreakLog.startTime,
+    ).getTime();
+
+    if (!Number.isFinite(startTime)) return;
+
+    // Reset reminder when a different break starts.
+    lastReminderAtRef.current = 0;
 
     const checkBreakDuration = () => {
-      const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
-      if (elapsedSeconds < BREAK_REMINDER_THRESHOLD) return;
+      const currentTime = Date.now();
 
-      const now = Date.now();
+      const elapsedSeconds = Math.max(
+        0,
+        Math.floor(
+          (currentTime - startTime) / 1000,
+        ),
+      );
+
+      // Wait until the threshold is reached.
+      if (elapsedSeconds < reminderThreshold) {
+        return;
+      }
+
+      // Don't repeat until 5 minutes have passed.
       if (
         lastReminderAtRef.current &&
-        now - lastReminderAtRef.current < BREAK_REMINDER_REPEAT * 1000
+        currentTime - lastReminderAtRef.current <
+          BREAK_REMINDER_REPEAT * 1000
       ) {
         return;
       }
-      lastReminderAtRef.current = now;
 
-      const minutesOnBreak = Math.floor(elapsedSeconds / 60);
+      const minutesOnBreak = Math.floor(
+        elapsedSeconds / 60,
+      );
 
-      const shown = showBrowserNotification(minutesOnBreak, () => window.focus());
+      const shown = showBrowserNotification(
+        minutesOnBreak,
+        breakType,
+        () => window.focus(),
+      );
 
+      // Show the existing toast when browser notifications
+      // are unavailable and the page is visible.
       if (!shown && !document.hidden) {
-        onReminder?.(minutesOnBreak);
+        onReminderRef.current?.(
+          minutesOnBreak,
+          breakType,
+        );
+      }
+
+      // Remember when the last reminder was triggered.
+      if (shown || !document.hidden) {
+        lastReminderAtRef.current = currentTime;
       }
     };
 
+    // Check immediately, including after a page refresh.
     checkBreakDuration();
-    const interval = setInterval(checkBreakDuration, CHECK_INTERVAL);
+
+    const interval = setInterval(
+      checkBreakDuration,
+      CHECK_INTERVAL,
+    );
 
     const handleVisibilityChange = () => {
-      if (!document.hidden) checkBreakDuration();
+      if (!document.hidden) {
+        checkBreakDuration();
+      }
     };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange,
+    );
 
     return () => {
       clearInterval(interval);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange,
+      );
     };
-  }, [activeBreakLog, onReminder]);
+  }, [
+    activeBreakLog?._id,
+    activeBreakLog?.startTime,
+    activeBreakLog?.logType,
+  ]);
 };

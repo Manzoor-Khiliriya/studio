@@ -898,7 +898,7 @@ export default function AdminTasksPage() {
               {projectGroups.length > 0 ? (
                 projectGroups.map((project) => {
                   const tasks = project.tasks || [];
-                  const totalTasks = tasks.length;
+                  const totalTasks = tasks.filter((task) => !task.isDefault).length;
                   const isSelected = selectedProjects.includes(project._id);
 
                   return (

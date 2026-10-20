@@ -16,6 +16,7 @@ import { useSocketEvents } from "../../hooks/useSocketEvents";
 import useDebounce from "../../hooks/useDebounce";
 import CustomDropdown from "../../components/CustomDropdown";
 import { useNavigate } from "react-router-dom";
+import TruncateText from "../../components/TruncateText";
 
 // --- SUB-COMPONENT: COMPACT PROGRESS BAR WITH BREAKPOINTS ---
 const CustomProgressBar = ({ percentage, isOver }) => {
@@ -168,12 +169,17 @@ const AdminTaskPerformancePage = () => {
                       >
                         <HiOutlineChartBarSquare size={20} />
                       </div>
-                      <div className="min-w-[120px]">
-                        <h3 className="font-black text-sm uppercase tracking-tighter italic leading-none">
+                      <div className="min-w-[200px]">
+                        {/* <h3 className="font-black text-sm uppercase tracking-tighter italic leading-none">
                           {group.title || "N/A"}
-                        </h3>
+                        </h3> */}
+                        <TruncateText
+                          text={group.title || "N/A"}
+                          maxWidth="max-w-[200px]"
+                          className="font-black text-sm uppercase tracking-tighter italic leading-none"
+                        />
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[7px] font-black uppercase opacity-50">
+                          <span className="text-[9px] font-black uppercase opacity-75">
                             {group.taskList?.length || 0} Tasks
                           </span>
                         </div>
@@ -256,8 +262,8 @@ const AdminTaskPerformancePage = () => {
                                   }
                                 }}
                                 className={`bg-white p-3 rounded-xl border border-slate-200 flex flex-col md:flex-row md:items-center gap-4 ${task._id
-                                    ? "cursor-pointer hover:border-orange-300 hover:shadow-sm transition-all"
-                                    : ""
+                                  ? "cursor-pointer hover:border-orange-300 hover:shadow-sm transition-all"
+                                  : ""
                                   }`}>
                                 <div className="md:w-1/3 min-w-0">
                                   <h4 className="font-black text-slate-900 text-[11px] uppercase truncate">
@@ -288,7 +294,10 @@ const AdminTaskPerformancePage = () => {
                                 <div className="flex items-center justify-end gap-5 border-l border-slate-100 pl-5 w-1/4">
                                   <Metric
                                     label="Done"
-                                    value={`${(task.consumedHours || 0).toFixed(1)} h`}
+                                    value={
+                                      task.consumedFormatted ||
+                                      "0 H 0 M"
+                                    }
                                   />
                                   <Metric
                                     label="Target"
@@ -297,27 +306,50 @@ const AdminTaskPerformancePage = () => {
                                   {isTaskOver ? (
                                     <div className="text-right bg-rose-50 px-2 rounded border border-rose-100">
                                       <span className="block text-[6px] font-black text-rose-500 uppercase italic">
-                                        Over
+                                        Over 
                                       </span>
+
                                       <span className="text-[10px] font-black text-rose-600">
-                                        +
-                                        {(
-                                          task.consumedHours -
-                                          task.allocatedTime
-                                          || 0).toFixed(1)}
-                                        h
+                                        {(() => {
+                                          const extraSeconds = Math.max(
+                                            0,
+                                            Math.round(
+                                              ((task.consumedHours || 0) -
+                                                (task.allocatedTime || 0)) *
+                                              3600
+                                            )
+                                          );
+
+                                          const hours = Math.floor(extraSeconds / 3600);
+                                          const minutes = Math.floor((extraSeconds % 3600) / 60);
+
+                                          return `+${hours} H ${minutes} M`;
+                                        })()}
                                       </span>
                                     </div>
                                   ) : (
+                                    // Keep your existing Balance section here
                                     <div className="text-right bg-emerald-50 px-2 rounded border border-emerald-100">
                                       <span className="block text-[6px] font-black text-emerald-500 uppercase italic">
                                         Balance
                                       </span>
+
                                       <span className="text-[10px] font-black text-emerald-600">
-                                        {(
-                                          task.allocatedTime -
-                                          task.consumedHours
-                                          || 0).toFixed(1)} h
+                                        {(() => {
+                                          const remainingSeconds = Math.max(
+                                            0,
+                                            Math.round(
+                                              ((task.allocatedTime || 0) -
+                                                (task.consumedHours || 0)) *
+                                              3600
+                                            )
+                                          );
+
+                                          const hours = Math.floor(remainingSeconds / 3600);
+                                          const minutes = Math.floor((remainingSeconds % 3600) / 60);
+
+                                          return `${hours} H ${minutes} M`;
+                                        })()}
                                       </span>
                                     </div>
                                   )}

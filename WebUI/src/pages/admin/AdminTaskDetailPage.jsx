@@ -162,19 +162,6 @@ export default function AdminTaskDetailPage() {
 
   const isOver = (task.totalConsumedHours || 0) > (task.allocatedTime || 0);
 
-  const handleAllocationUpdate = async (id, field, value) => {
-    try {
-      await updateAllocation({
-        id,
-        [field]: value,
-      }).unwrap();
-      toast.success("Updated");
-      refetch();
-    } catch (err) {
-      toast.error(err?.data?.message || "Update failed");
-    }
-  };
-
   return (
     <div className="max-w-[1750px] mx-auto min-h-[83vh] bg-slate-100 pb-10">
 
@@ -228,7 +215,10 @@ export default function AdminTaskDetailPage() {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <HeaderButton onClick={() => setIsStatusModalOpen(true)} icon={<HiOutlineArrowPath size={18} />} text="Update Status" />
+              {!task.isDefault &&
+                (<HeaderButton onClick={() => setIsStatusModalOpen(true)} icon={<HiOutlineArrowPath size={18} />} text="Update Status" />
+                )
+              }
               <HeaderButton onClick={() => setIsEditModalOpen(true)} icon={<HiOutlinePencilSquare size={18} />} text="Update Task" />
               <HeaderButton onClick={() => setIsDeleteModalOpen(true)} icon={<HiOutlineTrash size={18} />} text="Delete Task" variant="danger" />
             </div>
@@ -239,7 +229,7 @@ export default function AdminTaskDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
           <div className="lg:col-span-8 space-y-8">
             {/* KPI Section */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className={task?.isDefault ? "grid grid-cols-1 md:grid-cols-3 gap-4" : "grid grid-cols-1 md:grid-cols-4 gap-4"}>
               <MetricBox
                 label="Time Spent"
                 value={formatToHrMin(consumedSec)}
@@ -251,11 +241,13 @@ export default function AdminTaskDetailPage() {
                 value={formatHoursToDays(task.estimatedTime || 0)}
                 icon={<HiOutlineCalendarDays />}
               />
-              <MetricBox
-                label="Allocated"
-                value={`${task.allocatedTime || 0}h`}
-                icon={<HiOutlineCalendarDays />}
-              />
+              {!task?.isDefault && (
+                <MetricBox
+                  label="Allocated"
+                  value={`${task.allocatedTime || 0}h`}
+                  icon={<HiOutlineCalendarDays />}
+                />
+              )}
               <MetricBox
                 label="Efficiency"
                 value={isOver ? "Overload" : "Nominal"}
@@ -373,12 +365,23 @@ export default function AdminTaskDetailPage() {
                         <div className="flex flex-col min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             {op.isCurrentlyAssigned && (
-                              <span className=" text-emerald-600 text-[7px] font-black uppercase flex items-center gap-1">
+                              <span className="text-emerald-600 text-[7px] font-black uppercase flex items-center gap-1">
                                 <HiCheckBadge size={8} /> Currently Assigned
                               </span>
                             )}
                           </div>
-                          <h4 className="text-sm font-black text-slate-900 uppercase group-hover:text-orange-600 transition-colors truncate">
+
+                          <h4
+                            onClick={() => {
+                              if (!op.id) return;
+
+                              navigate(`/employees/${op.id}`);
+                            }}
+                            className={`text-sm font-black uppercase truncate transition-colors ${op.id
+                                ? "text-slate-900 hover:text-orange-600 cursor-pointer"
+                                : "text-slate-900"
+                              }`}
+                          >
                             {op.name} {op.code && `(${op.code})`}
                           </h4>
                         </div>

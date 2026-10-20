@@ -709,6 +709,10 @@ export default function EmployeeDetailPage() {
                           task={t}
                           active={isAssigned}
                           historical={!isAssigned}
+                          onClick={() => {
+                            if (!t?._id) return;
+                            navigate(`/projects/${t._id}`);
+                          }}
                         />
                       );
                     })}
@@ -845,80 +849,59 @@ function MetricBox({ label, value, icon, color }) {
   );
 }
 
-function TaskSmallCard({ task, active, historical }) {
+function TaskSmallCard({ task, active, historical, onClick }) {
   return (
     <div
-      className={`h-18 p-3 rounded-xl transition-all duration-200
-        ${active
-          ? "bg-slate-50"
-          : historical
-            ? "bg-slate-50 border-slate-100 opacity-70"
-            : "bg-orange-50 border-orange-200"
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
+      className={`h-18 p-3 rounded-xl transition-all duration-200 cursor-pointer  ${active
+        ? "bg-slate-50"
+        : historical
+          ? "bg-slate-50 border-slate-100 opacity-70"
+          : "bg-orange-50 border-orange-200"
         }`}
     >
       <div className="flex justify-between items-start gap-2">
         <p
-          className={`text-[11px] font-black uppercase tracking-tight
-            ${active
-              ? "text-black"
-              : historical
-                ? "text-slate-700"
-                : "text-orange-700"
+          className={`text-[11px] font-black uppercase tracking-tight ${active
+            ? "text-black"
+            : historical
+              ? "text-slate-700"
+              : "text-orange-700"
             }`}
         >
-          {task?.project?.title && `${task.project.title}`}
-          {" "}({task.title})
+          {task?.project?.title && `${task.project.title} `}
+          ({task.title})
         </p>
 
         {active ? (
           <span className="text-[7px] font-black uppercase text-green-400">
             Current
           </span>
-        ) : historical ? (
+        ) : (
           <span className="text-[7px] font-black uppercase text-slate-500">
             History
-          </span>
-        ) : (
-          <span className="text-[7px] font-black uppercase text-orange-700">
-            Current
           </span>
         )}
       </div>
 
       <div className="flex justify-between items-end mt-2">
-        <span
-          className={`text-[8px] font-black uppercase tracking-widest
-            ${active
-              ? "text-black"
-              : historical
-                ? "text-slate-500"
-                : "text-orange-500"
-            }`}
-        >
+        <span className="text-[8px] font-black uppercase tracking-widest text-slate-600">
           {task.liveStatus}
         </span>
 
-        <span
-          className={`text-[8px] font-black uppercase tracking-widest
-            ${active
-              ? "text-black"
-              : historical
-                ? "text-slate-500"
-                : "text-orange-500"
-            }`}
-        >
+        <span className="text-[8px] font-black uppercase tracking-widest text-slate-600">
           {task?.status?.name || "N/A"}
         </span>
 
-        <span
-          className={`text-[10px] font-black
-            ${active
-              ? "text-black"
-              : historical
-                ? "text-slate-400"
-                : "text-orange-700"
-            }`}
-        >
+        <span className="text-[10px] font-black text-slate-700">
           {task.allocatedTime || 0}H ALLOC
         </span>
       </div>

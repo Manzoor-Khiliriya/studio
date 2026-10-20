@@ -27,7 +27,11 @@ const taskAllocationSchema = new mongoose.Schema(
       {
         date: String,
         allocatedSeconds: Number,
-        proficiency: { type: Number, default: null }
+        proficiency: { type: Number, default: null },
+        workedSeconds: { type: Number, default: 0 }, 
+        isClosed: { type: Boolean, default: false },
+        assignedAt: { type: Date, default: Date.now },
+        closedAt: { type: Date, default: null },
       },
     ],
   },

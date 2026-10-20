@@ -3,6 +3,8 @@ const User = require("../models/User");
 const { emitDashboardUpdate } = require("../utils/socket");
 const { getToday, now, getMonthRange } = require("../utils/dateHelper");
 const moment = require("moment-timezone");
+const TimeLog = require("../models/TimeLog");
+const { applyProficiency } = require("../utils/userHelpers");
 
 const emitEvent = (req, event, data, userId = null) => {
   const io = req.app.get("socketio");
@@ -13,6 +15,56 @@ const emitEvent = (req, event, data, userId = null) => {
   } else {
     io.emit(event, data);
   }
+};
+
+const matchesStatus = (record, status) => {
+  if (!status || status === "all") return true;
+  const onLunch = record.status === "Clocked In" && !!record.isOnLunch;
+
+  switch (status) {
+    case "on_lunch":
+      return onLunch;
+    case "clocked_in":
+      return record.status === "Clocked In" && !onLunch;
+    case "clocked_out":
+      return record.status === "Clocked Out";
+    case "not_clocked_in":
+      return record.status === "Not Clocked In";
+    default:
+      return true;
+  }
+};
+
+const getLunchSeconds = (a) => {
+  if (!a) return 0;
+  let s = a.totalLunchSeconds || 0;
+  if (a.isOnLunch && a.lunchStartTime) {
+    s += Math.max(0, Math.floor((now() - new Date(a.lunchStartTime)) / 1000));
+  }
+  return s;
+};
+
+const closeLog = async (log, currentTime) => {
+  const rawSeconds = Math.max(
+    0,
+    Math.floor((currentTime - new Date(log.startTime)) / 1000),
+  );
+  if (log.logType === "work") {
+    const { adjustedSeconds } = await applyProficiency(log.user, rawSeconds);
+    log.rawDurationSeconds = rawSeconds;
+    log.durationSeconds = adjustedSeconds;
+  } else {
+    log.durationSeconds = rawSeconds;
+  }
+  log.endTime = currentTime;
+  log.isRunning = false;
+  await log.save();
+};
+
+const formatLunchSeconds = (seconds = 0) => {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return `${h}h ${m}m`;
 };
 
 exports.clockIn = async (req, res) => {
@@ -31,6 +83,8 @@ exports.clockIn = async (req, res) => {
 
       attendance.clockOut = null;
       attendance.lastResumeTime = currentTime;
+      attendance.isOnLunch = false;
+      attendance.lunchStartTime = null;
       await attendance.save();
       emitEvent(req, "attendanceChanged");
       emitDashboardUpdate(req);
@@ -61,22 +115,140 @@ exports.clockOut = async (req, res) => {
       date: today,
       clockOut: null,
     });
-
-    if (!record) {
-      return res.status(404).json({ message: "No active session." });
-    }
+    if (!record) return res.status(404).json({ message: "No active session." });
 
     const currentTime = now();
-    const sessionSeconds = Math.floor(
-      (currentTime - record.lastResumeTime) / 1000,
-    );
+
+    if (record.isOnLunch) {
+      // finalize lunch, no work seconds to add (timer was paused)
+      record.totalLunchSeconds = getLunchSeconds(record);
+      record.isOnLunch = false;
+      record.lunchStartTime = null;
+
+      const lunchBreak = await TimeLog.findOne({
+        user: req.user._id,
+        isRunning: true,
+        fromLunch: true,
+      });
+      if (lunchBreak) {
+        lunchBreak.action = "Stop";
+        await closeLog(lunchBreak, currentTime);
+      }
+    } else {
+      record.totalSecondsWorked += Math.max(
+        0,
+        Math.floor((currentTime - record.lastResumeTime) / 1000),
+      );
+    }
 
     record.clockOut = currentTime;
-    record.totalSecondsWorked += sessionSeconds;
-
+    record.lastResumeTime = null;
     await record.save();
 
     emitEvent(req, "attendanceChanged");
+    emitEvent(req, "timeLogChanged", null, req.user._id);
+    emitDashboardUpdate(req);
+    res.json(record);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.startLunch = async (req, res) => {
+  try {
+    const record = await Attendance.findOne({
+      user: req.user.id,
+      date: getToday(),
+      clockOut: null,
+    });
+    if (!record) return res.status(400).json({ message: "Clock in first." });
+    if (record.isOnLunch)
+      return res.status(400).json({ message: "Already on lunch." });
+
+    const t = now();
+
+    // pause attendance timer
+    if (record.lastResumeTime) {
+      record.totalSecondsWorked += Math.max(
+        0,
+        Math.floor((t - record.lastResumeTime) / 1000),
+      );
+    }
+    record.lastResumeTime = null; // pause
+    record.isOnLunch = true;
+    record.lunchStartTime = t;
+    await record.save();
+
+    // running task -> becomes a break
+    const active = await TimeLog.findOne({
+      user: req.user._id,
+      isRunning: true,
+      logType: "work",
+    });
+    if (active) {
+      await closeLog(active, t);
+      await TimeLog.create({
+        user: req.user._id,
+        task: active.task,
+        startTime: now(),
+        logType: "break",
+        isRunning: true,
+        dateString: active.dateString,
+        fromLunch: true,
+      });
+    }
+
+    emitEvent(req, "attendanceChanged");
+    emitEvent(req, "timeLogChanged", null, req.user._id);
+    emitEvent(req, "taskChanged");
+    emitDashboardUpdate(req);
+    res.json(record);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.endLunch = async (req, res) => {
+  try {
+    const record = await Attendance.findOne({
+      user: req.user.id,
+      date: getToday(),
+      clockOut: null,
+    });
+    if (!record || !record.isOnLunch) {
+      return res.status(400).json({ message: "You are not on lunch." });
+    }
+
+    const t = now();
+    record.totalLunchSeconds = getLunchSeconds(record);
+    record.isOnLunch = false;
+    record.lunchStartTime = null;
+    record.lastResumeTime = t; // resume
+    await record.save();
+
+    // resume task only if the break came from lunch
+    const lunchBreak = await TimeLog.findOne({
+      user: req.user._id,
+      isRunning: true,
+      logType: "break",
+      fromLunch: true,
+    });
+    if (lunchBreak) {
+      await closeLog(lunchBreak, t);
+      await TimeLog.create({
+        user: req.user._id,
+        task: lunchBreak.task,
+        startTime: now(),
+        logType: "work",
+        action: "Start",
+        isRunning: true,
+        dateString: lunchBreak.dateString,
+      });
+    }
+
+    emitEvent(req, "attendanceChanged");
+    emitEvent(req, "timeLogChanged", null, req.user._id);
+    emitEvent(req, "taskChanged");
     emitDashboardUpdate(req);
     res.json(record);
   } catch (err) {
@@ -103,6 +275,7 @@ exports.getAllAttendance = async (req, res) => {
       search,
       page = 1,
       limit = 10,
+      status: statusFilter,
     } = req.query;
 
     const pageNum = parseInt(page);
@@ -113,13 +286,9 @@ exports.getAllAttendance = async (req, res) => {
     const isToday =
       (!startDate && !endDate) || (startDate === today && endDate === today);
 
-    // ============================================================
-    // GET ACTIVE EMPLOYEES + MANAGERS
-    // ============================================================
-
     const users = await User.find({
       status: "Enable",
-      role: { $in: ["Employee", "Manager"] },
+      role: { $ne: "Admin" },
       ...(userId ? { _id: userId } : {}),
     })
       .select("name email role")
@@ -129,10 +298,6 @@ exports.getAllAttendance = async (req, res) => {
       })
       .lean();
 
-    // ============================================================
-    // TODAY
-    // ============================================================
-
     if (isToday) {
       const attendanceRecords = await Attendance.find({
         date: today,
@@ -140,10 +305,6 @@ exports.getAllAttendance = async (req, res) => {
       })
         .sort({ clockIn: -1 })
         .lean();
-
-      // ----------------------------------------------------------
-      // Attendance Map
-      // ----------------------------------------------------------
 
       const attendanceMap = new Map();
 
@@ -158,13 +319,6 @@ exports.getAllAttendance = async (req, res) => {
 
         const existingIsClockedIn = existing && !existing.clockOut;
 
-        /*
-         * If duplicate attendance records exist:
-         *
-         * 1. Prefer the currently active record.
-         * 2. Otherwise use the latest record.
-         */
-
         if (
           !existing ||
           (currentIsClockedIn && !existingIsClockedIn) ||
@@ -175,41 +329,23 @@ exports.getAllAttendance = async (req, res) => {
         }
       }
 
-      // ----------------------------------------------------------
-      // Build today's records
-      // ----------------------------------------------------------
-
       const records = users.map((user) => {
         const attendance = attendanceMap.get(user._id.toString());
-
-        // --------------------------------------------------------
-        // STATUS
-        // --------------------------------------------------------
 
         let status;
 
         if (!attendance) {
-          // No attendance record today
           status = "Not Clocked In";
         } else if (!attendance.clockOut) {
-          // Attendance record exists and employee
-          // has not clocked out
           status = "Clocked In";
         } else {
-          // Attendance record exists and employee
-          // already clocked out
           status = "Clocked Out";
         }
 
         const isClockedIn = status === "Clocked In";
 
-        // --------------------------------------------------------
-        // TOTAL WORKED SECONDS
-        // --------------------------------------------------------
-
         let totalSecondsWorked = attendance?.totalSecondsWorked || 0;
 
-        // If currently clocked in, add current running session
         if (isClockedIn && attendance?.lastResumeTime) {
           const currentTime = now();
 
@@ -220,9 +356,7 @@ exports.getAllAttendance = async (req, res) => {
           totalSecondsWorked += Math.max(currentSessionSeconds, 0);
         }
 
-        // --------------------------------------------------------
-        // RETURN RECORD
-        // --------------------------------------------------------
+        const totalLunchSeconds = getLunchSeconds(attendance);
 
         return {
           _id: attendance?._id || user._id,
@@ -239,49 +373,26 @@ exports.getAllAttendance = async (req, res) => {
           },
 
           date: today,
-
           clockIn: attendance?.clockIn || null,
-
           clockOut: attendance?.clockOut || null,
-
           lastResumeTime: attendance?.lastResumeTime || null,
-
           totalSecondsWorked,
-
+          totalLunchSeconds,
+          totalLunchFormatted: formatLunchSeconds(totalLunchSeconds),
           status,
-
           isClockedIn,
+          isOnLunch: !!attendance?.isOnLunch,
         };
       });
 
-      // ============================================================
-      // SUMMARY
-      // ============================================================
-
       const totalEmployees = records.length;
-
-      const clockedInCount = records.filter(
-        (record) => record.status === "Clocked In",
-      ).length;
-
-      const notClockedInCount = records.filter(
-        (record) => record.status === "Not Clocked In",
-      ).length;
-
-      const clockedOutCount = records.filter(
-        (record) => record.status === "Clocked Out",
-      ).length;
-
-      // ============================================================
-      // SEARCH
-      // ============================================================
 
       let filteredRecords = records;
 
       if (search) {
         const searchLower = search.trim().toLowerCase();
 
-        filteredRecords = records.filter(
+        filteredRecords = filteredRecords.filter(
           (record) =>
             record.user?.name?.toLowerCase().includes(searchLower) ||
             record.user?.employee?.employeeCode
@@ -290,19 +401,30 @@ exports.getAllAttendance = async (req, res) => {
         );
       }
 
-      // ============================================================
-      // PAGINATION
-      // ============================================================
+      filteredRecords = filteredRecords.filter((r) =>
+        matchesStatus(r, statusFilter),
+      );
+
+      const onLunchCount = records.filter(
+        (record) => record.status === "Clocked In" && record.isOnLunch,
+      ).length;
+
+      const clockedInCount = records.filter(
+        (record) => record.status === "Clocked In",
+      ).length;
+
+      const clockedOutCount = records.filter(
+        (record) => record.status === "Clocked Out",
+      ).length;
+
+      const notClockedInCount = records.filter(
+        (record) => record.status === "Not Clocked In",
+      ).length;
 
       const totalRecords = filteredRecords.length;
 
       const skip = (pageNum - 1) * limitNum;
-
       const paginatedRecords = filteredRecords.slice(skip, skip + limitNum);
-
-      // ============================================================
-      // RESPONSE
-      // ============================================================
 
       return res.json({
         records: paginatedRecords,
@@ -312,6 +434,7 @@ exports.getAllAttendance = async (req, res) => {
           clockedInCount,
           notClockedInCount,
           clockedOutCount,
+          onLunchCount,
         },
 
         pagination: {
@@ -322,10 +445,6 @@ exports.getAllAttendance = async (req, res) => {
         },
       });
     }
-
-    // ============================================================
-    // HISTORICAL ATTENDANCE
-    // ============================================================
 
     const attendanceQuery = {};
 
@@ -355,10 +474,6 @@ exports.getAllAttendance = async (req, res) => {
       })
       .lean();
 
-    // ============================================================
-    // CREATE ATTENDANCE MAP
-    // ============================================================
-
     const attendanceMap = new Map();
 
     for (const record of attendanceRecords) {
@@ -368,15 +483,10 @@ exports.getAllAttendance = async (req, res) => {
 
       const key = `${recordUserId}_${record.date}`;
 
-      // Keep latest attendance record
       if (!attendanceMap.has(key)) {
         attendanceMap.set(key, record);
       }
     }
-
-    // ============================================================
-    // CREATE DATE LIST
-    // ============================================================
 
     const dates = [];
 
@@ -392,10 +502,6 @@ exports.getAllAttendance = async (req, res) => {
       }
     }
 
-    // ============================================================
-    // BUILD HISTORICAL RECORDS
-    // ============================================================
-
     let records = [];
 
     for (const date of dates) {
@@ -404,9 +510,8 @@ exports.getAllAttendance = async (req, res) => {
 
         const attendance = attendanceMap.get(key);
 
-        // --------------------------------------------------------
-        // ACTUAL ATTENDANCE RECORD
-        // --------------------------------------------------------
+        const totalLunchSeconds = getLunchSeconds(attendance);
+        const totalLunchFormatted = formatLunchSeconds(totalLunchSeconds);
 
         if (attendance) {
           const isClockedIn = !attendance.clockOut;
@@ -421,20 +526,14 @@ exports.getAllAttendance = async (req, res) => {
 
           records.push({
             ...attendance,
-
             status,
-
             isClockedIn,
+            totalLunchSeconds,
+            totalLunchFormatted,
           });
 
           continue;
         }
-
-        // --------------------------------------------------------
-        // NO ATTENDANCE RECORD
-        // --------------------------------------------------------
-        // This is a virtual record.
-        // It is NOT saved into MongoDB.
 
         records.push({
           _id: `${user._id}_${date}`,
@@ -444,32 +543,23 @@ exports.getAllAttendance = async (req, res) => {
             name: user.name,
             email: user.email,
             role: user.role,
-
             employee: {
               employeeCode: user.employee?.employeeCode || "N/A",
             },
           },
 
           date,
-
           clockIn: null,
-
           clockOut: null,
-
           lastResumeTime: null,
-
           totalSecondsWorked: 0,
-
+          totalLunchSeconds,
+          totalLunchFormatted,
           status: "Not Clocked In",
-
           isClockedIn: false,
         });
       }
     }
-
-    // ============================================================
-    // SEARCH
-    // ============================================================
 
     if (search) {
       const searchLower = search.trim().toLowerCase();
@@ -483,10 +573,6 @@ exports.getAllAttendance = async (req, res) => {
       );
     }
 
-    // ============================================================
-    // SORT
-    // ============================================================
-
     records.sort((a, b) => {
       if (a.date !== b.date) {
         return b.date.localeCompare(a.date);
@@ -495,11 +581,9 @@ exports.getAllAttendance = async (req, res) => {
       return (a.user?.name || "").localeCompare(b.user?.name || "");
     });
 
-    // ============================================================
-    // SUMMARY
-    // ============================================================
-
-    const totalRecords = records.length;
+    const onLunchCount = records.filter(
+      (record) => record.status === "Clocked In" && record.isOnLunch,
+    ).length;
 
     const clockedInCount = records.filter(
       (record) => record.status === "Clocked In",
@@ -513,29 +597,23 @@ exports.getAllAttendance = async (req, res) => {
       (record) => record.status === "Not Clocked In",
     ).length;
 
-    // ============================================================
-    // PAGINATION
-    // ============================================================
+    const visibleRecords = records.filter((r) =>
+      matchesStatus(r, statusFilter),
+    );
+    const totalRecords = visibleRecords.length;
 
     const skip = (pageNum - 1) * limitNum;
-
-    const paginatedRecords = records.slice(skip, skip + limitNum);
-
-    // ============================================================
-    // RESPONSE
-    // ============================================================
+    const paginatedRecords = visibleRecords.slice(skip, skip + limitNum);
 
     return res.json({
       records: paginatedRecords,
 
       summary: {
         totalEmployees: records.length,
-
         clockedInCount,
-
         clockedOutCount,
-
         notClockedInCount,
+        onLunchCount,
       },
 
       pagination: {

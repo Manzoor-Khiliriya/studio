@@ -10,8 +10,14 @@ router.use(authenticate);
 router.get("/today", attendanceController.getTodayStatus);
 router.post("/clock-in", attendanceController.clockIn);
 router.post("/clock-out", attendanceController.clockOut);
+router.post("/lunch/start", attendanceController.startLunch);
+router.post("/lunch/end", attendanceController.endLunch);
 
 // Admin Route (New)
-router.get("/admin/all", authorize(ROLE.ADMIN, ROLE.HR_MANAGER), attendanceController.getAllAttendance);
+router.get(
+  "/admin/all",
+  authorize(ROLE.ADMIN, ROLE.HR_MANAGER),
+  attendanceController.getAllAttendance,
+);
 
 module.exports = router;

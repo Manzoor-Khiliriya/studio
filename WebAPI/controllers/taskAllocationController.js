@@ -9,12 +9,17 @@ const emitEvent = (req, event, data, userIds = []) => {
   const io = req.app.get("socketio");
   if (!io) return;
   if (userIds.length) {
-    userIds.forEach((id) => {
-      io.to(id.toString()).emit(event, data);
-    });
+    userIds.forEach((id) => io.to(id.toString()).emit(event, data));
   } else {
     io.emit(event, data);
   }
+};
+
+const fmt = (sec) => {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  return `${h}h ${m}m ${s}s`;
 };
 
 exports.updateTaskAllocation = async (req, res) => {
@@ -25,6 +30,7 @@ exports.updateTaskAllocation = async (req, res) => {
       hours = 0,
       minutes = 0,
       seconds = 0,
+      reassign = true, // false = just correct the current slot's time
     } = req.body;
     const allocatedSeconds = hours * 3600 + minutes * 60 + seconds;
     const today = getToday();
@@ -35,17 +41,62 @@ exports.updateTaskAllocation = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Allocation not found" });
 
+    // populated copy, only used to compute worked time
+    const populated = await TaskAllocation.findById(req.params.id)
+      .populate({
+        path: "employee",
+        populate: { path: "user", select: "_id" },
+      })
+      .populate({
+        path: "task",
+        select: "timeLogs",
+        populate: {
+          path: "timeLogs",
+          select: "rawDurationSeconds dateString user logType isRunning startTime",
+        },
+      });
+
     if (role !== undefined) allocation.role = role;
     if (priorityOrder !== undefined) allocation.priorityOrder = priorityOrder;
 
-    const existingIndex = allocation.dailyAllocations.findIndex(
-      (d) => d.date === today,
-    );
-    if (existingIndex > -1) {
-      allocation.dailyAllocations[existingIndex].allocatedSeconds =
-        allocatedSeconds;
+    const todaySlots = allocation.dailyAllocations.filter((d) => d.date === today);
+    const openSlot = todaySlots.find((d) => !d.isClosed);
+    const closedSum = todaySlots
+      .filter((d) => d.isClosed)
+      .reduce((a, d) => a + (d.workedSeconds || 0), 0);
+
+    const totalWorked = computeWorkedSeconds(populated, today);
+    const openWorked = Math.max(0, totalWorked - closedSum);
+
+    const slotIsEmpty =
+      openSlot && (openSlot.allocatedSeconds || 0) === 0 && openWorked === 0;
+
+    if (openSlot && reassign && !slotIsEmpty) {
+      // freeze the old slot exactly as it is
+      openSlot.workedSeconds = openWorked;
+      openSlot.proficiency = calculateProficiency(
+        openWorked / 3600,
+        openSlot.allocatedSeconds || 0,
+      );
+      openSlot.isClosed = true;
+      openSlot.closedAt = new Date();
+
+      // start a new slot
+      allocation.dailyAllocations.push({
+        date: today,
+        allocatedSeconds,
+        assignedAt: new Date(),
+        isClosed: false,
+      });
+    } else if (openSlot) {
+      openSlot.allocatedSeconds = allocatedSeconds;
     } else {
-      allocation.dailyAllocations.push({ date: today, allocatedSeconds });
+      allocation.dailyAllocations.push({
+        date: today,
+        allocatedSeconds,
+        assignedAt: new Date(),
+        isClosed: false,
+      });
     }
 
     await allocation.save();
@@ -63,9 +114,7 @@ exports.updateTaskAllocation = async (req, res) => {
 exports.getEmployeeAllocations = async (req, res) => {
   try {
     const requestedDate = req.query.date || getToday();
-    const employeeNameFilter = (req.query.employeeName || "")
-      .trim()
-      .toLowerCase();
+    const employeeNameFilter = (req.query.employeeName || "").trim().toLowerCase();
     const today = getToday();
     const isToday = requestedDate === today;
 
@@ -89,8 +138,7 @@ exports.getEmployeeAllocations = async (req, res) => {
           },
           {
             path: "timeLogs",
-            select:
-              "rawDurationSeconds dateString user logType isRunning startTime",
+            select: "rawDurationSeconds dateString user logType isRunning startTime",
           },
           { path: "status", select: "name type" },
           { path: "activeStatus", select: "name type" },
@@ -100,16 +148,13 @@ exports.getEmployeeAllocations = async (req, res) => {
     const validAllocations = allocations.filter((allocation) => {
       const project = allocation.task?.project;
       const role = allocation.employee?.user?.role;
-
       if (role === "Admin") return false;
       if (!project) return false;
-
       if (isToday) {
         if (project.deleteStatus === "Enable") return false;
         if (["Submitted", "Inactive", "On hold"].includes(project.status))
           return false;
       }
-
       return true;
     });
 
@@ -120,39 +165,21 @@ exports.getEmployeeAllocations = async (req, res) => {
       const employeeId = allocation.employee?._id?.toString();
       if (!employeeId) return;
 
-      // Name filter — skip this allocation's employee entirely if it
-      // doesn't match. Doing this early avoids doing all the
-      // formatting/proficiency work for employees we won't return.
       if (employeeNameFilter) {
         const empName = (allocation.employee?.user?.name || "").toLowerCase();
         if (!empName.includes(employeeNameFilter)) return;
       }
 
-      const workedSeconds = computeWorkedSeconds(allocation, requestedDate);
-      const dayAllocation = allocation.dailyAllocations?.find(
+      const totalWorked = computeWorkedSeconds(allocation, requestedDate);
+      const daySlots = (allocation.dailyAllocations || []).filter(
         (d) => d.date === requestedDate,
       );
-      const allocatedSeconds = dayAllocation?.allocatedSeconds ?? 0;
+      const slots = daySlots.length ? daySlots : [null]; // today with no slot yet
+      const closedSum = daySlots
+        .filter((d) => d.isClosed)
+        .reduce((a, d) => a + (d.workedSeconds || 0), 0);
 
-      if (!isToday && workedSeconds === 0 && allocatedSeconds === 0) {
-        return;
-      }
-
-      if (!grouped[employeeId]) {
-        grouped[employeeId] = { employee: allocation.employee, tasks: [] };
-      }
-
-      const workedHours = workedSeconds / 3600;
-
-      const h = Math.floor(workedSeconds / 3600);
-      const m = Math.floor((workedSeconds % 3600) / 60);
-      const s = workedSeconds % 60;
-
-      allocation._doc.todayWorkedFormatted = `${h}h ${m}m ${s}s`;
-      allocation._doc.todayWorkedHours = workedHours;
-      allocation._doc.todayWorkedSeconds = workedSeconds;
-
-      allocation._doc.isCurrentlyWorking =
+      const isRunningNow =
         isToday &&
         (allocation.task?.timeLogs || []).some(
           (log) =>
@@ -161,49 +188,68 @@ exports.getEmployeeAllocations = async (req, res) => {
             log.logType === "work",
         );
 
-      const ah = Math.floor(allocatedSeconds / 3600);
-      const am = Math.floor((allocatedSeconds % 3600) / 60);
-      const as_ = allocatedSeconds % 60;
+      const base = allocation.toObject();
 
-      const overWorkedSeconds = Math.max(0, workedSeconds - allocatedSeconds);
-      const oh = Math.floor(overWorkedSeconds / 3600);
-      const om = Math.floor((overWorkedSeconds % 3600) / 60);
+      slots.forEach((slot, idx) => {
+        const isClosed = !!slot?.isClosed;
+        const workedSeconds = isClosed
+          ? slot.workedSeconds || 0
+          : Math.max(0, totalWorked - closedSum);
+        const allocatedSeconds = slot?.allocatedSeconds ?? 0;
 
-      allocation._doc.todayAllocatedFormatted = `${ah}h ${am}m ${as_}s`;
-      allocation._doc.todayAllocatedSeconds = allocatedSeconds;
-      allocation._doc.isOverWorked = workedSeconds > allocatedSeconds;
-      allocation._doc.overWorkedFormatted = `${oh}h ${om}m`;
-      const diffSeconds = Math.max(0, workedSeconds - allocatedSeconds);
-      const diffHours = +(diffSeconds / 3600).toFixed(2);
-      allocation._doc.diffHours = diffHours;
+        if (!isToday && workedSeconds === 0 && allocatedSeconds === 0) return;
 
-      if (isToday) {
-        const proficiency = calculateProficiency(workedHours, allocatedSeconds);
-        allocation._doc.proficiency = proficiency;
-
-        if (dayAllocation) {
-          bulkOps.push({
-            updateOne: {
-              filter: {
-                _id: allocation._id,
-                "dailyAllocations.date": requestedDate,
-              },
-              update: {
-                $set: { "dailyAllocations.$.proficiency": proficiency },
-              },
-            },
-          });
+        if (!grouped[employeeId]) {
+          grouped[employeeId] = { employee: allocation.employee, tasks: [] };
         }
-      } else {
-        allocation._doc.proficiency = dayAllocation?.proficiency ?? null;
-      }
 
-      grouped[employeeId].tasks.push(allocation);
+        const workedHours = workedSeconds / 3600;
+        const overSeconds = Math.max(0, workedSeconds - allocatedSeconds);
+        const diffH = Math.floor(overSeconds / 3600);
+        const diffM = Math.floor((overSeconds % 3600) / 60);
+
+        const row = {
+          ...base,
+          rowKey: `${allocation._id}-${slot?._id ?? "none"}`,
+          slotId: slot?._id ?? null,
+          slotIndex: idx + 1,
+          slotCount: slots.length,
+          isClosedSlot: isClosed,
+          todayWorkedFormatted: fmt(workedSeconds),
+          todayWorkedHours: workedHours,
+          todayWorkedSeconds: workedSeconds,
+          isCurrentlyWorking: isRunningNow && !isClosed,
+          todayAllocatedFormatted: fmt(allocatedSeconds),
+          todayAllocatedSeconds: allocatedSeconds,
+          isOverWorked: workedSeconds > allocatedSeconds,
+          overWorkedFormatted: `${diffH}h ${diffM}m`,
+          diffHours: diffH,
+          diffMinutes: diffM,
+          diffFormatted: `${diffH}h ${diffM}m`,
+        };
+
+        if (isToday && !isClosed) {
+          const proficiency = calculateProficiency(workedHours, allocatedSeconds);
+          row.proficiency = proficiency;
+
+          if (slot) {
+            bulkOps.push({
+              updateOne: {
+                filter: { _id: allocation._id },
+                update: { $set: { "dailyAllocations.$[s].proficiency": proficiency } },
+                arrayFilters: [{ "s._id": slot._id }],
+              },
+            });
+          }
+        } else {
+          row.proficiency = slot?.proficiency ?? null;
+        }
+
+        grouped[employeeId].tasks.push(row);
+      });
     });
 
-    if (bulkOps.length) {
-      await TaskAllocation.bulkWrite(bulkOps);
-    }
+    if (bulkOps.length) await TaskAllocation.bulkWrite(bulkOps);
 
     return res.status(200).json({
       success: true,
@@ -211,9 +257,6 @@ exports.getEmployeeAllocations = async (req, res) => {
       date: requestedDate,
     });
   } catch (err) {
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

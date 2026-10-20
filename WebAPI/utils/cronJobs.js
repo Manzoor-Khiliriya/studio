@@ -394,11 +394,28 @@ async function runMidnightShutdown() {
 
     const activeAttendance = await Attendance.find({ clockOut: null });
     for (const record of activeAttendance) {
-      const sessionSeconds = Math.floor(
-        (currentTime - new Date(record.lastResumeTime)) / 1000,
-      );
+      if (record.isOnLunch) {
+        if (record.lunchStartTime) {
+          record.totalLunchSeconds =
+            (record.totalLunchSeconds || 0) +
+            Math.max(
+              0,
+              Math.floor(
+                (currentTime - new Date(record.lunchStartTime)) / 1000,
+              ),
+            );
+        }
+        record.isOnLunch = false;
+        record.lunchStartTime = null;
+      } else if (record.lastResumeTime) {
+        record.totalSecondsWorked += Math.max(
+          0,
+          Math.floor((currentTime - new Date(record.lastResumeTime)) / 1000),
+        );
+      }
+
       record.clockOut = currentTime;
-      record.totalSecondsWorked += sessionSeconds;
+      record.lastResumeTime = null;
       await record.save();
     }
     console.log(`🕛 Clocked out ${activeAttendance.length} users`);
@@ -458,7 +475,11 @@ module.exports = (io) => {
           { $set: { lastActiveAt: null } },
         );
         // 🔥 STOP TIMELOG
-        const logs = await TimeLog.find({ user: user._id, isRunning: true });
+        const logs = await TimeLog.find({
+          user: user._id,
+          isRunning: true,
+          fromLunch: { $ne: true },
+        });
 
         for (const log of logs) {
           const rawSeconds = Math.max(

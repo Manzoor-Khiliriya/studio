@@ -13,6 +13,24 @@ const { buildApprovalFlow } = require("../utils/leaveApprovalFlow");
 const Employee = require("../models/Employee");
 const moment = require("moment-timezone");
 
+const TZ = "Asia/Kolkata";
+
+const buildRange = (from, to) => {
+  if (!from && !to) return null;
+  const range = {};
+  if (from) range.$gte = moment.tz(from, TZ).startOf("day").toDate();
+  if (to) range.$lte = moment.tz(to, TZ).endOf("day").toDate();
+  return range;
+};
+
+const applyExtraDateFilters = (query, q) => {
+  const requested = buildRange(q.requestedFrom, q.requestedTo);
+  const resume = buildRange(q.resumeFrom, q.resumeTo);
+  if (requested) query.createdAt = requested;
+  if (resume) query.resumeDate = resume;
+  return query;
+};
+
 const emitEvent = (req, event, data, userId = null) => {
   const io = req.app.get("socketio");
   if (!io) return;
@@ -147,7 +165,7 @@ exports.getMyLeaves = async (req, res) => {
 //
 exports.applyLeave = async (req, res) => {
   try {
-    const { type, startDate, endDate, reason } = req.body;
+    const { type, startDate, endDate, resumeDate, reason } = req.body;
     const userId = req.user._id;
 
     const requestedDays = await calculateLeaveDays(startDate, endDate);
@@ -158,6 +176,18 @@ exports.applyLeave = async (req, res) => {
     });
     if (hasLeaveOverlap(existing, startDate, endDate)) {
       return res.status(400).json({ message: "Overlap with existing leave." });
+    }
+
+    if (!resumeDate) {
+      return res.status(400).json({
+        message: "Resume date is required",
+      });
+    }
+
+    if (new Date(resumeDate) <= new Date(endDate)) {
+      return res.status(400).json({
+        message: "Resume date must be after the leave end date",
+      });
     }
 
     const setting = await LeaveSetting.findOne({ leaveType: type });
@@ -226,6 +256,7 @@ exports.applyLeave = async (req, res) => {
       type,
       startDate,
       endDate,
+      resumeDate,
       reason,
       approvalFlow,
       currentLevel: 0,
@@ -282,6 +313,11 @@ exports.getAllLeaves = async (req, res) => {
       dateRange,
       startDate: customStart,
       endDate: customEnd,
+      leaveType,
+      requestedFrom,
+      requestedTo,
+      resumeFrom,
+      resumeTo,
     } = req.query;
 
     const role = req.user?.role;
@@ -458,7 +494,15 @@ exports.getAllLeaves = async (req, res) => {
     }
 
     if (view === "leave-history") {
+      const SPECIAL_TYPES = ["LOP", "Compensatory Off"];
+
       let query = { status: "Approved" };
+
+      if (leaveType === "exclude-special") {
+        query.type = { $nin: SPECIAL_TYPES };
+      } else if (leaveType && leaveType !== "All") {
+        query.type = leaveType;
+      }
 
       if (filterStart && filterEnd) {
         query.$or = [
@@ -492,6 +536,8 @@ exports.getAllLeaves = async (req, res) => {
 
         query.user = { $in: users.map((u) => u._id) };
       }
+
+      applyExtraDateFilters(query, req.query);
 
       const totalLeaves = await Leave.countDocuments(query);
 
@@ -528,7 +574,7 @@ exports.getAllLeaves = async (req, res) => {
     }
 
     // --- VIEW 2: CASUAL & LOP (Filtered & Sorted by START date) ---
-    if (view === "casual-lop") {
+    if (view === "lop/lwp") {
       let query = { type: { $in: ["LOP"] }, status: "Approved" };
 
       if (filterStart && filterEnd) {
@@ -541,6 +587,8 @@ exports.getAllLeaves = async (req, res) => {
         }).select("_id");
         query.user = { $in: users.map((u) => u._id) };
       }
+
+      applyExtraDateFilters(query, req.query);
 
       const totalLeaves = await Leave.countDocuments(query);
       const leavesRaw = await Leave.find(query)
@@ -562,7 +610,7 @@ exports.getAllLeaves = async (req, res) => {
       );
 
       return res.json({
-        view: "casual-lop",
+        view: "lop/lwp",
         leaves,
         pagination: {
           totalLeaves,
@@ -585,6 +633,8 @@ exports.getAllLeaves = async (req, res) => {
         }).select("_id");
         query.user = { $in: users.map((u) => u._id) };
       }
+
+      applyExtraDateFilters(query, req.query); // ADD THIS
 
       const totalLeaves = await Leave.countDocuments(query);
       const leavesRaw = await Leave.find(query)
@@ -788,6 +838,13 @@ exports.processLeave = async (req, res) => {
 
     if (!leave || leave.status !== "Pending") {
       return res.status(400).json({ message: "Invalid request" });
+    }
+
+    if (!leave.resumeDate) {
+      return res.status(400).json({
+        message:
+          "Please update the leave request and select a resume date before processing it.",
+      });
     }
 
     const newStatus = req.body.status;
@@ -1061,10 +1118,28 @@ exports.updateLeave = async (req, res) => {
         .status(400)
         .json({ message: "Cannot update processed leaves" });
     }
+
     const updatedLeave = {
       ...leave.toObject(),
       ...req.body,
     };
+
+    if (!updatedLeave.resumeDate) {
+      return res.status(400).json({
+        message: "Resume date is required",
+      });
+    }
+
+    if (
+      !updatedLeave.endDate ||
+      new Date(updatedLeave.resumeDate).getTime() <=
+        new Date(updatedLeave.endDate).getTime()
+    ) {
+      return res.status(400).json({
+        message: "Resume date must be after the leave end date",
+      });
+    }
+
     const existing = await Leave.find({
       user: leave.user,
       status: { $ne: "Rejected" },

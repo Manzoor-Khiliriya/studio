@@ -42,7 +42,7 @@ export default function AttendanceManagement() {
   const [activeTab, setActiveTab] = useState(
     (user?.role === "Admin" || user?.role === "Hr Manager") ? "logs" : "calendar"
   );
-
+  const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState("");
@@ -69,6 +69,7 @@ export default function AttendanceManagement() {
     page: page,
     limit: limit,
     search: debouncedSearch,
+    status: statusFilter,
   }, {
     skip:
       !["Hr Manager", "Admin"].includes(user?.role) ||
@@ -103,6 +104,7 @@ export default function AttendanceManagement() {
   const attendanceSummary = data?.summary || {
     totalEmployees: 0,
     clockedInCount: 0,
+    onLunchCount: 0,
     clockedOutCount: 0,
     notClockedInCount: 0,
   };
@@ -157,6 +159,7 @@ export default function AttendanceManagement() {
       startDate: format(startOfToday(), "yyyy-MM-dd"),
       endDate: format(endOfToday(), "yyyy-MM-dd"),
     });
+    setStatusFilter("all");
     setPage(1);
   };
 
@@ -210,6 +213,7 @@ export default function AttendanceManagement() {
       "Clock In",
       "Clock Out",
       "Total Hours Worked",
+      "Lunch Time",
       "Status",
     ];
 
@@ -221,6 +225,9 @@ export default function AttendanceManagement() {
       r.clockOut ? new Date(r.clockOut).toLocaleTimeString("en-IN") : "Not Clocked Out",
       r.totalSecondsWorked
         ? `${Math.floor(r.totalSecondsWorked / 3600)}h ${Math.floor((r.totalSecondsWorked % 3600) / 60)}m`
+        : "0h 0m",
+      r.totalLunchSeconds
+        ? `${Math.floor(r.totalLunchSeconds / 3600)}h ${Math.floor((r.totalLunchSeconds % 3600) / 60)}m`
         : "0h 0m",
       r.status || "N/A",
     ]);
@@ -285,6 +292,22 @@ export default function AttendanceManagement() {
             </div>
 
             <CustomDropdown
+              value={statusFilter}
+              onChange={(val) => {
+                setStatusFilter(val);
+                setPage(1);
+              }}
+              options={[
+                { label: "All Status", value: "all" },
+                { label: "Clocked In", value: "clocked_in" },
+                { label: "On Lunch", value: "on_lunch" },
+                { label: "Clocked Out", value: "clocked_out" },
+                { label: "Not Clocked In", value: "not_clocked_in" },
+              ]}
+              buttonClass="py-3.5 px-4 bg-slate-100/80 rounded-xl border border-slate-200/50 shadow-sm text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer text-slate-500 hover:text-slate-800 min-w-[160px]"
+            />
+
+            <CustomDropdown
               value={rangeType}
               onChange={handleRangeChange}
               options={[
@@ -321,7 +344,7 @@ export default function AttendanceManagement() {
               </div>
             )}
 
-            {(search || rangeType !== "today") && (
+            {(search || rangeType !== "today" || statusFilter !== "all") && (
               <button
                 onClick={resetFilters}
                 className="shadow-sm flex items-center gap-2 px-6 py-3.5 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all font-bold text-xs cursor-pointer"
@@ -344,7 +367,7 @@ export default function AttendanceManagement() {
         {/* DATA VIEW CONTAINER */}
         {activeTab === "logs" ? (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
 
               {/* Total Employees */}
               <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
@@ -376,6 +399,17 @@ export default function AttendanceManagement() {
 
                 <div className="text-2xl font-black text-blue-700 mt-2">
                   {attendanceSummary.clockedOutCount}
+                </div>
+              </div>
+
+              {/* On Lunch */}
+              <div className="bg-purple-50 border border-purple-200 rounded-2xl p-5 shadow-sm">
+                <div className="text-[10px] font-black uppercase tracking-widest text-purple-600">
+                  On Lunch
+                </div>
+
+                <div className="text-2xl font-black text-purple-700 mt-2">
+                  {attendanceSummary.onLunchCount}
                 </div>
               </div>
 

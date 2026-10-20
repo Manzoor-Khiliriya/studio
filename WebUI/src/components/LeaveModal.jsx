@@ -13,6 +13,7 @@ const LeaveModal = ({ isOpen, onClose, initialData }) => {
     startDate: "",
     endDate: "",
     reason: "",
+    resumeDate: "",
   });
 
   const [applyLeave, { isLoading: isApplying }] = useApplyLeaveMutation();
@@ -24,10 +25,16 @@ const LeaveModal = ({ isOpen, onClose, initialData }) => {
         type: initialData.type || "Sick Leave",
         startDate: initialData.startDate ? new Date(initialData.startDate).toISOString().split("T")[0] : "",
         endDate: initialData.endDate ? new Date(initialData.endDate).toISOString().split("T")[0] : "",
+        resumeDate: initialData.resumeDate
+          ? new Date(initialData.resumeDate).toISOString().split("T")[0]
+          : "",
         reason: initialData.reason || "",
       });
     } else if (isOpen) {
-      setFormData({ type: "Sick Leave", startDate: "", endDate: "", reason: "" });
+      setFormData({
+        type: "Sick Leave", startDate: "", endDate: "", resumeDate: "",
+        reason: ""
+      });
     }
   }, [initialData, isOpen]);
 
@@ -119,6 +126,31 @@ const LeaveModal = ({ isOpen, onClose, initialData }) => {
             />
           </InputGroup>
         </div>
+
+        <InputGroup label="Resume Date *">
+          <HiOutlineCalendarDays className="input-icon" />
+          <input
+            type="date"
+            name="resumeDate"
+            value={formData.resumeDate}
+            min={
+              formData.endDate
+                ? (() => {
+                  const date = new Date(`${formData.endDate}T12:00:00`);
+                  date.setDate(date.getDate() + 1);
+                  return [
+                    date.getFullYear(),
+                    String(date.getMonth() + 1).padStart(2, "0"),
+                    String(date.getDate()).padStart(2, "0"),
+                  ].join("-");
+                })()
+                : formData.startDate
+            }
+            onChange={handleChange}
+            required
+            className="form-input tabular-nums"
+          />
+        </InputGroup>
 
         <InputGroup label="Leave Reason *">
           <HiOutlineChatBubbleLeftRight className="input-icon !top-6.5 translate-y-0" />

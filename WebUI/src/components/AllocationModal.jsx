@@ -11,15 +11,19 @@ export default function AllocationModal({ allocation, onClose, onSuccess }) {
     const [role, setRole] = useState(allocation.role);
     const [priorityOrder, setPriorityOrder] = useState(allocation.priorityOrder);
 
+    // "reassign" = close current slot and start fresh | "edit" = just fix current slot
+    const [mode, setMode] = useState("reassign");
+
     const [updateAllocation, { isLoading }] = useUpdateTaskAllocationMutation();
 
     const handleSave = async () => {
         try {
             await updateAllocation({
                 id: allocation._id,
-                hours, minutes, seconds, role, priorityOrder
+                hours, minutes, seconds, role, priorityOrder,
+                reassign: mode === "reassign",
             }).unwrap();
-            toast.success("Allocation updated");
+            toast.success(mode === "reassign" ? "Task reassigned" : "Allocation updated");
             onSuccess();
             onClose();
         } catch (err) {
@@ -32,7 +36,7 @@ export default function AllocationModal({ allocation, onClose, onSuccess }) {
             isOpen={true}
             onClose={onClose}
             title="Update Allocation"
-            submitText="Update"
+            submitText={mode === "reassign" ? "Reassign" : "Update"}
             isLoading={isLoading}
             onSubmit={handleSave}
             maxWidth="max-w-md"
@@ -45,9 +49,41 @@ export default function AllocationModal({ allocation, onClose, onSuccess }) {
                 <p className="text-sm font-black text-slate-700 uppercase">
                     {allocation.task?.title}
                 </p>
+                {allocation.slotCount > 1 && (
+                    <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+                        Slot {allocation.slotIndex}
+                    </span>
+                )}
             </div>
 
             <div className="space-y-4">
+
+                {/* MODE TOGGLE */}
+                <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-xl">
+                    {[
+                        { key: "reassign", label: "Assign Again" },
+                        { key: "edit", label: "Fix Current" },
+                    ].map((m) => (
+                        <button
+                            key={m.key}
+                            type="button"
+                            onClick={() => setMode(m.key)}
+                            className={`py-2 rounded-lg text-[11px] font-black uppercase transition-all cursor-pointer ${
+                                mode === m.key
+                                    ? "bg-white text-orange-600 shadow-sm"
+                                    : "text-slate-500 hover:text-slate-700"
+                            }`}
+                        >
+                            {m.label}
+                        </button>
+                    ))}
+                </div>
+
+                <p className="text-[10px] font-bold text-slate-500 -mt-2">
+                    {mode === "reassign"
+                        ? "Saves today's current time as it is and starts a new slot from 0h 0m 0s."
+                        : "Only corrects the target time of the current slot. No new slot is created."}
+                </p>
 
                 {/* PRIORITY + ROLE */}
                 <div className="grid grid-cols-2 gap-3">
@@ -74,7 +110,7 @@ export default function AllocationModal({ allocation, onClose, onSuccess }) {
                 </div>
 
                 {/* ALLOCATED TIME */}
-                <InputGroup label="Today's Allocated Time">
+                <InputGroup label={mode === "reassign" ? "New Slot Allocated Time" : "Today's Allocated Time"}>
                     <div className="flex items-center gap-2">
                         <div className="flex-1">
                             <input
@@ -119,7 +155,7 @@ export default function AllocationModal({ allocation, onClose, onSuccess }) {
                     <span className="text-sm font-black text-slate-700 uppercase tracking-widest">
                         Worked Today :
                     </span>
-                    <span className={`text-sm font-black text-emerald-600`}>
+                    <span className="text-sm font-black text-emerald-600">
                         {allocation.todayWorkedFormatted || "0h 0m 0s"}
                         {allocation.isOverWorked && (
                             <span className="text-rose-600 text-[10px] ml-2">

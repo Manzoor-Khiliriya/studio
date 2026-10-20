@@ -86,13 +86,17 @@ const AdminDashboard = () => {
   const liveTracking = data?.liveTracking || [];
   const recentActivity = data?.recentActivity || [];
 
-  // 🔥 NEW: breakdown counts for the status summary row (always full counts, not affected by search/filter)
   const activeOnTaskCount = liveTracking.filter(
     (t) => t.displayStatus === "work"
   ).length;
 
   const onBreakCount = liveTracking.filter(
     (t) => t.displayStatus === "break"
+  ).length;
+
+  // 🔥 NEW
+  const onLunchCount = liveTracking.filter(
+    (t) => t.displayStatus === "lunch"
   ).length;
 
   const nonWorkingCount = liveTracking.filter(
@@ -205,6 +209,14 @@ const AdminDashboard = () => {
   };
 
   const filteredLiveTracking = liveTracking.filter((timer) => {
+
+    if (
+      user?.role === "Manager" &&
+      timer.displayStatus === "not-clocked-in"
+    ) {
+      return false;
+    }
+
     const term = timerSearch.trim().toLowerCase();
 
     const matchesSearch =
@@ -232,7 +244,7 @@ const AdminDashboard = () => {
           <div className={user?.role === "Admin" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 mt-10" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-12 mt-10"}>
 
             <StatCard
-              label="Total Employees"
+              label="Project Force"
               value={user?.role === "Admin" ? data?.allEmployeesCount || 0 : stats.totalActiveEmployees || 0}
               icon={<HiOutlineUsers size={22} />}
               delay={0.4}
@@ -244,7 +256,7 @@ const AdminDashboard = () => {
             />
 
             <StatCard
-              label="Total Attendance"
+              label="Project Attendance"
               value={stats.attendanceLive || 0}
               variant={stats.attendanceLive > 0 ? "active" : "default"}
               icon={<HiOutlineFingerPrint size={22} />}
@@ -266,7 +278,6 @@ const AdminDashboard = () => {
             )}
 
             {user?.role === "Admin" && (
-              // 🔥 RENAMED: "Active On Projects" -> "Project Attendance" (matches reference)
               <StatCard
                 label="Project Attendance"
                 value={data?.clockedInEmployeesCount || 0}
@@ -315,7 +326,6 @@ const AdminDashboard = () => {
               } />
 
             {user?.role === "Admin" && (
-              // 🔥 RENAMED: "Active On Projects" -> "Project Attendance" (matches reference)
               <StatCard
                 label="Current Time"
                 value={new Date().toLocaleTimeString() || 0}
@@ -376,8 +386,12 @@ const AdminDashboard = () => {
                         { value: "all", label: "All Log Types" },
                         { value: "work", label: "Active On Task" },
                         { value: "break", label: "On Break" },
+                        { value: "lunch", label: "On Lunch" },
                         { value: "non-working", label: "Available" },
-                        { value: "not-clocked-in", label: "Not Clocked In" },
+
+                        ...(user?.role === "Admin"
+                          ? [{ value: "not-clocked-in", label: "Not Clocked In" }]
+                          : []),
                       ]}
                       placeholder="Filter by Status"
                       className=" max-w-[100px] min-w-[100px]"
@@ -395,11 +409,13 @@ const AdminDashboard = () => {
                           ? "Employees"
                           : statusFilter === "break"
                             ? "On Break"
-                            : statusFilter === "non-working"
-                              ? "Available"
-                              : statusFilter === "not-clocked-in"
-                                ? "Not Clocked In"
-                                : "Active On Task"}
+                            : statusFilter === "lunch"
+                              ? "On Lunch"
+                              : statusFilter === "non-working"
+                                ? "Available"
+                                : statusFilter === "not-clocked-in"
+                                  ? "Not Clocked In"
+                                  : "Active On Task"}
                       </span>
                     </div>
 
@@ -417,7 +433,7 @@ const AdminDashboard = () => {
                 )}
               </div>
 
-              {/* 🔥 NEW: status summary row, matches reference image */}
+              {/* status summary row */}
               {(user?.role === "Admin" || user?.role === "Manager") && (
                 <div className="flex flex-wrap justify-between items-center gap-x-6 gap-y-1 mb-2 sm:mb-3 px-1 shrink-0">
                   <span className="text-[10px] font-black text-emerald-600 uppercase tracking-wide">
@@ -428,13 +444,20 @@ const AdminDashboard = () => {
                     On break : {String(onBreakCount).padStart(2, "0")}
                   </span>
 
+                  {/* 🔥 NEW */}
+                  <span className="text-[10px] font-black text-purple-700 uppercase tracking-wide">
+                    On lunch : {String(onLunchCount).padStart(2, "0")}
+                  </span>
+
                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-wide">
                     Available : {String(nonWorkingCount).padStart(2, "0")}
                   </span>
 
-                  <span className="text-[10px] font-black text-blue-600 uppercase tracking-wide">
-                    Not clocked in : {String(notClockedInCount).padStart(2, "0")}
-                  </span>
+                  {user?.role === "Admin" && (
+                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-wide">
+                      Not clocked in : {String(notClockedInCount).padStart(2, "0")}
+                    </span>
+                  )}
                 </div>
               )}
 
@@ -463,13 +486,15 @@ const AdminDashboard = () => {
                           />
 
                           <div
-                            className={`absolute -bottom-1 -right-1 w-3 h-3 border-2 border-white rounded-full ${timer.displayStatus === "break"
-                              ? "bg-amber-500"
-                              : timer.displayStatus === "not-clocked-in"
-                                ? "bg-blue-500"
-                                : timer.displayStatus === "non-working"
-                                  ? "bg-slate-400"
-                                  : "bg-emerald-500"
+                            className={`absolute -bottom-1 -right-1 w-3 h-3 border-2 border-white rounded-full ${timer.displayStatus === "lunch"
+                              ? "bg-purple-500"
+                              : timer.displayStatus === "break"
+                                ? "bg-amber-500"
+                                : timer.displayStatus === "not-clocked-in"
+                                  ? "bg-blue-500"
+                                  : timer.displayStatus === "non-working"
+                                    ? "bg-slate-400"
+                                    : "bg-emerald-500"
                               }`}
                           />
                         </div>
@@ -480,7 +505,7 @@ const AdminDashboard = () => {
                             </p>
                           </div>
                           <p className="text-[9px] text-slate-600 font-bold uppercase truncate">
-                            {timer.displayStatus === "work" || timer.displayStatus === "break"
+                            {timer.task && ["work", "break", "lunch"].includes(timer.displayStatus)
                               ? `${timer.task} - ${timer?.projectTitle} (${timer.projectCode})`
                               : "No active task"}
                           </p>
@@ -488,27 +513,30 @@ const AdminDashboard = () => {
                         {(user?.role === "Admin" || user?.role === "Manager") && (
                           <>
 
-                            {/* 🔥 RENAMED: "Working" -> "Active on task" */}
                             <span
-                              className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase ${timer.displayStatus === "not-clocked-in"
-                                ? "bg-blue-50 text-blue-600 border border-blue-200"
-                                : timer.displayStatus === "non-working"
-                                  ? "bg-white text-slate-500 border border-slate-200"
-                                  : timer.displayStatus === "break"
-                                    ? "bg-amber-100 text-amber-700 border border-amber-200"
-                                    : "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                              className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase ${timer.displayStatus === "lunch"
+                                ? "bg-purple-100 text-purple-700 border border-purple-200"
+                                : timer.displayStatus === "not-clocked-in"
+                                  ? "bg-blue-50 text-blue-600 border border-blue-200"
+                                  : timer.displayStatus === "non-working"
+                                    ? "bg-white text-slate-500 border border-slate-200"
+                                    : timer.displayStatus === "break"
+                                      ? "bg-amber-100 text-amber-700 border border-amber-200"
+                                      : "bg-emerald-100 text-emerald-700 border border-emerald-200"
                                 }`}
                             >
-                              {timer.displayStatus === "not-clocked-in"
-                                ? "Not Clocked In"
-                                : timer.displayStatus === "non-working"
-                                  ? "Available"
-                                  : timer.displayStatus === "break"
-                                    ? "On Break"
-                                    : "Active On Task"}
+                              {timer.displayStatus === "lunch"
+                                ? "On Lunch"
+                                : timer.displayStatus === "not-clocked-in"
+                                  ? "Not Clocked In"
+                                  : timer.displayStatus === "non-working"
+                                    ? "Available"
+                                    : timer.displayStatus === "break"
+                                      ? "On Break"
+                                      : "Active On Task"}
                             </span>
-                            {(timer.displayStatus === "work" ||
-                              timer.displayStatus === "break") &&
+                            {["work", "break", "lunch"].includes(timer.displayStatus) &&
+                              timer.isTaskRunning &&
                               user?.role === "Admin" && (
                                 <button
                                   onClick={(e) => {

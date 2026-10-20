@@ -9,7 +9,6 @@ const { calculateEstimatedHours } = require("../utils/taskHelpers");
 const { emitDashboardUpdate, emitToTask } = require("../utils/socket");
 const { getToday, now } = require("../utils/dateHelper");
 const User = require("../models/User");
-const { ROLE, STATUS } = require("../utils/constant");
 const TaskStatus = require("../models/TaskStatus");
 const { applyProficiency } = require("../utils/userHelpers");
 
@@ -341,6 +340,13 @@ exports.updateTaskStatus = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Task not found",
+      });
+    }
+
+    if (task?.isDefault) {
+      return res.status(400).json({
+        success: false,
+        message: "The default project task cannot have its status changed",
       });
     }
 
@@ -892,12 +898,12 @@ exports.getMyTasks = async (req, res) => {
       const am = Math.floor((todayAllocatedSeconds % 3600) / 60);
       const as_ = todayAllocatedSeconds % 60;
 
-      // 🔥 NEW: diff, only meaningful when over target, in hours (2 decimals)
       const diffSeconds = Math.max(
         0,
         todayWorkedSeconds - todayAllocatedSeconds,
       );
-      const diffHours = +(diffSeconds / 3600).toFixed(2);
+      const diffH = Math.floor(diffSeconds / 3600);
+      const diffM = Math.floor((diffSeconds % 3600) / 60);
 
       return {
         ...task.toObject(),
@@ -910,7 +916,9 @@ exports.getMyTasks = async (req, res) => {
               priorityOrder: allocation.priorityOrder,
               todayAllocatedSeconds,
               todayAllocatedFormatted: `${ah}h ${am}m ${as_}s`,
-              diffHours, // 🔥 NEW
+              diffHours: diffH,
+              diffMinutes: diffM,
+              diffFormatted: `${diffH}h ${diffM}m`,
             }
           : null,
       };

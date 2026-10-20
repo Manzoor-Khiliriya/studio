@@ -14,6 +14,14 @@ const getStatusColor = (status) => {
   return statusMap[status?.toLowerCase()] || "text-yellow-600";
 };
 
+const formatHoursAndMinutes = (hours) => {
+  const totalMinutes = Math.round((Number(hours) || 0) * 60);
+  const wholeHours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  return `${wholeHours} H ${minutes} M`;
+};
+
 const renderUtilization = (task) => {
   const progress = Math.min(task.progressPercent || 0, 100);
   const isWarning = task.isOverBudget || progress > 90;
@@ -21,23 +29,31 @@ const renderUtilization = (task) => {
   return (
     <div className="flex flex-col min-w-[180px]">
       <div className="flex justify-between items-end mb-1">
-        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+        <span className="text-[9px] font-black text-slate-800 uppercase tracking-widest">
           <span className="text-slate-900">
-            {(task.totalConsumedHours || 0).toFixed(1)}h
-          </span>{" "}
-          / {(task.allocatedTime || 0).toFixed(1)}h
+            {formatHoursAndMinutes(task.totalConsumedHours)}
+          </span>
+          {" / "}
+          {(task.allocatedTime || 0).toFixed(1)}h
         </span>
 
-        <span className={`text-[10px] font-black ${isWarning ? "text-rose-600" : "text-emerald-600"}`}>
-          {progress}%
+        <span
+          className={`text-[10px] font-black ${isWarning ? "text-rose-600" : "text-emerald-600"
+            }`}
+        >
+          {Math.round(task.progressPercent || 0)}%
         </span>
       </div>
 
       <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
         <div
-          className={`h-full transition-all duration-700 rounded-full ${isWarning ? "bg-rose-500 animate-pulse" : "bg-emerald-500"
+          className={`h-full transition-all duration-700 rounded-full ${isWarning
+              ? "bg-rose-500 animate-pulse"
+              : "bg-emerald-500"
             }`}
-          style={{ width: `${progress}%` }}
+          style={{
+            width: `${Math.min(Math.max(task.progressPercent || 0, 0), 100)}%`,
+          }}
         />
       </div>
     </div>
@@ -55,9 +71,12 @@ export const getAdminTaskColumns = (
       header: <span className={headerClass}>Task Title</span>,
       className: "text-left",
       render: (task) => (
-        <p className="font-black text-slate-900 text-[11px] uppercase tracking-tight group-hover:text-orange-600 transition-colors">
-          {task.title}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="font-black text-slate-900 text-[11px] uppercase tracking-tight group-hover:text-orange-600 transition-colors">
+            {task.title}
+          </p>
+
+        </div>
       ),
     },
 
@@ -65,7 +84,7 @@ export const getAdminTaskColumns = (
       header: <span className={headerClass}>Task Details</span>,
       className: "text-left",
       render: (task) => (
-        <p className="text-[9px] font-bold text-slate-600 line-clamp-1 italic">
+        <p className="text-[9px] font-bold text-slate-700 line-clamp-1 italic">
           {task.description || "No task details."}
         </p>
       ),
@@ -84,7 +103,6 @@ export const getAdminTaskColumns = (
 
             const code = emp.employeeCode?.trim();
 
-            // Only show (CODE) if code actually exists
             return code ? `${name} (${code.toUpperCase()})` : name;
           })
           .join(", ");
@@ -121,8 +139,9 @@ export const getAdminTaskColumns = (
       className: "text-center",
       cellClassName: "text-center",
       render: (task) => (
+        // 🔥 CHANGED: default task has no taskStatus concept — show a dash instead of blank
         <span className={`text-[9px] text-slate-900 font-black`}>
-          {task?.taskStatus?.name || ""}
+          {task.isDefault ? "" : task?.taskStatus?.name || ""}
         </span>
       )
     },
@@ -133,7 +152,7 @@ export const getAdminTaskColumns = (
       render: (task) =>
       (
         <span className={`text-[9px] text-slate-900 font-black`}>
-          {task?.status?.name || ""}
+          {task.isDefault ? "" : task?.status?.name || ""}
         </span>
       )
     },
@@ -143,7 +162,7 @@ export const getAdminTaskColumns = (
       cellClassName: "text-center",
       render: (task) => (
         <span className={`text-[9px] text-slate-900 font-black`}>
-          {task?.activeStatus?.name || ""}
+          {task.isDefault ? "" : task?.activeStatus?.name || ""}
         </span>
       )
     },
@@ -153,6 +172,8 @@ export const getAdminTaskColumns = (
       cellClassName: "text-center",
       render: (task) => (
         <div className="flex justify-center gap-2">
+          {/* 🔥 CHANGED: hide team assignment + status update for the default task */}
+
           <button
             onClick={(e) => { e.stopPropagation(); onAssignTeam(task); }}
             title="Assign Team"
@@ -161,13 +182,17 @@ export const getAdminTaskColumns = (
             <HiOutlineUserPlus size={18} />
           </button>
 
-          <button
-            onClick={(e) => { e.stopPropagation(); onStatusUpdate(task); }}
-            title="Update Status"
-            className="text-emerald-500 hover:text-emerald-600 transition-all active:scale-90 cursor-pointer"
-          >
-            <HiOutlineArrowPath size={18} />
-          </button>
+          {!task.isDefault && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); onStatusUpdate(task); }}
+                title="Update Status"
+                className="text-emerald-500 hover:text-emerald-600 transition-all active:scale-90 cursor-pointer"
+              >
+                <HiOutlineArrowPath size={18} />
+              </button>
+            </>
+          )}
 
           {role === "Admin" && (
             <>
@@ -179,7 +204,6 @@ export const getAdminTaskColumns = (
                 <FiEdit size={18} />
               </button>
 
-              {/* --- NEW DELETE BUTTON --- */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();

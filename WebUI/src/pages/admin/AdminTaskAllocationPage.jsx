@@ -7,6 +7,7 @@ import { FiEdit, FiCalendar } from "react-icons/fi";
 import AllocationModal from "../../components/AllocationModal";
 import useDebounce from "../../hooks/useDebounce";
 import { HiOutlineXMark } from "react-icons/hi2";
+import { useNavigate } from "react-router-dom";
 
 const getTodayStr = () => {
   const now = new Date();
@@ -17,6 +18,7 @@ export default function AdminTaskAllocationPage() {
   const [selectedAllocation, setSelectedAllocation] = useState(null);
   const [selectedDate, setSelectedDate] = useState(getTodayStr());
   const [nameFilter, setNameFilter] = useState("");
+  const navigate = useNavigate();
 
   const todayStr = getTodayStr();
   const isToday = selectedDate === todayStr;
@@ -146,9 +148,19 @@ export default function AdminTaskAllocationPage() {
                 >
                   {/* EMPLOYEE NAME */}
                   <div className="px-4 py-3 text-center border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-2 rounded-t-[1.5rem]">
-                    <h2 className="text-lg font-black uppercase text-slate-900">
-                      {group.employee?.user?.name} {group.employee.employeeCode ? `(${group.employee?.user?.role} - ${group.employee?.employeeCode})` : `(${group.employee?.user?.role})`}
-                    </h2>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!group.employee?.user?._id) return;
+                        navigate(`/employees/${group.employee.user._id}`);
+                      }}
+                      className="text-lg font-black uppercase text-slate-900 hover:text-orange-600 transition-colors cursor-pointer text-left"
+                    >
+                      {group.employee?.user?.name}{" "}
+                      {group.employee?.employeeCode
+                        ? `(${group.employee?.user?.role} - ${group.employee?.employeeCode})`
+                        : `(${group.employee?.user?.role})`}
+                    </button>
                     <span className="text-[9px] font-black text-slate-800 uppercase tracking-widest">
                       {group.tasks.length} tasks
                     </span>
@@ -182,14 +194,28 @@ export default function AdminTaskAllocationPage() {
                               const live = group.tasks.find(a => a.isCurrentlyWorking);
                               const sorted = [
                                 ...(live ? [live] : []),
-                                ...group.tasks.filter(a => a._id !== live?._id),
+                                ...group.tasks.filter(a => a.rowKey !== live?.rowKey),
                               ];
                               return sorted.map((allocation) => (
-                                <tr key={allocation._id} className={`border-t border-slate-100 ${allocation.isCurrentlyWorking ? "bg-emerald-100" : ""}`}>
+                                <tr
+                                  key={allocation.rowKey}
+                                  onClick={() => {
+                                    if (!allocation.task?._id) return;
+                                    navigate(`/projects/${allocation.task._id}`);
+                                  }}
+                                  className={`border-t border-slate-100 cursor-pointer hover:bg-orange-50 transition-colors ${allocation.isCurrentlyWorking ? "bg-emerald-100" : ""
+                                    }`}
+                                  title="View task details"
+                                >
                                   <td className="w-[13%] px-2 py-2 align-middle">
-                                    <p className="text-[10px] font-black text-slate-700 uppercase truncate">
+                                    <span className="text-[10px] mr-2 font-black text-slate-700 uppercase truncate">
                                       {allocation.task?.project?.title}
-                                    </p>
+                                    </span>
+                                    {allocation.slotCount > 1 && (
+                                      <span className="shrink-0 text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+                                        Slot {allocation.slotIndex}
+                                      </span>
+                                    )}
                                   </td>
                                   <td className="w-[18%] px-1 py-2 align-middle">
                                     <div className="flex items-center gap-2">
@@ -219,9 +245,9 @@ export default function AdminTaskAllocationPage() {
                                   </td>
                                   <td className="w-[11%] px-2 py-2 align-middle relative">
                                     <div className="relative inline-block">
-                                      {allocation.diffHours > 0 && (
-                                        <span className="absolute -top-3 -right-2 text-[8px] font-bold text-blue-600 leading-none">
-                                          +{allocation.diffHours} h
+                                      {(allocation.diffHours > 0 || allocation.diffMinutes > 0) && (
+                                        <span className="absolute -top-3 -right-4 text-[9px] font-bold text-blue-600 leading-none">
+                                          +{allocation.diffHours}h {allocation.diffMinutes}m
                                         </span>
                                       )}
                                       <p className="text-[10px] font-black text-slate-700">
@@ -259,12 +285,13 @@ export default function AdminTaskAllocationPage() {
                                     })()}
                                   </td>
                                   <td className="w-[8%] px-2 py-2 align-middle">
-                                    <button
-                                      onClick={() => setSelectedAllocation(allocation)}
-                                      className="text-yellow-500 hover:text-yellow-600 rounded-lg transition-all duration-200 active:scale-90 cursor-pointer"
-                                    >
-                                      <FiEdit size={18} />
-                                    </button>
+                                    {!allocation.isClosedSlot && (
+                                      <button onClick={(e) => { e.stopPropagation(); setSelectedAllocation(allocation); }}
+                                        className="text-yellow-500 hover:text-yellow-600 rounded-lg transition-all duration-200 active:scale-90 cursor-pointer"
+                                      >
+                                        <FiEdit size={18} />
+                                      </button>
+                                    )}
                                   </td>
                                 </tr>
                               ));
@@ -278,8 +305,8 @@ export default function AdminTaskAllocationPage() {
               ))}
             </div>
           )}
-        </main>
-      </div>
+        </main >
+      </div >
     </>
   );
 }

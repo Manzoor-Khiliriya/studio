@@ -3,6 +3,7 @@ const Project = require("../models/Project");
 const Task = require("../models/Task");
 const TimeLog = require("../models/TimeLog");
 const { formatDate } = require("../utils/dateHelper");
+const { getDefaultTaskProjectTime } = require("../utils/defaultTaskHelper");
 const { emitDashboardUpdate, emitToProject } = require("../utils/socket");
 const { calculateEstimatedHours } = require("../utils/taskHelpers");
 const {
@@ -40,6 +41,7 @@ exports.createProject = async (req, res) => {
         .status(409)
         .json({ success: false, message: "Project Code already exists" });
     }
+
     const project = await Project.create({
       projectCode: projectCode.toUpperCase(),
       projectType,
@@ -49,12 +51,29 @@ exports.createProject = async (req, res) => {
       startDate,
       endDate,
     });
+
+    const estimatedTime = await calculateEstimatedHours(
+      project.startDate,
+      project.endDate,
+    );
+
+    const defaultTask = await Task.create({
+      project: project._id,
+      title: `${project.title} - Default Task`,
+      description: `Default task for ${project.title}`,
+      estimatedTime,
+      allocatedTime: estimatedTime,
+      assignedTo: [],
+      isDefault: true,
+    });
+
     await emitToProject(req, project._id, "projectChanged", project);
     emitDashboardUpdate(req);
     return res.status(201).json({
       success: true,
       message: "Project created successfully",
       project,
+      defaultTask,
     });
   } catch (error) {
     console.error(error);
@@ -240,18 +259,67 @@ exports.getAllProjects = async (req, res) => {
       holidaySet = new Set(holidays.map((h) => formatDate(h.date)));
     }
 
-    let projectsWithStatus = projects.map((project) => ({
-      ...project.toObject(),
-      workingDays: calculateWorkingDaysFromHolidaySet(
-        project.startDate,
-        project.endDate,
-        holidaySet,
-      ),
-      tasks: (project.tasks || []).map((task) => ({
-        ...task.toObject(),
-        liveStatus: task.liveStatus,
-      })),
-    }));
+    let projectsWithStatus = await Promise.all(
+      projects.map(async (project) => {
+        const projectData = project.toObject();
+
+        const tasks = await Promise.all(
+          (project.tasks || []).map(async (task) => {
+            const taskData = task.toObject();
+
+            if (task.isDefault) {
+              const totalAllocatedTime = (project.tasks || [])
+                .filter((projectTask) => !projectTask.isDefault)
+                .reduce(
+                  (total, projectTask) =>
+                    total + (Number(projectTask.allocatedTime) || 0),
+                  0,
+                );
+
+              const projectTime = await getDefaultTaskProjectTime(
+                project._id,
+                task._id,
+              );
+
+              return {
+                ...taskData,
+
+                allocatedTime: totalAllocatedTime,
+
+                totalConsumedSeconds: projectTime.totalConsumedSeconds,
+
+                totalConsumedHours: projectTime.totalConsumedHours,
+
+                totalRawConsumedSeconds: projectTime.totalRawConsumedSeconds,
+
+                totalRawConsumedHours: projectTime.totalRawConsumedHours,
+
+                liveStatus: projectTime.liveStatus,
+
+                isProjectTimeSummary: true,
+              };
+            }
+
+            return {
+              ...taskData,
+              liveStatus: task.liveStatus,
+            };
+          }),
+        );
+
+        return {
+          ...projectData,
+
+          workingDays: calculateWorkingDaysFromHolidaySet(
+            project.startDate,
+            project.endDate,
+            holidaySet,
+          ),
+
+          tasks,
+        };
+      }),
+    );
 
     if (liveStatus && liveStatus !== "All") {
       projectsWithStatus = projectsWithStatus.map((project) => ({
@@ -273,7 +341,8 @@ exports.getAllProjects = async (req, res) => {
     }
 
     const totalTasksAcrossAllFilteredProjects = projectsWithStatus.reduce(
-      (acc, project) => acc + (project.tasks?.length || 0),
+      (acc, project) =>
+        acc + (project.tasks || []).filter((task) => !task.isDefault).length,
       0,
     );
 
@@ -556,12 +625,36 @@ exports.getTaskPerformanceReport = async (req, res) => {
       // Calculate consumed time per task
       {
         $addFields: {
+          "taskList.consumedSeconds": {
+            $sum: "$taskLogs.durationSeconds",
+          },
+        },
+      },
+      {
+        $addFields: {
           "taskList.consumedHours": {
-            $round: [
-              {
-                $divide: [{ $sum: "$taskLogs.durationSeconds" }, 3600],
-              },
-              2,
+            $divide: ["$taskList.consumedSeconds", 3600],
+          },
+          "taskList.consumedWholeHours": {
+            $floor: {
+              $divide: ["$taskList.consumedSeconds", 3600],
+            },
+          },
+          "taskList.consumedMinutes": {
+            $floor: {
+              $divide: [{ $mod: ["$taskList.consumedSeconds", 3600] }, 60],
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          "taskList.consumedFormatted": {
+            $concat: [
+              { $toString: "$taskList.consumedWholeHours" },
+              " H ",
+              { $toString: "$taskList.consumedMinutes" },
+              " M",
             ],
           },
         },
@@ -617,11 +710,43 @@ exports.getTaskPerformanceReport = async (req, res) => {
       // Project-level totals
       {
         $addFields: {
-          totalConsumed: {
-            $sum: "$taskList.consumedHours",
+          totalConsumedSeconds: {
+            $sum: "$taskList.consumedSeconds",
           },
           totalBudget: {
             $sum: "$taskList.allocatedTime",
+          },
+        },
+      },
+      {
+        $addFields: {
+          // Keep decimal hours for accurate progress calculations
+          totalConsumed: {
+            $divide: ["$totalConsumedSeconds", 3600],
+          },
+
+          totalConsumedWholeHours: {
+            $floor: {
+              $divide: ["$totalConsumedSeconds", 3600],
+            },
+          },
+
+          totalConsumedMinutes: {
+            $floor: {
+              $divide: [{ $mod: ["$totalConsumedSeconds", 3600] }, 60],
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          totalConsumedFormatted: {
+            $concat: [
+              { $toString: "$totalConsumedWholeHours" },
+              " H ",
+              { $toString: "$totalConsumedMinutes" },
+              " M",
+            ],
           },
         },
       },
@@ -793,7 +918,7 @@ exports.getProjectCalendarStacks = async (req, res) => {
                 },
               },
             },
-            
+
             taskCount: { $size: "$taskList" },
           },
         },

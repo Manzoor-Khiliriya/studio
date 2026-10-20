@@ -1,38 +1,36 @@
-import { apiSlice } from './apiSlice';
+import { apiSlice } from "./apiSlice";
 
 export const timeLogApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    
     getMyTodayLogs: builder.query({
-      query: () => '/timelogs/my',
-      providesTags: ['TimeLog'],
+      query: () => "/timelogs/my",
+      providesTags: ["TimeLog"],
     }),
 
     startTimer: builder.mutation({
       query: (taskId) => ({
-        url: '/timelogs/start',
-        method: 'POST',
+        url: "/timelogs/start",
+        method: "POST",
         body: { taskId },
       }),
-      invalidatesTags: ['TimeLog', 'Task', 'Project'], 
+      invalidatesTags: ["TimeLog", "Task", "Project"],
     }),
 
     togglePause: builder.mutation({
       query: () => ({
-        url: '/timelogs/pause',
-        method: 'POST',
+        url: "/timelogs/pause",
+        method: "POST",
       }),
-      invalidatesTags: ['TimeLog'],
+      invalidatesTags: ["TimeLog"],
     }),
 
     stopTimer: builder.mutation({
       query: () => ({
-        url: '/timelogs/stop',
-        method: 'POST',
+        url: "/timelogs/stop",
+        method: "POST",
       }),
-      invalidatesTags: ['TimeLog'],
+      invalidatesTags: ["TimeLog"],
     }),
-
   }),
 });
 

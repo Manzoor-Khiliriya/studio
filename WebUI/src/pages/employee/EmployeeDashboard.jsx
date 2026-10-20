@@ -5,7 +5,7 @@ import { HiOutlineBolt, HiOutlineExclamationTriangle } from 'react-icons/hi2';
 import { toast } from "react-hot-toast";
 import { useGetDashboardSummaryQuery } from "../../services/dashboardApi";
 import { useGetMyTodayLogsQuery, useStopTimerMutation, useTogglePauseMutation } from "../../services/timeLogApi";
-import { useGetTodayStatusQuery, useClockInMutation, useClockOutMutation } from "../../services/attendanceApi";
+import { useGetTodayStatusQuery, useClockInMutation, useClockOutMutation, useStartLunchMutation, useEndLunchMutation } from "../../services/attendanceApi";
 import ClockInOut from "../../components/ClockInOut";
 import TaskCard from "../../components/TaskCard";
 import Loader from "../../components/Loader";
@@ -53,6 +53,8 @@ export default function EmployeeDashboard() {
   const { data: attendanceStatus, isLoading: attendanceLoading, refetch } = useGetTodayStatusQuery();
   const [clockIn, { isLoading: isClockingIn }] = useClockInMutation();
   const [clockOut, { isLoading: isClockingOut }] = useClockOutMutation();
+  const [startLunch, { isLoading: isStartingLunch }] = useStartLunchMutation();
+  const [endLunch, { isLoading: isEndingLunch }] = useEndLunchMutation();
   const { data: logsData, isSuccess: logsLoaded, refetch: refetchLogs } = useGetMyTodayLogsQuery(undefined, {
     skip: !isTaskUser,
     refetchOnFocus: true,
@@ -60,8 +62,8 @@ export default function EmployeeDashboard() {
   const [stopTimer] = useStopTimerMutation();
   const [togglePause] = useTogglePauseMutation(); // 🔥 NEW
 
-  const isSyncingAttendance = isClockingIn || isClockingOut;
-
+  const isSyncingAttendance =
+    isClockingIn || isClockingOut || isStartingLunch || isEndingLunch;
 
   useSocketEvents({
     onDashboardUpdate: () => {
@@ -122,7 +124,7 @@ export default function EmployeeDashboard() {
     if (!logsLoaded || !logsData) return;
     const { logs, totalSecondsWorkedToday } = logsData;
     const activeLog = logs.find(log => log.isRunning);
-    const isBreak = activeLog?.logType === "break";
+    const isBreak = ["break", "lunch"].includes(activeLog?.logType);
 
     setRunningTask(activeLog?.task?.title || null);
     setIsOnBreak(isBreak);
@@ -146,8 +148,7 @@ export default function EmployeeDashboard() {
   }, [logsData, logsLoaded]);
 
   const activeBreakLog = isTaskUser && logsLoaded && logsData
-    ? logsData.logs.find((log) => log.isRunning && log.logType === "break")
-    : null;
+    ? logsData.logs.find((log) => log.isRunning && log.logType === "break" && !log.fromLunch) : null;
 
   useBreakReminder(activeBreakLog, (minutesOnBreak) => {
     toast.custom(
@@ -169,7 +170,43 @@ export default function EmployeeDashboard() {
     );
   });
 
+
+  const attendanceLunchLog =
+    attendanceStatus?.isOnLunch && attendanceStatus?.lunchStartTime
+      ? {
+        _id: `attendance-lunch-${new Date(
+          attendanceStatus.lunchStartTime
+        ).getTime()}`,
+        startTime: attendanceStatus.lunchStartTime,
+        logType: "lunch",
+      }
+      : null;
+
+  useBreakReminder(attendanceLunchLog, (minutesOnBreak) => {
+    toast(
+      `You've been on your attendance lunch break for ${minutesOnBreak} minutes.`
+    );
+  });
+
+
   const isOnShift = attendanceStatus?.clockIn && !attendanceStatus?.clockOut;
+  const isOnLunch = !!isOnShift && !!attendanceStatus?.isOnLunch;
+
+  const handleLunchToggle = async () => {
+    try {
+      if (isOnLunch) {
+        await endLunch().unwrap();
+        toast.success("Welcome back!");
+      } else {
+        await startLunch().unwrap();
+        toast.success("Lunch started");
+      }
+      refetch();
+      if (isTaskUser) refetchLogs();
+    } catch (err) {
+      toast.error(err?.data?.message || "Lunch action failed");
+    }
+  };
 
   // Shift Timer Ticker
   useEffect(() => {
@@ -322,6 +359,18 @@ export default function EmployeeDashboard() {
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mb-1">
                 Daily Attendance
               </p>
+              {isOnShift && (
+                <button
+                  onClick={handleLunchToggle}
+                  disabled={isSyncingAttendance}
+                  className={`cursor-pointer disabled:cursor-not-allowed w-full py-2.5 rounded-[1.25rem] font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 ${isOnLunch
+                    ? "bg-green-500 text-white hover:bg-green-600"
+                    : "bg-amber-500 text-white hover:bg-amber-600"
+                    }`}
+                >
+                  {isOnLunch ? "End Lunch" : "Lunch Break"}
+                </button>
+              )}
 
               <button
                 onClick={handleAttendanceToggle}
@@ -335,10 +384,14 @@ export default function EmployeeDashboard() {
               </button>
 
               <p className="text-[9px] font-bold text-slate-400 text-center uppercase tracking-tight h-2">
-                {isOnShift && attendanceStatus.clockIn
-                  ? `Clocked In At ${new Date(attendanceStatus.clockIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                  : "Clock In To Start Your Shift"}
+                {isOnLunch
+                  ? "On Lunch"
+                  : isOnShift && attendanceStatus.clockIn
+                    ? `Clocked In At ${new Date(attendanceStatus.clockIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                    : "Clock In To Start Your Shift"}
               </p>
+
+
             </motion.div>
 
             {(user?.role === "Hr Manager" || user?.role === "GAD Manager") && (
@@ -352,11 +405,14 @@ export default function EmployeeDashboard() {
                   navigate("/leaves", {
                     state: {
                       activeTab: "requests",
+                      statusFilter: "Pending",
+                      dateRange: "all",
                     },
                   })
                 }
               />
             )}
+
 
           </div>
 
@@ -396,6 +452,7 @@ export default function EmployeeDashboard() {
                           taskList={allActiveTasks}
                           totalSeconds={liveSeconds}
                           activeTimer={logsData?.logs?.find(log => log.isRunning)}
+                          isOnLunch={isOnLunch}
                         />
 
                       </motion.div>

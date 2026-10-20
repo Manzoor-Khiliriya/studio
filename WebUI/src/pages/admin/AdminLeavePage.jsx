@@ -41,6 +41,9 @@ import PageHeader from "../../components/PageHeader";
 export default function AdminLeavePage() {
   const { user } = useSelector((state) => state.auth);
   const location = useLocation();
+  const [leaveTypeFilter, setLeaveTypeFilter] = useState("All");
+  const [requestedDates, setRequestedDates] = useState({ from: "", to: "" });
+  const [resumeDates, setResumeDates] = useState({ from: "", to: "" });
 
   const getTabsByRole = (role) => {
     switch (role) {
@@ -62,7 +65,7 @@ export default function AdminLeavePage() {
             icon: <HiOutlineUserCircle size={16} />,
           },
           {
-            id: "casual-lop",
+            id: "lop/lwp",
             label: "LOP/LWP Leaves",
             icon: <HiOutlineCalendarDays size={16} />,
           },
@@ -96,7 +99,7 @@ export default function AdminLeavePage() {
             icon: <HiOutlineUserCircle size={16} />,
           },
           {
-            id: "casual-lop",
+            id: "lop/lwp",
             label: "LOP/LWP Leaves",
             icon: <HiOutlineCalendarDays size={16} />,
           },
@@ -142,6 +145,9 @@ export default function AdminLeavePage() {
     location.state?.activeTab ||
     (user?.role === "Admin" ? "requests" : "my-leaves")
   );
+
+  const showExtraFilters = ["leave-history", "lop/lwp", "compensatory-off"].includes(activeTab);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -190,14 +196,16 @@ export default function AdminLeavePage() {
       limit,
       view: activeTab,
       status: statusFilter,
+      leaveType: leaveTypeFilter,
       dateRange,
       startDate: customDates.start,
       endDate: customDates.end,
+      requestedFrom: requestedDates.from,
+      requestedTo: requestedDates.to,
+      resumeFrom: resumeDates.from,
+      resumeTo: resumeDates.to,
     },
-    {
-      refetchOnMountOrArgChange: true,
-      keepUnusedDataFor: 300,
-    },
+    { refetchOnMountOrArgChange: true, keepUnusedDataFor: 300 },
   );
 
   const { data: leaveSettings } = useGetLeaveSettingsQuery(undefined, {
@@ -236,7 +244,16 @@ export default function AdminLeavePage() {
     }
 
     let csvContent = "";
-    let fileName = `leave_report_${activeTab}_${new Date().toISOString().split("T")[0]}.csv`;
+    const date = new Date()
+      .toLocaleDateString("en-GB", {
+        timeZone: "Asia/Kolkata",
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      })
+      .replace(/ /g, "-");
+
+    const fileName = `leave_report_${activeTab}_${date}.csv`;
 
     if (activeTab === "quota") {
       // 1. Define detailed headers
@@ -293,6 +310,7 @@ export default function AdminLeavePage() {
       // 2. Generate CSV Content
       csvContent = [headers, ...rows].map((e) => e.join(",")).join("\n");
     } else {
+
       const headers = [
         "Employee",
         "Employee Code",
@@ -301,18 +319,32 @@ export default function AdminLeavePage() {
         "Start Date",
         "End Date",
         "Duration",
+        "Resume Date",
         "Status",
       ];
+
       const rows = data.leaves.map((r) => [
-        r.user?.name,
+        r.user?.name || "N/A",
         r.user?.employee?.employeeCode || "N/A",
-        r.type,
-        new Date(r.createdAt).toLocaleDateString("en-IN"),
-        new Date(r.startDate).toLocaleDateString("en-IN"),
-        new Date(r.endDate).toLocaleDateString("en-IN"),
-        `${r.duration} days`,
-        r.status,
+        r.type || "N/A",
+        new Date(r.createdAt).toLocaleDateString("en-IN", {
+          timeZone: "Asia/Kolkata",
+        }),
+        new Date(r.startDate).toLocaleDateString("en-IN", {
+          timeZone: "Asia/Kolkata",
+        }),
+        new Date(r.endDate).toLocaleDateString("en-IN", {
+          timeZone: "Asia/Kolkata",
+        }),
+        `${r.duration ?? 0} days`,
+        r.resumeDate
+          ? new Date(r.resumeDate).toLocaleDateString("en-IN", {
+            timeZone: "Asia/Kolkata",
+          })
+          : "Not specified",
+        r.status || "N/A",
       ]);
+
       csvContent = [headers, ...rows].map((e) => e.join(",")).join("\n");
     }
 
@@ -332,7 +364,10 @@ export default function AdminLeavePage() {
   const handleResetFilters = () => {
     setDateRange("current-week");
     setCustomDates({ start: "", end: "" });
+    setRequestedDates({ from: "", to: "" });
+    setResumeDates({ from: "", to: "" });
     setStatusFilter("All");
+    setLeaveTypeFilter("All");
     setPage(1);
   };
 
@@ -441,9 +476,14 @@ export default function AdminLeavePage() {
   const hasActiveFilters =
     searchQuery.trim() !== "" ||
     statusFilter !== "All" ||
+    leaveTypeFilter !== "All" ||
     dateRange !== "current-week" ||
     customDates.start !== "" ||
-    customDates.end !== "";
+    customDates.end !== "" ||
+    requestedDates.from !== "" ||
+    requestedDates.to !== "" ||
+    resumeDates.from !== "" ||
+    resumeDates.to !== "";
 
   if (isLoading) return <Loader message="Accessing Attendance Matrix..." />;
 
@@ -486,6 +526,26 @@ export default function AdminLeavePage() {
 
               {activeTab !== "quota" && (
                 <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm w-full md:w-auto">
+                  {activeTab === "leave-history" && (
+                    <CustomDropdown
+                      value={leaveTypeFilter}
+                      onChange={(val) => { setLeaveTypeFilter(val); setPage(1); }}
+                      options={[
+                        { label: "All Leave Types", value: "All" },
+                        { label: "Without LOP & Comp Off", value: "exclude-special" },
+                        { label: "Earned Leave", value: "Earned Leave" },
+                        { label: "Sick Leave", value: "Sick Leave" },
+                        { label: "Bereavement Leave", value: "Bereavement Leave" },
+                        { label: "Paternity Leave", value: "Paternity Leave" },
+                        { label: "Maternity Leave", value: "Maternity Leave" },
+                        { label: "Casual Leave", value: "Casual Leave" },
+                        { label: "Compensatory Off", value: "Compensatory Off" },
+                        { label: "LOP", value: "LOP" },
+                      ]}
+                      className="min-w-[160px]"
+                      buttonClass="shadow-sm bg-slate-50 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl text-slate-700 border border-slate-100"
+                    />
+                  )}
                   {activeTab === "requests" && (
                     <CustomDropdown
                       value={statusFilter}
@@ -512,7 +572,7 @@ export default function AdminLeavePage() {
                       if (val !== "custom") setCustomDates({ start: "", end: "" });
                     }}
                     options={[
-                      { label: "All", value: "all" },
+                      { label: "All Timelines", value: "all" },
                       { label: "Today", value: "today" },
                       { label: "Upcoming Leaves", value: "upcoming" },
                       { label: "Current Week", value: "current-week" },
@@ -529,10 +589,7 @@ export default function AdminLeavePage() {
                     <button
                       onClick={() => {
                         setSearchQuery("");
-                        setStatusFilter("All");
-                        setDateRange("current-week");
-                        setCustomDates({ start: "", end: "" });
-                        setPage(1);
+                        handleResetFilters();
                       }}
                       className="shadow-sm flex items-center gap-2 p-2.5 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all font-bold text-xs cursor-pointer"
                     >
@@ -600,6 +657,49 @@ export default function AdminLeavePage() {
                       ? "Filtering by submission date"
                       : "Filtering by leave start date"}
                   </p>
+                </div>
+              </div>
+            )}
+            {showExtraFilters && (
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-3 px-2">
+                {/* REQUESTED DATE */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase text-slate-500">Requested:</span>
+                  <input
+                    type="date"
+                    value={requestedDates.from}
+                    max={requestedDates.to || undefined}
+                    onChange={(e) => { setRequestedDates((p) => ({ ...p, from: e.target.value })); setPage(1); }}
+                    className="bg-white px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold outline-none focus:border-orange-500"
+                  />
+                  <span className="text-slate-400 text-xs font-black">to</span>
+                  <input
+                    type="date"
+                    value={requestedDates.to}
+                    min={requestedDates.from || undefined}
+                    onChange={(e) => { setRequestedDates((p) => ({ ...p, to: e.target.value })); setPage(1); }}
+                    className="bg-white px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold outline-none focus:border-orange-500"
+                  />
+                </div>
+
+                {/* RESUME DATE */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase text-slate-500">Resume:</span>
+                  <input
+                    type="date"
+                    value={resumeDates.from}
+                    max={resumeDates.to || undefined}
+                    onChange={(e) => { setResumeDates((p) => ({ ...p, from: e.target.value })); setPage(1); }}
+                    className="bg-white px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold outline-none focus:border-orange-500"
+                  />
+                  <span className="text-slate-400 text-xs font-black">to</span>
+                  <input
+                    type="date"
+                    value={resumeDates.to}
+                    min={resumeDates.from || undefined}
+                    onChange={(e) => { setResumeDates((p) => ({ ...p, to: e.target.value })); setPage(1); }}
+                    className="bg-white px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold outline-none focus:border-orange-500"
+                  />
                 </div>
               </div>
             )}

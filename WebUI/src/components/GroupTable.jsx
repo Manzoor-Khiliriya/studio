@@ -24,14 +24,20 @@ export default function GroupedTaskTable({ tasks, columns, onRowClick, emptyMess
               <tr
                 key={task._id || idx}
                 onClick={() => onRowClick?.(task)}
-                className={`group ${onRowClick ? "hover:bg-orange-100/20 cursor-pointer" : ""
-                  }`}
+                className={`group transition - colors ${task.isProjectTimeSummary || task.isDefault
+                    ? "bg-indigo-100 hover:bg-indigo-200"
+                    : onRowClick
+                      ? "hover:bg-orange-100/20 cursor-pointer"
+                      : ""
+                  } ${onRowClick ? "cursor-pointer" : ""}`}
               >
-                {columns.map((col, colIdx) => (
-                  <td key={colIdx} className={`px-6 py-4 border-b border-slate-50 ${col.cellClassName || ""}`}>
-                    {col.render ? col.render(task) : task[col.key]}
-                  </td>
-                ))}
+                {
+                  columns.map((col, colIdx) => (
+                    <td key={colIdx} className={`px-6 py-4 border-b border-slate-50 ${col.cellClassName || ""}`}>
+                      {col.render ? col.render(task) : task[col.key]}
+                    </td>
+                  ))
+                }
               </tr>
             ))
           ) : (
@@ -41,6 +47,6 @@ export default function GroupedTaskTable({ tasks, columns, onRowClick, emptyMess
           )}
         </tbody>
       </table>
-    </div>
+    </div >
   );
 }

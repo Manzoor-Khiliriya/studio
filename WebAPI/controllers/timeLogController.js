@@ -9,6 +9,7 @@ const {
   emitToRole,
 } = require("../utils/socket");
 const { getToday, now } = require("../utils/dateHelper");
+const Attendance = require("../models/Attendance");
 
 const emitEvent = (req, event, data, userId = null) => {
   const io = req.app.get("socketio");
@@ -20,11 +21,22 @@ const emitEvent = (req, event, data, userId = null) => {
   }
 };
 
+const isUserOnLunch = async (userId) =>
+  !!(await Attendance.exists({
+    user: userId,
+    date: getToday(),
+    clockOut: null,
+    isOnLunch: true,
+  }));
+
 exports.startTimer = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
+    if (await isUserOnLunch(req.user._id)) {
+      throw new Error("You are on lunch. End lunch first.");
+    }
     const { taskId } = req.body;
     const userId = req.user._id;
     const today = getToday();
@@ -98,7 +110,14 @@ exports.togglePause = async (req, res) => {
   session.startTransaction();
 
   try {
+    if (await isUserOnLunch(req.user._id)) {
+      await session.abortTransaction();
+      return res
+        .status(400)
+        .json({ message: "You are on lunch. End lunch first." });
+    }
     const userId = req.user._id;
+
     const active = await TimeLog.findOne({
       user: userId,
       isRunning: true,

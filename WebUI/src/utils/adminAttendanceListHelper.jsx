@@ -4,6 +4,7 @@ import {
   HiOutlineLogout,
   HiOutlineClock,
 } from "react-icons/hi";
+import { HiOutlineCake } from "react-icons/hi2";
 
 export const getAdminAttendanceColumns = () => [
   {
@@ -44,19 +45,20 @@ export const getAdminAttendanceColumns = () => [
     header: "Status",
     render: (row) => {
       const status = row.status || "Not Clocked In";
+      const label = status === "Clocked In" && row.isOnLunch ? "On Lunch" : status;
 
       const statusColor = {
         "Clocked In": "text-emerald-600",
+        "On Lunch": "text-purple-600",
         "Clocked Out": "text-blue-600",
         "Not Clocked In": "text-red-600",
       };
 
       return (
         <span
-          className={`flex items-center gap-3 py-1 font-black text-[10px] uppercase tracking-tighter ${statusColor[status] || "text-red-600"
-            }`}
+          className={`flex items-center gap-3 py-1 font-black text-[10px] uppercase tracking-tighter ${statusColor[label] || "text-red-600"}`}
         >
-          {status}
+          {label}
         </span>
       );
     },
@@ -70,8 +72,8 @@ export const getAdminAttendanceColumns = () => [
     render: (row) => (
       <div
         className={`inline-flex items-center gap-1.5 font-black text-[10px] uppercase tracking-tighter ${row.clockIn
-            ? "text-emerald-600"
-            : "text-slate-400"
+          ? "text-emerald-600"
+          : "text-slate-400"
           }`}
       >
         <HiOutlineLogin size={12} />
@@ -131,6 +133,34 @@ export const getAdminAttendanceColumns = () => [
     },
   },
 
+  {
+    header: "Lunch Break Time",
+    render: (row) => {
+      const totalLunchSecs = row.totalLunchSeconds || 0;
+
+      const h = Math.floor(totalLunchSecs / 3600);
+      const m = Math.floor((totalLunchSecs % 3600) / 60);
+
+      return (
+        <div
+          className={`inline-flex items-center gap-1.5 font-black text-[10px] uppercase tracking-tighter  ${totalLunchSecs > 0 ? "text-purple-600" : "text-slate-400"
+            }`}
+        >
+          <HiOutlineCake size={12} />
+
+          {totalLunchSecs > 0 ? (
+            <>
+              {h > 0 && <span>{h} Hrs</span>}
+              <span>{m} Mins</span>
+            </>
+          ) : (
+            <span>---</span>
+          )}
+        </div>
+      );
+    },
+  },
+
   // ============================================================
   // TOTAL CLOCKED TIME
   // ============================================================
@@ -151,7 +181,7 @@ export const getAdminAttendanceColumns = () => [
       const s = totalSecs % 60;
 
       return (
-        <div className="flex items-center gap-2 py-1 font-black text-slate-800 text-[10px] tabular-nums">
+        <div className="inline-flex items-center gap-1.5 font-black text-[10px] uppercase tracking-tighter text-slate-800">
           <HiOutlineClock
             className="text-slate-600"
             size={12}
